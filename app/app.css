@@ -228,6 +228,36 @@ html[data-mantine-color-scheme='dark'] .day-card {
   min-width: 4.5rem;
 }
 
+.shared-stay-header {
+  display: none;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto auto;
+  column-gap: 1rem;
+  padding: 0 0.75rem 0.5rem;
+}
+
+.shared-stay-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 0.9rem 0.75rem;
+}
+
+.shared-stay-row[data-current='true'] {
+  background: rgba(228, 42, 87, 0.05);
+}
+
+.shared-stay-cell {
+  min-width: 0;
+}
+
+.shared-stay-cell-label {
+  display: block;
+}
+
+.shared-stay-action-cell {
+  align-items: flex-start;
+}
+
 .booking-list-item:hover {
   background: rgba(16, 20, 24, 0.03);
 }
@@ -280,6 +310,10 @@ html[data-mantine-color-scheme='dark'] .day-list-item[data-active='true'] {
   box-shadow: inset 3px 0 0 #ff6f8f;
 }
 
+html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
+  background: rgba(255, 111, 143, 0.08);
+}
+
 @media (min-width: 62em) {
   .page-header-stat-value {
     font-size: 1.2rem;
@@ -287,5 +321,23 @@ html[data-mantine-color-scheme='dark'] .day-list-item[data-active='true'] {
 
   .booking-list-scroll {
     max-height: 560px;
+  }
+
+  .shared-stay-header {
+    display: grid;
+  }
+
+  .shared-stay-row {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto auto;
+    column-gap: 1rem;
+    align-items: start;
+  }
+
+  .shared-stay-cell-label {
+    display: none;
+  }
+
+  .shared-stay-action-cell {
+    align-items: flex-end;
   }
 }

@@ -596,12 +596,12 @@ function SharedStayAction({
     booking?.status !== 'cancelled' &&
     booking?.accommodationName?.trim() === accommodationName;
   const buttonLabel = isCurrentSelection
-    ? 'Using this stay'
+    ? 'Joined'
     : booking
       ? booking.status === 'cancelled'
-        ? 'Rejoin with this stay'
-        : 'Use this stay'
-      : 'Add with this stay';
+        ? 'Rejoin stay'
+        : 'Switch stay'
+      : 'Join stay';
 
   return (
     <Stack gap={4} align="flex-end">
@@ -640,6 +640,44 @@ function SharedStayAction({
   );
 }
 
+function getSharedStayState(
+  booking: DayBookingSnapshot | undefined,
+  accommodationName: string,
+) {
+  if (!booking) {
+    return {
+      label: 'Not in your plan',
+      color: 'gray' as const,
+    };
+  }
+
+  if (booking.status === 'cancelled') {
+    return {
+      label: 'Cancelled',
+      color: 'gray' as const,
+    };
+  }
+
+  if (booking.accommodationName?.trim() === accommodationName) {
+    return {
+      label: 'Current stay',
+      color: 'green' as const,
+    };
+  }
+
+  if (booking.accommodationName?.trim()) {
+    return {
+      label: 'On another stay',
+      color: 'yellow' as const,
+    };
+  }
+
+  return {
+    label: 'No stay selected',
+    color: 'gray' as const,
+  };
+}
+
 function SharedStayAssignments({
   day,
   attendees,
@@ -660,44 +698,133 @@ function SharedStayAssignments({
   }
 
   return (
-    <Stack gap="md">
-      {groups.map((group, index) => (
-        <Fragment key={group.label}>
-          <Group
-            justify="space-between"
-            align="flex-start"
-            gap="md"
-            wrap="nowrap"
-          >
-            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-              <Text fw={700}>{group.label}</Text>
-              <Text size="sm" c="dimmed">
-                {group.attendees
-                  .map((attendee) => attendee.userName)
-                  .join(', ')}
-              </Text>
-            </Stack>
-            <Stack gap={6} align="flex-end" style={{ flexShrink: 0 }}>
-              <Text size="sm" fw={700} c="dimmed">
-                {group.attendees.length}
-              </Text>
-              {group.label === UNSHARED_STAY_LABEL ? (
-                <Text size="xs" c="dimmed">
-                  Needs a stay name
-                </Text>
-              ) : (
-                <SharedStayAction
-                  day={day}
-                  booking={booking}
-                  accommodationName={group.label}
-                />
-              )}
-            </Stack>
-          </Group>
-          {index < groups.length - 1 ? <Divider /> : null}
-        </Fragment>
-      ))}
-    </Stack>
+    <Box>
+      <Box className="shared-stay-header">
+        <Text size="xs" fw={700} c="dimmed">
+          Stay
+        </Text>
+        <Text size="xs" fw={700} c="dimmed">
+          People on it
+        </Text>
+        <Text size="xs" fw={700} c="dimmed">
+          Your state
+        </Text>
+        <Text size="xs" fw={700} c="dimmed" ta="right">
+          Action
+        </Text>
+      </Box>
+
+      <Stack gap={0}>
+        {groups.map((group, index) => {
+          const state =
+            group.label === UNSHARED_STAY_LABEL
+              ? {
+                  label:
+                    booking?.status === 'cancelled'
+                      ? 'Cancelled'
+                      : booking?.accommodationName?.trim()
+                        ? 'On another stay'
+                        : 'No stay selected',
+                  color: 'gray' as const,
+                }
+              : getSharedStayState(booking, group.label);
+
+          return (
+            <Fragment key={group.label}>
+              <Box
+                className="shared-stay-row"
+                data-current={
+                  group.label !== UNSHARED_STAY_LABEL &&
+                  booking?.status !== 'cancelled' &&
+                  booking?.accommodationName?.trim() === group.label
+                    ? 'true'
+                    : undefined
+                }
+              >
+                <Stack gap={4} className="shared-stay-cell">
+                  <Text
+                    size="xs"
+                    fw={700}
+                    c="dimmed"
+                    className="shared-stay-cell-label"
+                  >
+                    Stay
+                  </Text>
+                  <Group gap="xs" wrap="wrap">
+                    <Text fw={700}>{group.label}</Text>
+                    <Badge variant="light" color="gray" size="sm">
+                      {group.attendees.length}{' '}
+                      {group.attendees.length === 1 ? 'person' : 'people'}
+                    </Badge>
+                  </Group>
+                </Stack>
+
+                <Stack gap={4} className="shared-stay-cell">
+                  <Text
+                    size="xs"
+                    fw={700}
+                    c="dimmed"
+                    className="shared-stay-cell-label"
+                  >
+                    People on it
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    {group.attendees
+                      .map((attendee) => attendee.userName)
+                      .join(', ')}
+                  </Text>
+                </Stack>
+
+                <Stack gap={4} className="shared-stay-cell">
+                  <Text
+                    size="xs"
+                    fw={700}
+                    c="dimmed"
+                    className="shared-stay-cell-label"
+                  >
+                    Your state
+                  </Text>
+                  <Badge
+                    variant="light"
+                    color={state.color}
+                    size="sm"
+                    w="fit-content"
+                  >
+                    {state.label}
+                  </Badge>
+                </Stack>
+
+                <Stack
+                  gap={4}
+                  className="shared-stay-cell shared-stay-action-cell"
+                >
+                  <Text
+                    size="xs"
+                    fw={700}
+                    c="dimmed"
+                    className="shared-stay-cell-label"
+                  >
+                    Action
+                  </Text>
+                  {group.label === UNSHARED_STAY_LABEL ? (
+                    <Text size="sm" c="dimmed" ta="right">
+                      Wait for someone to name the stay.
+                    </Text>
+                  ) : (
+                    <SharedStayAction
+                      day={day}
+                      booking={booking}
+                      accommodationName={group.label}
+                    />
+                  )}
+                </Stack>
+              </Box>
+              {index < groups.length - 1 ? <Divider /> : null}
+            </Fragment>
+          );
+        })}
+      </Stack>
+    </Box>
   );
 }
 

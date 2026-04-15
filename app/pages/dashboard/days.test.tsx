@@ -189,10 +189,14 @@ describe('AvailableDaysPage', () => {
     );
 
     expect(
-      await screen.findByRole('button', { name: /add with this stay/i }),
+      await screen.findByRole('button', { name: /join stay/i }),
     ).toBeInTheDocument();
+    expect(screen.getAllByText('Your state').length).toBeGreaterThan(0);
+    expect(screen.getByText('Not in your plan')).toBeInTheDocument();
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
-    expect(screen.getByText('Needs a stay name')).toBeInTheDocument();
+    expect(
+      screen.getByText('Wait for someone to name the stay.'),
+    ).toBeInTheDocument();
   });
 
   it('renders the empty state when no rows match', () => {
