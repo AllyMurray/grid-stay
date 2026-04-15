@@ -33,6 +33,12 @@ group is staying.
 2. Configure SST secrets for `GoogleClientId`, `GoogleClientSecret`, and `BetterAuthSecret`
 3. Run `pnpm dev`
 
+## Deployment
+
+See [docs/deployment-and-domains.md](/Users/ally/Projects/repos/grid-stay/docs/deployment-and-domains.md)
+for the current domain setup, stage hostnames, certificate mapping, deploy
+commands, and Google OAuth configuration.
+
 ## Future Improvements
 
 - If `/dashboard/days` needs to move below the current sub-second first load,
