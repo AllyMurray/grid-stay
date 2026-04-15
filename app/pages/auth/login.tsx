@@ -71,6 +71,15 @@ export function LoginPage({ redirectTo }: LoginPageProps) {
                   Sign in once, pick up the live schedule, and keep the stay
                   details moving with the rest of the crew.
                 </Text>
+                <Stack gap={2} maw={520}>
+                  <Text size="sm" fw={700} c="brand.3">
+                    Current coverage
+                  </Text>
+                  <Text size="sm" c="gray.0">
+                    The live calendar currently covers Caterham-run race series
+                    only.
+                  </Text>
+                </Stack>
 
                 <Stack gap="md" pt="sm" maw={520}>
                   {[

@@ -34,6 +34,9 @@ describe('LoginPage', () => {
       screen.getByRole('heading', { name: /get back to the weekend plan/i }),
     ).toBeInTheDocument();
     expect(
+      screen.getByText(/caterham-run race series only/i),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('button', { name: /continue with google/i }),
     ).toBeInTheDocument();
 
