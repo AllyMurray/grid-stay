@@ -14,7 +14,7 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
-import { IconAlertCircle, IconPlus } from '@tabler/icons-react';
+import { IconAlertCircle } from '@tabler/icons-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Form, Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
@@ -221,19 +221,6 @@ function createDayAttendeesHref(dayId: string) {
   return `/api/days/${dayId}/attendees`;
 }
 
-function getDayBookingLabel(status?: BookingStatus) {
-  switch (status) {
-    case 'booked':
-      return 'Manage booking';
-    case 'maybe':
-      return 'Confirm booking';
-    case 'cancelled':
-      return 'Restore booking';
-    default:
-      return 'Add to my bookings';
-  }
-}
-
 function getAttendanceSummary(
   summaries: DaysFeedData['attendanceSummaries'],
   dayId: string,
@@ -274,6 +261,18 @@ function getDayTripText(booking?: DayBookingSnapshot) {
   }
 
   return `My trip: ${titleCase(booking.status)}`;
+}
+
+function getMyPlanSharedStay(booking?: DayBookingSnapshot) {
+  if (!booking) {
+    return 'No booking yet';
+  }
+
+  return booking.accommodationName?.trim() || 'No stay selected';
+}
+
+function getSavedStayCountLabel(count: number) {
+  return count === 1 ? '1 saved stay' : `${count} saved stays`;
 }
 
 function groupAttendeesByStatus(
@@ -340,50 +339,33 @@ function groupAttendeesBySharedStay(
 function DayBookingAction({
   day,
   booking,
-  presentation = 'compact',
 }: {
   day: DayRow;
   booking?: DayBookingSnapshot;
-  presentation?: 'compact' | 'panel';
 }) {
   const fetcher = useFetcher<CreateBookingActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const formError =
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
-  const isPanel = presentation === 'panel';
-  const buttonSize = isPanel ? 'md' : 'sm';
-  const containerProps = isPanel
-    ? { gap: 'xs' as const }
-    : { gap: 4 as const, className: 'table-status' };
 
-  if (booking?.status === 'booked') {
+  if (booking) {
     return (
-      <Stack {...containerProps}>
-        <Text size="xs" c="dimmed">
-          Your status: {titleCase(booking.status)}
-        </Text>
+      <Stack gap={4} align="flex-end">
         <Button
           component={Link}
           to="/dashboard/bookings"
-          size={buttonSize}
+          size="sm"
           color="brand"
-          variant="light"
-          w={isPanel ? 'fit-content' : undefined}
+          variant={booking.status === 'booked' ? 'filled' : 'light'}
         >
-          {getDayBookingLabel(booking.status)}
+          Open my booking
         </Button>
       </Stack>
     );
   }
 
   return (
-    <Stack {...containerProps}>
-      {booking ? (
-        <Text size="xs" c="dimmed">
-          Your status: {titleCase(booking.status)}
-        </Text>
-      ) : null}
-
+    <Stack gap={4} align="flex-end">
       <fetcher.Form method="post">
         <input type="hidden" name="dayId" value={day.dayId} />
         <input type="hidden" name="date" value={day.date} />
@@ -394,19 +376,17 @@ function DayBookingAction({
         <input type="hidden" name="status" value="booked" />
         <Button
           type="submit"
-          size={buttonSize}
+          size="sm"
           color="brand"
-          variant={booking ? 'light' : 'filled'}
-          leftSection={<IconPlus size={14} />}
+          variant="filled"
           loading={isSubmitting}
-          w={isPanel ? 'fit-content' : undefined}
         >
-          {getDayBookingLabel(booking?.status)}
+          Add to my bookings
         </Button>
       </fetcher.Form>
 
       {formError ? (
-        <Text size="xs" c="red">
+        <Text size="xs" c="red" ta="right">
           {formError}
         </Text>
       ) : null}
@@ -926,7 +906,7 @@ function DayDetailContent({
           <Text size="sm" c="dimmed">
             {formatDayLongDate(day.date)} • {day.provider}
           </Text>
-          <Text size="sm">{day.description || 'No extra details'}</Text>
+          {day.description ? <Text size="sm">{day.description}</Text> : null}
         </Stack>
         <Stack gap="xs" align="flex-end">
           <Badge color={typeColor(day.type)} size="lg">
@@ -941,37 +921,59 @@ function DayDetailContent({
               Not added
             </Badge>
           )}
+          <DayBookingAction day={day} booking={booking} />
         </Stack>
       </Group>
 
-      <Divider />
+      <Box className="selected-day-summary">
+        <Box className="selected-day-summary-group">
+          <Text size="xs" fw={700} c="dimmed">
+            My plan
+          </Text>
+          <Box className="selected-day-summary-items">
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed">
+                Status
+              </Text>
+              <Text size="sm" fw={700}>
+                {booking ? titleCase(booking.status) : 'Not added'}
+              </Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed">
+                Shared stay
+              </Text>
+              <Text size="sm" fw={700} lineClamp={1}>
+                {getMyPlanSharedStay(booking)}
+              </Text>
+            </Stack>
+          </Box>
+        </Box>
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
-        <Stack gap={4}>
-          <Text fw={700}>Provider</Text>
-          <Text size="sm">{day.provider}</Text>
-          <Text size="sm" c="dimmed">
-            {formatDayLongDate(day.date)}
+        <Box className="selected-day-summary-group">
+          <Text size="xs" fw={700} c="dimmed">
+            Group plan
           </Text>
-        </Stack>
-        <Stack gap={4}>
-          <Text fw={700}>Group attendance</Text>
-          <Text fz={28} fw={800} lh={1}>
-            {summary.attendeeCount}
-          </Text>
-          <Text size="sm" c="dimmed">
-            {getAttendanceLabel(summary)}
-          </Text>
-        </Stack>
-        <Stack gap={4}>
-          <Text fw={700}>Shared stay</Text>
-          <Text size="sm">{getAccommodationLabel(summary)}</Text>
-          <Text size="sm" c="dimmed">
-            Accommodation names appear here once someone has added them in the
-            group plan.
-          </Text>
-        </Stack>
-      </SimpleGrid>
+          <Box className="selected-day-summary-items">
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed">
+                Attending
+              </Text>
+              <Text size="sm" fw={700}>
+                {summary.attendeeCount}
+              </Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed">
+                Saved stays
+              </Text>
+              <Text size="sm" fw={700}>
+                {getSavedStayCountLabel(summary.accommodationNames.length)}
+              </Text>
+            </Stack>
+          </Box>
+        </Box>
+      </Box>
 
       <Divider />
 
@@ -1055,17 +1057,6 @@ function DayDetailContent({
             Shared stay assignments are not available yet.
           </Text>
         )}
-      </Stack>
-
-      <Divider />
-
-      <Stack gap="sm">
-        <Text fw={700}>Trip action</Text>
-        <Text size="sm" c="dimmed">
-          Add this day to your private booking workspace or jump straight to the
-          trip you already created.
-        </Text>
-        <DayBookingAction day={day} booking={booking} presentation="panel" />
       </Stack>
     </Stack>
   );

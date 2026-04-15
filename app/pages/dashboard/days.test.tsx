@@ -156,6 +156,11 @@ describe('AvailableDaysPage', () => {
     expect(
       await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
     ).not.toHaveLength(0);
+    expect(screen.getByText('My plan')).toBeInTheDocument();
+    expect(screen.getByText('Group plan')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /add to my bookings/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Attendee roster')).toBeInTheDocument();
     expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
     fireEvent.click(
@@ -191,6 +196,31 @@ describe('AvailableDaysPage', () => {
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
+  });
+
+  it('shows the header action as open my booking when a trip already exists', async () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          myBookingsByDay: {
+            'day-1': {
+              bookingId: 'booking-1',
+              status: 'booked',
+              accommodationName: 'Trackside Hotel',
+            },
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+    );
+
+    expect(await screen.findByText('My plan')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /^open my booking$/i }),
+    ).toHaveAttribute('href', '/dashboard/bookings');
+    expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
+    expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
 
   it('offers saved shared stays as direct actions in the selected-day view', async () => {

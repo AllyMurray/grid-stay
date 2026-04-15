@@ -248,6 +248,25 @@ html[data-mantine-color-scheme='dark'] .day-card {
   padding: 0 0.75rem 0.85rem;
 }
 
+.selected-day-summary {
+  display: grid;
+  gap: 1rem;
+  padding: 0.85rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(16, 20, 24, 0.03);
+}
+
+.selected-day-summary-group {
+  min-width: 0;
+}
+
+.selected-day-summary-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin-top: 0.35rem;
+}
+
 .shared-stay-header {
   display: none;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto auto;
@@ -344,6 +363,10 @@ html[data-mantine-color-scheme='dark'] .attendee-roster-row[data-open='true'] {
   box-shadow: inset 3px 0 0 #ff6f8f;
 }
 
+html[data-mantine-color-scheme='dark'] .selected-day-summary {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 html[data-mantine-color-scheme='dark'] .day-list-item[data-active='true'] {
   background: rgba(255, 111, 143, 0.08);
   border-color: rgba(255, 111, 143, 0.18);
@@ -361,6 +384,12 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
 
   .booking-list-scroll {
     max-height: 560px;
+  }
+
+  .selected-day-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.25rem;
+    align-items: start;
   }
 
   .shared-stay-header {
