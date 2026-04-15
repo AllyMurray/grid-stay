@@ -13,6 +13,10 @@ interface LoaderData {
   daysThisMonth: number;
   activeBookingsCount: number;
   sharedStayCount: number;
+  maybeBookingsCount: number;
+  tripsMissingStayCount: number;
+  tripsWithSharedStayCount: number;
+  privateRefsOpenCount: number;
   nextDays: AvailableDay[];
   upcomingBookings: BookingRecord[];
 }
@@ -28,6 +32,19 @@ export async function loader({ request }: Route.LoaderArgs) {
   const activeBookings = bookings.filter(
     (booking) => booking.status !== 'cancelled' && booking.date >= today,
   );
+  const maybeBookingsCount = activeBookings.filter(
+    (booking) => booking.status === 'maybe',
+  ).length;
+  const tripsWithSharedStayCount = activeBookings.filter((booking) =>
+    Boolean(booking.accommodationName?.trim()),
+  ).length;
+  const tripsMissingStayCount =
+    activeBookings.length - tripsWithSharedStayCount;
+  const privateRefsOpenCount = activeBookings.filter(
+    (booking) =>
+      !booking.bookingReference?.trim() &&
+      !booking.accommodationReference?.trim(),
+  ).length;
   const sharedStayCount = new Set(
     activeBookings
       .map((booking) => booking.accommodationName?.trim())
@@ -43,6 +60,10 @@ export async function loader({ request }: Route.LoaderArgs) {
           .length ?? 0,
       activeBookingsCount: activeBookings.length,
       sharedStayCount,
+      maybeBookingsCount,
+      tripsMissingStayCount,
+      tripsWithSharedStayCount,
+      privateRefsOpenCount,
       nextDays: snapshot?.days.slice(0, 5) ?? [],
       upcomingBookings: activeBookings.slice(0, 5),
     } satisfies LoaderData,

@@ -26,15 +26,11 @@ a {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(243, 245, 247, 0.98) 38%, #eef1f4 100%),
-    linear-gradient(90deg, rgba(228, 42, 87, 0.04) 0%, transparent 24%);
+  background: #eef1f4;
 }
 
 html[data-mantine-color-scheme='dark'] .app-backdrop {
-  background:
-    linear-gradient(180deg, rgba(17, 20, 24, 0.96) 0%, rgba(20, 24, 29, 0.98) 36%, #161b20 100%),
-    linear-gradient(90deg, rgba(255, 111, 143, 0.08) 0%, transparent 22%);
+  background: #161b20;
 }
 
 .shell-card {
@@ -97,12 +93,7 @@ html[data-mantine-color-scheme='dark'] .page-header-stat-value {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(16, 20, 24, 0.46) 0%,
-    rgba(16, 20, 24, 0.4) 28%,
-    rgba(16, 20, 24, 0.72) 100%
-  );
+  background: rgba(16, 20, 24, 0.58);
 }
 
 .home-hero-content {
@@ -130,6 +121,11 @@ html[data-mantine-color-scheme='dark'] .page-header-stat-value {
   background: rgba(255, 255, 255, 0.92);
 }
 
+.overview-focus-panel {
+  background: rgba(255, 248, 250, 0.96);
+  border: 1px solid rgba(228, 42, 87, 0.12);
+}
+
 .days-list-panel {
   background: rgba(16, 20, 24, 0.02);
   border: 1px solid rgba(16, 20, 24, 0.06);
@@ -147,6 +143,11 @@ html[data-mantine-color-scheme='dark'] .booking-list-panel {
 
 html[data-mantine-color-scheme='dark'] .booking-editor-panel {
   background: rgba(22, 27, 32, 0.98);
+}
+
+html[data-mantine-color-scheme='dark'] .overview-focus-panel {
+  background: rgba(28, 23, 27, 0.98);
+  border-color: rgba(255, 111, 143, 0.14);
 }
 
 html[data-mantine-color-scheme='dark'] .days-list-panel {

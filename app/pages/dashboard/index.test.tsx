@@ -56,6 +56,10 @@ describe('DashboardIndexPage', () => {
         daysThisMonth={8}
         activeBookingsCount={3}
         sharedStayCount={2}
+        maybeBookingsCount={1}
+        tripsMissingStayCount={1}
+        tripsWithSharedStayCount={2}
+        privateRefsOpenCount={0}
         nextDays={[nextDay]}
         upcomingBookings={[upcomingBooking]}
       />,
@@ -65,11 +69,18 @@ describe('DashboardIndexPage', () => {
       screen.getByRole('heading', { name: 'Welcome back, Ally' }),
     ).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
-    expect(screen.getAllByText('Silverstone')).toHaveLength(2);
-    expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
+    expect(screen.getByText('Next event')).toBeInTheDocument();
+    expect(screen.getByText('What needs attention')).toBeInTheDocument();
+    expect(screen.getByText('Shared stay progress')).toBeInTheDocument();
+    expect(screen.getByText('Live calendar')).toBeInTheDocument();
+    expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
     expect(
-      screen.getByRole('link', { name: /open available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+      screen.getByText(/the stay name is already visible to the group/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /review my bookings/i }),
+    ).toHaveAttribute('href', '/dashboard/bookings');
   });
 
   it('renders empty guidance when there are no upcoming bookings', () => {
@@ -80,16 +91,24 @@ describe('DashboardIndexPage', () => {
         daysThisMonth={0}
         activeBookingsCount={0}
         sharedStayCount={0}
+        maybeBookingsCount={0}
+        tripsMissingStayCount={0}
+        tripsWithSharedStayCount={0}
+        privateRefsOpenCount={0}
         nextDays={[]}
         upcomingBookings={[]}
       />,
     );
 
+    expect(screen.getByText(/nothing is lined up yet/i)).toBeInTheDocument();
+    const openAvailableDaysLinks = screen.getAllByRole('link', {
+      name: /open available days/i,
+    });
+
     expect(
-      screen.getByText(/the live feed is waiting for its next refresh/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /browse available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+      openAvailableDaysLinks.every(
+        (link) => link.getAttribute('href') === '/dashboard/days',
+      ),
+    ).toBe(true);
   });
 });
