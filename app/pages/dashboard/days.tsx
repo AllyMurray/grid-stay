@@ -48,6 +48,22 @@ function titleCase(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function compareDayRows(left: DayRow, right: DayRow) {
+  if (left.date !== right.date) {
+    return left.date.localeCompare(right.date);
+  }
+
+  if (left.circuit !== right.circuit) {
+    return left.circuit.localeCompare(right.circuit);
+  }
+
+  if (left.provider !== right.provider) {
+    return left.provider.localeCompare(right.provider);
+  }
+
+  return left.dayId.localeCompare(right.dayId);
+}
+
 function mergeDayRows(primary: DayRow[], secondary: DayRow[]): DayRow[] {
   const merged = [...primary];
   const seenDayIds = new Set(primary.map((day) => day.dayId));
@@ -61,7 +77,7 @@ function mergeDayRows(primary: DayRow[], secondary: DayRow[]): DayRow[] {
     seenDayIds.add(day.dayId);
   }
 
-  return merged;
+  return merged.sort(compareDayRows);
 }
 
 function createDaysFeedHref(
@@ -1109,6 +1125,10 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
   const selectedDayId = searchParams.get('day')?.trim() || null;
+  const orderedLoadedDays = useMemo(
+    () => [...loadedDays.days].sort(compareDayRows),
+    [loadedDays.days],
+  );
   const loadMoreHref = useMemo(
     () =>
       loadedDays.nextOffset === null
@@ -1223,7 +1243,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   }, [feedFetcher, loadMoreHref, loadedDays.nextOffset, feedFetcher.state]);
 
   const selectedDayFromUrl =
-    loadedDays.days.find((day) => day.dayId === selectedDayId) ?? null;
+    orderedLoadedDays.find((day) => day.dayId === selectedDayId) ?? null;
+  const selectedDayIndex = selectedDayFromUrl
+    ? orderedLoadedDays.findIndex(
+        (day) => day.dayId === selectedDayFromUrl.dayId,
+      )
+    : -1;
+  const previousSelectedDay =
+    selectedDayIndex > 0 ? orderedLoadedDays[selectedDayIndex - 1] : null;
+  const nextSelectedDay =
+    selectedDayIndex >= 0 && selectedDayIndex < orderedLoadedDays.length - 1
+      ? orderedLoadedDays[selectedDayIndex + 1]
+      : null;
   const selectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
     : null;
@@ -1390,19 +1421,55 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               </Title>
               <Text size="sm" c="dimmed">
                 {selectedDayFromUrl
-                  ? 'This day now has the full workspace so you can review the group plan without competing with the scrolling feed.'
+                  ? `${selectedDayIndex + 1} of ${loadedDays.totalCount} matching days`
                   : 'Scan the live feed, then open one day at a time to inspect the group plan and add it to your bookings.'}
               </Text>
             </Stack>
             {selectedDayFromUrl ? (
-              <Button
-                component={Link}
-                to={createDaysIndexHref(data.filters)}
-                variant="subtle"
-                preventScrollReset
-              >
-                Back to available days
-              </Button>
+              <Group gap="xs" wrap="wrap" justify="flex-end">
+                {previousSelectedDay ? (
+                  <Button
+                    component={Link}
+                    to={createDaysIndexHref(
+                      data.filters,
+                      previousSelectedDay.dayId,
+                    )}
+                    variant="default"
+                    preventScrollReset
+                  >
+                    Previous
+                  </Button>
+                ) : (
+                  <Button variant="default" disabled>
+                    Previous
+                  </Button>
+                )}
+                {nextSelectedDay ? (
+                  <Button
+                    component={Link}
+                    to={createDaysIndexHref(
+                      data.filters,
+                      nextSelectedDay.dayId,
+                    )}
+                    variant="default"
+                    preventScrollReset
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button variant="default" disabled>
+                    Next
+                  </Button>
+                )}
+                <Button
+                  component={Link}
+                  to={createDaysIndexHref(data.filters)}
+                  variant="subtle"
+                  preventScrollReset
+                >
+                  Back to available days
+                </Button>
+              </Group>
             ) : (
               <Text size="sm" c="dimmed">
                 Showing {loadedDays.days.length} of {loadedDays.totalCount} days

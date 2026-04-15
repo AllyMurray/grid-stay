@@ -156,6 +156,7 @@ describe('AvailableDaysPage', () => {
     expect(
       await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
     ).not.toHaveLength(0);
+    expect(screen.getByText('2 of 2 matching days')).toBeInTheDocument();
     expect(screen.getByText('My plan')).toBeInTheDocument();
     expect(screen.getByText('Group plan')).toBeInTheDocument();
     expect(
@@ -172,6 +173,30 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
+  });
+
+  it('moves between loaded matching days from the selected-day header', async () => {
+    renderWithProviders(
+      <AvailableDaysPage data={defaultData} />,
+      '/dashboard/days?day=day-1',
+    );
+
+    expect(await screen.findByText('1 of 2 matching days')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
+    expect(screen.getByRole('link', { name: /next/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days?day=day-2',
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: /next/i }));
+
+    expect(await screen.findByText('2 of 2 matching days')).toBeInTheDocument();
+    expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /previous/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days?day=day-1',
+    );
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
   });
 
   it('shows a compact roster first and expands one status group at a time', async () => {
