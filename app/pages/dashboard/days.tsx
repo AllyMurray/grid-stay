@@ -147,6 +147,12 @@ function formatDayListDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatDayListWeekday(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+  }).format(new Date(value));
+}
+
 function formatDayLongDate(value: string) {
   return new Intl.DateTimeFormat('en-GB', {
     weekday: 'short',
@@ -235,6 +241,20 @@ function getAccommodationLabel(summary: DayAttendanceSummary) {
   }
 
   return summary.accommodationNames.join(', ');
+}
+
+function getDayListMetaText(day: DayRow, booking?: DayBookingSnapshot): string {
+  if (booking) {
+    return `Your status: ${titleCase(booking.status)}`;
+  }
+
+  if (!day.description) {
+    return day.provider;
+  }
+
+  return day.description.toLowerCase().includes(day.provider.toLowerCase())
+    ? day.description
+    : `${day.provider} • ${day.description}`;
 }
 
 function DayBookingAction({
@@ -338,39 +358,28 @@ function DayListItem({
       className="day-list-item"
       data-active={active || undefined}
     >
-      <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+      <div className="day-list-item-grid">
         <Stack gap={4} className="day-list-date">
           <Text size="sm" fw={800}>
             {formatDayListDate(day.date)}
           </Text>
           <Text size="xs" c="dimmed" lineClamp={1}>
-            {day.provider}
+            {formatDayListWeekday(day.date)}
           </Text>
         </Stack>
-        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-          <Group
-            justify="space-between"
-            align="flex-start"
-            gap="xs"
-            wrap="nowrap"
-          >
-            <Text fw={700} lineClamp={1}>
-              {day.circuit}
-            </Text>
-            <Badge color={typeColor(day.type)} size="sm">
-              {titleCase(day.type)}
-            </Badge>
-          </Group>
-          <Text size="sm" lineClamp={1}>
-            {getAttendanceLabel(summary)} • {getAccommodationLabel(summary)}
-          </Text>
-          <Text size="xs" c="dimmed" lineClamp={1}>
-            {booking
-              ? `Your status: ${titleCase(booking.status)}`
-              : day.description || 'No extra details'}
-          </Text>
-        </Stack>
-      </Group>
+        <Text className="day-list-title" fw={700} lineClamp={1}>
+          {day.circuit}
+        </Text>
+        <Badge className="day-list-badge" color={typeColor(day.type)} size="sm">
+          {titleCase(day.type)}
+        </Badge>
+        <Text className="day-list-plan" size="sm" lineClamp={1}>
+          {getAttendanceLabel(summary)} • {getAccommodationLabel(summary)}
+        </Text>
+        <Text className="day-list-meta" size="xs" c="dimmed" lineClamp={1}>
+          {getDayListMetaText(day, booking)}
+        </Text>
+      </div>
     </UnstyledButton>
   );
 }
@@ -550,8 +559,6 @@ function DesktopDayTable({
                             day={day}
                             summary={summary}
                             booking={booking}
-                            dismissHref={createDaysIndexHref(filters)}
-                            dismissLabel="Close details"
                             compact
                           />
                         </Box>
@@ -598,17 +605,6 @@ function DayDetailContent({
             <Text size="sm">{day.description || 'No extra details'}</Text>
           </Stack>
           <Stack gap="xs" align="flex-end">
-            {dismissHref ? (
-              <Button
-                component={Link}
-                to={dismissHref}
-                variant="subtle"
-                size="compact-sm"
-                preventScrollReset
-              >
-                {dismissLabel || 'Close'}
-              </Button>
-            ) : null}
             <Badge color={typeColor(day.type)}>{titleCase(day.type)}</Badge>
             {booking ? (
               <Badge color={bookingColor(booking.status)} variant="light">

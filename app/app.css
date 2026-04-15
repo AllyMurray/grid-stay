@@ -186,8 +186,31 @@ html[data-mantine-color-scheme='dark'] .day-card {
     border-color 120ms ease;
 }
 
+.day-list-item-grid {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+}
+
 .day-list-date {
-  min-width: 4.25rem;
+  min-width: 0;
+  grid-row: 1 / span 3;
+}
+
+.day-list-title {
+  min-width: 0;
+}
+
+.day-list-badge {
+  justify-self: end;
+}
+
+.day-list-plan,
+.day-list-meta {
+  min-width: 0;
+  grid-column: 2 / 4;
 }
 
 .booking-list-item:hover {

@@ -95,6 +95,9 @@ describe('AvailableDaysPage', () => {
     expect(
       await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
     ).not.toHaveLength(0);
+    expect(
+      screen.queryByRole('link', { name: /close details/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows a detail state with a back link when the url selects a day', () => {
