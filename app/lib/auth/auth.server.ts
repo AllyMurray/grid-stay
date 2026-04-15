@@ -15,6 +15,7 @@ const SSTResource = Resource as unknown as {
 };
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL,
   basePath: '/api/auth',
   database: dynamoDBAdapter({
     client: docClient,
