@@ -130,12 +130,34 @@ html[data-mantine-color-scheme='dark'] .page-header-stat-value {
   background: rgba(255, 255, 255, 0.92);
 }
 
+.days-list-panel {
+  background: rgba(16, 20, 24, 0.02);
+  border: 1px solid rgba(16, 20, 24, 0.06);
+}
+
+.days-detail-panel,
+.day-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(16, 20, 24, 0.08);
+}
+
 html[data-mantine-color-scheme='dark'] .booking-list-panel {
   background: rgba(18, 23, 28, 0.96);
 }
 
 html[data-mantine-color-scheme='dark'] .booking-editor-panel {
   background: rgba(22, 27, 32, 0.98);
+}
+
+html[data-mantine-color-scheme='dark'] .days-list-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-mantine-color-scheme='dark'] .days-detail-panel,
+html[data-mantine-color-scheme='dark'] .day-card {
+  background: rgba(24, 29, 34, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .booking-list-item {
@@ -153,7 +175,26 @@ html[data-mantine-color-scheme='dark'] .booking-editor-panel {
   min-width: 4.25rem;
 }
 
+.day-list-item {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.day-list-date {
+  min-width: 4.25rem;
+}
+
 .booking-list-item:hover {
+  background: rgba(16, 20, 24, 0.03);
+}
+
+.day-list-item:hover {
   background: rgba(16, 20, 24, 0.03);
 }
 
@@ -163,8 +204,78 @@ html[data-mantine-color-scheme='dark'] .booking-editor-panel {
   box-shadow: inset 3px 0 0 #e42a57;
 }
 
+.day-list-item[data-active='true'] {
+  background: rgba(228, 42, 87, 0.06);
+  border-color: rgba(228, 42, 87, 0.18);
+  box-shadow: inset 3px 0 0 #e42a57;
+}
+
+.day-table {
+  table-layout: fixed;
+}
+
+.day-table th,
+.day-table td {
+  vertical-align: top;
+}
+
+.day-table col.day-table-col-date {
+  width: 8rem;
+}
+
+.day-table col.day-table-col-provider {
+  width: 11rem;
+}
+
+.day-table col.day-table-col-trip {
+  width: 14rem;
+}
+
+.day-table col.day-table-col-action {
+  width: 7rem;
+}
+
+.day-table-header th {
+  color: var(--mantine-color-dimmed);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.day-table-row[data-active='true'] > td {
+  background: rgba(228, 42, 87, 0.06);
+  border-color: rgba(228, 42, 87, 0.12);
+}
+
+.day-table-date-cell,
+.day-table-action-cell {
+  white-space: nowrap;
+}
+
+.day-table-action-cell {
+  text-align: right;
+}
+
+.day-table-detail-cell {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.day-table-detail {
+  padding: 1rem 1.125rem 1.125rem;
+  border-top: 1px solid rgba(16, 20, 24, 0.08);
+  background: rgba(16, 20, 24, 0.025);
+}
+
 .booking-list-scroll {
   max-height: min(42vh, 360px);
+}
+
+.days-list-scroll {
+  max-height: min(54vh, 680px);
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .booking-section-label {
@@ -175,10 +286,30 @@ html[data-mantine-color-scheme='dark'] .booking-list-item:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 
+html[data-mantine-color-scheme='dark'] .day-list-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 html[data-mantine-color-scheme='dark'] .booking-list-item[data-active='true'] {
   background: rgba(255, 111, 143, 0.08);
   border-color: rgba(255, 111, 143, 0.18);
   box-shadow: inset 3px 0 0 #ff6f8f;
+}
+
+html[data-mantine-color-scheme='dark'] .day-list-item[data-active='true'] {
+  background: rgba(255, 111, 143, 0.08);
+  border-color: rgba(255, 111, 143, 0.18);
+  box-shadow: inset 3px 0 0 #ff6f8f;
+}
+
+html[data-mantine-color-scheme='dark'] .day-table-row[data-active='true'] > td {
+  background: rgba(255, 111, 143, 0.08);
+  border-color: rgba(255, 111, 143, 0.14);
+}
+
+html[data-mantine-color-scheme='dark'] .day-table-detail {
+  border-top-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
 }
 
 @media (min-width: 62em) {
@@ -188,5 +319,10 @@ html[data-mantine-color-scheme='dark'] .booking-list-item[data-active='true'] {
 
   .booking-list-scroll {
     max-height: 560px;
+  }
+
+  .days-detail-sticky {
+    position: sticky;
+    top: 1rem;
   }
 }

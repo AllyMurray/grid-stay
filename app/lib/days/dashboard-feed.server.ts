@@ -47,6 +47,8 @@ export interface DaysIndexData extends DaysFeedData {
   circuitOptions: string[];
   providerOptions: string[];
   myBookingsByDay: Record<string, DayBookingSnapshot>;
+  selectedDay: DayRow | null;
+  selectedDaySummary: DayAttendanceOverview | null;
 }
 
 const EMPTY_ERRORS: DaySourceError[] = [
@@ -86,6 +88,11 @@ function getOffset(value: string | null): number {
   }
 
   return parsed;
+}
+
+function getSelectedDayId(url: URL): string | null {
+  const selectedDayId = url.searchParams.get('day')?.trim() ?? '';
+  return selectedDayId || null;
 }
 
 function getFilters(url: URL): DaysFilters {
@@ -175,6 +182,7 @@ export async function loadDaysIndex(
   userId: string,
   url: URL,
 ): Promise<DaysIndexData> {
+  const selectedDayId = getSelectedDayId(url);
   const [
     {
       filters,
@@ -188,6 +196,20 @@ export async function loadDaysIndex(
     myBookings,
   ] = await Promise.all([loadFilteredDays(url), listMyBookings(userId)]);
   const page = await loadDaysFeedPage(filteredDays, filters, 0);
+  const selectedDayRecord = selectedDayId
+    ? (filteredDays.find((day) => day.dayId === selectedDayId) ?? null)
+    : null;
+  let selectedDaySummary: DayAttendanceOverview | null = null;
+
+  if (selectedDayRecord) {
+    selectedDaySummary = page.attendanceSummaries[selectedDayRecord.dayId] ??
+      (
+        await dayAttendanceSummaryStore.getByDayIds([selectedDayRecord.dayId])
+      ).get(selectedDayRecord.dayId) ?? {
+        attendeeCount: 0,
+        accommodationNames: [],
+      };
+  }
 
   return {
     ...page,
@@ -206,6 +228,8 @@ export async function loadDaysIndex(
         },
       ]),
     ),
+    selectedDay: selectedDayRecord ? toDayRow(selectedDayRecord) : null,
+    selectedDaySummary,
   };
 }
 

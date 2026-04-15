@@ -3,6 +3,7 @@ import {
   Badge,
   Box,
   Button,
+  Divider,
   Group,
   Loader,
   Paper,
@@ -12,10 +13,11 @@ import {
   Table,
   Text,
   Title,
+  UnstyledButton,
 } from '@mantine/core';
 import { IconAlertCircle, IconPlus } from '@tabler/icons-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Form, Link, useFetcher } from 'react-router';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Form, Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
@@ -76,6 +78,31 @@ function createDaysFeedHref(
   return `/api/dashboard/days-feed?${params.toString()}`;
 }
 
+function createDaysIndexHref(
+  filters: DaysIndexData['filters'],
+  selectedDayId?: string | null,
+): string {
+  const params = new URLSearchParams();
+  if (filters.month) {
+    params.set('month', filters.month);
+  }
+  if (filters.circuit) {
+    params.set('circuit', filters.circuit);
+  }
+  if (filters.provider) {
+    params.set('provider', filters.provider);
+  }
+  if (filters.type) {
+    params.set('type', filters.type);
+  }
+  if (selectedDayId) {
+    params.set('day', selectedDayId);
+  }
+
+  const query = params.toString();
+  return query ? `/dashboard/days?${query}` : '/dashboard/days';
+}
+
 function countActiveFilters(filters: DaysIndexData['filters']) {
   return Object.values(filters).filter(Boolean).length;
 }
@@ -91,6 +118,17 @@ function typeColor(type: DayRow['type']) {
   }
 }
 
+function bookingColor(status: BookingStatus) {
+  switch (status) {
+    case 'booked':
+      return 'green';
+    case 'maybe':
+      return 'yellow';
+    case 'cancelled':
+      return 'gray';
+  }
+}
+
 function formatRefreshedAt(value: string) {
   if (!value) {
     return 'Waiting for the first refresh';
@@ -100,6 +138,35 @@ function formatRefreshedAt(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function formatDayListDate(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(value));
+}
+
+function formatDayLongDate(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function formatDayDesktopDate(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(value));
+}
+
+interface DayAttendanceSummary {
+  attendeeCount: number;
+  accommodationNames: string[];
 }
 
 interface LoadedDaysState {
@@ -112,11 +179,22 @@ interface LoadedDaysState {
 }
 
 function createLoadedDaysState(data: DaysIndexData): LoadedDaysState {
+  const days = data.selectedDay
+    ? mergeDayRows([data.selectedDay], data.days)
+    : data.days;
+
   return {
     filterKey: data.filterKey,
-    days: data.days,
+    days,
     myBookingsByDay: data.myBookingsByDay,
-    attendanceSummaries: data.attendanceSummaries,
+    attendanceSummaries: data.selectedDay
+      ? {
+          ...data.attendanceSummaries,
+          ...(data.selectedDaySummary
+            ? { [data.selectedDay.dayId]: data.selectedDaySummary }
+            : {}),
+        }
+      : data.attendanceSummaries,
     totalCount: data.totalCount,
     nextOffset: data.nextOffset,
   };
@@ -135,30 +213,62 @@ function getDayBookingLabel(status?: BookingStatus) {
   }
 }
 
+function getAttendanceSummary(
+  summaries: DaysFeedData['attendanceSummaries'],
+  dayId: string,
+): DayAttendanceSummary {
+  return (
+    summaries[dayId] ?? {
+      attendeeCount: 0,
+      accommodationNames: [],
+    }
+  );
+}
+
+function getAttendanceLabel(summary: DayAttendanceSummary) {
+  return `${summary.attendeeCount} attending`;
+}
+
+function getAccommodationLabel(summary: DayAttendanceSummary) {
+  if (summary.accommodationNames.length === 0) {
+    return 'No shared stay added yet';
+  }
+
+  return summary.accommodationNames.join(', ');
+}
+
 function DayBookingAction({
   day,
   booking,
+  presentation = 'compact',
 }: {
   day: DayRow;
   booking?: DayBookingSnapshot;
+  presentation?: 'compact' | 'panel';
 }) {
   const fetcher = useFetcher<CreateBookingActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const formError =
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const isPanel = presentation === 'panel';
+  const buttonSize = isPanel ? 'md' : 'sm';
+  const containerProps = isPanel
+    ? { gap: 'xs' as const }
+    : { gap: 4 as const, className: 'table-status' };
 
   if (booking?.status === 'booked') {
     return (
-      <Stack gap={4} className="table-status">
+      <Stack {...containerProps}>
         <Text size="xs" c="dimmed">
           Your status: {titleCase(booking.status)}
         </Text>
         <Button
           component={Link}
           to="/dashboard/bookings"
-          size="sm"
+          size={buttonSize}
           color="brand"
           variant="light"
+          w={isPanel ? 'fit-content' : undefined}
         >
           {getDayBookingLabel(booking.status)}
         </Button>
@@ -167,7 +277,7 @@ function DayBookingAction({
   }
 
   return (
-    <Stack gap={4} className="table-status">
+    <Stack {...containerProps}>
       {booking ? (
         <Text size="xs" c="dimmed">
           Your status: {titleCase(booking.status)}
@@ -184,11 +294,12 @@ function DayBookingAction({
         <input type="hidden" name="status" value="booked" />
         <Button
           type="submit"
-          size="sm"
+          size={buttonSize}
           color="brand"
           variant={booking ? 'light' : 'filled'}
           leftSection={<IconPlus size={14} />}
           loading={isSubmitting}
+          w={isPanel ? 'fit-content' : undefined}
         >
           {getDayBookingLabel(booking?.status)}
         </Button>
@@ -203,7 +314,437 @@ function DayBookingAction({
   );
 }
 
+function DayListItem({
+  day,
+  summary,
+  booking,
+  active,
+  current,
+  href,
+}: {
+  day: DayRow;
+  summary: DayAttendanceSummary;
+  booking?: DayBookingSnapshot;
+  active: boolean;
+  current: boolean;
+  href: string;
+}) {
+  return (
+    <UnstyledButton
+      component={Link}
+      to={href}
+      preventScrollReset
+      aria-current={current ? 'page' : undefined}
+      className="day-list-item"
+      data-active={active || undefined}
+    >
+      <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+        <Stack gap={4} className="day-list-date">
+          <Text size="sm" fw={800}>
+            {formatDayListDate(day.date)}
+          </Text>
+          <Text size="xs" c="dimmed" lineClamp={1}>
+            {day.provider}
+          </Text>
+        </Stack>
+        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+          <Group
+            justify="space-between"
+            align="flex-start"
+            gap="xs"
+            wrap="nowrap"
+          >
+            <Text fw={700} lineClamp={1}>
+              {day.circuit}
+            </Text>
+            <Badge color={typeColor(day.type)} size="sm">
+              {titleCase(day.type)}
+            </Badge>
+          </Group>
+          <Text size="sm" lineClamp={1}>
+            {getAttendanceLabel(summary)} • {getAccommodationLabel(summary)}
+          </Text>
+          <Text size="xs" c="dimmed" lineClamp={1}>
+            {booking
+              ? `Your status: ${titleCase(booking.status)}`
+              : day.description || 'No extra details'}
+          </Text>
+        </Stack>
+      </Group>
+    </UnstyledButton>
+  );
+}
+
+function DayListPanel({
+  days,
+  filters,
+  attendanceSummaries,
+  myBookingsByDay,
+  activeDayId,
+  currentDayId,
+}: {
+  days: DayRow[];
+  filters: DaysIndexData['filters'];
+  attendanceSummaries: DaysFeedData['attendanceSummaries'];
+  myBookingsByDay: Record<string, DayBookingSnapshot>;
+  activeDayId: string | null;
+  currentDayId: string | null;
+}) {
+  return (
+    <Paper className="days-list-panel" p="md">
+      <Stack gap="sm">
+        {days.map((day, index) => (
+          <div key={day.dayId}>
+            <DayListItem
+              day={day}
+              summary={getAttendanceSummary(attendanceSummaries, day.dayId)}
+              booking={myBookingsByDay[day.dayId]}
+              active={day.dayId === activeDayId}
+              current={day.dayId === currentDayId}
+              href={createDaysIndexHref(filters, day.dayId)}
+            />
+            {index < days.length - 1 ? <Divider /> : null}
+          </div>
+        ))}
+      </Stack>
+    </Paper>
+  );
+}
+
+function DesktopDayTable({
+  days,
+  filters,
+  attendanceSummaries,
+  myBookingsByDay,
+  selectedDayId,
+}: {
+  days: DayRow[];
+  filters: DaysIndexData['filters'];
+  attendanceSummaries: DaysFeedData['attendanceSummaries'];
+  myBookingsByDay: Record<string, DayBookingSnapshot>;
+  selectedDayId: string | null;
+}) {
+  return (
+    <Paper className="days-list-panel" p={0}>
+      <Table.ScrollContainer minWidth={1040}>
+        <Table
+          className="day-table"
+          verticalSpacing="md"
+          horizontalSpacing="md"
+          highlightOnHover
+        >
+          <colgroup>
+            <col className="day-table-col-date" />
+            <col className="day-table-col-session" />
+            <col className="day-table-col-provider" />
+            <col className="day-table-col-plan" />
+            <col className="day-table-col-trip" />
+            <col className="day-table-col-action" />
+          </colgroup>
+          <Table.Thead>
+            <Table.Tr className="day-table-header">
+              <Table.Th>Date</Table.Th>
+              <Table.Th>Session</Table.Th>
+              <Table.Th>Provider</Table.Th>
+              <Table.Th>Group plan</Table.Th>
+              <Table.Th>Your trip</Table.Th>
+              <Table.Th ta="right">Details</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {days.map((day) => {
+              const summary = getAttendanceSummary(
+                attendanceSummaries,
+                day.dayId,
+              );
+              const booking = myBookingsByDay[day.dayId];
+              const isExpanded = day.dayId === selectedDayId;
+
+              return (
+                <Fragment key={day.dayId}>
+                  <Table.Tr
+                    className="day-table-row"
+                    data-active={isExpanded || undefined}
+                  >
+                    <Table.Td className="day-table-date-cell">
+                      <Text fw={800}>{formatDayListDate(day.date)}</Text>
+                      <Text size="xs" c="dimmed">
+                        {formatDayDesktopDate(day.date)}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td className="day-table-session-cell">
+                      <Stack gap={4}>
+                        <Group gap="xs" wrap="nowrap">
+                          <Text fw={700}>{day.circuit}</Text>
+                          <Badge color={typeColor(day.type)} size="sm">
+                            {titleCase(day.type)}
+                          </Badge>
+                        </Group>
+                        <Text size="sm" c="dimmed" lineClamp={1}>
+                          {day.description || 'No extra details'}
+                        </Text>
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{day.provider}</Text>
+                    </Table.Td>
+                    <Table.Td className="day-table-plan-cell">
+                      <Stack gap={2}>
+                        <Text size="sm" fw={700}>
+                          {getAttendanceLabel(summary)}
+                        </Text>
+                        <Text size="sm" c="dimmed" lineClamp={2}>
+                          {getAccommodationLabel(summary)}
+                        </Text>
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td className="day-table-trip-cell">
+                      {booking ? (
+                        <Stack gap={4}>
+                          <Badge
+                            color={bookingColor(booking.status)}
+                            variant="light"
+                            w="fit-content"
+                          >
+                            {titleCase(booking.status)}
+                          </Badge>
+                          <Text size="sm" c="dimmed">
+                            {getDayBookingLabel(booking.status)}
+                          </Text>
+                        </Stack>
+                      ) : (
+                        <Stack gap={4}>
+                          <Text size="sm" fw={700}>
+                            Not added
+                          </Text>
+                          <Text size="sm" c="dimmed">
+                            Open details to add this date.
+                          </Text>
+                        </Stack>
+                      )}
+                    </Table.Td>
+                    <Table.Td className="day-table-action-cell">
+                      <Button
+                        component={Link}
+                        to={
+                          isExpanded
+                            ? createDaysIndexHref(filters)
+                            : createDaysIndexHref(filters, day.dayId)
+                        }
+                        variant={isExpanded ? 'default' : 'subtle'}
+                        size="compact-sm"
+                        preventScrollReset
+                        aria-label={`${
+                          isExpanded ? 'Hide details for' : 'View details for'
+                        } ${day.circuit}`}
+                      >
+                        {isExpanded ? 'Hide' : 'View'}
+                      </Button>
+                    </Table.Td>
+                  </Table.Tr>
+                  {isExpanded ? (
+                    <Table.Tr className="day-table-detail-row">
+                      <Table.Td colSpan={6} className="day-table-detail-cell">
+                        <Box className="day-table-detail">
+                          <DayDetailContent
+                            day={day}
+                            summary={summary}
+                            booking={booking}
+                            dismissHref={createDaysIndexHref(filters)}
+                            dismissLabel="Close details"
+                            compact
+                          />
+                        </Box>
+                      </Table.Td>
+                    </Table.Tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+    </Paper>
+  );
+}
+
+function DayDetailContent({
+  day,
+  summary,
+  booking,
+  dismissHref,
+  dismissLabel,
+  compact = false,
+}: {
+  day: DayRow;
+  summary: DayAttendanceSummary;
+  booking?: DayBookingSnapshot;
+  dismissHref?: string;
+  dismissLabel?: string;
+  compact?: boolean;
+}) {
+  if (compact) {
+    return (
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start" gap="md">
+          <Stack gap={4}>
+            <Text size="sm" fw={700} c="brand.7">
+              Selected session
+            </Text>
+            <Title order={3}>{day.circuit}</Title>
+            <Text size="sm" c="dimmed">
+              {formatDayLongDate(day.date)} • {day.provider}
+            </Text>
+            <Text size="sm">{day.description || 'No extra details'}</Text>
+          </Stack>
+          <Stack gap="xs" align="flex-end">
+            {dismissHref ? (
+              <Button
+                component={Link}
+                to={dismissHref}
+                variant="subtle"
+                size="compact-sm"
+                preventScrollReset
+              >
+                {dismissLabel || 'Close'}
+              </Button>
+            ) : null}
+            <Badge color={typeColor(day.type)}>{titleCase(day.type)}</Badge>
+            {booking ? (
+              <Badge color={bookingColor(booking.status)} variant="light">
+                {titleCase(booking.status)}
+              </Badge>
+            ) : null}
+          </Stack>
+        </Group>
+
+        <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+          <Stack gap={4}>
+            <Text fw={700}>Group plan</Text>
+            <Text fw={700}>{getAttendanceLabel(summary)}</Text>
+            <Text size="sm" c="dimmed">
+              {getAccommodationLabel(summary)}
+            </Text>
+          </Stack>
+          <Stack gap={4}>
+            <Text fw={700}>Provider</Text>
+            <Text size="sm">{day.provider}</Text>
+            <Text size="sm" c="dimmed">
+              {formatDayLongDate(day.date)}
+            </Text>
+          </Stack>
+          <Stack gap="sm">
+            <Text fw={700}>Trip action</Text>
+            <DayBookingAction
+              day={day}
+              booking={booking}
+              presentation="panel"
+            />
+          </Stack>
+        </SimpleGrid>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="lg">
+      {dismissHref ? (
+        <Button
+          component={Link}
+          to={dismissHref}
+          variant="subtle"
+          w="fit-content"
+          preventScrollReset
+        >
+          {dismissLabel || 'Back'}
+        </Button>
+      ) : null}
+
+      <Group justify="space-between" align="flex-start" gap="md">
+        <Stack gap={4}>
+          <Text size="sm" fw={700} c="brand.7">
+            Selected day
+          </Text>
+          <Title order={2}>{day.circuit}</Title>
+          <Text size="sm" c="dimmed">
+            {formatDayLongDate(day.date)} • {day.provider}
+          </Text>
+          <Text size="sm">{day.description || 'No extra details'}</Text>
+        </Stack>
+        <Stack gap="xs" align="flex-end">
+          <Badge color={typeColor(day.type)} size="lg">
+            {titleCase(day.type)}
+          </Badge>
+          {booking ? (
+            <Badge color={bookingColor(booking.status)} variant="light">
+              {titleCase(booking.status)}
+            </Badge>
+          ) : null}
+        </Stack>
+      </Group>
+
+      <Divider />
+
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xl">
+        <Stack gap={4}>
+          <Text fw={700}>Group attendance</Text>
+          <Text fz={28} fw={800} lh={1}>
+            {summary.attendeeCount}
+          </Text>
+          <Text size="sm" c="dimmed">
+            {getAttendanceLabel(summary)}
+          </Text>
+        </Stack>
+        <Stack gap={4}>
+          <Text fw={700}>Shared stay</Text>
+          <Text size="sm">{getAccommodationLabel(summary)}</Text>
+          <Text size="sm" c="dimmed">
+            Accommodation names appear here once someone has added them in the
+            group plan.
+          </Text>
+        </Stack>
+      </SimpleGrid>
+
+      <Divider />
+
+      <Stack gap="sm">
+        <Text fw={700}>Trip action</Text>
+        <Text size="sm" c="dimmed">
+          Add this date to your private booking workspace or jump over to manage
+          the trip you already created.
+        </Text>
+        <DayBookingAction day={day} booking={booking} presentation="panel" />
+      </Stack>
+    </Stack>
+  );
+}
+
+function DayDetailPanel({
+  day,
+  summary,
+  booking,
+  backHref,
+}: {
+  day: DayRow;
+  summary: DayAttendanceSummary;
+  booking?: DayBookingSnapshot;
+  backHref?: string;
+}) {
+  return (
+    <Paper className="days-detail-panel days-detail-sticky" p="lg">
+      <DayDetailContent
+        day={day}
+        summary={summary}
+        booking={booking}
+        dismissHref={backHref}
+        dismissLabel="Back to available days"
+      />
+    </Paper>
+  );
+}
+
 export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
+  const [searchParams] = useSearchParams();
   const feedFetcher = useFetcher<DaysFeedData>();
   const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() =>
     createLoadedDaysState(data),
@@ -213,6 +754,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const pendingOffsetRef = useRef<number | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
+  const selectedDayId = searchParams.get('day')?.trim() || null;
   const loadMoreHref = useMemo(
     () =>
       loadedDays.nextOffset === null
@@ -312,6 +854,11 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [feedFetcher, loadMoreHref, loadedDays.nextOffset, feedFetcher.state]);
+
+  const selectedDayFromUrl =
+    loadedDays.days.find((day) => day.dayId === selectedDayId) ?? null;
+  const mobileSelectedDay = selectedDayFromUrl;
+  const mobileBackHref = createDaysIndexHref(data.filters);
 
   return (
     <Stack gap="xl">
@@ -434,10 +981,10 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         <Stack gap="md">
           <Group justify="space-between" align="flex-end">
             <Stack gap={2}>
-              <Title order={3}>Schedule</Title>
+              <Title order={3}>Available sessions</Title>
               <Text size="sm" c="dimmed">
-                Scroll to pull in more rows without reloading the whole day
-                feed.
+                Review the live feed, then focus one date at a time before you
+                add it to your bookings.
               </Text>
             </Stack>
             <Text size="sm" c="dimmed">
@@ -446,73 +993,44 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           </Group>
 
           {loadedDays.days.length > 0 ? (
-            <Table.ScrollContainer minWidth={960}>
-              <Table
-                verticalSpacing="md"
-                horizontalSpacing="md"
-                highlightOnHover
-                striped
-                stickyHeader
-              >
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Date</Table.Th>
-                    <Table.Th>Type</Table.Th>
-                    <Table.Th>Circuit</Table.Th>
-                    <Table.Th>Provider</Table.Th>
-                    <Table.Th>Description</Table.Th>
-                    <Table.Th>Group plan</Table.Th>
-                    <Table.Th />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {loadedDays.days.map((day) => {
-                    const summary = loadedDays.attendanceSummaries[
-                      day.dayId
-                    ] ?? {
-                      attendeeCount: 0,
-                      accommodationNames: [],
-                    };
-                    const myBooking = loadedDays.myBookingsByDay[day.dayId];
+            <>
+              {mobileSelectedDay ? (
+                <Stack hiddenFrom="lg" gap="md">
+                  <DayDetailPanel
+                    day={mobileSelectedDay}
+                    summary={getAttendanceSummary(
+                      loadedDays.attendanceSummaries,
+                      mobileSelectedDay.dayId,
+                    )}
+                    booking={
+                      loadedDays.myBookingsByDay[mobileSelectedDay.dayId]
+                    }
+                    backHref={mobileBackHref}
+                  />
+                </Stack>
+              ) : (
+                <Stack hiddenFrom="lg" gap="md">
+                  <DayListPanel
+                    days={loadedDays.days}
+                    filters={data.filters}
+                    attendanceSummaries={loadedDays.attendanceSummaries}
+                    myBookingsByDay={loadedDays.myBookingsByDay}
+                    activeDayId={null}
+                    currentDayId={null}
+                  />
+                </Stack>
+              )}
 
-                    return (
-                      <Table.Tr key={day.dayId}>
-                        <Table.Td>
-                          <Text fw={700}>{day.date}</Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Badge color={typeColor(day.type)}>
-                            {titleCase(day.type)}
-                          </Badge>
-                        </Table.Td>
-                        <Table.Td>{day.circuit}</Table.Td>
-                        <Table.Td>{day.provider}</Table.Td>
-                        <Table.Td>
-                          <Text size="sm">
-                            {day.description || 'No extra details'}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Stack gap={2}>
-                            <Text size="sm" fw={700}>
-                              {summary.attendeeCount} attending
-                            </Text>
-                            <Text size="sm" c="dimmed">
-                              {summary.accommodationNames.length > 0
-                                ? summary.accommodationNames.join(', ')
-                                : 'No shared stay added yet'}
-                            </Text>
-                          </Stack>
-                        </Table.Td>
-                        <Table.Td>
-                          <DayBookingAction day={day} booking={myBooking} />
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
-            </Table.ScrollContainer>
+              <Box visibleFrom="lg">
+                <DesktopDayTable
+                  days={loadedDays.days}
+                  filters={data.filters}
+                  attendanceSummaries={loadedDays.attendanceSummaries}
+                  myBookingsByDay={loadedDays.myBookingsByDay}
+                  selectedDayId={selectedDayFromUrl?.dayId ?? null}
+                />
+              </Box>
+            </>
           ) : (
             <EmptyStateCard
               title="No days match those filters"
