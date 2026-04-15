@@ -82,6 +82,9 @@ export function HomePage({ hasSession }: HomePageProps) {
                   See the flow
                 </Button>
               </Group>
+              <Text size="sm" c="gray.2">
+                Current coverage: Caterham-run race series only.
+              </Text>
             </Stack>
           </Stack>
         </Container>

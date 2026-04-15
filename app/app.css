@@ -134,23 +134,8 @@ html[data-mantine-color-scheme='dark'] .page-header-stat-value {
   padding-block: 1rem 1.5rem;
 }
 
-.auth-login-panel {
-  max-width: 30rem;
-  margin-inline: auto;
-  background: rgba(18, 23, 28, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-}
-
-.auth-login-status {
-  padding: 0.75rem 0.875rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-html[data-mantine-color-scheme='light'] .auth-login-panel {
-  background: rgba(20, 25, 30, 0.88);
+.auth-login-handoff {
+  padding: 1rem;
 }
 
 .table-status {

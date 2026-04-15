@@ -1,6 +1,5 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { theme } from '~/theme';
 
@@ -31,13 +30,7 @@ describe('LoginPage', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: /get back to the weekend plan/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/caterham-run race series only/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /continue with google/i }),
+      screen.getByRole('status', { name: /signing in/i }),
     ).toBeInTheDocument();
 
     await waitFor(() => {
@@ -48,27 +41,19 @@ describe('LoginPage', () => {
     });
   });
 
-  it('lets the user retry the Google redirect manually', async () => {
-    const user = userEvent.setup();
-
+  it('keeps the redirect view free of product copy', () => {
     render(
       <MantineProvider theme={theme}>
         <LoginPage redirectTo="/dashboard" />
       </MantineProvider>,
     );
 
-    await waitFor(() => {
-      expect(signInSocial).toHaveBeenCalledTimes(1);
-    });
-
-    await user.click(
-      screen.getByRole('button', { name: /continue with google/i }),
-    );
-
-    expect(signInSocial).toHaveBeenCalledTimes(2);
-    expect(signInSocial).toHaveBeenLastCalledWith({
-      provider: 'google',
-      callbackURL: '/dashboard',
-    });
+    expect(
+      screen.queryByText(/caterham-run race series only/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/grid stay/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /continue with google/i }),
+    ).not.toBeInTheDocument();
   });
 });
