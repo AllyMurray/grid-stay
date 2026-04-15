@@ -83,6 +83,22 @@ function toDayRow(day: AvailableDay): DayRow {
   };
 }
 
+function combineAttendanceOverviews(
+  overviews: Array<DayAttendanceOverview | undefined>,
+): DayAttendanceOverview {
+  return {
+    attendeeCount: overviews.reduce(
+      (count, overview) => count + (overview?.attendeeCount ?? 0),
+      0,
+    ),
+    accommodationNames: [
+      ...new Set(
+        overviews.flatMap((overview) => overview?.accommodationNames ?? []),
+      ),
+    ].sort(),
+  };
+}
+
 function parseType(value: string): AvailableDayType | undefined {
   switch (value) {
     case 'race_day':
@@ -166,9 +182,8 @@ async function loadDaysFeedPage(
   offset: number,
 ): Promise<DaysFeedData> {
   const pageDays = filteredDays.slice(offset, offset + DAYS_PAGE_SIZE);
-  const summaries = await dayAttendanceSummaryStore.getByDayIds(
-    pageDays.map((day) => day.dayId),
-  );
+  const summaryKeys = pageDays.map((day) => day.dayId);
+  const summaries = await dayAttendanceSummaryStore.getByDayIds(summaryKeys);
 
   return {
     filterKey: createDaysFilterKey(filters),
@@ -180,12 +195,9 @@ async function loadDaysFeedPage(
         : null,
     days: pageDays.map(toDayRow),
     attendanceSummaries: Object.fromEntries(
-      [...summaries.entries()].map(([dayId, summary]) => [
-        dayId,
-        {
-          attendeeCount: summary.attendeeCount,
-          accommodationNames: summary.accommodationNames,
-        },
+      pageDays.map((day) => [
+        day.dayId,
+        combineAttendanceOverviews([summaries.get(day.dayId)]),
       ]),
     ),
   };
@@ -209,6 +221,7 @@ export async function loadDaysIndex(
     myBookings,
   ] = await Promise.all([loadFilteredDays(url), listMyBookings(userId)]);
   const page = await loadDaysFeedPage(filteredDays, filters, 0);
+  const visibleDayIds = new Set(filteredDays.map((day) => day.dayId));
   const selectedDayRecord = selectedDayId
     ? (filteredDays.find((day) => day.dayId === selectedDayId) ?? null)
     : null;
@@ -235,14 +248,22 @@ export async function loadDaysIndex(
     circuitOptions,
     providerOptions,
     myBookingsByDay: Object.fromEntries(
-      myBookings.map((booking) => [
-        booking.dayId,
-        {
-          bookingId: booking.bookingId,
-          status: booking.status,
-          accommodationName: booking.accommodationName,
-        },
-      ]),
+      myBookings.flatMap((booking) => {
+        if (!visibleDayIds.has(booking.dayId)) {
+          return [];
+        }
+
+        return [
+          [
+            booking.dayId,
+            {
+              bookingId: booking.bookingId,
+              status: booking.status,
+              accommodationName: booking.accommodationName,
+            },
+          ],
+        ];
+      }),
     ),
     selectedDay: selectedDayRecord ? toDayRow(selectedDayRecord) : null,
     selectedDayPosition: selectedDayRecord ? selectedDayIndex + 1 : null,

@@ -8,6 +8,7 @@ import { knockhillTrackDayAdapter } from '~/lib/trackdays/adapters/knockhill.ser
 import { msvTrackDayAdapter } from '~/lib/trackdays/adapters/msv.server';
 import { silverstoneTrackDayAdapter } from '~/lib/trackdays/adapters/silverstone.server';
 import type { TrackDay, TrackDayAdapter } from '~/lib/trackdays/types';
+import { createDayIdentity } from './identity.server';
 import type {
   AvailableDay,
   AvailableDaysResult,
@@ -34,13 +35,73 @@ const DEFAULT_TRACKDAY_ADAPTERS = [
   msvTrackDayAdapter,
 ];
 
-function createDayId(
-  type: AvailableDayType,
-  sourceName: string,
-  externalId: string,
-  date: string,
-): string {
-  return `${type}:${sourceName}:${date}:${externalId.replace(/[^a-zA-Z0-9:_-]/g, '-')}`;
+function createTestingDayIdentity(
+  day: TestingDay,
+): Pick<AvailableDay, 'dayId'> {
+  return {
+    dayId: createDayIdentity({
+      type: 'test_day',
+      sourceName: day.source,
+      date: day.date,
+      stableKey: day.externalId,
+      fallbackKey: [
+        day.circuitId,
+        day.layout ?? '',
+        day.format ?? '',
+        day.group ?? '',
+      ].join('|'),
+    }),
+  };
+}
+
+function createTrackDayIdentity(day: TrackDay): Pick<AvailableDay, 'dayId'> {
+  return {
+    dayId: createDayIdentity({
+      type: 'track_day',
+      sourceName: day.source,
+      date: day.date,
+      stableKey: day.externalId,
+      fallbackKey: [
+        day.circuitId,
+        day.layout ?? '',
+        day.organizer ?? '',
+        day.format ?? '',
+        day.duration ?? '',
+        day.bookingUrl ?? '',
+      ].join('|'),
+    }),
+  };
+}
+
+function createRaceDayIdentity(
+  result: DiscoveryResult,
+  round: {
+    startDate?: string;
+    externalId?: string;
+    roundNumber?: number | string;
+    circuit?: string;
+    name?: string;
+    endDate?: string;
+  },
+): Pick<AvailableDay, 'dayId'> {
+  const stableKey =
+    round.externalId ??
+    `${result.externalId ?? result.name}-${round.roundNumber}`;
+
+  return {
+    dayId: createDayIdentity({
+      type: 'race_day',
+      sourceName: 'caterham',
+      date: round.startDate!,
+      stableKey,
+      fallbackKey: [
+        result.externalId ?? result.name,
+        round.roundNumber ?? '',
+        round.circuit ?? '',
+        round.name ?? '',
+      ].join('|'),
+    }),
+  };
 }
 
 function compactDescription(parts: Array<string | undefined>): string {
@@ -63,12 +124,7 @@ function providerLabel(source: string): string {
 
 function normalizeTestingDay(day: TestingDay): AvailableDay {
   return {
-    dayId: createDayId(
-      'test_day',
-      day.source,
-      day.externalId ?? `${day.circuitId}-${day.date}`,
-      day.date,
-    ),
+    ...createTestingDayIdentity(day),
     date: day.date,
     type: 'test_day',
     circuit: day.circuitName,
@@ -88,12 +144,7 @@ function normalizeTestingDay(day: TestingDay): AvailableDay {
 
 function normalizeTrackDay(day: TrackDay): AvailableDay {
   return {
-    dayId: createDayId(
-      'track_day',
-      day.source,
-      day.externalId ?? `${day.circuitId}-${day.date}`,
-      day.date,
-    ),
+    ...createTrackDayIdentity(day),
     date: day.date,
     type: 'track_day',
     circuit: day.circuitName,
@@ -117,13 +168,7 @@ function normalizeRaceResults(results: DiscoveryResult[]): AvailableDay[] {
       (season.rounds ?? [])
         .filter((round) => round.startDate)
         .map((round) => ({
-          dayId: createDayId(
-            'race_day',
-            'caterham',
-            round.externalId ??
-              `${result.externalId ?? result.name}-${round.roundNumber}`,
-            round.startDate!,
-          ),
+          ...createRaceDayIdentity(result, round),
           date: round.startDate!,
           type: 'race_day',
           circuit: round.circuit ?? result.name,

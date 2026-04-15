@@ -1,4 +1,3 @@
-import { ulid } from 'ulid';
 import type { User } from '~/lib/auth/schemas';
 import type { BookingStatus } from '~/lib/constants/enums';
 import type { DayAttendanceSummary, SharedAttendee } from '~/lib/days/types';
@@ -71,6 +70,21 @@ function sanitizeOptional(value?: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+async function syncDayAttendanceSummariesSafely(
+  dayIds: string[],
+  store: BookingPersistence,
+  summaryStore: BookingSummaryPersistence,
+): Promise<void> {
+  try {
+    await syncDayAttendanceSummaries(dayIds, store, summaryStore);
+  } catch (error) {
+    console.error('Failed to refresh booking attendance summaries', {
+      dayIds,
+      error,
+    });
+  }
+}
+
 export async function createBooking(
   input: CreateBookingInput,
   user: User,
@@ -82,17 +96,25 @@ export async function createBooking(
 
   if (existing) {
     const updated = await store.update(user.id, existing.bookingId, {
+      date: input.date,
       status: input.status,
+      circuit: input.circuit,
+      provider: input.provider,
+      description: input.description,
       userName: user.name,
       userImage: user.picture,
       updatedAt: now,
     });
-    await syncDayAttendanceSummary(updated.dayId, store, summaryStore);
+    await syncDayAttendanceSummariesSafely(
+      [updated.dayId],
+      store,
+      summaryStore,
+    );
     return updated;
   }
 
   const created = await store.create({
-    bookingId: ulid(),
+    bookingId: input.dayId,
     userId: user.id,
     userName: user.name,
     userImage: user.picture,
@@ -109,7 +131,7 @@ export async function createBooking(
     accommodationReference: undefined,
     notes: undefined,
   } as BookingRecord);
-  await syncDayAttendanceSummary(created.dayId, store, summaryStore);
+  await syncDayAttendanceSummariesSafely([created.dayId], store, summaryStore);
   return created;
 }
 
@@ -133,7 +155,7 @@ export async function updateBooking(
     notes: sanitizeOptional(input.notes),
     updatedAt: new Date().toISOString(),
   });
-  await syncDayAttendanceSummary(updated.dayId, store, summaryStore);
+  await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);
   return updated;
 }
 
@@ -149,18 +171,26 @@ export async function applySharedStaySelection(
 
   if (existing) {
     const updated = await store.update(user.id, existing.bookingId, {
+      date: input.date,
       status: existing.status === 'cancelled' ? input.status : existing.status,
+      circuit: input.circuit,
+      provider: input.provider,
+      description: input.description,
       userName: user.name,
       userImage: user.picture,
       accommodationName,
       updatedAt: now,
     });
-    await syncDayAttendanceSummary(updated.dayId, store, summaryStore);
+    await syncDayAttendanceSummariesSafely(
+      [updated.dayId],
+      store,
+      summaryStore,
+    );
     return updated;
   }
 
   const created = await store.create({
-    bookingId: ulid(),
+    bookingId: input.dayId,
     userId: user.id,
     userName: user.name,
     userImage: user.picture,
@@ -177,7 +207,7 @@ export async function applySharedStaySelection(
     accommodationReference: undefined,
     notes: undefined,
   } as BookingRecord);
-  await syncDayAttendanceSummary(created.dayId, store, summaryStore);
+  await syncDayAttendanceSummariesSafely([created.dayId], store, summaryStore);
   return created;
 }
 
@@ -255,7 +285,17 @@ export async function listAttendanceByDay(
   dayId: string,
   store: BookingPersistence = bookingStore,
 ): Promise<DayAttendanceSummary> {
-  const bookings = await store.listByDay(dayId);
+  return listAttendanceByDayIds([dayId], store);
+}
+
+export async function listAttendanceByDayIds(
+  dayIds: string[],
+  store: BookingPersistence = bookingStore,
+): Promise<DayAttendanceSummary> {
+  const bookingsByDay = await Promise.all(
+    [...new Set(dayIds)].map((dayId) => store.listByDay(dayId)),
+  );
+  const bookings = bookingsByDay.flat();
   return summarizeDayAttendances(bookings);
 }
 

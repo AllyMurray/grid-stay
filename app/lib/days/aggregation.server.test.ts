@@ -66,6 +66,94 @@ describe('listAvailableDays', () => {
     );
   });
 
+  it('keeps distinct track day sessions on the same circuit and date', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [],
+      testingAdapters: [],
+      trackDayAdapters: [
+        {
+          name: 'track-a',
+          description: 'Track day adapter',
+          circuitIds: ['b'],
+          async fetchSchedule() {
+            return [
+              {
+                date: '2026-04-20',
+                circuitName: 'Donington Park',
+                circuitId: 'b',
+                layout: 'National',
+                organizer: 'MSV Car Trackdays',
+                format: 'General Track Evening',
+                duration: 'Evening',
+                availability: 'available',
+                bookingUrl: 'https://example.com/donington/evening',
+                source: 'msv-trackday',
+              },
+              {
+                date: '2026-04-20',
+                circuitName: 'Donington Park',
+                circuitId: 'b',
+                layout: 'National',
+                organizer: 'MSV Car Trackdays',
+                format: 'General Track Day',
+                duration: 'Full Day',
+                availability: 'available',
+                bookingUrl: 'https://example.com/donington/day',
+                source: 'msv-trackday',
+              },
+            ];
+          },
+        },
+      ],
+    });
+
+    expect(result.days).toHaveLength(2);
+    expect(new Set(result.days.map((day) => day.dayId)).size).toBe(2);
+    expect(result.days.map((day) => day.description)).toEqual([
+      'National • General Track Evening • Evening',
+      'National • General Track Day • Full Day',
+    ]);
+  });
+
+  it('keeps the same day id when a source record date changes but external id stays the same', async () => {
+    const createTestingAdapter = (date: string) => ({
+      name: 'testing-a',
+      description: 'Testing adapter',
+      circuitIds: ['a'],
+      async fetchSchedule() {
+        return [
+          {
+            date,
+            circuitName: 'Silverstone',
+            circuitId: 'a',
+            format: 'Open pit lane',
+            availability: 'available' as const,
+            source: 'silverstone',
+            externalId: 'silverstone-open-pit-lane-1',
+          },
+        ];
+      },
+    });
+
+    const first = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [],
+      testingAdapters: [createTestingAdapter('2026-04-14')],
+      trackDayAdapters: [],
+    });
+    const second = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [],
+      testingAdapters: [createTestingAdapter('2026-04-15')],
+      trackDayAdapters: [],
+    });
+
+    expect(first.days).toHaveLength(1);
+    expect(second.days).toHaveLength(1);
+    expect(first.days[0]?.dayId).toBe(second.days[0]?.dayId);
+  });
+
   it('surfaces partial source failures without hiding successful results', async () => {
     const result = await listAvailableDays({
       today: '2026-04-01',

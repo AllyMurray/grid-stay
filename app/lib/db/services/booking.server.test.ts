@@ -167,6 +167,7 @@ describe('booking service', () => {
     );
 
     expect(created.dayId).toBe('day-1');
+    expect(created.bookingId).toBe('day-1');
     expect(memory.items).toHaveLength(1);
     expect(memory.summaries.get('day-1')).toMatchObject({
       attendeeCount: 1,
