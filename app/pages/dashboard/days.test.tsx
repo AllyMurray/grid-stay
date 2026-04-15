@@ -2,7 +2,10 @@ import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
+import type {
+  DaysFeedData,
+  DaysIndexData,
+} from '~/lib/days/dashboard-feed.server';
 import type { DayAttendanceSummary } from '~/lib/days/types';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
@@ -14,6 +17,7 @@ function renderWithProviders(
     string,
     DayAttendanceSummary
   > = defaultAttendanceByDay,
+  feedPagesByOffset: Record<number, DaysFeedData> = {},
 ) {
   const Stub = createRoutesStub([
     {
@@ -29,6 +33,26 @@ function renderWithProviders(
             attendeeCount: 0,
             attendees: [],
             accommodationNames: [],
+          }
+        );
+      },
+      Component: () => null,
+    },
+    {
+      path: '/api/dashboard/days-feed',
+      loader({ request }) {
+        const offset = Number(
+          new URL(request.url).searchParams.get('offset') ?? '0',
+        );
+
+        return (
+          feedPagesByOffset[offset] ?? {
+            filterKey: '',
+            offset,
+            totalCount: defaultData.totalCount,
+            nextOffset: null,
+            days: [],
+            attendanceSummaries: {},
           }
         );
       },
@@ -57,6 +81,9 @@ const defaultData: DaysIndexData = {
   providerOptions: ['MSV'],
   myBookingsByDay: {},
   selectedDay: null,
+  selectedDayPosition: null,
+  selectedDayPrevious: null,
+  selectedDayNext: null,
   selectedDaySummary: null,
   selectedDayAttendance: null,
   attendanceSummaries: {
@@ -197,6 +224,71 @@ describe('AvailableDaysPage', () => {
       '/dashboard/days?day=day-1',
     );
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+  });
+
+  it('uses route-provided neighbors when the selected day is outside the initially loaded page', async () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          totalCount: 4,
+          days: [defaultData.days[0]!, defaultData.days[1]!],
+          selectedDay: {
+            dayId: 'day-4',
+            date: '2026-05-12',
+            type: 'race_day',
+            circuit: 'Donington Park',
+            provider: 'MSV',
+            description: 'Race weekend',
+          },
+          selectedDayPosition: 4,
+          selectedDayPrevious: {
+            dayId: 'day-3',
+            date: '2026-05-09',
+            type: 'test_day',
+            circuit: 'Oulton Park',
+            provider: 'MSV',
+            description: 'Test session',
+          },
+          selectedDayNext: null,
+          selectedDaySummary: {
+            attendeeCount: 0,
+            accommodationNames: [],
+          },
+          selectedDayAttendance: {
+            attendeeCount: 0,
+            accommodationNames: [],
+            attendees: [],
+          },
+          attendanceSummaries: {
+            ...defaultData.attendanceSummaries,
+            'day-4': {
+              attendeeCount: 0,
+              accommodationNames: [],
+            },
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-4',
+      defaultAttendanceByDay,
+      {
+        3: {
+          filterKey: '',
+          offset: 3,
+          totalCount: 4,
+          nextOffset: null,
+          days: [],
+          attendanceSummaries: {},
+        },
+      },
+    );
+
+    expect(await screen.findByText('4 of 4 matching days')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+    expect(screen.getByRole('link', { name: /previous/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days?day=day-3&nav=day-3',
+    );
   });
 
   it('shows a compact roster first and expands one status group at a time', async () => {

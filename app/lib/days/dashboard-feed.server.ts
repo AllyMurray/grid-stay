@@ -57,6 +57,9 @@ export interface DaysIndexData extends DaysFeedData {
   providerOptions: string[];
   myBookingsByDay: Record<string, DayBookingSnapshot>;
   selectedDay: DayRow | null;
+  selectedDayPosition: number | null;
+  selectedDayPrevious: DayRow | null;
+  selectedDayNext: DayRow | null;
   selectedDaySummary: DayAttendanceOverview | null;
   selectedDayAttendance: DayAttendanceSummary | null;
 }
@@ -209,6 +212,9 @@ export async function loadDaysIndex(
   const selectedDayRecord = selectedDayId
     ? (filteredDays.find((day) => day.dayId === selectedDayId) ?? null)
     : null;
+  const selectedDayIndex = selectedDayRecord
+    ? filteredDays.findIndex((day) => day.dayId === selectedDayRecord.dayId)
+    : -1;
   let selectedDaySummary: DayAttendanceOverview | null = null;
   let selectedDayAttendance: DayAttendanceSummary | null = null;
 
@@ -239,6 +245,15 @@ export async function loadDaysIndex(
       ]),
     ),
     selectedDay: selectedDayRecord ? toDayRow(selectedDayRecord) : null,
+    selectedDayPosition: selectedDayRecord ? selectedDayIndex + 1 : null,
+    selectedDayPrevious:
+      selectedDayIndex > 0
+        ? toDayRow(filteredDays[selectedDayIndex - 1]!)
+        : null,
+    selectedDayNext:
+      selectedDayIndex >= 0 && selectedDayIndex < filteredDays.length - 1
+        ? toDayRow(filteredDays[selectedDayIndex + 1]!)
+        : null,
     selectedDaySummary,
     selectedDayAttendance,
   };

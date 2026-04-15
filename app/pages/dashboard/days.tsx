@@ -105,6 +105,7 @@ function createDaysFeedHref(
 function createDaysIndexHref(
   filters: DaysIndexData['filters'],
   selectedDayId?: string | null,
+  navigationKey?: string | null,
 ): string {
   const params = new URLSearchParams();
   if (filters.month) {
@@ -121,6 +122,9 @@ function createDaysIndexHref(
   }
   if (selectedDayId) {
     params.set('day', selectedDayId);
+  }
+  if (navigationKey) {
+    params.set('nav', navigationKey);
   }
 
   const query = params.toString();
@@ -1108,6 +1112,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const [searchParams] = useSearchParams();
   const feedFetcher = useFetcher<DaysFeedData>();
   const attendanceFetcher = useFetcher<DayAttendanceDetails>();
+  const adjacentAttendanceFetcher = useFetcher<DayAttendanceDetails>();
   const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() =>
     createLoadedDaysState(data),
   );
@@ -1122,6 +1127,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const previousFilterKeyRef = useRef(data.filterKey);
   const pendingOffsetRef = useRef<number | null>(null);
   const pendingAttendanceDayIdRef = useRef<string | null>(null);
+  const pendingAdjacentAttendanceDayIdRef = useRef<string | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
   const selectedDayId = searchParams.get('day')?.trim() || null;
@@ -1244,17 +1250,44 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
   const selectedDayFromUrl =
     orderedLoadedDays.find((day) => day.dayId === selectedDayId) ?? null;
+  const hasLoadedFullSet = orderedLoadedDays.length >= loadedDays.totalCount;
   const selectedDayIndex = selectedDayFromUrl
     ? orderedLoadedDays.findIndex(
         (day) => day.dayId === selectedDayFromUrl.dayId,
       )
     : -1;
+  const selectedDayMatchesRouteData =
+    Boolean(selectedDayFromUrl) &&
+    data.selectedDay?.dayId === selectedDayFromUrl?.dayId;
+  const selectedDayPosition =
+    selectedDayFromUrl && hasLoadedFullSet
+      ? selectedDayIndex + 1
+      : selectedDayMatchesRouteData
+        ? data.selectedDayPosition
+        : selectedDayFromUrl
+          ? null
+          : null;
   const previousSelectedDay =
-    selectedDayIndex > 0 ? orderedLoadedDays[selectedDayIndex - 1] : null;
+    selectedDayFromUrl && hasLoadedFullSet
+      ? selectedDayIndex > 0
+        ? orderedLoadedDays[selectedDayIndex - 1]
+        : null
+      : selectedDayMatchesRouteData
+        ? data.selectedDayPrevious
+        : selectedDayIndex > 0
+          ? orderedLoadedDays[selectedDayIndex - 1]
+          : null;
   const nextSelectedDay =
-    selectedDayIndex >= 0 && selectedDayIndex < orderedLoadedDays.length - 1
-      ? orderedLoadedDays[selectedDayIndex + 1]
-      : null;
+    selectedDayFromUrl && hasLoadedFullSet
+      ? selectedDayIndex >= 0 && selectedDayIndex < orderedLoadedDays.length - 1
+        ? orderedLoadedDays[selectedDayIndex + 1]
+        : null
+      : selectedDayMatchesRouteData
+        ? data.selectedDayNext
+        : selectedDayIndex >= 0 &&
+            selectedDayIndex < orderedLoadedDays.length - 1
+          ? orderedLoadedDays[selectedDayIndex + 1]
+          : null;
   const selectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
     : null;
@@ -1294,6 +1327,69 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       [dayId]: attendanceFetcher.data!,
     }));
   }, [attendanceFetcher.data]);
+
+  useEffect(() => {
+    if (
+      !selectedDayFromUrl ||
+      loadedDays.nextOffset === null ||
+      feedFetcher.state !== 'idle'
+    ) {
+      return;
+    }
+
+    if (pendingOffsetRef.current === loadedDays.nextOffset) {
+      return;
+    }
+
+    pendingOffsetRef.current = loadedDays.nextOffset;
+    feedFetcher.load(createDaysFeedHref(data.filters, loadedDays.nextOffset));
+  }, [
+    data.filters,
+    feedFetcher,
+    feedFetcher.state,
+    loadedDays.nextOffset,
+    selectedDayFromUrl,
+  ]);
+
+  useEffect(() => {
+    const adjacentDays = [previousSelectedDay, nextSelectedDay].filter(
+      (day): day is DayRow => Boolean(day),
+    );
+    const missingAdjacentDay = adjacentDays.find(
+      (day) => !attendanceDetailsByDay[day.dayId],
+    );
+
+    if (!missingAdjacentDay || adjacentAttendanceFetcher.state !== 'idle') {
+      return;
+    }
+
+    pendingAdjacentAttendanceDayIdRef.current = missingAdjacentDay.dayId;
+    adjacentAttendanceFetcher.load(
+      createDayAttendeesHref(missingAdjacentDay.dayId),
+    );
+  }, [
+    adjacentAttendanceFetcher,
+    adjacentAttendanceFetcher.state,
+    attendanceDetailsByDay,
+    nextSelectedDay,
+    previousSelectedDay,
+  ]);
+
+  useEffect(() => {
+    if (
+      !adjacentAttendanceFetcher.data ||
+      !pendingAdjacentAttendanceDayIdRef.current
+    ) {
+      return;
+    }
+
+    const dayId = pendingAdjacentAttendanceDayIdRef.current;
+    pendingAdjacentAttendanceDayIdRef.current = null;
+    setAttendanceDetailsByDay((current) => ({
+      ...current,
+      [dayId]: adjacentAttendanceFetcher.data!,
+    }));
+  }, [adjacentAttendanceFetcher.data]);
 
   return (
     <Stack gap="xl">
@@ -1421,7 +1517,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               </Title>
               <Text size="sm" c="dimmed">
                 {selectedDayFromUrl
-                  ? `${selectedDayIndex + 1} of ${loadedDays.totalCount} matching days`
+                  ? selectedDayPosition
+                    ? `${selectedDayPosition} of ${loadedDays.totalCount} matching days`
+                    : `Showing ${orderedLoadedDays.length} of ${loadedDays.totalCount} matching days`
                   : 'Scan the live feed, then open one day at a time to inspect the group plan and add it to your bookings.'}
               </Text>
             </Stack>
@@ -1433,6 +1531,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                     to={createDaysIndexHref(
                       data.filters,
                       previousSelectedDay.dayId,
+                      hasLoadedFullSet ? null : previousSelectedDay.dayId,
                     )}
                     variant="default"
                     preventScrollReset
@@ -1450,6 +1549,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                     to={createDaysIndexHref(
                       data.filters,
                       nextSelectedDay.dayId,
+                      hasLoadedFullSet ? null : nextSelectedDay.dayId,
                     )}
                     variant="default"
                     preventScrollReset
