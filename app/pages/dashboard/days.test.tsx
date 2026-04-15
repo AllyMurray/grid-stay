@@ -3,18 +3,36 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
+import type { DayAttendanceSummary } from '~/lib/days/types';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
 
 function renderWithProviders(
   ui: React.ReactElement,
   initialEntry = '/dashboard/days',
+  attendanceByDay: Record<
+    string,
+    DayAttendanceSummary
+  > = defaultAttendanceByDay,
 ) {
   const Stub = createRoutesStub([
     {
       path: '/dashboard/days',
       action: async () => null,
       Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
+    },
+    {
+      path: '/api/days/:dayId/attendees',
+      loader({ params }) {
+        return (
+          attendanceByDay[params.dayId ?? ''] ?? {
+            attendeeCount: 0,
+            attendees: [],
+            accommodationNames: [],
+          }
+        );
+      },
+      Component: () => null,
     },
   ]);
 
@@ -40,6 +58,7 @@ const defaultData: DaysIndexData = {
   myBookingsByDay: {},
   selectedDay: null,
   selectedDaySummary: null,
+  selectedDayAttendance: null,
   attendanceSummaries: {
     'day-1': {
       attendeeCount: 2,
@@ -70,6 +89,48 @@ const defaultData: DaysIndexData = {
   ],
 };
 
+const defaultAttendanceByDay: Record<string, DayAttendanceSummary> = {
+  'day-1': {
+    attendeeCount: 2,
+    accommodationNames: ['Trackside Hotel'],
+    attendees: [
+      {
+        bookingId: 'booking-1',
+        userId: 'user-1',
+        userName: 'Driver One',
+        status: 'booked',
+        accommodationName: 'Trackside Hotel',
+      },
+      {
+        bookingId: 'booking-2',
+        userId: 'user-2',
+        userName: 'Driver Two',
+        status: 'maybe',
+      },
+      {
+        bookingId: 'booking-3',
+        userId: 'user-3',
+        userName: 'Driver Three',
+        status: 'cancelled',
+        accommodationName: 'Trackside Hotel',
+      },
+    ],
+  },
+  'day-2': {
+    attendeeCount: 1,
+    accommodationNames: ['Brands Hatch Lodge'],
+    attendees: [
+      {
+        bookingId: 'booking-4',
+        userId: 'user-4',
+        userName: 'Driver Four',
+        status: 'booked',
+        accommodationName: 'Brands Hatch Lodge',
+      },
+    ],
+  },
+};
+
 describe('AvailableDaysPage', () => {
   it('renders the live schedule from props', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
@@ -95,17 +156,26 @@ describe('AvailableDaysPage', () => {
     expect(
       await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
     ).not.toHaveLength(0);
+    expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText('Attendee roster')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
   });
 
-  it('shows the selected-day detail when the url selects a day', () => {
+  it('shows grouped roster and stay detail when the url selects a day', async () => {
     renderWithProviders(
       <AvailableDaysPage data={defaultData} />,
       '/dashboard/days?day=day-2',
     );
 
+    expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText('Booked')).toBeInTheDocument();
+    expect(screen.getAllByText('Brands Hatch Lodge').length).toBeGreaterThan(0);
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');

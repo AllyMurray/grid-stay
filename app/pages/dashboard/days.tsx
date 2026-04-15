@@ -28,6 +28,10 @@ import type {
   DaysFeedData,
   DaysIndexData,
 } from '~/lib/days/dashboard-feed.server';
+import type {
+  DayAttendanceSummary as DayAttendanceDetails,
+  SharedAttendee,
+} from '~/lib/days/types';
 
 export interface AvailableDaysPageProps {
   data: DaysIndexData;
@@ -161,9 +165,20 @@ function formatDayLongDate(value: string) {
   }).format(new Date(value));
 }
 
-interface DayAttendanceSummary {
+interface DayAttendanceSummaryPreview {
   attendeeCount: number;
   accommodationNames: string[];
+}
+
+interface AttendeeStatusGroup {
+  key: BookingStatus;
+  label: string;
+  attendees: SharedAttendee[];
+}
+
+interface SharedStayGroup {
+  label: string;
+  attendees: SharedAttendee[];
 }
 
 interface LoadedDaysState {
@@ -197,6 +212,10 @@ function createLoadedDaysState(data: DaysIndexData): LoadedDaysState {
   };
 }
 
+function createDayAttendeesHref(dayId: string) {
+  return `/api/days/${dayId}/attendees`;
+}
+
 function getDayBookingLabel(status?: BookingStatus) {
   switch (status) {
     case 'booked':
@@ -213,7 +232,7 @@ function getDayBookingLabel(status?: BookingStatus) {
 function getAttendanceSummary(
   summaries: DaysFeedData['attendanceSummaries'],
   dayId: string,
-): DayAttendanceSummary {
+): DayAttendanceSummaryPreview {
   return (
     summaries[dayId] ?? {
       attendeeCount: 0,
@@ -222,11 +241,11 @@ function getAttendanceSummary(
   );
 }
 
-function getAttendanceLabel(summary: DayAttendanceSummary) {
+function getAttendanceLabel(summary: DayAttendanceSummaryPreview) {
   return `${summary.attendeeCount} attending`;
 }
 
-function getAccommodationLabel(summary: DayAttendanceSummary) {
+function getAccommodationLabel(summary: DayAttendanceSummaryPreview) {
   if (summary.accommodationNames.length === 0) {
     return 'No shared stay added yet';
   }
@@ -250,6 +269,67 @@ function getDayTripText(booking?: DayBookingSnapshot) {
   }
 
   return `My trip: ${titleCase(booking.status)}`;
+}
+
+function groupAttendeesByStatus(
+  attendees: SharedAttendee[],
+): AttendeeStatusGroup[] {
+  return [
+    {
+      key: 'booked',
+      label: 'Booked',
+      attendees: attendees.filter((attendee) => attendee.status === 'booked'),
+    },
+    {
+      key: 'maybe',
+      label: 'Maybe',
+      attendees: attendees.filter((attendee) => attendee.status === 'maybe'),
+    },
+    {
+      key: 'cancelled',
+      label: 'Cancelled',
+      attendees: attendees.filter(
+        (attendee) => attendee.status === 'cancelled',
+      ),
+    },
+  ];
+}
+
+function groupAttendeesBySharedStay(
+  attendees: SharedAttendee[],
+): SharedStayGroup[] {
+  const groups = new Map<string, SharedAttendee[]>();
+
+  for (const attendee of attendees) {
+    if (attendee.status === 'cancelled') {
+      continue;
+    }
+
+    const label = attendee.accommodationName?.trim() || 'No shared stay yet';
+    const current = groups.get(label);
+
+    if (current) {
+      current.push(attendee);
+      continue;
+    }
+
+    groups.set(label, [attendee]);
+  }
+
+  return [...groups.entries()]
+    .sort(([left], [right]) => {
+      if (left === 'No shared stay yet') {
+        return 1;
+      }
+      if (right === 'No shared stay yet') {
+        return -1;
+      }
+      return left.localeCompare(right);
+    })
+    .map(([label, groupAttendees]) => ({
+      label,
+      attendees: groupAttendees,
+    }));
 }
 
 function DayBookingAction({
@@ -337,7 +417,7 @@ function DayListItem({
   href,
 }: {
   day: DayRow;
-  summary: DayAttendanceSummary;
+  summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
   selected: boolean;
   href: string;
@@ -459,15 +539,93 @@ function DayListPanel({
   );
 }
 
+function AttendeeStatusSection({ group }: { group: AttendeeStatusGroup }) {
+  return (
+    <Stack gap="sm">
+      <Group justify="space-between" align="flex-end" gap="md">
+        <Text fw={700}>{group.label}</Text>
+        <Text size="sm" c="dimmed">
+          {group.attendees.length}
+        </Text>
+      </Group>
+
+      {group.attendees.length > 0 ? (
+        <Stack gap="xs">
+          {group.attendees.map((attendee, index) => (
+            <Fragment key={attendee.bookingId}>
+              <Group justify="space-between" align="flex-start" gap="md">
+                <Text size="sm" fw={600}>
+                  {attendee.userName}
+                </Text>
+                <Text size="sm" c="dimmed" ta="right">
+                  {attendee.accommodationName?.trim() || 'No shared stay yet'}
+                </Text>
+              </Group>
+              {index < group.attendees.length - 1 ? <Divider /> : null}
+            </Fragment>
+          ))}
+        </Stack>
+      ) : (
+        <Text size="sm" c="dimmed">
+          Nobody is in this group.
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+function SharedStayAssignments({ attendees }: { attendees: SharedAttendee[] }) {
+  const groups = groupAttendeesBySharedStay(attendees);
+
+  if (groups.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No active attendees are attached to this day yet.
+      </Text>
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      {groups.map((group, index) => (
+        <Fragment key={group.label}>
+          <Group justify="space-between" align="flex-end" gap="md">
+            <Stack gap={2}>
+              <Text fw={700}>{group.label}</Text>
+              <Text size="sm" c="dimmed">
+                {group.attendees
+                  .map((attendee) => attendee.userName)
+                  .join(', ')}
+              </Text>
+            </Stack>
+            <Text size="sm" fw={700} c="dimmed">
+              {group.attendees.length}
+            </Text>
+          </Group>
+          {index < groups.length - 1 ? <Divider /> : null}
+        </Fragment>
+      ))}
+    </Stack>
+  );
+}
+
 function DayDetailContent({
   day,
   summary,
   booking,
+  attendanceDetails,
+  attendanceLoading,
 }: {
   day: DayRow;
-  summary: DayAttendanceSummary;
+  summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
+  attendanceDetails?: DayAttendanceDetails | null;
+  attendanceLoading?: boolean;
 }) {
+  const attendeeStatusGroups = attendanceDetails
+    ? groupAttendeesByStatus(attendanceDetails.attendees)
+    : [];
+
   return (
     <Stack gap="lg">
       <Group justify="space-between" align="flex-start" gap="md">
@@ -531,10 +689,47 @@ function DayDetailContent({
       <Stack gap="sm">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
+            <Text fw={700}>Attendee roster</Text>
+            <Text size="sm" c="dimmed">
+              Track who is booked, still deciding, or no longer going.
+            </Text>
+          </Stack>
+          {attendanceDetails ? (
+            <Text size="sm" fw={700} c="dimmed">
+              {attendanceDetails.attendees.length} total
+            </Text>
+          ) : null}
+        </Group>
+
+        {attendanceLoading ? (
+          <Group gap="sm">
+            <Loader size="sm" color="brand" />
+            <Text size="sm" c="dimmed">
+              Loading attendee roster
+            </Text>
+          </Group>
+        ) : attendanceDetails ? (
+          <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="lg">
+            {attendeeStatusGroups.map((group) => (
+              <AttendeeStatusSection key={group.key} group={group} />
+            ))}
+          </SimpleGrid>
+        ) : (
+          <Text size="sm" c="dimmed">
+            Attendee details are not available yet.
+          </Text>
+        )}
+      </Stack>
+
+      <Divider />
+
+      <Stack gap="sm">
+        <Group justify="space-between" align="flex-end" gap="md">
+          <Stack gap={2}>
             <Text fw={700}>Shared stay</Text>
             <Text size="sm" c="dimmed">
-              Shared stay names are visible to the group once someone has added
-              them in the plan.
+              See who is attached to each shared stay name and where the gaps
+              still are.
             </Text>
           </Stack>
           <Text size="sm" fw={700} c="dimmed">
@@ -542,16 +737,19 @@ function DayDetailContent({
           </Text>
         </Group>
 
-        {summary.accommodationNames.length > 0 ? (
-          <Group gap="xs">
-            {summary.accommodationNames.map((name) => (
-              <Badge key={name} variant="light" color="blue">
-                {name}
-              </Badge>
-            ))}
+        {attendanceLoading ? (
+          <Group gap="sm">
+            <Loader size="sm" color="brand" />
+            <Text size="sm" c="dimmed">
+              Loading shared stay assignments
+            </Text>
           </Group>
+        ) : attendanceDetails ? (
+          <SharedStayAssignments attendees={attendanceDetails.attendees} />
         ) : (
-          <Text size="sm">No shared stay added yet</Text>
+          <Text size="sm" c="dimmed">
+            Shared stay assignments are not available yet.
+          </Text>
         )}
       </Stack>
 
@@ -573,14 +771,24 @@ function DayDetailPanel({
   day,
   summary,
   booking,
+  attendanceDetails,
+  attendanceLoading,
 }: {
   day: DayRow;
-  summary: DayAttendanceSummary;
+  summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
+  attendanceDetails?: DayAttendanceDetails | null;
+  attendanceLoading?: boolean;
 }) {
   return (
     <Paper className="days-detail-panel" p="lg">
-      <DayDetailContent day={day} summary={summary} booking={booking} />
+      <DayDetailContent
+        day={day}
+        summary={summary}
+        booking={booking}
+        attendanceDetails={attendanceDetails}
+        attendanceLoading={attendanceLoading}
+      />
     </Paper>
   );
 }
@@ -588,12 +796,21 @@ function DayDetailPanel({
 export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const [searchParams] = useSearchParams();
   const feedFetcher = useFetcher<DaysFeedData>();
+  const attendanceFetcher = useFetcher<DayAttendanceDetails>();
   const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() =>
     createLoadedDaysState(data),
+  );
+  const [attendanceDetailsByDay, setAttendanceDetailsByDay] = useState<
+    Record<string, DayAttendanceDetails>
+  >(() =>
+    data.selectedDay && data.selectedDayAttendance
+      ? { [data.selectedDay.dayId]: data.selectedDayAttendance }
+      : {},
   );
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const previousFilterKeyRef = useRef(data.filterKey);
   const pendingOffsetRef = useRef<number | null>(null);
+  const pendingAttendanceDayIdRef = useRef<string | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
   const selectedDayId = searchParams.get('day')?.trim() || null;
@@ -667,6 +884,19 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   }, [feedFetcher.data]);
 
   useEffect(() => {
+    if (!data.selectedDay || !data.selectedDayAttendance) {
+      return;
+    }
+
+    const { dayId } = data.selectedDay;
+    const attendance = data.selectedDayAttendance;
+    setAttendanceDetailsByDay((current) => ({
+      ...current,
+      [dayId]: attendance,
+    }));
+  }, [data.selectedDay, data.selectedDayAttendance]);
+
+  useEffect(() => {
     const sentinel = loadMoreRef.current;
     if (
       !sentinel ||
@@ -699,6 +929,45 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
   const selectedDayFromUrl =
     loadedDays.days.find((day) => day.dayId === selectedDayId) ?? null;
+  const selectedDayAttendanceDetails = selectedDayFromUrl
+    ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
+    : null;
+  const attendanceLoading =
+    Boolean(selectedDayFromUrl) &&
+    !selectedDayAttendanceDetails &&
+    (attendanceFetcher.state !== 'idle' ||
+      pendingAttendanceDayIdRef.current === selectedDayFromUrl?.dayId);
+
+  useEffect(() => {
+    if (!selectedDayFromUrl || selectedDayAttendanceDetails) {
+      return;
+    }
+
+    if (attendanceFetcher.state !== 'idle') {
+      return;
+    }
+
+    pendingAttendanceDayIdRef.current = selectedDayFromUrl.dayId;
+    attendanceFetcher.load(createDayAttendeesHref(selectedDayFromUrl.dayId));
+  }, [
+    attendanceFetcher,
+    attendanceFetcher.state,
+    selectedDayAttendanceDetails,
+    selectedDayFromUrl,
+  ]);
+
+  useEffect(() => {
+    if (!attendanceFetcher.data || !pendingAttendanceDayIdRef.current) {
+      return;
+    }
+
+    const dayId = pendingAttendanceDayIdRef.current;
+    pendingAttendanceDayIdRef.current = null;
+    setAttendanceDetailsByDay((current) => ({
+      ...current,
+      [dayId]: attendanceFetcher.data!,
+    }));
+  }, [attendanceFetcher.data]);
 
   return (
     <Stack gap="xl">
@@ -854,6 +1123,8 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 selectedDayFromUrl.dayId,
               )}
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
+              attendanceDetails={selectedDayAttendanceDetails}
+              attendanceLoading={attendanceLoading}
             />
           ) : loadedDays.days.length > 0 ? (
             <DayListPanel

@@ -339,6 +339,9 @@ describe('booking service', () => {
 
     const communal = summarizeDayAttendances(memory.items as never);
     expect(communal.attendeeCount).toBe(1);
-    expect(communal.attendees[0].status).toBe('maybe');
+    expect(communal.attendees).toHaveLength(2);
+    expect(
+      communal.attendees.map((attendee) => attendee.status).sort(),
+    ).toEqual(['cancelled', 'maybe']);
   });
 });

@@ -162,20 +162,22 @@ export function summarizeDayAttendances(
   bookings: BookingRecord[],
 ): DayAttendanceSummary {
   const attendees = bookings
-    .filter((booking) => booking.status !== 'cancelled')
     .map(toSharedAttendee)
     .sort((left, right) => left.userName.localeCompare(right.userName));
+  const activeAttendees = attendees.filter(
+    (attendee) => attendee.status !== 'cancelled',
+  );
 
   const accommodationNames = [
     ...new Set(
-      attendees
+      activeAttendees
         .map((attendee) => attendee.accommodationName?.trim())
         .filter((name): name is string => Boolean(name)),
     ),
   ].sort((left, right) => left.localeCompare(right));
 
   return {
-    attendeeCount: attendees.length,
+    attendeeCount: activeAttendees.length,
     attendees,
     accommodationNames,
   };

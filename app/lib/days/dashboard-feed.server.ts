@@ -1,11 +1,19 @@
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
-import { listMyBookings } from '~/lib/db/services/booking.server';
+import {
+  listAttendanceByDay,
+  listMyBookings,
+} from '~/lib/db/services/booking.server';
 import {
   type DayAttendanceOverview,
   dayAttendanceSummaryStore,
 } from '~/lib/db/services/day-attendance-summary.server';
 import { filterAvailableDays } from './aggregation.server';
-import type { AvailableDay, AvailableDayType, DaySourceError } from './types';
+import type {
+  AvailableDay,
+  AvailableDayType,
+  DayAttendanceSummary,
+  DaySourceError,
+} from './types';
 
 export const DAYS_PAGE_SIZE = 30;
 
@@ -49,6 +57,7 @@ export interface DaysIndexData extends DaysFeedData {
   myBookingsByDay: Record<string, DayBookingSnapshot>;
   selectedDay: DayRow | null;
   selectedDaySummary: DayAttendanceOverview | null;
+  selectedDayAttendance: DayAttendanceSummary | null;
 }
 
 const EMPTY_ERRORS: DaySourceError[] = [
@@ -200,15 +209,14 @@ export async function loadDaysIndex(
     ? (filteredDays.find((day) => day.dayId === selectedDayId) ?? null)
     : null;
   let selectedDaySummary: DayAttendanceOverview | null = null;
+  let selectedDayAttendance: DayAttendanceSummary | null = null;
 
   if (selectedDayRecord) {
-    selectedDaySummary = page.attendanceSummaries[selectedDayRecord.dayId] ??
-      (
-        await dayAttendanceSummaryStore.getByDayIds([selectedDayRecord.dayId])
-      ).get(selectedDayRecord.dayId) ?? {
-        attendeeCount: 0,
-        accommodationNames: [],
-      };
+    selectedDayAttendance = await listAttendanceByDay(selectedDayRecord.dayId);
+    selectedDaySummary = {
+      attendeeCount: selectedDayAttendance.attendeeCount,
+      accommodationNames: selectedDayAttendance.accommodationNames,
+    };
   }
 
   return {
@@ -230,6 +238,7 @@ export async function loadDaysIndex(
     ),
     selectedDay: selectedDayRecord ? toDayRow(selectedDayRecord) : null,
     selectedDaySummary,
+    selectedDayAttendance,
   };
 }
 
