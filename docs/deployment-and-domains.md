@@ -21,14 +21,15 @@ All three stages are configured in code. Only `prod` is currently deployed.
 
 ## Certificates
 
-The site uses existing ACM certificates in `us-east-1`.
+The site looks up the most recent issued ACM certificate for each stage hostname
+in `us-east-1`.
 
-- `prod`: `arn:aws:acm:us-east-1:624085162128:certificate/890ffa10-a7fc-4f87-b485-74cc3c7d4a88`
-- `staging`: `arn:aws:acm:us-east-1:624085162128:certificate/a1e87c4d-1ca7-47d5-84e9-244a501791c8`
-- `dev`: `arn:aws:acm:us-east-1:624085162128:certificate/613d857d-362b-460b-b646-11970f0c2f79`
+- `gridstay.app`
+- `staging.gridstay.app`
+- `dev.gridstay.app`
 
-These ARNs are identifiers, not secrets. Do not store certificate private keys,
-AWS credentials, or auth secrets in the repo.
+The repo does not need to pin certificate ARNs. Do not store certificate
+private keys, AWS credentials, or auth secrets in the repo.
 
 ## Repo Files That Control Domains
 

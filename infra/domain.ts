@@ -14,11 +14,26 @@ const stageDomains = {
   dev: `dev.${domain}`,
 } as const;
 
+const usEast1Provider = new aws.Provider('grid-stay-us-east-1', {
+  region: 'us-east-1',
+});
+
+const getCertArn = (stageDomain: string) =>
+  aws.acm
+    .getCertificate(
+      {
+        domain: stageDomain,
+        statuses: ['ISSUED'],
+        mostRecent: true,
+      },
+      { provider: usEast1Provider },
+    )
+    .then((cert) => cert.arn);
+
 const certArns = {
-  prod: 'arn:aws:acm:us-east-1:624085162128:certificate/890ffa10-a7fc-4f87-b485-74cc3c7d4a88',
-  staging:
-    'arn:aws:acm:us-east-1:624085162128:certificate/a1e87c4d-1ca7-47d5-84e9-244a501791c8',
-  dev: 'arn:aws:acm:us-east-1:624085162128:certificate/613d857d-362b-460b-b646-11970f0c2f79',
+  prod: await getCertArn(stageDomains.prod),
+  staging: await getCertArn(stageDomains.staging),
+  dev: await getCertArn(stageDomains.dev),
 } as const;
 
 const createDomainConfig = () => {
