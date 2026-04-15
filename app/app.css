@@ -228,6 +228,26 @@ html[data-mantine-color-scheme='dark'] .day-card {
   min-width: 4.5rem;
 }
 
+.attendee-roster-row {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.attendee-roster-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.attendee-roster-panel {
+  padding: 0 0.75rem 0.85rem;
+}
+
 .shared-stay-header {
   display: none;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto auto;
@@ -266,7 +286,17 @@ html[data-mantine-color-scheme='dark'] .day-card {
   background: rgba(16, 20, 24, 0.03);
 }
 
+.attendee-roster-row:hover {
+  background: rgba(16, 20, 24, 0.03);
+}
+
 .booking-list-item[data-active='true'] {
+  background: rgba(228, 42, 87, 0.06);
+  border-color: rgba(228, 42, 87, 0.18);
+  box-shadow: inset 3px 0 0 #e42a57;
+}
+
+.attendee-roster-row[data-open='true'] {
   background: rgba(228, 42, 87, 0.06);
   border-color: rgba(228, 42, 87, 0.18);
   box-shadow: inset 3px 0 0 #e42a57;
@@ -298,7 +328,17 @@ html[data-mantine-color-scheme='dark'] .day-list-item:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 
+html[data-mantine-color-scheme='dark'] .attendee-roster-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 html[data-mantine-color-scheme='dark'] .booking-list-item[data-active='true'] {
+  background: rgba(255, 111, 143, 0.08);
+  border-color: rgba(255, 111, 143, 0.18);
+  box-shadow: inset 3px 0 0 #ff6f8f;
+}
+
+html[data-mantine-color-scheme='dark'] .attendee-roster-row[data-open='true'] {
   background: rgba(255, 111, 143, 0.08);
   border-color: rgba(255, 111, 143, 0.18);
   box-shadow: inset 3px 0 0 #ff6f8f;

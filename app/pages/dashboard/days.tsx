@@ -544,37 +544,103 @@ function DayListPanel({
   );
 }
 
-function AttendeeStatusSection({ group }: { group: AttendeeStatusGroup }) {
-  return (
-    <Stack gap="sm">
-      <Group justify="space-between" align="flex-end" gap="md">
-        <Text fw={700}>{group.label}</Text>
-        <Text size="sm" c="dimmed">
-          {group.attendees.length}
-        </Text>
-      </Group>
+function getAttendeeGroupPreview(attendees: SharedAttendee[]) {
+  if (attendees.length === 0) {
+    return 'Nobody in this group yet';
+  }
 
-      {group.attendees.length > 0 ? (
-        <Stack gap="xs">
-          {group.attendees.map((attendee, index) => (
-            <Fragment key={attendee.bookingId}>
+  const names = attendees.map((attendee) => attendee.userName);
+
+  if (names.length <= 2) {
+    return names.join(', ');
+  }
+
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
+}
+
+function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
+  const [openGroupKey, setOpenGroupKey] = useState<BookingStatus | null>(null);
+
+  return (
+    <Stack gap={0}>
+      {groups.map((group, index) => {
+        const isOpen = openGroupKey === group.key;
+
+        return (
+          <Fragment key={group.key}>
+            <UnstyledButton
+              type="button"
+              className="attendee-roster-row"
+              data-open={isOpen || undefined}
+              aria-expanded={isOpen}
+              aria-label={`${isOpen ? 'Hide' : 'View'} ${group.label} attendees`}
+              onClick={() =>
+                setOpenGroupKey((current) =>
+                  current === group.key ? null : group.key,
+                )
+              }
+            >
               <Group justify="space-between" align="flex-start" gap="md">
-                <Text size="sm" fw={600}>
-                  {attendee.userName}
-                </Text>
-                <Text size="sm" c="dimmed" ta="right">
-                  {attendee.accommodationName?.trim() || UNSHARED_STAY_LABEL}
+                <Stack gap={6} className="attendee-roster-summary">
+                  <Group gap="xs" wrap="wrap">
+                    <Badge
+                      variant="light"
+                      color={bookingColor(group.key)}
+                      size="sm"
+                    >
+                      {group.label}
+                    </Badge>
+                    <Text size="sm" fw={700}>
+                      {group.attendees.length}
+                    </Text>
+                  </Group>
+                  <Text size="sm" c="dimmed" lineClamp={1}>
+                    {getAttendeeGroupPreview(group.attendees)}
+                  </Text>
+                </Stack>
+                <Text size="sm" fw={700} c={isOpen ? 'brand.7' : 'dimmed'}>
+                  {isOpen ? 'Hide' : 'View'}
                 </Text>
               </Group>
-              {index < group.attendees.length - 1 ? <Divider /> : null}
-            </Fragment>
-          ))}
-        </Stack>
-      ) : (
-        <Text size="sm" c="dimmed">
-          Nobody is in this group.
-        </Text>
-      )}
+            </UnstyledButton>
+
+            {isOpen ? (
+              <Box className="attendee-roster-panel">
+                {group.attendees.length > 0 ? (
+                  <Stack gap="xs">
+                    {group.attendees.map((attendee, attendeeIndex) => (
+                      <Fragment key={attendee.bookingId}>
+                        <Group
+                          justify="space-between"
+                          align="flex-start"
+                          gap="md"
+                        >
+                          <Text size="sm" fw={600}>
+                            {attendee.userName}
+                          </Text>
+                          <Text size="sm" c="dimmed" ta="right">
+                            {attendee.accommodationName?.trim() ||
+                              UNSHARED_STAY_LABEL}
+                          </Text>
+                        </Group>
+                        {attendeeIndex < group.attendees.length - 1 ? (
+                          <Divider />
+                        ) : null}
+                      </Fragment>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    Nobody is in this group.
+                  </Text>
+                )}
+              </Box>
+            ) : null}
+
+            {index < groups.length - 1 ? <Divider /> : null}
+          </Fragment>
+        );
+      })}
     </Stack>
   );
 }
@@ -841,9 +907,13 @@ function DayDetailContent({
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
-  const attendeeStatusGroups = attendanceDetails
-    ? groupAttendeesByStatus(attendanceDetails.attendees)
-    : [];
+  const attendeeStatusGroups = useMemo(
+    () =>
+      attendanceDetails
+        ? groupAttendeesByStatus(attendanceDetails.attendees)
+        : [],
+    [attendanceDetails],
+  );
 
   return (
     <Stack gap="lg">
@@ -910,7 +980,8 @@ function DayDetailContent({
           <Stack gap={2}>
             <Text fw={700}>Attendee roster</Text>
             <Text size="sm" c="dimmed">
-              Track who is booked, still deciding, or no longer going.
+              Open one status group at a time when you need names, without
+              stretching the whole page.
             </Text>
           </Stack>
           {attendanceDetails ? (
@@ -928,11 +999,21 @@ function DayDetailContent({
             </Text>
           </Group>
         ) : attendanceDetails ? (
-          <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="lg">
-            {attendeeStatusGroups.map((group) => (
-              <AttendeeStatusSection key={group.key} group={group} />
-            ))}
-          </SimpleGrid>
+          <Stack gap="md">
+            <Group gap="md" wrap="wrap">
+              {attendeeStatusGroups.map((group) => (
+                <Group key={group.key} gap={6} wrap="nowrap">
+                  <Text size="sm" fw={700}>
+                    {group.label}
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    {group.attendees.length}
+                  </Text>
+                </Group>
+              ))}
+            </Group>
+            <AttendeeRosterList groups={attendeeStatusGroups} />
+          </Stack>
         ) : (
           <Text size="sm" c="dimmed">
             Attendee details are not available yet.

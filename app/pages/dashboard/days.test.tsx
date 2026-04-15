@@ -156,25 +156,36 @@ describe('AvailableDaysPage', () => {
     expect(
       await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
     ).not.toHaveLength(0);
+    expect(screen.getByText('Attendee roster')).toBeInTheDocument();
+    expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /view booked attendees/i }),
+    );
     expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
       0,
     );
-    expect(screen.getByText('Attendee roster')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
   });
 
-  it('shows grouped roster and stay detail when the url selects a day', async () => {
+  it('shows a compact roster first and expands one status group at a time', async () => {
     renderWithProviders(
       <AvailableDaysPage data={defaultData} />,
       '/dashboard/days?day=day-2',
     );
 
+    await screen.findByText('Attendee roster');
+    expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /view booked attendees/i }),
+    );
+
     expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
       0,
     );
-    expect(screen.getByText('Booked')).toBeInTheDocument();
+
     expect(screen.getAllByText('Brands Hatch Lodge').length).toBeGreaterThan(0);
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
