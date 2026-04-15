@@ -1,0 +1,13 @@
+node_modules/
+build/
+.sst/
+.react-router/
+.pnpm-store/
+.agents/
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+.env
+.env.*
+!.env.example

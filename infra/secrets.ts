@@ -1,0 +1,3 @@
+export const googleClientId = new sst.Secret("GoogleClientId");
+export const googleClientSecret = new sst.Secret("GoogleClientSecret");
+export const betterAuthSecret = new sst.Secret("BetterAuthSecret");

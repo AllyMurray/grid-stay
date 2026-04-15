@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "app/**/*",
+    "app/**/.server/**/*",
+    "app/**/.client/**/*",
+    ".react-router/types/**/*",
+    "vitest.setup.ts",
+    "sst-env.d.ts",
+    "functions/**/*"
+  ]
+}
