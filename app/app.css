@@ -223,31 +223,9 @@ html[data-mantine-color-scheme='dark'] .day-card {
     border-color 120ms ease;
 }
 
-.day-list-item-grid {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
-  align-items: start;
-  column-gap: 0.75rem;
-  row-gap: 0.25rem;
-}
-
 .day-list-date {
-  min-width: 0;
-  grid-row: 1 / span 3;
-}
-
-.day-list-title {
-  min-width: 0;
-}
-
-.day-list-badge {
-  justify-self: end;
-}
-
-.day-list-plan,
-.day-list-meta {
-  min-width: 0;
-  grid-column: 2 / 4;
+  flex: 0 0 4.5rem;
+  min-width: 4.5rem;
 }
 
 .booking-list-item:hover {
@@ -270,72 +248,8 @@ html[data-mantine-color-scheme='dark'] .day-card {
   box-shadow: inset 3px 0 0 #e42a57;
 }
 
-.day-table {
-  table-layout: fixed;
-}
-
-.day-table th,
-.day-table td {
-  vertical-align: top;
-}
-
-.day-table col.day-table-col-date {
-  width: 8rem;
-}
-
-.day-table col.day-table-col-provider {
-  width: 11rem;
-}
-
-.day-table col.day-table-col-trip {
-  width: 14rem;
-}
-
-.day-table col.day-table-col-action {
-  width: 7rem;
-}
-
-.day-table-header th {
-  color: var(--mantine-color-dimmed);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.day-table-row[data-active='true'] > td {
-  background: rgba(228, 42, 87, 0.06);
-  border-color: rgba(228, 42, 87, 0.12);
-}
-
-.day-table-date-cell,
-.day-table-action-cell {
-  white-space: nowrap;
-}
-
-.day-table-action-cell {
-  text-align: right;
-}
-
-.day-table-detail-cell {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.day-table-detail {
-  padding: 1rem 1.125rem 1.125rem;
-  border-top: 1px solid rgba(16, 20, 24, 0.08);
-  background: rgba(16, 20, 24, 0.025);
-}
-
 .booking-list-scroll {
   max-height: min(42vh, 360px);
-}
-
-.days-list-scroll {
-  max-height: min(54vh, 680px);
-  overflow: auto;
-  scrollbar-gutter: stable;
 }
 
 .booking-section-label {
@@ -364,16 +278,6 @@ html[data-mantine-color-scheme='dark'] .day-list-item[data-active='true'] {
   background: rgba(255, 111, 143, 0.08);
   border-color: rgba(255, 111, 143, 0.18);
   box-shadow: inset 3px 0 0 #ff6f8f;
-}
-
-html[data-mantine-color-scheme='dark'] .day-table-row[data-active='true'] > td {
-  background: rgba(255, 111, 143, 0.08);
-  border-color: rgba(255, 111, 143, 0.14);
-}
-
-html[data-mantine-color-scheme='dark'] .day-table-detail {
-  border-top-color: rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.025);
 }
 
 @media (min-width: 62em) {

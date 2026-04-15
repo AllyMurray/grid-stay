@@ -79,6 +79,7 @@ describe('AvailableDaysPage', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/2 attending/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/pick a day from the list/i)).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /add to my bookings/i }),
     ).not.toBeInTheDocument();
@@ -96,18 +97,18 @@ describe('AvailableDaysPage', () => {
       await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
     ).not.toHaveLength(0);
     expect(
-      screen.queryByRole('link', { name: /close details/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: /hide details for brands hatch/i }),
+    ).toHaveAttribute('href', '/dashboard/days');
   });
 
-  it('shows a detail state with a back link when the url selects a day', () => {
+  it('shows the selected-day detail when the url selects a day', () => {
     renderWithProviders(
       <AvailableDaysPage data={defaultData} />,
       '/dashboard/days?day=day-2',
     );
 
     expect(
-      screen.getByRole('link', { name: /back to available days/i }),
+      screen.getByRole('link', { name: /hide details for brands hatch/i }),
     ).toHaveAttribute('href', '/dashboard/days');
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
