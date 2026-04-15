@@ -288,9 +288,4 @@ html[data-mantine-color-scheme='dark'] .day-list-item[data-active='true'] {
   .booking-list-scroll {
     max-height: 560px;
   }
-
-  .days-detail-sticky {
-    position: sticky;
-    top: 1rem;
-  }
 }

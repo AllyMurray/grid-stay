@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Divider,
-  Grid,
   Group,
   Loader,
   Paper,
@@ -451,17 +450,6 @@ function DayListPanel({
                 }
               />
 
-              {selected ? (
-                <Box hiddenFrom="lg" py="sm">
-                  <DayDetailPanel
-                    day={day}
-                    summary={summary}
-                    booking={booking}
-                    compact
-                  />
-                </Box>
-              ) : null}
-
               {index < days.length - 1 ? <Divider /> : null}
             </Fragment>
           );
@@ -475,62 +463,11 @@ function DayDetailContent({
   day,
   summary,
   booking,
-  compact = false,
 }: {
   day: DayRow;
   summary: DayAttendanceSummary;
   booking?: DayBookingSnapshot;
-  compact?: boolean;
 }) {
-  if (compact) {
-    return (
-      <Stack gap="md">
-        <Group justify="space-between" align="flex-start" gap="md">
-          <Stack gap={4}>
-            <Text size="sm" fw={700} c="brand.7">
-              Selected session
-            </Text>
-            <Title order={3}>{day.circuit}</Title>
-            <Text size="sm" c="dimmed">
-              {formatDayLongDate(day.date)} • {day.provider}
-            </Text>
-            <Text size="sm">{day.description || 'No extra details'}</Text>
-          </Stack>
-          <Stack gap="xs" align="flex-end">
-            <Badge color={typeColor(day.type)}>{titleCase(day.type)}</Badge>
-            {booking ? (
-              <Badge color={bookingColor(booking.status)} variant="light">
-                {titleCase(booking.status)}
-              </Badge>
-            ) : (
-              <Badge variant="light" color="gray">
-                Not added
-              </Badge>
-            )}
-          </Stack>
-        </Group>
-
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-          <Stack gap={4}>
-            <Text fw={700}>Group plan</Text>
-            <Text fw={700}>{summary.attendeeCount}</Text>
-            <Text size="sm" c="dimmed">
-              {getAttendanceLabel(summary)} • {getAccommodationLabel(summary)}
-            </Text>
-          </Stack>
-          <Stack gap="sm">
-            <Text fw={700}>Trip action</Text>
-            <DayBookingAction
-              day={day}
-              booking={booking}
-              presentation="panel"
-            />
-          </Stack>
-        </SimpleGrid>
-      </Stack>
-    );
-  }
-
   return (
     <Stack gap="lg">
       <Group justify="space-between" align="flex-start" gap="md">
@@ -636,41 +573,14 @@ function DayDetailPanel({
   day,
   summary,
   booking,
-  compact = false,
 }: {
   day: DayRow;
   summary: DayAttendanceSummary;
   booking?: DayBookingSnapshot;
-  compact?: boolean;
 }) {
   return (
-    <Paper
-      className={`days-detail-panel${compact ? '' : ' days-detail-sticky'}`}
-      p="lg"
-    >
-      <DayDetailContent
-        day={day}
-        summary={summary}
-        booking={booking}
-        compact={compact}
-      />
-    </Paper>
-  );
-}
-
-function DaySelectionPlaceholder() {
-  return (
-    <Paper className="days-detail-panel days-detail-sticky" p="lg">
-      <Stack gap="sm">
-        <Text size="sm" fw={700} c="brand.7">
-          Selected day
-        </Text>
-        <Title order={3}>Pick a day from the list</Title>
-        <Text size="sm" c="dimmed">
-          Review the session, group attendance, shared stay, and your trip
-          action in one place once you open a day.
-        </Text>
-      </Stack>
+    <Paper className="days-detail-panel" p="lg">
+      <DayDetailContent day={day} summary={summary} booking={booking} />
     </Paper>
   );
 }
@@ -911,46 +821,48 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         <Stack gap="md">
           <Group justify="space-between" align="flex-end">
             <Stack gap={2}>
-              <Title order={3}>Choose a day</Title>
+              <Title order={3}>
+                {selectedDayFromUrl ? 'Selected day' : 'Choose a day'}
+              </Title>
               <Text size="sm" c="dimmed">
-                Scan the live feed, then open one day at a time to inspect the
-                group plan and add it to your bookings.
+                {selectedDayFromUrl
+                  ? 'This day now has the full workspace so you can review the group plan without competing with the scrolling feed.'
+                  : 'Scan the live feed, then open one day at a time to inspect the group plan and add it to your bookings.'}
               </Text>
             </Stack>
-            <Text size="sm" c="dimmed">
-              Showing {loadedDays.days.length} of {loadedDays.totalCount} days
-            </Text>
+            {selectedDayFromUrl ? (
+              <Button
+                component={Link}
+                to={createDaysIndexHref(data.filters)}
+                variant="subtle"
+                preventScrollReset
+              >
+                Back to available days
+              </Button>
+            ) : (
+              <Text size="sm" c="dimmed">
+                Showing {loadedDays.days.length} of {loadedDays.totalCount} days
+              </Text>
+            )}
           </Group>
 
-          {loadedDays.days.length > 0 ? (
-            <Grid gutter="lg" align="start">
-              <Grid.Col span={{ base: 12, lg: 5 }}>
-                <DayListPanel
-                  days={loadedDays.days}
-                  filters={data.filters}
-                  attendanceSummaries={loadedDays.attendanceSummaries}
-                  myBookingsByDay={loadedDays.myBookingsByDay}
-                  selectedDayId={selectedDayFromUrl?.dayId ?? null}
-                />
-              </Grid.Col>
-
-              <Grid.Col span={{ base: 12, lg: 7 }} visibleFrom="lg">
-                {selectedDayFromUrl ? (
-                  <DayDetailPanel
-                    day={selectedDayFromUrl}
-                    summary={getAttendanceSummary(
-                      loadedDays.attendanceSummaries,
-                      selectedDayFromUrl.dayId,
-                    )}
-                    booking={
-                      loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]
-                    }
-                  />
-                ) : (
-                  <DaySelectionPlaceholder />
-                )}
-              </Grid.Col>
-            </Grid>
+          {selectedDayFromUrl ? (
+            <DayDetailPanel
+              day={selectedDayFromUrl}
+              summary={getAttendanceSummary(
+                loadedDays.attendanceSummaries,
+                selectedDayFromUrl.dayId,
+              )}
+              booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
+            />
+          ) : loadedDays.days.length > 0 ? (
+            <DayListPanel
+              days={loadedDays.days}
+              filters={data.filters}
+              attendanceSummaries={loadedDays.attendanceSummaries}
+              myBookingsByDay={loadedDays.myBookingsByDay}
+              selectedDayId={null}
+            />
           ) : (
             <EmptyStateCard
               title="No days match those filters"
@@ -963,7 +875,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             />
           )}
 
-          {loadedDays.nextOffset !== null ? (
+          {!selectedDayFromUrl && loadedDays.nextOffset !== null ? (
             <Box>
               <Stack gap={4} align="center">
                 {feedFetcher.state === 'idle' ? (
