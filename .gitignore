@@ -4,6 +4,7 @@ build/
 .react-router/
 .pnpm-store/
 .agents/
+.ideas/
 coverage/
 playwright-report/
 test-results/
