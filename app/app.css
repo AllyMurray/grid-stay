@@ -175,6 +175,42 @@ html[data-mantine-color-scheme='dark'] .day-card {
   min-width: 4.25rem;
 }
 
+.booking-list-item-grid {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+}
+
+.booking-list-date {
+  min-width: 0;
+  grid-row: 1 / span 3;
+}
+
+.booking-list-title {
+  min-width: 0;
+}
+
+.booking-list-badge {
+  justify-self: end;
+}
+
+.booking-list-shared,
+.booking-list-private {
+  min-width: 0;
+  grid-column: 2 / 4;
+}
+
+.booking-list-kicker {
+  font-weight: 700;
+  color: #e42a57;
+}
+
+.booking-list-kicker-private {
+  color: inherit;
+}
+
 .day-list-item {
   display: block;
   width: 100%;
@@ -307,6 +343,10 @@ html[data-mantine-color-scheme='dark'] .day-card {
 
 html[data-mantine-color-scheme='dark'] .booking-list-item:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-mantine-color-scheme='dark'] .booking-list-kicker {
+  color: #ff6f8f;
 }
 
 html[data-mantine-color-scheme='dark'] .day-list-item:hover {

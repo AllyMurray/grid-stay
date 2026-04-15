@@ -61,6 +61,11 @@ describe('MyBookingsPage', () => {
     expect(
       screen.getByRole('button', { name: /donington park/i }),
     ).toBeVisible();
+    expect(screen.getByText('Shared with the group')).toBeInTheDocument();
+    expect(screen.getByText('Private to you')).toBeInTheDocument();
+    expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getByDisplayValue('REF-123')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Trackside Hotel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save changes/i })).toBeVisible();

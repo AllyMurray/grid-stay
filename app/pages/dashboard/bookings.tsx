@@ -13,11 +13,18 @@ import {
   Text,
   Textarea,
   TextInput,
+  ThemeIcon,
   Title,
   UnstyledButton,
 } from '@mantine/core';
-import { IconAlertCircle, IconSearch } from '@tabler/icons-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  IconAlertCircle,
+  IconLock,
+  IconRoad,
+  IconSearch,
+  IconUsers,
+} from '@tabler/icons-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
@@ -48,13 +55,13 @@ function bookingColor(status: BookingRecord['status']) {
   }
 }
 
-function bookingListSummary(booking: BookingRecord) {
+function bookingSharedSummary(booking: BookingRecord) {
   if (booking.accommodationName) {
     return booking.accommodationName;
   }
 
   if (booking.status === 'cancelled') {
-    return 'Cancelled trip';
+    return 'No shared stay on this trip';
   }
 
   return 'No accommodation shared yet';
@@ -70,6 +77,53 @@ function bookingPrivateSummary(booking: BookingRecord) {
   }
 
   return 'No private references yet';
+}
+
+function BookingFieldLabel({
+  label,
+  visibility,
+  visibilityColor = 'dimmed',
+}: {
+  label: string;
+  visibility: string;
+  visibilityColor?: string;
+}) {
+  return (
+    <Group gap={6} wrap="wrap" align="center">
+      <Text span fw={700} size="sm">
+        {label}
+      </Text>
+      <Text span size="xs" c={visibilityColor}>
+        {visibility}
+      </Text>
+    </Group>
+  );
+}
+
+function BookingSectionHeading({
+  icon,
+  title,
+  description,
+  color,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  color: string;
+}) {
+  return (
+    <Stack gap={2}>
+      <Group gap="xs" align="center">
+        <ThemeIcon size={28} radius="sm" variant="light" color={color}>
+          {icon}
+        </ThemeIcon>
+        <Text fw={700}>{title}</Text>
+      </Group>
+      <Text size="sm" c="dimmed">
+        {description}
+      </Text>
+    </Stack>
+  );
 }
 
 function formatBookingDate(date: string) {
@@ -153,7 +207,7 @@ function BookingListItem({
       className="booking-list-item"
       data-active={active || undefined}
     >
-      <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+      <div className="booking-list-item-grid">
         <Stack gap={4} className="booking-list-date">
           <Text size="sm" fw={800}>
             {formatBookingDate(booking.date)}
@@ -162,28 +216,37 @@ function BookingListItem({
             {booking.provider}
           </Text>
         </Stack>
-        <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-          <Group
-            justify="space-between"
-            align="flex-start"
-            gap="xs"
-            wrap="nowrap"
+        <Text className="booking-list-title" fw={700} lineClamp={1}>
+          {booking.circuit}
+        </Text>
+        <Badge
+          className="booking-list-badge"
+          color={bookingColor(booking.status)}
+          size="sm"
+        >
+          {titleCase(booking.status)}
+        </Badge>
+        <Text className="booking-list-shared" size="sm" lineClamp={1}>
+          <Text span className="booking-list-kicker">
+            Shared
+          </Text>{' '}
+          {bookingSharedSummary(booking)}
+        </Text>
+        <Text
+          className="booking-list-private"
+          size="xs"
+          c="dimmed"
+          lineClamp={1}
+        >
+          <Text
+            span
+            className="booking-list-kicker booking-list-kicker-private"
           >
-            <Text fw={700} lineClamp={1}>
-              {booking.circuit}
-            </Text>
-            <Badge color={bookingColor(booking.status)} size="sm">
-              {titleCase(booking.status)}
-            </Badge>
-          </Group>
-          <Text size="sm" lineClamp={1}>
-            {bookingListSummary(booking)}
-          </Text>
-          <Text size="xs" c="dimmed" lineClamp={1}>
-            {bookingPrivateSummary(booking)}
-          </Text>
-        </Stack>
-      </Group>
+            Private
+          </Text>{' '}
+          {bookingPrivateSummary(booking)}
+        </Text>
+      </div>
     </UnstyledButton>
   );
 }
@@ -257,64 +320,114 @@ function BookingEditorPanel({
 
           <Divider />
 
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-            <Select
-              name="status"
-              label="Status"
-              defaultValue={booking.status}
-              data={[
-                { value: 'booked', label: 'Booked' },
-                { value: 'maybe', label: 'Maybe' },
-                { value: 'cancelled', label: 'Cancelled' },
-              ]}
-              error={fieldErrors?.status?.[0]}
-            />
-            <TextInput
-              name="bookingReference"
-              label="Booking reference"
-              defaultValue={booking.bookingReference ?? ''}
-              error={fieldErrors?.bookingReference?.[0]}
-              maxLength={120}
-            />
-            <TextInput
-              name="accommodationName"
-              label="Accommodation name"
-              defaultValue={booking.accommodationName ?? ''}
-              error={fieldErrors?.accommodationName?.[0]}
-              maxLength={120}
-            />
-            <TextInput
-              name="accommodationReference"
-              label="Accommodation reference"
-              defaultValue={booking.accommodationReference ?? ''}
-              error={fieldErrors?.accommodationReference?.[0]}
-              maxLength={120}
-            />
-          </SimpleGrid>
+          <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="xl">
+            <Stack gap="md" className="booking-editor-section">
+              <BookingSectionHeading
+                icon={<IconRoad size={16} />}
+                title="Trip plan"
+                description="Keep the status current before you lock in the rest of the trip."
+                color="brand"
+              />
+              <Select
+                name="status"
+                label={
+                  <BookingFieldLabel
+                    label="Status"
+                    visibility="Affects your trip plan"
+                    visibilityColor="brand.7"
+                  />
+                }
+                description="Use booked, maybe, or cancelled to keep this trip current."
+                defaultValue={booking.status}
+                data={[
+                  { value: 'booked', label: 'Booked' },
+                  { value: 'maybe', label: 'Maybe' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ]}
+                error={fieldErrors?.status?.[0]}
+              />
+            </Stack>
 
-          <Textarea
-            name="notes"
-            label="Private notes"
-            minRows={4}
-            defaultValue={booking.notes ?? ''}
-            error={fieldErrors?.notes?.[0]}
-            maxLength={1000}
-          />
-
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
-            <Stack gap={2}>
-              <Text fw={700}>Shared with the group</Text>
+            <Stack gap="md" className="booking-editor-section">
+              <BookingSectionHeading
+                icon={<IconUsers size={16} />}
+                title="Shared with the group"
+                description="The stay name is the part everyone coordinating this weekend can see."
+                color="blue"
+              />
+              <TextInput
+                name="accommodationName"
+                label={
+                  <BookingFieldLabel
+                    label="Accommodation name"
+                    visibility="Visible to the group"
+                    visibilityColor="blue.6"
+                  />
+                }
+                description="Use the same stay name the rest of the group is working from."
+                defaultValue={booking.accommodationName ?? ''}
+                error={fieldErrors?.accommodationName?.[0]}
+                maxLength={120}
+              />
               <Text size="sm" c="dimmed">
-                {booking.accommodationName || 'Nothing yet'}
+                {booking.accommodationName
+                  ? `${booking.accommodationName} is the current shared stay name for this trip.`
+                  : 'Add the accommodation name once the group has settled on a stay.'}
               </Text>
             </Stack>
-            <Stack gap={2}>
-              <Text fw={700}>Visible only to you</Text>
-              <Text size="sm" c="dimmed">
-                Booking reference, accommodation reference, and notes
-              </Text>
-            </Stack>
           </SimpleGrid>
+
+          <Stack gap="md" className="booking-editor-section">
+            <BookingSectionHeading
+              icon={<IconLock size={16} />}
+              title="Private to you"
+              description="References and notes stay on your side and do not appear in the shared plan."
+              color="gray"
+            />
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <TextInput
+                name="bookingReference"
+                label={
+                  <BookingFieldLabel
+                    label="Booking reference"
+                    visibility="Visible only to you"
+                  />
+                }
+                description="Store the confirmation code or internal reference here."
+                defaultValue={booking.bookingReference ?? ''}
+                error={fieldErrors?.bookingReference?.[0]}
+                maxLength={120}
+              />
+              <TextInput
+                name="accommodationReference"
+                label={
+                  <BookingFieldLabel
+                    label="Accommodation reference"
+                    visibility="Visible only to you"
+                  />
+                }
+                description="Useful for the hotel confirmation, booking id, or door code."
+                defaultValue={booking.accommodationReference ?? ''}
+                error={fieldErrors?.accommodationReference?.[0]}
+                maxLength={120}
+              />
+            </SimpleGrid>
+
+            <Textarea
+              name="notes"
+              label={
+                <BookingFieldLabel
+                  label="Private notes"
+                  visibility="Visible only to you"
+                />
+              }
+              description="Keep arrival notes, reminders, or anything else you do not want in the shared plan."
+              minRows={4}
+              defaultValue={booking.notes ?? ''}
+              error={fieldErrors?.notes?.[0]}
+              maxLength={1000}
+            />
+          </Stack>
 
           {formError ? (
             <Alert color="red" icon={<IconAlertCircle size={18} />}>
@@ -407,7 +520,7 @@ export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
       <PageHeader
         eyebrow="Private trip details"
         title="My Bookings"
-        description="Keep your references tidy here while the accommodation name stays visible to the rest of the group."
+        description="Keep shared stay names aligned with the group while references and notes stay on your side."
         meta={
           <HeaderStatGrid
             items={[
