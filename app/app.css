@@ -1,0 +1,192 @@
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #f3f5f7;
+  color: #101418;
+}
+
+html[data-mantine-color-scheme='dark'] body {
+  background: #111418;
+  color: #f3f4f6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(243, 245, 247, 0.98) 38%, #eef1f4 100%),
+    linear-gradient(90deg, rgba(228, 42, 87, 0.04) 0%, transparent 24%);
+}
+
+html[data-mantine-color-scheme='dark'] .app-backdrop {
+  background:
+    linear-gradient(180deg, rgba(17, 20, 24, 0.96) 0%, rgba(20, 24, 29, 0.98) 36%, #161b20 100%),
+    linear-gradient(90deg, rgba(255, 111, 143, 0.08) 0%, transparent 22%);
+}
+
+.shell-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(16, 20, 24, 0.08);
+  box-shadow: none;
+}
+
+html[data-mantine-color-scheme='dark'] .shell-card {
+  background: rgba(21, 26, 31, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.dashboard-sidebar-profile {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(16, 20, 24, 0.08);
+}
+
+html[data-mantine-color-scheme='dark'] .dashboard-sidebar-profile {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.page-header-stat-list {
+  align-items: flex-start;
+}
+
+.page-header-stat {
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(16, 20, 24, 0.035);
+  border: 1px solid rgba(16, 20, 24, 0.06);
+}
+
+html[data-mantine-color-scheme='dark'] .page-header-stat {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.page-header-stat-value {
+  font-size: 1.1rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+  color: #e42a57;
+}
+
+html[data-mantine-color-scheme='dark'] .page-header-stat-value {
+  color: #ff6f8f;
+}
+
+.home-hero {
+  position: relative;
+  min-height: clamp(480px, 72vh, 720px);
+  background-position: center;
+}
+
+.home-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(16, 20, 24, 0.46) 0%,
+    rgba(16, 20, 24, 0.4) 28%,
+    rgba(16, 20, 24, 0.72) 100%
+  );
+}
+
+.home-hero-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.feature-image {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+}
+
+.table-status {
+  min-width: 116px;
+}
+
+.booking-list-panel {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.booking-editor-panel {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+html[data-mantine-color-scheme='dark'] .booking-list-panel {
+  background: rgba(18, 23, 28, 0.96);
+}
+
+html[data-mantine-color-scheme='dark'] .booking-editor-panel {
+  background: rgba(22, 27, 32, 0.98);
+}
+
+.booking-list-item {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.booking-list-date {
+  min-width: 4.25rem;
+}
+
+.booking-list-item:hover {
+  background: rgba(16, 20, 24, 0.03);
+}
+
+.booking-list-item[data-active='true'] {
+  background: rgba(228, 42, 87, 0.06);
+  border-color: rgba(228, 42, 87, 0.18);
+  box-shadow: inset 3px 0 0 #e42a57;
+}
+
+.booking-list-scroll {
+  max-height: min(42vh, 360px);
+}
+
+.booking-section-label {
+  padding-top: 0.25rem;
+}
+
+html[data-mantine-color-scheme='dark'] .booking-list-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-mantine-color-scheme='dark'] .booking-list-item[data-active='true'] {
+  background: rgba(255, 111, 143, 0.08);
+  border-color: rgba(255, 111, 143, 0.18);
+  box-shadow: inset 3px 0 0 #ff6f8f;
+}
+
+@media (min-width: 62em) {
+  .page-header-stat-value {
+    font-size: 1.2rem;
+  }
+
+  .booking-list-scroll {
+    max-height: 560px;
+  }
+}
