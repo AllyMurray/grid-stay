@@ -2,11 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import type { User } from '~/lib/auth/schemas';
 
 vi.mock('~/lib/db/services/booking.server', () => ({
+  applySharedStaySelection: vi.fn(),
   createBooking: vi.fn(),
   updateBooking: vi.fn(),
 }));
 
-import { submitBookingUpdate, submitCreateBooking } from './actions.server';
+import {
+  submitBookingUpdate,
+  submitCreateBooking,
+  submitSharedStaySelection,
+} from './actions.server';
 
 const user: User = {
   id: 'user-1',
@@ -82,5 +87,57 @@ describe('booking action helpers', () => {
     }
     expect(result.formError).toBe('Could not save this booking yet.');
     expect(result.fieldErrors.notes?.[0]).toBeDefined();
+  });
+
+  it('passes the selected shared stay through when joining from available days', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'day-1');
+    formData.set('date', '2026-05-10');
+    formData.set('type', 'race_day');
+    formData.set('circuit', 'Snetterton');
+    formData.set('provider', 'Caterham Motorsport');
+    formData.set('description', 'Round 1');
+    formData.set('status', 'booked');
+    formData.set('accommodationName', 'Trackside Hotel');
+
+    const saveSelection = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+
+    const result = await submitSharedStaySelection(
+      formData,
+      user,
+      saveSelection as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveSelection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dayId: 'day-1',
+        accommodationName: 'Trackside Hotel',
+      }),
+      user,
+    );
+  });
+
+  it('returns field errors instead of throwing for an invalid shared stay payload', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'day-1');
+    formData.set('date', '2026-05-10');
+    formData.set('type', 'race_day');
+    formData.set('circuit', 'Snetterton');
+    formData.set('provider', 'Caterham Motorsport');
+    formData.set('description', 'Round 1');
+    formData.set('status', 'booked');
+    formData.set('accommodationName', '');
+
+    const result = await submitSharedStaySelection(formData, user);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected validation failure');
+    }
+    expect(result.formError).toBe('Could not save this shared stay yet.');
+    expect(result.fieldErrors.accommodationName?.[0]).toBeDefined();
   });
 });

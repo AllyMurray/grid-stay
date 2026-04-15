@@ -182,6 +182,19 @@ describe('AvailableDaysPage', () => {
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
 
+  it('offers saved shared stays as direct actions in the selected-day view', async () => {
+    renderWithProviders(
+      <AvailableDaysPage data={defaultData} />,
+      '/dashboard/days?day=day-1',
+    );
+
+    expect(
+      await screen.findByRole('button', { name: /add with this stay/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
+    expect(screen.getByText('Needs a stay name')).toBeInTheDocument();
+  });
+
   it('renders the empty state when no rows match', () => {
     renderWithProviders(
       <AvailableDaysPage

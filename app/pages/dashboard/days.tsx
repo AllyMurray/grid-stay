@@ -20,7 +20,10 @@ import { Form, Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
-import type { CreateBookingActionResult } from '~/lib/bookings/actions.server';
+import type {
+  CreateBookingActionResult,
+  SharedStaySelectionActionResult,
+} from '~/lib/bookings/actions.server';
 import type { BookingStatus } from '~/lib/constants/enums';
 import type {
   DayBookingSnapshot,
@@ -36,6 +39,8 @@ import type {
 export interface AvailableDaysPageProps {
   data: DaysIndexData;
 }
+
+const UNSHARED_STAY_LABEL = 'No shared stay yet';
 
 function titleCase(value: string) {
   return value
@@ -305,7 +310,7 @@ function groupAttendeesBySharedStay(
       continue;
     }
 
-    const label = attendee.accommodationName?.trim() || 'No shared stay yet';
+    const label = attendee.accommodationName?.trim() || UNSHARED_STAY_LABEL;
     const current = groups.get(label);
 
     if (current) {
@@ -318,10 +323,10 @@ function groupAttendeesBySharedStay(
 
   return [...groups.entries()]
     .sort(([left], [right]) => {
-      if (left === 'No shared stay yet') {
+      if (left === UNSHARED_STAY_LABEL) {
         return 1;
       }
-      if (right === 'No shared stay yet') {
+      if (right === UNSHARED_STAY_LABEL) {
         return -1;
       }
       return left.localeCompare(right);
@@ -558,7 +563,7 @@ function AttendeeStatusSection({ group }: { group: AttendeeStatusGroup }) {
                   {attendee.userName}
                 </Text>
                 <Text size="sm" c="dimmed" ta="right">
-                  {attendee.accommodationName?.trim() || 'No shared stay yet'}
+                  {attendee.accommodationName?.trim() || UNSHARED_STAY_LABEL}
                 </Text>
               </Group>
               {index < group.attendees.length - 1 ? <Divider /> : null}
@@ -574,7 +579,76 @@ function AttendeeStatusSection({ group }: { group: AttendeeStatusGroup }) {
   );
 }
 
-function SharedStayAssignments({ attendees }: { attendees: SharedAttendee[] }) {
+function SharedStayAction({
+  day,
+  booking,
+  accommodationName,
+}: {
+  day: DayRow;
+  booking?: DayBookingSnapshot;
+  accommodationName: string;
+}) {
+  const fetcher = useFetcher<SharedStaySelectionActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const isCurrentSelection =
+    booking?.status !== 'cancelled' &&
+    booking?.accommodationName?.trim() === accommodationName;
+  const buttonLabel = isCurrentSelection
+    ? 'Using this stay'
+    : booking
+      ? booking.status === 'cancelled'
+        ? 'Rejoin with this stay'
+        : 'Use this stay'
+      : 'Add with this stay';
+
+  return (
+    <Stack gap={4} align="flex-end">
+      <fetcher.Form method="post">
+        <input type="hidden" name="intent" value="useSharedStay" />
+        <input type="hidden" name="dayId" value={day.dayId} />
+        <input type="hidden" name="date" value={day.date} />
+        <input type="hidden" name="type" value={day.type} />
+        <input type="hidden" name="circuit" value={day.circuit} />
+        <input type="hidden" name="provider" value={day.provider} />
+        <input type="hidden" name="description" value={day.description} />
+        <input type="hidden" name="status" value="booked" />
+        <input
+          type="hidden"
+          name="accommodationName"
+          value={accommodationName}
+        />
+        <Button
+          type="submit"
+          size="sm"
+          color="brand"
+          variant={booking ? 'light' : 'filled'}
+          loading={isSubmitting}
+          disabled={isCurrentSelection}
+        >
+          {buttonLabel}
+        </Button>
+      </fetcher.Form>
+
+      {formError ? (
+        <Text size="xs" c="red" ta="right">
+          {formError}
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
+function SharedStayAssignments({
+  day,
+  attendees,
+  booking,
+}: {
+  day: DayRow;
+  attendees: SharedAttendee[];
+  booking?: DayBookingSnapshot;
+}) {
   const groups = groupAttendeesBySharedStay(attendees);
 
   if (groups.length === 0) {
@@ -589,8 +663,13 @@ function SharedStayAssignments({ attendees }: { attendees: SharedAttendee[] }) {
     <Stack gap="md">
       {groups.map((group, index) => (
         <Fragment key={group.label}>
-          <Group justify="space-between" align="flex-end" gap="md">
-            <Stack gap={2}>
+          <Group
+            justify="space-between"
+            align="flex-start"
+            gap="md"
+            wrap="nowrap"
+          >
+            <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
               <Text fw={700}>{group.label}</Text>
               <Text size="sm" c="dimmed">
                 {group.attendees
@@ -598,9 +677,22 @@ function SharedStayAssignments({ attendees }: { attendees: SharedAttendee[] }) {
                   .join(', ')}
               </Text>
             </Stack>
-            <Text size="sm" fw={700} c="dimmed">
-              {group.attendees.length}
-            </Text>
+            <Stack gap={6} align="flex-end" style={{ flexShrink: 0 }}>
+              <Text size="sm" fw={700} c="dimmed">
+                {group.attendees.length}
+              </Text>
+              {group.label === UNSHARED_STAY_LABEL ? (
+                <Text size="xs" c="dimmed">
+                  Needs a stay name
+                </Text>
+              ) : (
+                <SharedStayAction
+                  day={day}
+                  booking={booking}
+                  accommodationName={group.label}
+                />
+              )}
+            </Stack>
           </Group>
           {index < groups.length - 1 ? <Divider /> : null}
         </Fragment>
@@ -728,8 +820,8 @@ function DayDetailContent({
           <Stack gap={2}>
             <Text fw={700}>Shared stay</Text>
             <Text size="sm" c="dimmed">
-              See who is attached to each shared stay name and where the gaps
-              still are.
+              See who is attached to each shared stay name, then copy one into
+              your booking without leaving this page.
             </Text>
           </Stack>
           <Text size="sm" fw={700} c="dimmed">
@@ -745,7 +837,11 @@ function DayDetailContent({
             </Text>
           </Group>
         ) : attendanceDetails ? (
-          <SharedStayAssignments attendees={attendanceDetails.attendees} />
+          <SharedStayAssignments
+            day={day}
+            attendees={attendanceDetails.attendees}
+            booking={booking}
+          />
         ) : (
           <Text size="sm" c="dimmed">
             Shared stay assignments are not available yet.

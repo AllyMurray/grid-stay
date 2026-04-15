@@ -19,6 +19,10 @@ export const CreateBookingSchema = z.object({
   status: BookingStatusSchema.default('booked'),
 });
 
+export const SharedStaySelectionSchema = CreateBookingSchema.extend({
+  accommodationName: z.string().trim().min(1).max(120),
+});
+
 export const UpdateBookingSchema = z.object({
   bookingId: z.string().min(1),
   status: BookingStatusSchema,
@@ -29,4 +33,7 @@ export const UpdateBookingSchema = z.object({
 });
 
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
+export type SharedStaySelectionInput = z.infer<
+  typeof SharedStaySelectionSchema
+>;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;

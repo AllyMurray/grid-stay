@@ -20,6 +20,7 @@ export const DAYS_PAGE_SIZE = 30;
 export interface DayBookingSnapshot {
   bookingId: string;
   status: 'booked' | 'maybe' | 'cancelled';
+  accommodationName?: string;
 }
 
 export interface DayRow {
@@ -233,6 +234,7 @@ export async function loadDaysIndex(
         {
           bookingId: booking.bookingId,
           status: booking.status,
+          accommodationName: booking.accommodationName,
         },
       ]),
     ),

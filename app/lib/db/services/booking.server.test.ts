@@ -36,6 +36,7 @@ vi.mock('~/lib/db/services/day-attendance-summary.server', () => ({
 }));
 
 import {
+  applySharedStaySelection,
   bookingStore,
   createBooking,
   listMyBookings,
@@ -301,6 +302,76 @@ describe('booking service', () => {
         userName: user.name,
       }),
     );
+  });
+
+  it('creates a booking with the chosen shared stay when none exists yet', async () => {
+    const memory = createMemoryStore();
+
+    const created = await applySharedStaySelection(
+      {
+        dayId: 'day-1',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        status: 'booked',
+        accommodationName: 'Trackside Hotel',
+      },
+      user,
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(created.status).toBe('booked');
+    expect(created.accommodationName).toBe('Trackside Hotel');
+    expect(memory.summaries.get('day-1')).toMatchObject({
+      attendeeCount: 1,
+      accommodationNames: ['Trackside Hotel'],
+    });
+  });
+
+  it('updates an existing cancelled booking when a shared stay is selected', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'cancelled',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+      accommodationName: undefined,
+    });
+
+    const updated = await applySharedStaySelection(
+      {
+        dayId: 'day-1',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        status: 'booked',
+        accommodationName: 'Trackside Hotel',
+      },
+      user,
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(updated.status).toBe('booked');
+    expect(updated.accommodationName).toBe('Trackside Hotel');
+    expect(memory.items).toHaveLength(1);
+    expect(memory.summaries.get('day-1')).toMatchObject({
+      attendeeCount: 1,
+      accommodationNames: ['Trackside Hotel'],
+    });
   });
 
   it('handles statuses when sorting personal bookings and communal attendance', async () => {

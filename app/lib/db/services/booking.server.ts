@@ -4,6 +4,7 @@ import type { BookingStatus } from '~/lib/constants/enums';
 import type { DayAttendanceSummary, SharedAttendee } from '~/lib/days/types';
 import type {
   CreateBookingInput,
+  SharedStaySelectionInput,
   UpdateBookingInput,
 } from '~/lib/schemas/booking';
 import { BookingEntity, type BookingRecord } from '../entities/booking.server';
@@ -134,6 +135,50 @@ export async function updateBooking(
   });
   await syncDayAttendanceSummary(updated.dayId, store, summaryStore);
   return updated;
+}
+
+export async function applySharedStaySelection(
+  input: SharedStaySelectionInput,
+  user: User,
+  store: BookingPersistence = bookingStore,
+  summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+): Promise<BookingRecord> {
+  const existing = await store.findByUserAndDay(user.id, input.dayId);
+  const now = new Date().toISOString();
+  const accommodationName = input.accommodationName.trim();
+
+  if (existing) {
+    const updated = await store.update(user.id, existing.bookingId, {
+      status: existing.status === 'cancelled' ? input.status : existing.status,
+      userName: user.name,
+      userImage: user.picture,
+      accommodationName,
+      updatedAt: now,
+    });
+    await syncDayAttendanceSummary(updated.dayId, store, summaryStore);
+    return updated;
+  }
+
+  const created = await store.create({
+    bookingId: ulid(),
+    userId: user.id,
+    userName: user.name,
+    userImage: user.picture,
+    dayId: input.dayId,
+    date: input.date,
+    status: input.status,
+    circuit: input.circuit,
+    provider: input.provider,
+    description: input.description,
+    createdAt: now,
+    updatedAt: now,
+    bookingReference: undefined,
+    accommodationName,
+    accommodationReference: undefined,
+    notes: undefined,
+  } as BookingRecord);
+  await syncDayAttendanceSummary(created.dayId, store, summaryStore);
+  return created;
 }
 
 export async function listMyBookings(

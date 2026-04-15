@@ -1,11 +1,17 @@
 import type { User } from '~/lib/auth/schemas';
-import { createBooking, updateBooking } from '~/lib/db/services/booking.server';
+import {
+  applySharedStaySelection,
+  createBooking,
+  updateBooking,
+} from '~/lib/db/services/booking.server';
 import type {
   CreateBookingInput,
+  SharedStaySelectionInput,
   UpdateBookingInput,
 } from '~/lib/schemas/booking';
 import {
   CreateBookingSchema,
+  SharedStaySelectionSchema,
   UpdateBookingSchema,
 } from '~/lib/schemas/booking';
 
@@ -31,6 +37,16 @@ export type UpdateBookingActionResult =
       fieldErrors: FieldErrors<keyof UpdateBookingInput>;
     };
 
+export type SharedStaySelectionActionResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<keyof SharedStaySelectionInput>;
+    };
+
 export async function submitCreateBooking(
   formData: FormData,
   user: User,
@@ -47,6 +63,27 @@ export async function submitCreateBooking(
   }
 
   await saveBooking(parsed.data, user);
+  return { ok: true };
+}
+
+export async function submitSharedStaySelection(
+  formData: FormData,
+  user: User,
+  saveSelection: typeof applySharedStaySelection = applySharedStaySelection,
+): Promise<SharedStaySelectionActionResult> {
+  const parsed = SharedStaySelectionSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save this shared stay yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await saveSelection(parsed.data, user);
   return { ok: true };
 }
 

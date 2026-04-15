@@ -1,6 +1,9 @@
 import { type ShouldRevalidateFunctionArgs, useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
-import { submitCreateBooking } from '~/lib/bookings/actions.server';
+import {
+  submitCreateBooking,
+  submitSharedStaySelection,
+} from '~/lib/bookings/actions.server';
 import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import { loadDaysIndex } from '~/lib/days/dashboard-feed.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
@@ -21,7 +24,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
-  const result = await submitCreateBooking(await request.formData(), user);
+  const formData = await request.formData();
+  const result =
+    formData.get('intent') === 'useSharedStay'
+      ? await submitSharedStaySelection(formData, user)
+      : await submitCreateBooking(formData, user);
 
   return Response.json(result, {
     headers,
