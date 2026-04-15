@@ -1,0 +1,138 @@
+import { describe, expect, it } from 'vitest';
+import { filterAvailableDays, listAvailableDays } from './aggregation.server';
+
+describe('listAvailableDays', () => {
+  it('normalizes and sorts race, test, and track days', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [
+        {
+          dayId: 'race:caterham:2026-05-10:academy-1',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Academy',
+          source: { sourceType: 'caterham', sourceName: 'caterham' },
+        },
+      ],
+      testingAdapters: [
+        {
+          name: 'testing-a',
+          description: 'Testing adapter',
+          circuitIds: ['a'],
+          async fetchSchedule() {
+            return [
+              {
+                date: '2026-04-14',
+                circuitName: 'Silverstone',
+                circuitId: 'a',
+                format: 'Open pit lane',
+                availability: 'available',
+                source: 'silverstone',
+              },
+            ];
+          },
+        },
+      ],
+      trackDayAdapters: [
+        {
+          name: 'track-a',
+          description: 'Track day adapter',
+          circuitIds: ['b'],
+          async fetchSchedule() {
+            return [
+              {
+                date: '2026-04-22',
+                circuitName: 'Donington Park',
+                circuitId: 'b',
+                organizer: 'Javelin',
+                availability: 'available',
+                source: 'msv-trackday',
+              },
+            ];
+          },
+        },
+      ],
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.days.map((day) => [day.date, day.type, day.circuit])).toEqual(
+      [
+        ['2026-04-14', 'test_day', 'Silverstone'],
+        ['2026-04-22', 'track_day', 'Donington Park'],
+        ['2026-05-10', 'race_day', 'Snetterton'],
+      ],
+    );
+  });
+
+  it('surfaces partial source failures without hiding successful results', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [
+        {
+          dayId: 'race:1',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Croft',
+          provider: 'Caterham Motorsport',
+          description: 'Race weekend',
+          source: { sourceType: 'caterham', sourceName: 'caterham' },
+        },
+      ],
+      testingAdapters: [
+        {
+          name: 'broken-testing',
+          description: 'Broken testing adapter',
+          circuitIds: ['broken'],
+          async fetchSchedule() {
+            throw new Error('Testing feed timed out');
+          },
+        },
+      ],
+      trackDayAdapters: [],
+    });
+
+    expect(result.days).toHaveLength(1);
+    expect(result.errors).toEqual([
+      {
+        source: 'testing',
+        message: 'Testing feed timed out',
+      },
+    ]);
+  });
+});
+
+describe('filterAvailableDays', () => {
+  it('filters by month, circuit, provider, and type', () => {
+    const days = [
+      {
+        dayId: '1',
+        date: '2026-04-14',
+        type: 'test_day',
+        circuit: 'Silverstone',
+        provider: 'Silverstone',
+        description: '',
+        source: { sourceType: 'testing', sourceName: 'silverstone' },
+      },
+      {
+        dayId: '2',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: '',
+        source: { sourceType: 'caterham', sourceName: 'caterham' },
+      },
+    ] as const;
+
+    expect(
+      filterAvailableDays([...days], {
+        month: '2026-04',
+        circuit: 'Silverstone',
+        provider: 'Silverstone',
+        type: 'test_day',
+      }),
+    ).toHaveLength(1);
+  });
+});
