@@ -19,6 +19,7 @@ import {
   IconMoon,
   IconRoad,
   IconSun,
+  IconUsersGroup,
 } from '@tabler/icons-react';
 import { Link, Outlet, useLoaderData, useLocation } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
@@ -58,6 +59,12 @@ export default function DashboardLayoutRoute() {
       to: '/dashboard/bookings',
       icon: IconHotelService,
       active: location.pathname.startsWith('/dashboard/bookings'),
+    },
+    {
+      label: 'Members',
+      to: '/dashboard/members',
+      icon: IconUsersGroup,
+      active: location.pathname.startsWith('/dashboard/members'),
     },
   ];
 
