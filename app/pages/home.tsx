@@ -43,7 +43,7 @@ export function HomePage({ hasSession }: HomePageProps) {
                   Grid Stay
                 </Text>
                 <Text size="sm" c="gray.1">
-                  Motorsport weekends without the group-text mess
+                  Motorsport weekends without the group chat mess
                 </Text>
               </Stack>
             </Group>
@@ -56,8 +56,9 @@ export function HomePage({ hasSession }: HomePageProps) {
                 Keep the whole paddock on one plan.
               </Title>
               <Text size="lg" c="gray.1" maw={620}>
-                Track every race day, test day, and track day, then keep the
-                crew aligned on who is going and where the stay is booked.
+                Track every race day, test day, and track day, then see who is
+                going and where other drivers are staying so it is easier to
+                meet up for food or beers later.
               </Text>
               <Group>
                 <Button component={Link} to={cta} size="lg" color="brand">
@@ -87,16 +88,16 @@ export function HomePage({ hasSession }: HomePageProps) {
             <Grid.Col span={{ base: 12, lg: 5 }}>
               <Stack gap="lg">
                 <Badge color="brand" variant="light" w="fit-content">
-                  One trip thread
+                  One weekend plan
                 </Badge>
                 <Title order={2} maw={480}>
                   Leave the date chasing, booking screenshots, and hotel
                   guesswork behind.
                 </Title>
                 <Text c="dimmed" maw={520}>
-                  Grid Stay keeps the calendar, attendance, and shared stay
-                  details together so the group can make decisions early and
-                  arrive in the same place.
+                  Grid Stay keeps the calendar, who is going, and where people
+                  are staying together so it is easier to sort the weekend and
+                  know where to head in the evening.
                 </Text>
                 <Stack gap="md">
                   {[
@@ -107,8 +108,8 @@ export function HomePage({ hasSession }: HomePageProps) {
                     },
                     {
                       icon: IconUsersGroup,
-                      title: 'Clear attendance',
-                      text: 'Everyone can see who is locked in and who is still deciding.',
+                      title: 'See who is going',
+                      text: 'Know who is in, who is still deciding, and where people are staying.',
                     },
                     {
                       icon: IconHotelService,
@@ -155,11 +156,11 @@ export function HomePage({ hasSession }: HomePageProps) {
               },
               {
                 title: 'During planning',
-                text: 'See who is booked, who is maybe, and which accommodation the group is converging on.',
+                text: 'See who is booked, who is maybe, and where people are staying once plans start to settle.',
               },
               {
                 title: 'After sign-in',
-                text: 'Move straight into the trip workspace instead of bouncing between group chat and spreadsheets.',
+                text: 'Move straight into the trip workspace instead of bouncing between WhatsApp, booking screenshots, and notes.',
               },
             ].map((item) => (
               <Grid.Col key={item.title} span={{ base: 12, md: 4 }}>

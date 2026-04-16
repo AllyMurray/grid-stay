@@ -23,6 +23,9 @@ describe('HomePage', () => {
       }),
     ).toBeInTheDocument();
     expect(
+      screen.getByText(/motorsport weekends without the group chat mess/i),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(/current coverage: caterham-run race series only/i),
     ).toBeInTheDocument();
     expect(
