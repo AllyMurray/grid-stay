@@ -46,6 +46,8 @@ describe('MembersPage', () => {
     expect(screen.getByText(/trackside hotel/i)).toBeInTheDocument();
     expect(screen.getByText('Driver Two')).toBeInTheDocument();
     expect(screen.getByText('No upcoming trips yet')).toBeInTheDocument();
+    expect(screen.queryByText('owner')).not.toBeInTheDocument();
+    expect(screen.queryByText('member')).not.toBeInTheDocument();
   });
 
   it('filters the directory by search query', async () => {

@@ -1,6 +1,5 @@
 import {
   Avatar,
-  Badge,
   Divider,
   Group,
   Paper,
@@ -17,17 +16,6 @@ import type { MemberDirectoryEntry } from '~/lib/auth/members.server';
 
 export interface MembersPageProps {
   members: MemberDirectoryEntry[];
-}
-
-function roleColor(role: MemberDirectoryEntry['role']) {
-  switch (role) {
-    case 'owner':
-      return 'brand';
-    case 'admin':
-      return 'blue';
-    case 'member':
-      return 'gray';
-  }
 }
 
 function formatMemberDate(value: string) {
@@ -61,7 +49,6 @@ function matchesMemberQuery(member: MemberDirectoryEntry, query: string) {
   const value = query.toLowerCase();
   return [
     member.name,
-    member.role,
     member.nextTrip?.circuit,
     member.nextTrip?.provider,
     member.nextTrip?.accommodationName,
@@ -77,12 +64,7 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
         </Avatar>
 
         <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-          <Group gap="xs" wrap="wrap">
-            <Text fw={700}>{member.name}</Text>
-            <Badge variant="light" color={roleColor(member.role)} size="sm">
-              {member.role}
-            </Badge>
-          </Group>
+          <Text fw={700}>{member.name}</Text>
 
           <Text size="sm" c="dimmed">
             {getNextTripSummary(member)}
@@ -146,7 +128,7 @@ export function MembersPage({ members }: MembersPageProps) {
           <TextInput
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.currentTarget.value)}
-            placeholder="Search by name, role, circuit, or stay"
+            placeholder="Search by name, circuit, or stay"
             label="Search members"
             leftSection={<IconSearch size={16} />}
           />
