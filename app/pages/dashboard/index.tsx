@@ -68,26 +68,41 @@ function formatOverviewDate(value: string) {
   }).format(new Date(value));
 }
 
-function hasPrivateReferences(booking: BookingRecord) {
-  return Boolean(
-    booking.bookingReference?.trim() || booking.accommodationReference?.trim(),
-  );
+function bookingReferenceLabel(type?: AvailableDay['type']) {
+  switch (type) {
+    case 'race_day':
+      return 'Race day reference';
+    case 'test_day':
+      return 'Test day reference';
+    case 'track_day':
+      return 'Track day reference';
+    default:
+      return 'Event booking reference';
+  }
 }
 
-function nextActionText(booking: BookingRecord) {
+function nextTripTasks(booking: BookingRecord, type?: AvailableDay['type']) {
+  const tasks: string[] = [];
+
   if (booking.status === 'maybe') {
-    return 'Confirm whether this trip is going ahead.';
+    tasks.push('Confirm whether this date is actually happening for you.');
+  }
+
+  if (!booking.bookingReference?.trim()) {
+    tasks.push(`Add the ${bookingReferenceLabel(type).toLowerCase()}.`);
   }
 
   if (!booking.accommodationName?.trim()) {
-    return 'Add the shared stay name once the group agrees it.';
+    tasks.push('Add the shared stay once everyone agrees where to stay.');
   }
 
-  if (!hasPrivateReferences(booking)) {
-    return 'Store the private references while they are easy to find.';
+  if (!booking.accommodationReference?.trim()) {
+    tasks.push('Add the hotel booking reference.');
   }
 
-  return 'This trip is aligned and ready for the weekend.';
+  return tasks.length > 0
+    ? tasks
+    : ['Everything for this trip is already in place.'];
 }
 
 function AttentionRow({
@@ -123,22 +138,73 @@ function AttentionRow({
   );
 }
 
-function CompactBookingRow({ booking }: { booking: BookingRecord }) {
+function TripDetailLine({
+  label,
+  value,
+  dimmed = false,
+  monospace = false,
+}: {
+  label: string;
+  value: string;
+  dimmed?: boolean;
+  monospace?: boolean;
+}) {
   return (
-    <Stack gap={4} py="sm">
+    <Group gap={8} wrap="wrap" align="baseline">
+      <Text size="xs" fw={700} c="dimmed">
+        {label}
+      </Text>
+      <Text
+        size="sm"
+        fw={700}
+        c={dimmed ? 'dimmed' : undefined}
+        ff={monospace ? 'monospace' : undefined}
+      >
+        {value}
+      </Text>
+    </Group>
+  );
+}
+
+function CompactBookingRow({
+  booking,
+  referenceLabel = 'Event booking ref',
+}: {
+  booking: BookingRecord;
+  referenceLabel?: string;
+}) {
+  return (
+    <Stack gap={6} py="sm">
       <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
         <Stack gap={2} style={{ minWidth: 0 }}>
           <Text fw={700}>{booking.circuit}</Text>
           <Text size="sm" c="dimmed">
             {formatOverviewDate(booking.date)} • {booking.provider}
           </Text>
-          <Text size="sm" lineClamp={1}>
-            {booking.accommodationName || 'Shared stay still open'}
-          </Text>
         </Stack>
         <Badge color={bookingColor(booking.status)}>
           {titleCase(booking.status)}
         </Badge>
+      </Group>
+
+      <Group gap="sm" wrap="wrap">
+        <TripDetailLine
+          label={referenceLabel}
+          value={booking.bookingReference || 'Open'}
+          dimmed={!booking.bookingReference}
+          monospace={Boolean(booking.bookingReference)}
+        />
+        <TripDetailLine
+          label="Stay"
+          value={booking.accommodationName || 'Open'}
+          dimmed={!booking.accommodationName}
+        />
+        <TripDetailLine
+          label="Hotel ref"
+          value={booking.accommodationReference || 'Open'}
+          dimmed={!booking.accommodationReference}
+          monospace={Boolean(booking.accommodationReference)}
+        />
       </Group>
     </Stack>
   );
@@ -171,23 +237,78 @@ export function DashboardIndexPage({
   sharedStayCount,
   maybeBookingsCount,
   tripsMissingStayCount,
-  tripsWithSharedStayCount,
   privateRefsOpenCount,
   nextDays,
   upcomingBookings,
 }: DashboardIndexPageProps) {
   const nextBooking = upcomingBookings[0] ?? null;
   const nextLiveDay = nextDays[0] ?? null;
-  const focusDay = nextBooking
-    ? (nextDays.find((day) => day.dayId === nextBooking.dayId) ?? nextLiveDay)
-    : nextLiveDay;
+  const nextBookingDay = nextBooking
+    ? (nextDays.find((day) => day.dayId === nextBooking.dayId) ?? null)
+    : null;
+  const focusDay = nextBooking ? (nextBookingDay ?? nextLiveDay) : nextLiveDay;
+  const nextTripReferenceLabel = bookingReferenceLabel(nextBookingDay?.type);
+  const nextTripItems = nextBooking
+    ? [
+        {
+          label: 'Trip status',
+          value: titleCase(nextBooking.status),
+          dimmed: false,
+          monospace: false,
+        },
+        {
+          label: nextTripReferenceLabel,
+          value: nextBooking.bookingReference || 'Not added yet',
+          dimmed: !nextBooking.bookingReference,
+          monospace: Boolean(nextBooking.bookingReference),
+        },
+        {
+          label: 'Shared stay',
+          value: nextBooking.accommodationName || 'Not added yet',
+          dimmed: !nextBooking.accommodationName,
+          monospace: false,
+        },
+        {
+          label: 'Hotel reference',
+          value: nextBooking.accommodationReference || 'Not added yet',
+          dimmed: !nextBooking.accommodationReference,
+          monospace: Boolean(nextBooking.accommodationReference),
+        },
+        ...(nextBooking.notes
+          ? [
+              {
+                label: 'Private note',
+                value: nextBooking.notes,
+                dimmed: false,
+                monospace: false,
+              },
+            ]
+          : []),
+      ]
+    : [
+        {
+          label: 'Trip status',
+          value: 'Not added to your bookings yet',
+          dimmed: true,
+          monospace: false,
+        },
+        {
+          label: 'Shared stay',
+          value: 'No shared stay linked yet',
+          dimmed: true,
+          monospace: false,
+        },
+      ];
+  const nextTripTaskItems = nextBooking
+    ? nextTripTasks(nextBooking, nextBookingDay?.type)
+    : ['Review the live calendar and add the next date worth locking in.'];
 
   return (
     <Stack gap="xl">
       <PageHeader
         eyebrow="Overview"
         title={`Welcome back, ${firstName}`}
-        description="Start with the next event, then clear the gaps in your trip plan and the shared stay plan."
+        description="Start with the next trip, check the references you will actually need, then clear the gaps still open."
         meta={
           <HeaderStatGrid
             items={[
@@ -231,7 +352,7 @@ export function DashboardIndexPage({
             <Group justify="space-between" align="flex-start" gap="lg">
               <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                 <Text size="sm" fw={700} c="brand.7">
-                  Next event
+                  Next trip
                 </Text>
                 <Title order={2}>
                   {nextBooking?.circuit ?? focusDay?.circuit}
@@ -268,47 +389,39 @@ export function DashboardIndexPage({
             <Divider />
 
             <SimpleGrid
-              cols={{ base: 1, sm: 3 }}
+              cols={{ base: 1, lg: 2 }}
               spacing={{ base: 'md', sm: 'lg' }}
             >
-              <Stack gap={4}>
-                <Text fw={700}>Trip status</Text>
-                <Text size="sm">
-                  {nextBooking
-                    ? titleCase(nextBooking.status)
-                    : 'Not added to your bookings yet'}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {nextBooking
-                    ? 'Your booking status is already attached to this event.'
-                    : 'Open the live days feed to add this date to your trip plan.'}
-                </Text>
+              <Stack gap="sm">
+                <Text fw={700}>Trip details</Text>
+                <Stack gap={8}>
+                  {nextTripItems.map((item) => (
+                    <TripDetailLine
+                      key={item.label}
+                      label={item.label}
+                      value={item.value}
+                      dimmed={item.dimmed}
+                      monospace={item.monospace}
+                    />
+                  ))}
+                </Stack>
               </Stack>
-              <Stack gap={4}>
-                <Text fw={700}>Shared stay</Text>
-                <Text size="sm">
-                  {nextBooking?.accommodationName || 'Still open'}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {nextBooking?.accommodationName
-                    ? 'The stay name is already visible to the group.'
-                    : 'The group has not settled on a shared stay name yet.'}
-                </Text>
-              </Stack>
-              <Stack gap={4}>
+              <Stack gap="sm">
                 <Text fw={700}>What to do now</Text>
-                <Text size="sm">
-                  {nextBooking
-                    ? nextActionText(nextBooking)
-                    : 'Review the live calendar and choose the next date worth locking in.'}
-                </Text>
+                <Stack gap={6}>
+                  {nextTripTaskItems.map((task) => (
+                    <Text key={task} size="sm">
+                      {task}
+                    </Text>
+                  ))}
+                </Stack>
                 <Group gap="sm" mt="xs">
                   <Button
                     component={Link}
                     to={nextBooking ? '/dashboard/bookings' : '/dashboard/days'}
                     w="fit-content"
                   >
-                    {nextBooking ? 'Open this trip' : 'Browse live days'}
+                    {nextBooking ? 'Open my bookings' : 'Browse live days'}
                   </Button>
                 </Group>
               </Stack>
@@ -383,24 +496,33 @@ export function DashboardIndexPage({
           <Stack gap="md">
             <Group justify="space-between" align="flex-end">
               <Stack gap={2}>
-                <Title order={3}>Shared stay progress</Title>
+                <Title order={3}>Upcoming trips</Title>
                 <Text size="sm" c="dimmed">
-                  Track how much of the trip list already lines up around a
-                  shared stay.
+                  Keep the next few dates, refs, and stay details visible
+                  without opening the editor first.
                 </Text>
               </Stack>
-              <Text fw={800} fz={28} lh={1}>
-                {activeBookingsCount > 0
-                  ? `${tripsWithSharedStayCount}/${activeBookingsCount}`
-                  : '0/0'}
-              </Text>
+              <Button
+                component={Link}
+                to="/dashboard/bookings"
+                variant="subtle"
+              >
+                Open all
+              </Button>
             </Group>
 
             {upcomingBookings.length > 0 ? (
               <Stack gap={0}>
                 {upcomingBookings.slice(0, 3).map((booking, index) => (
                   <div key={booking.bookingId}>
-                    <CompactBookingRow booking={booking} />
+                    <CompactBookingRow
+                      booking={booking}
+                      referenceLabel={
+                        booking.dayId === nextBooking?.dayId
+                          ? nextTripReferenceLabel
+                          : 'Event booking ref'
+                      }
+                    />
                     {index < Math.min(upcomingBookings.length, 3) - 1 ? (
                       <Divider />
                     ) : null}

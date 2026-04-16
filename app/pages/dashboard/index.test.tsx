@@ -69,14 +69,19 @@ describe('DashboardIndexPage', () => {
       screen.getByRole('heading', { name: 'Welcome back, Ally' }),
     ).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
-    expect(screen.getByText('Next event')).toBeInTheDocument();
+    expect(screen.getByText('Next trip')).toBeInTheDocument();
+    expect(screen.getByText('Trip details')).toBeInTheDocument();
+    expect(screen.getAllByText('Race day reference').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('REF-123').length).toBeGreaterThan(0);
+    expect(screen.getByText('Hotel reference')).toBeInTheDocument();
+    expect(screen.getAllByText('HOTEL-7').length).toBeGreaterThan(0);
     expect(screen.getByText('What needs attention')).toBeInTheDocument();
-    expect(screen.getByText('Shared stay progress')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming trips')).toBeInTheDocument();
     expect(screen.getByText('Live calendar')).toBeInTheDocument();
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
     expect(
-      screen.getByText(/the stay name is already visible to the group/i),
+      screen.getByText(/everything for this trip is already in place/i),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /review my bookings/i }),
