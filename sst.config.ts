@@ -17,6 +17,11 @@ export default $config({
     $transform(sst.aws.Function, (args) => {
       args.runtime = "nodejs22.x";
     });
+    $transform(sst.aws.Dynamo, (args) => {
+      if ($app.stage === "prod") {
+        args.deletionProtection = true;
+      }
+    });
     await import("./infra/domain");
     await import("./infra/secrets");
     await import("./infra/database");
