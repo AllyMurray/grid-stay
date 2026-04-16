@@ -4,10 +4,12 @@ import type { User } from '~/lib/auth/schemas';
 vi.mock('~/lib/db/services/booking.server', () => ({
   applySharedStaySelection: vi.fn(),
   createBooking: vi.fn(),
+  deleteBooking: vi.fn(),
   updateBooking: vi.fn(),
 }));
 
 import {
+  submitBookingDelete,
   submitBookingUpdate,
   submitCreateBooking,
   submitSharedStaySelection,
@@ -87,6 +89,35 @@ describe('booking action helpers', () => {
     }
     expect(result.formError).toBe('Could not save this booking yet.');
     expect(result.fieldErrors.notes?.[0]).toBeDefined();
+  });
+
+  it('passes the booking id through when deleting a booking', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+
+    const removeBooking = vi.fn(async () => undefined);
+
+    const result = await submitBookingDelete(
+      formData,
+      user.id,
+      removeBooking as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(removeBooking).toHaveBeenCalledWith(user.id, {
+      bookingId: 'booking-1',
+    });
+  });
+
+  it('returns field errors instead of throwing for an invalid delete payload', async () => {
+    const result = await submitBookingDelete(new FormData(), user.id);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected validation failure');
+    }
+    expect(result.formError).toBe('Could not delete this booking yet.');
+    expect(result.fieldErrors.bookingId?.[0]).toBeDefined();
   });
 
   it('passes the selected shared stay through when joining from available days', async () => {

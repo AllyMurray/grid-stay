@@ -3,12 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   bookingEntityCreateGo,
   bookingEntityCreate,
+  bookingEntityDeleteGo,
+  bookingEntityDelete,
   bookingEntityPatchGo,
   bookingEntityPatch,
 } = vi.hoisted(() => ({
   bookingEntityCreateGo: vi.fn(async () => ({ data: {} })),
   bookingEntityCreate: vi.fn(() => ({
     go: bookingEntityCreateGo,
+  })),
+  bookingEntityDeleteGo: vi.fn(async () => ({ data: {} })),
+  bookingEntityDelete: vi.fn(() => ({
+    go: bookingEntityDeleteGo,
   })),
   bookingEntityPatchGo: vi.fn(async () => ({ data: {} })),
   bookingEntityPatch: vi.fn(() => ({
@@ -19,6 +25,7 @@ const {
 vi.mock('~/lib/db/entities/booking.server', () => ({
   BookingEntity: {
     create: bookingEntityCreate,
+    delete: bookingEntityDelete,
     patch: bookingEntityPatch,
     query: {
       booking: () => ({ go: async () => ({ data: [] }) }),
@@ -39,6 +46,7 @@ import {
   applySharedStaySelection,
   bookingStore,
   createBooking,
+  deleteBooking,
   listMyBookings,
   summarizeDayAttendances,
   updateBooking,
@@ -74,6 +82,14 @@ function createMemoryStore() {
         const next = { ...items[index], ...changes };
         items[index] = next;
         return next;
+      },
+      async delete(userId: string, bookingId: string) {
+        const index = items.findIndex(
+          (item) => item.userId === userId && item.bookingId === bookingId,
+        );
+        if (index >= 0) {
+          items.splice(index, 1);
+        }
       },
       async listByUser(userId: string) {
         return items.filter((item) => item.userId === userId);
@@ -121,6 +137,8 @@ describe('booking service', () => {
     vi.useRealTimers();
     bookingEntityCreate.mockClear();
     bookingEntityCreateGo.mockClear();
+    bookingEntityDelete.mockClear();
+    bookingEntityDeleteGo.mockClear();
     bookingEntityPatch.mockClear();
     bookingEntityPatchGo.mockClear();
   });
@@ -193,6 +211,38 @@ describe('booking service', () => {
     expect(updated.status).toBe('maybe');
     expect(memory.summaries.get('day-1')).toMatchObject({
       attendeeCount: 1,
+      accommodationNames: [],
+    });
+  });
+
+  it('deletes a booking and refreshes the shared day summary', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'booked',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      accommodationName: 'Trackside Hotel',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    await deleteBooking(
+      user.id,
+      { bookingId: 'booking-1' },
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(memory.items).toHaveLength(0);
+    expect(memory.summaries.get('day-1')).toMatchObject({
+      attendeeCount: 0,
       accommodationNames: [],
     });
   });

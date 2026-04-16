@@ -29,7 +29,7 @@ import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
-import type { UpdateBookingActionResult } from '~/lib/bookings/actions.server';
+import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface MyBookingsPageProps {
@@ -268,8 +268,11 @@ function BookingEditorPanel({
   onSelectPrevious: () => void;
   onSelectNext: () => void;
 }) {
-  const fetcher = useFetcher<UpdateBookingActionResult>();
+  const fetcher = useFetcher<BookingEditorActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
+  const submitIntent = fetcher.formData?.get('intent');
+  const isSaving = isSubmitting && submitIntent !== 'deleteBooking';
+  const isDeleting = isSubmitting && submitIntent === 'deleteBooking';
   const fieldErrors =
     fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
   const formError =
@@ -438,8 +441,33 @@ function BookingEditorPanel({
             </Alert>
           ) : null}
 
-          <Group justify="flex-end">
-            <Button type="submit" loading={isSubmitting}>
+          <Group justify="space-between" wrap="wrap">
+            <Button
+              type="submit"
+              name="intent"
+              value="deleteBooking"
+              color="red"
+              variant="subtle"
+              loading={isDeleting}
+              onClick={(event) => {
+                if (
+                  typeof window !== 'undefined' &&
+                  !window.confirm(
+                    'Delete this booking? This will remove it from your trips.',
+                  )
+                ) {
+                  event.preventDefault();
+                }
+              }}
+            >
+              Delete booking
+            </Button>
+            <Button
+              type="submit"
+              name="intent"
+              value="updateBooking"
+              loading={isSaving}
+            >
               Save changes
             </Button>
           </Group>

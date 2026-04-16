@@ -3,6 +3,7 @@ import type { BookingStatus } from '~/lib/constants/enums';
 import type { DayAttendanceSummary, SharedAttendee } from '~/lib/days/types';
 import type {
   CreateBookingInput,
+  DeleteBookingInput,
   SharedStaySelectionInput,
   UpdateBookingInput,
 } from '~/lib/schemas/booking';
@@ -17,6 +18,7 @@ export interface BookingPersistence {
     bookingId: string,
     changes: Partial<BookingRecord>,
   ): Promise<BookingRecord>;
+  delete(userId: string, bookingId: string): Promise<void>;
   listByUser(userId: string): Promise<BookingRecord[]>;
   findByUserAndDay(
     userId: string,
@@ -46,6 +48,11 @@ export const bookingStore: BookingPersistence = {
       .set(changes)
       .go({ response: 'all_new' });
     return updated.data;
+  },
+  async delete(userId, bookingId) {
+    await BookingEntity.delete({ userId, bookingId }).go({
+      response: 'none',
+    });
   },
   async listByUser(userId) {
     const response = await BookingEntity.query.booking({ userId }).go();
@@ -157,6 +164,21 @@ export async function updateBooking(
   });
   await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);
   return updated;
+}
+
+export async function deleteBooking(
+  userId: string,
+  input: DeleteBookingInput,
+  store: BookingPersistence = bookingStore,
+  summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+): Promise<void> {
+  const existing = await store.getByUser(userId, input.bookingId);
+  if (!existing) {
+    throw new Response('Booking not found', { status: 404 });
+  }
+
+  await store.delete(userId, input.bookingId);
+  await syncDayAttendanceSummariesSafely([existing.dayId], store, summaryStore);
 }
 
 export async function applySharedStaySelection(

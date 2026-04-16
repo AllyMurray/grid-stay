@@ -1,17 +1,20 @@
 import { MantineProvider } from '@mantine/core';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
+import { describe, expect, it, vi } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
 import { MyBookingsPage } from './bookings';
 
-function renderWithProviders(ui: React.ReactElement) {
+function renderWithProviders(
+  ui: React.ReactElement,
+  action?: (args: ActionFunctionArgs) => Promise<unknown>,
+) {
   const Stub = createRoutesStub([
     {
       path: '/',
-      action: async () => null,
+      action: action ?? (async () => null),
       Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
     },
   ]);
@@ -109,6 +112,36 @@ describe('MyBookingsPage', () => {
     expect(
       screen.getByRole('button', { name: /donington park/i }),
     ).toBeVisible();
+  });
+
+  it('submits a delete intent for the selected booking', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <MyBookingsPage bookings={[booking, secondBooking]} />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return null;
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: /delete booking/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          bookingId: 'booking-1',
+          intent: 'deleteBooking',
+        }),
+      ),
+    );
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Delete this booking? This will remove it from your trips.',
+    );
+
+    confirmSpy.mockRestore();
   });
 
   it('renders the empty state without route loader data', () => {

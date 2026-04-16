@@ -32,8 +32,13 @@ export const UpdateBookingSchema = z.object({
   notes: z.string().trim().max(1000).optional().default(''),
 });
 
+export const DeleteBookingSchema = z.object({
+  bookingId: z.string().min(1),
+});
+
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
 export type SharedStaySelectionInput = z.infer<
   typeof SharedStaySelectionSchema
 >;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
+export type DeleteBookingInput = z.infer<typeof DeleteBookingSchema>;

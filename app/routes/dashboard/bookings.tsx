@@ -1,6 +1,9 @@
 import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
-import { submitBookingUpdate } from '~/lib/bookings/actions.server';
+import {
+  submitBookingDelete,
+  submitBookingUpdate,
+} from '~/lib/bookings/actions.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
@@ -14,7 +17,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
-  const result = await submitBookingUpdate(await request.formData(), user.id);
+  const formData = await request.formData();
+  const intent = formData.get('intent');
+  const result =
+    intent === 'deleteBooking'
+      ? await submitBookingDelete(formData, user.id)
+      : await submitBookingUpdate(formData, user.id);
 
   return Response.json(result, {
     headers,
