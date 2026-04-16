@@ -172,6 +172,56 @@ describe('AvailableDaysPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('surfaces same-day session labels directly on the list rows', () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          totalCount: 2,
+          days: [
+            {
+              dayId: 'day-a',
+              date: '2026-04-20',
+              type: 'track_day',
+              circuit: 'Donington Park',
+              provider: 'MSV Car Trackdays',
+              description:
+                'National • MSV Car Trackdays - General Track Day • Full Day',
+            },
+            {
+              dayId: 'day-b',
+              date: '2026-04-20',
+              type: 'track_day',
+              circuit: 'Donington Park',
+              provider: 'MSV Car Trackdays',
+              description:
+                'National • MSV Car Trackdays - General Track Evening • Evening',
+            },
+          ],
+          attendanceSummaries: {
+            'day-a': {
+              attendeeCount: 2,
+              accommodationNames: ['Trackside Hotel'],
+            },
+            'day-b': {
+              attendeeCount: 0,
+              accommodationNames: [],
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Full Day')).toBeInTheDocument();
+    expect(screen.getByText('Evening')).toBeInTheDocument();
+    expect(
+      screen.getByText('National • MSV Car Trackdays - General Track Day'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('National • MSV Car Trackdays - General Track Evening'),
+    ).toBeInTheDocument();
+  });
+
   it('shows month filters with readable month and year labels', () => {
     renderWithProviders(
       <AvailableDaysPage

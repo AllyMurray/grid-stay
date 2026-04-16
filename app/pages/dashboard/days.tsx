@@ -287,6 +287,26 @@ function getDaySessionText(day: DayRow) {
     : `${day.provider} • ${day.description}`;
 }
 
+function getDaySessionParts(day: DayRow) {
+  const sessionText = getDaySessionText(day);
+  const parts = sessionText
+    .split(' • ')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length <= 1) {
+    return {
+      detail: sessionText,
+      label: null,
+    };
+  }
+
+  return {
+    detail: parts.slice(0, -1).join(' • '),
+    label: parts.at(-1) ?? null,
+  };
+}
+
 function getDayTripText(booking?: DayBookingSnapshot) {
   if (!booking) {
     return 'Not in your bookings yet';
@@ -441,6 +461,8 @@ function DayListItem({
   selected: boolean;
   href: string;
 }) {
+  const session = getDaySessionParts(day);
+
   return (
     <UnstyledButton
       component={Link}
@@ -472,11 +494,22 @@ function DayListItem({
               gap="sm"
             >
               <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
-                <Text fw={700} lineClamp={1}>
-                  {day.circuit}
-                </Text>
+                <Group gap="xs" wrap="wrap">
+                  <Text fw={700} lineClamp={1}>
+                    {day.circuit}
+                  </Text>
+                  {session.label ? (
+                    <Badge
+                      variant="light"
+                      color={typeColor(day.type)}
+                      size="sm"
+                    >
+                      {session.label}
+                    </Badge>
+                  ) : null}
+                </Group>
                 <Text size="sm" c="dimmed" lineClamp={1}>
-                  {getDaySessionText(day)}
+                  {session.detail}
                 </Text>
               </Stack>
 
