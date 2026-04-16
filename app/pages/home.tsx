@@ -46,15 +46,6 @@ export function HomePage({ hasSession }: HomePageProps) {
                   Motorsport weekends without the group-text mess
                 </Text>
               </Stack>
-              <Button
-                component={Link}
-                to={cta}
-                variant="white"
-                color="dark"
-                radius="sm"
-              >
-                {hasSession ? 'Open dashboard' : 'Sign in with Google'}
-              </Button>
             </Group>
 
             <Stack gap="lg" maw={720} pb={{ base: 40, sm: 56 }}>
@@ -70,7 +61,7 @@ export function HomePage({ hasSession }: HomePageProps) {
               </Text>
               <Group>
                 <Button component={Link} to={cta} size="lg" color="brand">
-                  {hasSession ? 'Go to overview' : 'Start with Google'}
+                  {hasSession ? 'Open dashboard' : 'Sign in with Google'}
                 </Button>
                 <Button
                   component="a"

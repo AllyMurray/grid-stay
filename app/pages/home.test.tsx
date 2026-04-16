@@ -26,7 +26,10 @@ describe('HomePage', () => {
       screen.getByText(/current coverage: caterham-run race series only/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /start with google/i }),
+      screen.getAllByRole('link', { name: /sign in with google/i }),
+    ).toHaveLength(1);
+    expect(
+      screen.getByRole('link', { name: /sign in with google/i }),
     ).toHaveAttribute('href', '/auth/login');
   });
 });
