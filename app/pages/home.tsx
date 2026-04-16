@@ -59,7 +59,7 @@ export function HomePage({ hasSession }: HomePageProps) {
               <Text size="lg" c="gray.1" maw={620}>
                 Track every race day, test day, and track day, then see who is
                 going and where other drivers are staying so it is easier to
-                meet up for food or beers later.
+                meet up for food or beers.
               </Text>
               <Group>
                 <Button component={Link} to={cta} size="lg" color="brand">
