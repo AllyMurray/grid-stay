@@ -53,7 +53,8 @@ export function HomePage({ hasSession }: HomePageProps) {
                 Built for race weekends
               </Badge>
               <Title order={1} c="white" fz={{ base: 46, sm: 64 }}>
-                Keep the whole paddock on one plan.
+                Leave the date chasing, booking screenshots, and hotel guesswork
+                behind.
               </Title>
               <Text size="lg" c="gray.1" maw={620}>
                 Track every race day, test day, and track day, then see who is
@@ -91,8 +92,7 @@ export function HomePage({ hasSession }: HomePageProps) {
                   One weekend plan
                 </Badge>
                 <Title order={2} maw={480}>
-                  Leave the date chasing, booking screenshots, and hotel
-                  guesswork behind.
+                  Know who is going and where people are staying.
                 </Title>
                 <Text c="dimmed" maw={520}>
                   Grid Stay keeps the calendar, who is going, and where people

@@ -19,7 +19,7 @@ describe('HomePage', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: /keep the whole paddock on one plan/i,
+        name: /leave the date chasing, booking screenshots, and hotel guesswork behind/i,
       }),
     ).toBeInTheDocument();
     expect(
