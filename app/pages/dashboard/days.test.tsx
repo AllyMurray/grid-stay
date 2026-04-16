@@ -172,6 +172,25 @@ describe('AvailableDaysPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows month filters with readable month and year labels', () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          filters: {
+            ...defaultData.filters,
+            month: '2026-05',
+          },
+          monthOptions: ['2026-04', '2026-05'],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('textbox', { name: 'Month' })).toHaveDisplayValue(
+      'May 2026',
+    );
+  });
+
   it('updates the selected detail when another day link is opened', async () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 

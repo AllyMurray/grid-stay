@@ -190,6 +190,18 @@ function formatDayLongDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatMonthOption(value: string) {
+  const [year, month] = value.split('-').map((segment) => Number(segment));
+  if (!Number.isInteger(year) || !Number.isInteger(month)) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
 interface DayAttendanceSummaryPreview {
   attendeeCount: number;
   accommodationNames: string[];
@@ -1465,7 +1477,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                   placeholder="Any month"
                   data={data.monthOptions.map((value) => ({
                     value,
-                    label: value,
+                    label: formatMonthOption(value),
                   }))}
                   defaultValue={data.filters.month}
                   clearable
