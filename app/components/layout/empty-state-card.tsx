@@ -15,7 +15,7 @@ export function EmptyStateCard({
   action,
 }: EmptyStateCardProps) {
   return (
-    <Paper className="shell-card" p="xl">
+    <Paper className="shell-card" p={{ base: 'md', sm: 'xl' }}>
       <Stack gap="sm" align="center">
         <Title order={3} ta="center">
           {title}

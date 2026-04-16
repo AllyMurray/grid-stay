@@ -63,16 +63,16 @@ export default function DashboardLayoutRoute() {
 
   return (
     <AppShell
-      header={{ height: 68 }}
+      header={{ height: { base: 64, sm: 68 } }}
       navbar={{
         width: 248,
         breakpoint: 'sm',
         collapsed: { mobile: !opened, desktop: false },
       }}
-      padding="md"
+      padding={{ base: 'xs', sm: 'md' }}
     >
       <AppShell.Header>
-        <Group h="100%" px="lg" justify="space-between">
+        <Group h="100%" px={{ base: 'sm', sm: 'lg' }} justify="space-between">
           <Group gap="sm">
             <Burger
               opened={opened}
@@ -80,14 +80,19 @@ export default function DashboardLayoutRoute() {
               hiddenFrom="sm"
               size="sm"
             />
-            <ThemeIcon size={40} radius="sm" variant="light" color="brand">
+            <ThemeIcon size={34} radius="sm" variant="light" color="brand">
               <IconRoad size={20} />
             </ThemeIcon>
             <Stack gap={0}>
-              <Text fw={800} ff="Oswald, sans-serif" size="xl">
+              <Text
+                fw={800}
+                ff="Oswald, sans-serif"
+                size="xl"
+                className="dashboard-brand-title"
+              >
                 Grid Stay
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="dimmed" visibleFrom="sm">
                 Weekend planning for the paddock
               </Text>
             </Stack>
@@ -111,7 +116,7 @@ export default function DashboardLayoutRoute() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p={{ base: 'sm', sm: 'md' }}>
         <AppShell.Section>
           <Stack className="dashboard-sidebar-profile" gap="md">
             <Group align="flex-start" wrap="nowrap">
@@ -160,7 +165,7 @@ export default function DashboardLayoutRoute() {
 
       <AppShell.Main>
         <div className="app-backdrop" />
-        <Container size="xl" py="lg">
+        <Container size="xl" py={{ base: 'md', sm: 'lg' }} px={0}>
           <Stack gap="xl">
             <Outlet context={{ user }} />
           </Stack>

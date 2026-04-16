@@ -222,7 +222,10 @@ export function DashboardIndexPage({
         }
       />
 
-      <Paper className="shell-card overview-focus-panel" p="xl">
+      <Paper
+        className="shell-card overview-focus-panel"
+        p={{ base: 'md', sm: 'xl' }}
+      >
         {nextBooking || focusDay ? (
           <Stack gap="lg">
             <Group justify="space-between" align="flex-start" gap="lg">
@@ -264,7 +267,10 @@ export function DashboardIndexPage({
 
             <Divider />
 
-            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
+            <SimpleGrid
+              cols={{ base: 1, sm: 3 }}
+              spacing={{ base: 'md', sm: 'lg' }}
+            >
               <Stack gap={4}>
                 <Text fw={700}>Trip status</Text>
                 <Text size="sm">
@@ -326,8 +332,8 @@ export function DashboardIndexPage({
         )}
       </Paper>
 
-      <SimpleGrid cols={{ base: 1, xl: 3 }} spacing="lg">
-        <Paper className="shell-card" p="lg">
+      <SimpleGrid cols={{ base: 1, xl: 3 }} spacing={{ base: 'md', sm: 'lg' }}>
+        <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
           <Stack gap="md">
             <Group justify="space-between" align="flex-end">
               <Stack gap={2}>
@@ -373,7 +379,7 @@ export function DashboardIndexPage({
           </Stack>
         </Paper>
 
-        <Paper className="shell-card" p="lg">
+        <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
           <Stack gap="md">
             <Group justify="space-between" align="flex-end">
               <Stack gap={2}>
@@ -410,7 +416,7 @@ export function DashboardIndexPage({
           </Stack>
         </Paper>
 
-        <Paper className="shell-card" p="lg">
+        <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
           <Stack gap="md">
             <Group justify="space-between" align="flex-end">
               <Stack gap={2}>

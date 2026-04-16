@@ -50,6 +50,11 @@ html[data-mantine-color-scheme='dark'] .shell-card {
   border-bottom: 1px solid rgba(16, 20, 24, 0.08);
 }
 
+.dashboard-brand-title {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 html[data-mantine-color-scheme='dark'] .dashboard-sidebar-profile {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
@@ -59,9 +64,10 @@ html[data-mantine-color-scheme='dark'] .dashboard-sidebar-profile {
 }
 
 .page-header-stat {
-  flex: 0 0 auto;
-  max-width: 100%;
-  padding: 0.55rem 0.75rem;
+  flex: 1 1 calc(50% - 0.25rem);
+  max-width: none;
+  min-width: min(10rem, 100%);
+  padding: 0.5rem 0.625rem;
   border-radius: 999px;
   background: rgba(16, 20, 24, 0.035);
   border: 1px solid rgba(16, 20, 24, 0.06);
@@ -73,7 +79,7 @@ html[data-mantine-color-scheme='dark'] .page-header-stat {
 }
 
 .page-header-stat-value {
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.1;
   letter-spacing: 0;
   color: #e42a57;
@@ -202,14 +208,14 @@ html[data-mantine-color-scheme='dark'] .day-card {
 }
 
 .booking-list-date {
-  min-width: 4.25rem;
+  min-width: 3.5rem;
 }
 
 .booking-list-item-grid {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
   align-items: start;
-  column-gap: 0.75rem;
+  column-gap: 0.625rem;
   row-gap: 0.25rem;
 }
 
@@ -253,8 +259,8 @@ html[data-mantine-color-scheme='dark'] .day-card {
 }
 
 .day-list-date {
-  flex: 0 0 4.5rem;
-  min-width: 4.5rem;
+  flex: 0 0 3.5rem;
+  min-width: 3.5rem;
 }
 
 .attendee-roster-row {
@@ -364,6 +370,19 @@ html[data-mantine-color-scheme='dark'] .day-card {
   padding-top: 0.25rem;
 }
 
+.page-header-actions {
+  width: 100%;
+}
+
+.page-header-actions > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.row-toggle-label {
+  display: none;
+}
+
 html[data-mantine-color-scheme='dark'] .booking-list-item:hover {
   background: rgba(255, 255, 255, 0.04);
 }
@@ -407,8 +426,33 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
 }
 
 @media (min-width: 62em) {
+  .dashboard-brand-title {
+    font-size: 1.75rem;
+  }
+
+  .page-header-stat {
+    flex: 0 0 auto;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.55rem 0.75rem;
+  }
+
   .page-header-stat-value {
     font-size: 1.2rem;
+  }
+
+  .booking-list-date {
+    min-width: 4.25rem;
+  }
+
+  .booking-list-item-grid {
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    column-gap: 0.75rem;
+  }
+
+  .day-list-date {
+    flex: 0 0 4.5rem;
+    min-width: 4.5rem;
   }
 
   .booking-list-scroll {
@@ -441,5 +485,19 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
 
   .shared-stay-action-cell {
     align-items: flex-end;
+  }
+}
+
+@media (min-width: 48em) {
+  .page-header-actions {
+    width: auto;
+  }
+
+  .page-header-actions > * {
+    flex: 0 0 auto;
+  }
+
+  .row-toggle-label {
+    display: inline;
   }
 }

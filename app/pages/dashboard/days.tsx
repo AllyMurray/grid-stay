@@ -505,7 +505,7 @@ function DayListItem({
         </Group>
 
         <Text size="xs" fw={700} c={selected ? 'brand.7' : 'dimmed'}>
-          {selected ? 'Hide' : 'View'}
+          <span className="row-toggle-label">{selected ? 'Hide' : 'View'}</span>
         </Text>
       </Group>
     </UnstyledButton>
@@ -611,7 +611,9 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
                   </Text>
                 </Stack>
                 <Text size="sm" fw={700} c={isOpen ? 'brand.7' : 'dimmed'}>
-                  {isOpen ? 'Hide' : 'View'}
+                  <span className="row-toggle-label">
+                    {isOpen ? 'Hide' : 'View'}
+                  </span>
                 </Text>
               </Group>
             </UnstyledButton>
@@ -1108,7 +1110,7 @@ function DayDetailPanel({
   attendanceLoading?: boolean;
 }) {
   return (
-    <Paper className="days-detail-panel" p="lg">
+    <Paper className="days-detail-panel" p={{ base: 'md', sm: 'lg' }}>
       <DayDetailContent
         day={day}
         summary={summary}
@@ -1452,7 +1454,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         </Alert>
       ) : null}
 
-      <Paper className="shell-card" p="lg">
+      <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">
           <Group justify="space-between" align="flex-end">
             <Stack gap={2}>
@@ -1520,7 +1522,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         </Stack>
       </Paper>
 
-      <Paper className="shell-card" p="lg">
+      <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">
           <Group justify="space-between" align="flex-end">
             <Stack gap={2}>

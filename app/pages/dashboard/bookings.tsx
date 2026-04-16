@@ -276,7 +276,10 @@ function BookingEditorPanel({
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
-    <Paper className="shell-card booking-editor-panel" p="lg">
+    <Paper
+      className="shell-card booking-editor-panel"
+      p={{ base: 'md', sm: 'lg' }}
+    >
       <fetcher.Form method="post">
         <input type="hidden" name="bookingId" value={booking.bookingId} />
         <Stack gap="lg">
@@ -561,9 +564,12 @@ export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
           }
         />
       ) : (
-        <Grid gutter="lg" align="start">
+        <Grid gutter={{ base: 'md', sm: 'lg' }} align="start">
           <Grid.Col span={{ base: 12, lg: 4 }}>
-            <Paper className="shell-card booking-list-panel" p="md">
+            <Paper
+              className="shell-card booking-list-panel"
+              p={{ base: 'sm', sm: 'md' }}
+            >
               <Stack gap="md">
                 <Group justify="space-between" align="flex-end">
                   <Stack gap={2}>
