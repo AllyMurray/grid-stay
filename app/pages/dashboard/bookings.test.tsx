@@ -1,8 +1,8 @@
 import { MantineProvider } from '@mantine/core';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
 import { MyBookingsPage } from './bookings';
@@ -116,7 +116,6 @@ describe('MyBookingsPage', () => {
 
   it('submits a delete intent for the selected booking', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
     renderWithProviders(
@@ -128,6 +127,19 @@ describe('MyBookingsPage', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /delete booking/i }));
+    const modalCopy = await screen.findByText(
+      /this removes silverstone from your trips and updates the shared attendance for that day/i,
+    );
+    expect(modalCopy).toBeInTheDocument();
+
+    const deleteForm = modalCopy.closest('form');
+    expect(deleteForm).not.toBeNull();
+
+    await user.click(
+      within(deleteForm as HTMLFormElement).getByRole('button', {
+        name: /^delete booking$/i,
+      }),
+    );
 
     await waitFor(() =>
       expect(submitted).toEqual(
@@ -137,11 +149,6 @@ describe('MyBookingsPage', () => {
         }),
       ),
     );
-    expect(confirmSpy).toHaveBeenCalledWith(
-      'Delete this booking? This will remove it from your trips.',
-    );
-
-    confirmSpy.mockRestore();
   });
 
   it('renders the empty state without route loader data', () => {

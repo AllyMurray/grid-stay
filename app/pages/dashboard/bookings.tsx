@@ -5,6 +5,7 @@ import {
   Divider,
   Grid,
   Group,
+  Modal,
   Paper,
   ScrollArea,
   Select,
@@ -17,6 +18,7 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertCircle,
   IconLock,
@@ -268,212 +270,258 @@ function BookingEditorPanel({
   onSelectPrevious: () => void;
   onSelectNext: () => void;
 }) {
-  const fetcher = useFetcher<BookingEditorActionResult>();
-  const isSubmitting = fetcher.state !== 'idle';
-  const submitIntent = fetcher.formData?.get('intent');
-  const isSaving = isSubmitting && submitIntent !== 'deleteBooking';
-  const isDeleting = isSubmitting && submitIntent === 'deleteBooking';
+  const [
+    deleteModalOpened,
+    { close: closeDeleteModal, open: openDeleteModal },
+  ] = useDisclosure(false);
+  const saveFetcher = useFetcher<BookingEditorActionResult>();
+  const deleteFetcher = useFetcher<BookingEditorActionResult>();
+  const isSaving = saveFetcher.state !== 'idle';
+  const isDeleting = deleteFetcher.state !== 'idle';
   const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+    saveFetcher.data && !saveFetcher.data.ok
+      ? saveFetcher.data.fieldErrors
+      : undefined;
   const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+    saveFetcher.data && !saveFetcher.data.ok
+      ? saveFetcher.data.formError
+      : null;
+  const deleteFormError =
+    deleteFetcher.data && !deleteFetcher.data.ok
+      ? deleteFetcher.data.formError
+      : null;
+
+  useEffect(() => {
+    if (deleteFetcher.state === 'idle' && deleteFetcher.data?.ok) {
+      closeDeleteModal();
+    }
+  }, [closeDeleteModal, deleteFetcher.data, deleteFetcher.state]);
 
   return (
-    <Paper
-      className="shell-card booking-editor-panel"
-      p={{ base: 'md', sm: 'lg' }}
-    >
-      <fetcher.Form method="post">
-        <input type="hidden" name="bookingId" value={booking.bookingId} />
-        <Stack gap="lg">
-          <Group justify="space-between" align="flex-start">
-            <Stack gap={4}>
-              <Text size="sm" fw={700} c="brand.7">
-                Editing trip {selectedIndex + 1} of {totalBookings}
-              </Text>
-              <Title order={2}>{booking.circuit}</Title>
-              <Text size="sm" c="dimmed">
-                {booking.date} • {booking.provider}
-              </Text>
-              <Text size="sm">{booking.description || 'No extra details'}</Text>
-            </Stack>
-            <Stack gap="sm" align="flex-end">
-              <Badge color={bookingColor(booking.status)} size="lg">
-                {titleCase(booking.status)}
-              </Badge>
-              <Group gap="xs">
-                <Button
-                  type="button"
-                  size="compact-sm"
-                  variant="default"
-                  onClick={onSelectPrevious}
-                  disabled={!hasPrevious}
-                >
-                  Previous
-                </Button>
-                <Button
-                  type="button"
-                  size="compact-sm"
-                  variant="default"
-                  onClick={onSelectNext}
-                  disabled={!hasNext}
-                >
-                  Next
-                </Button>
-              </Group>
-            </Stack>
-          </Group>
+    <>
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete booking?"
+        centered
+      >
+        <deleteFetcher.Form method="post">
+          <input type="hidden" name="bookingId" value={booking.bookingId} />
+          <input type="hidden" name="intent" value="deleteBooking" />
+          <Stack gap="md">
+            <Text size="sm">
+              This removes {booking.circuit} from your trips and updates the
+              shared attendance for that day.
+            </Text>
 
-          <Divider />
+            {deleteFormError ? (
+              <Alert color="red" icon={<IconAlertCircle size={18} />}>
+                {deleteFormError}
+              </Alert>
+            ) : null}
 
-          <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="xl">
-            <Stack gap="md" className="booking-editor-section">
-              <BookingSectionHeading
-                icon={<IconRoad size={16} />}
-                title="Trip plan"
-                description="Keep the status current before you lock in the rest of the trip."
-                color="brand"
-              />
-              <Select
-                name="status"
-                label={
-                  <BookingFieldLabel
-                    label="Status"
-                    visibility="Affects your trip plan"
-                    visibilityColor="brand.7"
-                  />
-                }
-                description="Use booked, maybe, or cancelled to keep this trip current."
-                defaultValue={booking.status}
-                data={[
-                  { value: 'booked', label: 'Booked' },
-                  { value: 'maybe', label: 'Maybe' },
-                  { value: 'cancelled', label: 'Cancelled' },
-                ]}
-                error={fieldErrors?.status?.[0]}
-              />
-            </Stack>
+            <Group justify="flex-end" wrap="wrap">
+              <Button
+                type="button"
+                variant="default"
+                onClick={closeDeleteModal}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" color="red" loading={isDeleting}>
+                Delete booking
+              </Button>
+            </Group>
+          </Stack>
+        </deleteFetcher.Form>
+      </Modal>
 
-            <Stack gap="md" className="booking-editor-section">
-              <BookingSectionHeading
-                icon={<IconUsers size={16} />}
-                title="Shared with the group"
-                description="The stay name is the part everyone coordinating this weekend can see."
-                color="blue"
-              />
-              <TextInput
-                name="accommodationName"
-                label={
-                  <BookingFieldLabel
-                    label="Accommodation name"
-                    visibility="Visible to the group"
-                    visibilityColor="blue.6"
-                  />
-                }
-                description="Use the same stay name the rest of the group is working from."
-                defaultValue={booking.accommodationName ?? ''}
-                error={fieldErrors?.accommodationName?.[0]}
-                maxLength={120}
-              />
-              <Text size="sm" c="dimmed">
-                {booking.accommodationName
-                  ? `${booking.accommodationName} is the current shared stay name for this trip.`
-                  : 'Add the accommodation name once the group has settled on a stay.'}
-              </Text>
-            </Stack>
-          </SimpleGrid>
+      <Paper
+        className="shell-card booking-editor-panel"
+        p={{ base: 'md', sm: 'lg' }}
+      >
+        <saveFetcher.Form method="post">
+          <input type="hidden" name="bookingId" value={booking.bookingId} />
+          <Stack gap="lg">
+            <Group justify="space-between" align="flex-start">
+              <Stack gap={4}>
+                <Text size="sm" fw={700} c="brand.7">
+                  Editing trip {selectedIndex + 1} of {totalBookings}
+                </Text>
+                <Title order={2}>{booking.circuit}</Title>
+                <Text size="sm" c="dimmed">
+                  {booking.date} • {booking.provider}
+                </Text>
+                <Text size="sm">
+                  {booking.description || 'No extra details'}
+                </Text>
+              </Stack>
+              <Stack gap="sm" align="flex-end">
+                <Badge color={bookingColor(booking.status)} size="lg">
+                  {titleCase(booking.status)}
+                </Badge>
+                <Group gap="xs">
+                  <Button
+                    type="button"
+                    size="compact-sm"
+                    variant="default"
+                    onClick={onSelectPrevious}
+                    disabled={!hasPrevious}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    size="compact-sm"
+                    variant="default"
+                    onClick={onSelectNext}
+                    disabled={!hasNext}
+                  >
+                    Next
+                  </Button>
+                </Group>
+              </Stack>
+            </Group>
 
-          <Stack gap="md" className="booking-editor-section">
-            <BookingSectionHeading
-              icon={<IconLock size={16} />}
-              title="Private to you"
-              description="References and notes stay on your side and do not appear in the shared plan."
-              color="gray"
-            />
-            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-              <TextInput
-                name="bookingReference"
-                label={
-                  <BookingFieldLabel
-                    label="Booking reference"
-                    visibility="Visible only to you"
-                  />
-                }
-                description="Store the confirmation code or internal reference here."
-                defaultValue={booking.bookingReference ?? ''}
-                error={fieldErrors?.bookingReference?.[0]}
-                maxLength={120}
-              />
-              <TextInput
-                name="accommodationReference"
-                label={
-                  <BookingFieldLabel
-                    label="Accommodation reference"
-                    visibility="Visible only to you"
-                  />
-                }
-                description="Useful for the hotel confirmation, booking id, or door code."
-                defaultValue={booking.accommodationReference ?? ''}
-                error={fieldErrors?.accommodationReference?.[0]}
-                maxLength={120}
-              />
+            <Divider />
+
+            <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="xl">
+              <Stack gap="md" className="booking-editor-section">
+                <BookingSectionHeading
+                  icon={<IconRoad size={16} />}
+                  title="Trip plan"
+                  description="Keep the status current before you lock in the rest of the trip."
+                  color="brand"
+                />
+                <Select
+                  name="status"
+                  label={
+                    <BookingFieldLabel
+                      label="Status"
+                      visibility="Affects your trip plan"
+                      visibilityColor="brand.7"
+                    />
+                  }
+                  description="Use booked, maybe, or cancelled to keep this trip current."
+                  defaultValue={booking.status}
+                  data={[
+                    { value: 'booked', label: 'Booked' },
+                    { value: 'maybe', label: 'Maybe' },
+                    { value: 'cancelled', label: 'Cancelled' },
+                  ]}
+                  error={fieldErrors?.status?.[0]}
+                />
+              </Stack>
+
+              <Stack gap="md" className="booking-editor-section">
+                <BookingSectionHeading
+                  icon={<IconUsers size={16} />}
+                  title="Shared with the group"
+                  description="The stay name is the part everyone coordinating this weekend can see."
+                  color="blue"
+                />
+                <TextInput
+                  name="accommodationName"
+                  label={
+                    <BookingFieldLabel
+                      label="Accommodation name"
+                      visibility="Visible to the group"
+                      visibilityColor="blue.6"
+                    />
+                  }
+                  description="Use the same stay name the rest of the group is working from."
+                  defaultValue={booking.accommodationName ?? ''}
+                  error={fieldErrors?.accommodationName?.[0]}
+                  maxLength={120}
+                />
+                <Text size="sm" c="dimmed">
+                  {booking.accommodationName
+                    ? `${booking.accommodationName} is the current shared stay name for this trip.`
+                    : 'Add the accommodation name once the group has settled on a stay.'}
+                </Text>
+              </Stack>
             </SimpleGrid>
 
-            <Textarea
-              name="notes"
-              label={
-                <BookingFieldLabel
-                  label="Private notes"
-                  visibility="Visible only to you"
+            <Stack gap="md" className="booking-editor-section">
+              <BookingSectionHeading
+                icon={<IconLock size={16} />}
+                title="Private to you"
+                description="References and notes stay on your side and do not appear in the shared plan."
+                color="gray"
+              />
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <TextInput
+                  name="bookingReference"
+                  label={
+                    <BookingFieldLabel
+                      label="Booking reference"
+                      visibility="Visible only to you"
+                    />
+                  }
+                  description="Store the confirmation code or internal reference here."
+                  defaultValue={booking.bookingReference ?? ''}
+                  error={fieldErrors?.bookingReference?.[0]}
+                  maxLength={120}
                 />
-              }
-              description="Keep arrival notes, reminders, or anything else you do not want in the shared plan."
-              minRows={4}
-              defaultValue={booking.notes ?? ''}
-              error={fieldErrors?.notes?.[0]}
-              maxLength={1000}
-            />
-          </Stack>
+                <TextInput
+                  name="accommodationReference"
+                  label={
+                    <BookingFieldLabel
+                      label="Accommodation reference"
+                      visibility="Visible only to you"
+                    />
+                  }
+                  description="Useful for the hotel confirmation, booking id, or door code."
+                  defaultValue={booking.accommodationReference ?? ''}
+                  error={fieldErrors?.accommodationReference?.[0]}
+                  maxLength={120}
+                />
+              </SimpleGrid>
 
-          {formError ? (
-            <Alert color="red" icon={<IconAlertCircle size={18} />}>
-              {formError}
-            </Alert>
-          ) : null}
-
-          <Group justify="space-between" wrap="wrap">
-            <Button
-              type="submit"
-              name="intent"
-              value="deleteBooking"
-              color="red"
-              variant="subtle"
-              loading={isDeleting}
-              onClick={(event) => {
-                if (
-                  typeof window !== 'undefined' &&
-                  !window.confirm(
-                    'Delete this booking? This will remove it from your trips.',
-                  )
-                ) {
-                  event.preventDefault();
+              <Textarea
+                name="notes"
+                label={
+                  <BookingFieldLabel
+                    label="Private notes"
+                    visibility="Visible only to you"
+                  />
                 }
-              }}
-            >
-              Delete booking
-            </Button>
-            <Button
-              type="submit"
-              name="intent"
-              value="updateBooking"
-              loading={isSaving}
-            >
-              Save changes
-            </Button>
-          </Group>
-        </Stack>
-      </fetcher.Form>
-    </Paper>
+                description="Keep arrival notes, reminders, or anything else you do not want in the shared plan."
+                minRows={4}
+                defaultValue={booking.notes ?? ''}
+                error={fieldErrors?.notes?.[0]}
+                maxLength={1000}
+              />
+            </Stack>
+
+            {formError ? (
+              <Alert color="red" icon={<IconAlertCircle size={18} />}>
+                {formError}
+              </Alert>
+            ) : null}
+
+            <Group justify="space-between" wrap="wrap">
+              <Button
+                type="button"
+                color="red"
+                variant="subtle"
+                onClick={openDeleteModal}
+              >
+                Delete booking
+              </Button>
+              <Button
+                type="submit"
+                name="intent"
+                value="updateBooking"
+                loading={isSaving}
+              >
+                Save changes
+              </Button>
+            </Group>
+          </Stack>
+        </saveFetcher.Form>
+      </Paper>
+    </>
   );
 }
 
