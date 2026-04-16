@@ -273,6 +273,21 @@ export interface AvailableDayFilters {
   type?: AvailableDayType;
 }
 
+const CIRCUIT_LAYOUT_SUFFIX_PATTERN =
+  /\s*(?:-|\(|\/)?\s*(GP|Grand Prix|Indy|International|National)\)?$/i;
+
+export function normalizeCircuitName(circuit: string): string {
+  return circuit.replace(CIRCUIT_LAYOUT_SUFFIX_PATTERN, '').trim();
+}
+
+export function listCircuitOptions(
+  days: Array<Pick<AvailableDay, 'circuit'>>,
+): string[] {
+  return [
+    ...new Set(days.map((day) => normalizeCircuitName(day.circuit))),
+  ].sort();
+}
+
 export function filterAvailableDays(
   days: AvailableDay[],
   filters: AvailableDayFilters,
@@ -281,7 +296,11 @@ export function filterAvailableDays(
     if (filters.month && !day.date.startsWith(filters.month)) {
       return false;
     }
-    if (filters.circuit && day.circuit !== filters.circuit) {
+    if (
+      filters.circuit &&
+      normalizeCircuitName(day.circuit) !==
+        normalizeCircuitName(filters.circuit)
+    ) {
       return false;
     }
     if (filters.provider && day.provider !== filters.provider) {

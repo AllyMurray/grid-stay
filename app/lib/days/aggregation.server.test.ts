@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { filterAvailableDays, listAvailableDays } from './aggregation.server';
+import {
+  filterAvailableDays,
+  listAvailableDays,
+  listCircuitOptions,
+} from './aggregation.server';
 
 describe('listAvailableDays', () => {
   it('normalizes and sorts race, test, and track days', async () => {
@@ -222,5 +226,58 @@ describe('filterAvailableDays', () => {
         type: 'test_day',
       }),
     ).toHaveLength(1);
+  });
+
+  it('matches circuit layout variants when filtering by the base circuit name', () => {
+    const days = [
+      {
+        dayId: '1',
+        date: '2026-04-14',
+        type: 'track_day',
+        circuit: 'Brands Hatch Indy',
+        provider: 'MSV Trackdays',
+        description: '',
+        source: { sourceType: 'trackdays', sourceName: 'msv-trackday' },
+      },
+      {
+        dayId: '2',
+        date: '2026-04-21',
+        type: 'track_day',
+        circuit: 'Brands Hatch',
+        provider: 'MSV Trackdays',
+        description: '',
+        source: { sourceType: 'trackdays', sourceName: 'msv-trackday' },
+      },
+      {
+        dayId: '3',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: '',
+        source: { sourceType: 'caterham', sourceName: 'caterham' },
+      },
+    ] as const;
+
+    expect(
+      filterAvailableDays([...days], {
+        circuit: 'Brands Hatch',
+      }).map((day) => day.dayId),
+    ).toEqual(['1', '2']);
+  });
+});
+
+describe('listCircuitOptions', () => {
+  it('deduplicates layout variants down to the base circuit name', () => {
+    expect(
+      listCircuitOptions([
+        { circuit: 'Brands Hatch Indy' },
+        { circuit: 'Brands Hatch' },
+        { circuit: 'Brands Hatch GP' },
+        { circuit: 'Silverstone GP' },
+        { circuit: 'Silverstone International' },
+        { circuit: 'Donington Park National' },
+      ]),
+    ).toEqual(['Brands Hatch', 'Donington Park', 'Silverstone']);
   });
 });

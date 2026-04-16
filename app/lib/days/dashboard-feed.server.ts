@@ -7,7 +7,11 @@ import {
   type DayAttendanceOverview,
   dayAttendanceSummaryStore,
 } from '~/lib/db/services/day-attendance-summary.server';
-import { filterAvailableDays } from './aggregation.server';
+import {
+  filterAvailableDays,
+  listCircuitOptions,
+  normalizeCircuitName,
+} from './aggregation.server';
 import type {
   AvailableDay,
   AvailableDayType,
@@ -127,7 +131,9 @@ function getSelectedDayId(url: URL): string | null {
 function getFilters(url: URL): DaysFilters {
   return {
     month: url.searchParams.get('month')?.trim() ?? '',
-    circuit: url.searchParams.get('circuit')?.trim() ?? '',
+    circuit: normalizeCircuitName(
+      url.searchParams.get('circuit')?.trim() ?? '',
+    ),
     provider: url.searchParams.get('provider')?.trim() ?? '',
     type: url.searchParams.get('type')?.trim() ?? '',
   };
@@ -171,7 +177,7 @@ async function loadFilteredDays(url: URL) {
     refreshedAt: snapshot?.refreshedAt ?? '',
     filteredDays,
     monthOptions: [...new Set(raw.days.map((day) => day.date.slice(0, 7)))],
-    circuitOptions: [...new Set(raw.days.map((day) => day.circuit))].sort(),
+    circuitOptions: listCircuitOptions(raw.days),
     providerOptions: [...new Set(raw.days.map((day) => day.provider))].sort(),
   };
 }
