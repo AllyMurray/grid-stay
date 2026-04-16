@@ -297,9 +297,41 @@ html[data-mantine-color-scheme='dark'] .day-card {
 
 .selected-day-summary-items {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
   margin-top: 0.35rem;
+}
+
+.selected-day-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.selected-day-summary-value {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.day-detail-heading,
+.day-detail-actions,
+.day-booking-action,
+.day-booking-form {
+  width: 100%;
+}
+
+.day-detail-actions {
+  align-items: stretch;
+}
+
+.day-booking-button {
+  width: 100%;
+}
+
+.day-booking-error {
+  text-align: left;
 }
 
 .shared-stay-header {
@@ -489,6 +521,35 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
 }
 
 @media (min-width: 48em) {
+  .selected-day-summary-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+  }
+
+  .selected-day-summary-item {
+    display: block;
+  }
+
+  .selected-day-summary-value {
+    text-align: left;
+  }
+
+  .day-detail-heading,
+  .day-detail-actions,
+  .day-booking-action,
+  .day-booking-form,
+  .day-booking-button {
+    width: auto;
+  }
+
+  .day-detail-actions {
+    align-items: flex-end;
+  }
+
+  .day-booking-error {
+    text-align: right;
+  }
+
   .page-header-actions {
     width: auto;
   }

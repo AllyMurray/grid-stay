@@ -382,13 +382,14 @@ function DayBookingAction({
 
   if (booking) {
     return (
-      <Stack gap={4} align="flex-end">
+      <Stack gap={4} className="day-booking-action">
         <Button
           component={Link}
           to="/dashboard/bookings"
           size="sm"
           color="brand"
           variant={booking.status === 'booked' ? 'filled' : 'light'}
+          className="day-booking-button"
         >
           Open my booking
         </Button>
@@ -397,8 +398,8 @@ function DayBookingAction({
   }
 
   return (
-    <Stack gap={4} align="flex-end">
-      <fetcher.Form method="post">
+    <Stack gap={4} className="day-booking-action">
+      <fetcher.Form method="post" className="day-booking-form">
         <input type="hidden" name="dayId" value={day.dayId} />
         <input type="hidden" name="date" value={day.date} />
         <input type="hidden" name="type" value={day.type} />
@@ -412,13 +413,14 @@ function DayBookingAction({
           color="brand"
           variant="filled"
           loading={isSubmitting}
+          className="day-booking-button"
         >
           Add to my bookings
         </Button>
       </fetcher.Form>
 
       {formError ? (
-        <Text size="xs" c="red" ta="right">
+        <Text size="xs" c="red" className="day-booking-error">
           {formError}
         </Text>
       ) : null}
@@ -931,8 +933,13 @@ function DayDetailContent({
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between" align="flex-start" gap="md">
-        <Stack gap={4}>
+      <Group
+        justify="space-between"
+        align="flex-start"
+        gap="md"
+        className="day-detail-header"
+      >
+        <Stack gap={4} className="day-detail-heading">
           <Text size="sm" fw={700} c="brand.7">
             Selected day
           </Text>
@@ -942,7 +949,7 @@ function DayDetailContent({
           </Text>
           {day.description ? <Text size="sm">{day.description}</Text> : null}
         </Stack>
-        <Stack gap="xs" align="flex-end">
+        <Stack gap="xs" align="flex-end" className="day-detail-actions">
           <Badge color={typeColor(day.type)} size="lg">
             {titleCase(day.type)}
           </Badge>
@@ -965,22 +972,27 @@ function DayDetailContent({
             My plan
           </Text>
           <Box className="selected-day-summary-items">
-            <Stack gap={2}>
+            <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
                 Status
               </Text>
-              <Text size="sm" fw={700}>
+              <Text size="sm" fw={700} className="selected-day-summary-value">
                 {booking ? titleCase(booking.status) : 'Not added'}
               </Text>
-            </Stack>
-            <Stack gap={2}>
+            </Box>
+            <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
                 Shared stay
               </Text>
-              <Text size="sm" fw={700} lineClamp={1}>
+              <Text
+                size="sm"
+                fw={700}
+                lineClamp={2}
+                className="selected-day-summary-value"
+              >
                 {getMyPlanSharedStay(booking)}
               </Text>
-            </Stack>
+            </Box>
           </Box>
         </Box>
 
@@ -989,22 +1001,22 @@ function DayDetailContent({
             Group plan
           </Text>
           <Box className="selected-day-summary-items">
-            <Stack gap={2}>
+            <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
                 Attending
               </Text>
-              <Text size="sm" fw={700}>
+              <Text size="sm" fw={700} className="selected-day-summary-value">
                 {summary.attendeeCount}
               </Text>
-            </Stack>
-            <Stack gap={2}>
+            </Box>
+            <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
                 Saved stays
               </Text>
-              <Text size="sm" fw={700}>
+              <Text size="sm" fw={700} className="selected-day-summary-value">
                 {getSavedStayCountLabel(summary.accommodationNames.length)}
               </Text>
-            </Stack>
+            </Box>
           </Box>
         </Box>
       </Box>
