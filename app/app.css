@@ -316,10 +316,16 @@ html[data-mantine-color-scheme='dark'] .day-card {
 }
 
 .day-detail-heading,
+.day-detail-meta-bar,
+.day-detail-meta-items,
 .day-detail-actions,
 .day-booking-action,
 .day-booking-form {
   width: 100%;
+}
+
+.day-detail-meta-bar {
+  align-items: flex-start;
 }
 
 .day-detail-actions {
@@ -535,11 +541,17 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
   }
 
   .day-detail-heading,
+  .day-detail-meta-bar,
+  .day-detail-meta-items,
   .day-detail-actions,
   .day-booking-action,
   .day-booking-form,
   .day-booking-button {
     width: auto;
+  }
+
+  .day-detail-meta-bar {
+    align-items: center;
   }
 
   .day-detail-actions {

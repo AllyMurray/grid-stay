@@ -986,12 +986,7 @@ function DayDetailContent({
 
   return (
     <Stack gap="lg">
-      <Group
-        justify="space-between"
-        align="flex-start"
-        gap="md"
-        className="day-detail-header"
-      >
+      <Stack gap="md" className="day-detail-header">
         <Stack gap={4} className="day-detail-heading">
           <Text size="sm" fw={700} c="brand.7">
             Selected day
@@ -1001,7 +996,15 @@ function DayDetailContent({
             {formatDayLongDate(day.date)} • {day.provider}
           </Text>
           {day.description ? <Text size="sm">{day.description}</Text> : null}
-          <Group gap="xs" wrap="wrap">
+        </Stack>
+        <Group
+          justify="space-between"
+          align="center"
+          gap="md"
+          wrap="wrap"
+          className="day-detail-meta-bar"
+        >
+          <Group gap="xs" wrap="wrap" className="day-detail-meta-items">
             <Badge color={typeColor(day.type)} size="lg">
               {titleCase(day.type)}
             </Badge>
@@ -1014,13 +1017,13 @@ function DayDetailContent({
                 Not added
               </Badge>
             )}
+            <DayProviderBookingLink day={day} />
           </Group>
-          <DayProviderBookingLink day={day} />
-        </Stack>
-        <Stack gap="xs" align="flex-end" className="day-detail-actions">
-          <DayBookingAction day={day} booking={booking} />
-        </Stack>
-      </Group>
+          <Stack gap="xs" align="flex-end" className="day-detail-actions">
+            <DayBookingAction day={day} booking={booking} />
+          </Stack>
+        </Group>
+      </Stack>
 
       <Box className="selected-day-summary">
         <Box className="selected-day-summary-group">
