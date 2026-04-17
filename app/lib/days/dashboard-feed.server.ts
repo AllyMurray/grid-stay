@@ -34,6 +34,7 @@ export interface DayRow {
   circuit: string;
   provider: string;
   description: string;
+  bookingUrl?: string;
 }
 
 export interface DaysFilters {
@@ -84,6 +85,7 @@ function toDayRow(day: AvailableDay): DayRow {
     circuit: day.circuit,
     provider: day.provider,
     description: day.description,
+    bookingUrl: day.bookingUrl,
   };
 }
 

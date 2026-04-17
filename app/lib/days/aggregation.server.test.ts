@@ -33,6 +33,7 @@ describe('listAvailableDays', () => {
                 circuitId: 'a',
                 format: 'Open pit lane',
                 availability: 'available',
+                bookingUrl: 'https://example.com/silverstone/testing',
                 source: 'silverstone',
               },
             ];
@@ -52,6 +53,7 @@ describe('listAvailableDays', () => {
                 circuitId: 'b',
                 organizer: 'Javelin',
                 availability: 'available',
+                bookingUrl: 'https://example.com/donington/trackday',
                 source: 'msv-trackday',
               },
             ];
@@ -68,6 +70,13 @@ describe('listAvailableDays', () => {
         ['2026-05-10', 'race_day', 'Snetterton'],
       ],
     );
+    expect(result.days[0]?.bookingUrl).toBe(
+      'https://example.com/silverstone/testing',
+    );
+    expect(result.days[1]?.bookingUrl).toBe(
+      'https://example.com/donington/trackday',
+    );
+    expect(result.days[2]?.bookingUrl).toBeUndefined();
   });
 
   it('keeps distinct track day sessions on the same circuit and date', async () => {

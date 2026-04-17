@@ -9,6 +9,7 @@ export interface AvailableDay {
   circuit: string;
   provider: string;
   description: string;
+  bookingUrl?: string;
   source: {
     sourceType: 'caterham' | 'testing' | 'trackdays';
     sourceName: string;

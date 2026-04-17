@@ -112,6 +112,7 @@ const defaultData: DaysIndexData = {
       circuit: 'Brands Hatch',
       provider: 'Focus Trackdays',
       description: 'Open pit lane',
+      bookingUrl: 'https://example.com/brands-hatch/book',
     },
   ],
 };
@@ -258,6 +259,9 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('button', { name: /add to my bookings/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /book on provider site/i }),
+    ).toHaveAttribute('href', 'https://example.com/brands-hatch/book');
     expect(screen.getByText('Attendee roster')).toBeInTheDocument();
     expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
     fireEvent.click(
@@ -279,6 +283,9 @@ describe('AvailableDaysPage', () => {
 
     expect(await screen.findByText('1 of 2 matching days')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
+    expect(
+      screen.queryByRole('link', { name: /book on provider site/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /next/i })).toHaveAttribute(
       'href',
       '/dashboard/days?day=day-2',

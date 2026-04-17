@@ -130,6 +130,7 @@ function normalizeTestingDay(day: TestingDay): AvailableDay {
     circuit: day.circuitName,
     provider: providerLabel(day.source),
     description: compactDescription([day.layout, day.format, day.group]),
+    bookingUrl: day.bookingUrl,
     source: {
       sourceType: 'testing',
       sourceName: day.source,
@@ -150,6 +151,7 @@ function normalizeTrackDay(day: TrackDay): AvailableDay {
     circuit: day.circuitName,
     provider: day.organizer || providerLabel(day.source),
     description: compactDescription([day.layout, day.format, day.duration]),
+    bookingUrl: day.bookingUrl,
     source: {
       sourceType: 'trackdays',
       sourceName: day.source,

@@ -448,6 +448,26 @@ function DayBookingAction({
   );
 }
 
+function DayProviderBookingLink({ day }: { day: DayRow }) {
+  if (!day.bookingUrl) {
+    return null;
+  }
+
+  return (
+    <Button
+      component="a"
+      href={day.bookingUrl}
+      target="_blank"
+      rel="noreferrer"
+      size="sm"
+      variant="default"
+      className="day-booking-button"
+    >
+      Book on provider site
+    </Button>
+  );
+}
+
 function DayListItem({
   day,
   summary,
@@ -995,6 +1015,7 @@ function DayDetailContent({
               Not added
             </Badge>
           )}
+          <DayProviderBookingLink day={day} />
           <DayBookingAction day={day} booking={booking} />
         </Stack>
       </Group>
