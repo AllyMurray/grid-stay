@@ -9,6 +9,7 @@ import {
   updateBooking,
 } from '~/lib/db/services/booking.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
+import { upsertSeriesSubscription } from '~/lib/db/services/series-subscription.server';
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
@@ -123,6 +124,7 @@ export async function submitBulkRaceSeriesBooking(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   saveBookings: typeof ensureBookingsForDays = ensureBookingsForDays,
   loadManualDays: typeof listManualDays = listManualDays,
+  saveSubscription: typeof upsertSeriesSubscription = upsertSeriesSubscription,
 ): Promise<BulkRaceSeriesBookingActionResult> {
   const parsed = BulkRaceSeriesBookingSchema.safeParse(
     Object.fromEntries(formData),
@@ -173,6 +175,12 @@ export async function submitBulkRaceSeriesBooking(
     parsed.data.status,
     user,
   );
+  await saveSubscription({
+    userId: user.id,
+    seriesKey: series.seriesKey,
+    seriesName: series.seriesName,
+    status: parsed.data.status,
+  });
 
   return {
     ok: true,

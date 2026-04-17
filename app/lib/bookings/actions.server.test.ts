@@ -17,6 +17,15 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(async () => []),
 }));
 
+vi.mock('~/lib/db/services/series-subscription.server', () => ({
+  upsertSeriesSubscription: vi.fn(async () => ({
+    userId: 'user-1',
+    seriesKey: 'caterham-academy',
+    seriesName: 'Caterham Academy',
+    status: 'booked',
+  })),
+}));
+
 import type { AvailableDay } from '~/lib/days/types';
 import {
   submitBookingDelete,
@@ -270,6 +279,12 @@ describe('booking action helpers', () => {
       addedCount: 1,
       existingCount: 1,
     }));
+    const saveSubscription = vi.fn(async () => ({
+      userId: user.id,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'booked',
+    }));
 
     const result = await submitBulkRaceSeriesBooking(
       formData,
@@ -280,6 +295,8 @@ describe('booking action helpers', () => {
         refreshedAt: '2026-04-17T09:00:00.000Z',
       }),
       saveBookings as never,
+      async () => [],
+      saveSubscription as never,
     );
 
     expect(result).toEqual({
@@ -303,9 +320,15 @@ describe('booking action helpers', () => {
       'booked',
       user,
     );
+    expect(saveSubscription).toHaveBeenCalledWith({
+      userId: user.id,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'booked',
+    });
   });
 
-  it('adds all rounds when the selected day is a linked manual extra day', async () => {
+  it('adds all linked events when the selected day is a linked manual extra day', async () => {
     const formData = new FormData();
     formData.set('dayId', 'manual:test-day');
     formData.set('status', 'maybe');
@@ -362,8 +385,14 @@ describe('booking action helpers', () => {
     ];
 
     const saveBookings = vi.fn(async () => ({
-      addedCount: 2,
+      addedCount: 3,
       existingCount: 0,
+    }));
+    const saveSubscription = vi.fn(async () => ({
+      userId: user.id,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'maybe',
     }));
 
     const result = await submitBulkRaceSeriesBooking(
@@ -376,17 +405,22 @@ describe('booking action helpers', () => {
       }),
       saveBookings as never,
       async () => manualDays,
+      saveSubscription as never,
     );
 
     expect(result).toEqual({
       ok: true,
       seriesName: 'Caterham Academy',
-      totalCount: 2,
-      addedCount: 2,
+      totalCount: 3,
+      addedCount: 3,
       existingCount: 0,
     });
     expect(saveBookings).toHaveBeenCalledWith(
       [
+        expect.objectContaining({
+          dayId: 'manual:test-day',
+          circuit: 'Donington Park',
+        }),
         expect.objectContaining({
           dayId: 'day-1',
           circuit: 'Snetterton',
@@ -399,6 +433,12 @@ describe('booking action helpers', () => {
       'maybe',
       user,
     );
+    expect(saveSubscription).toHaveBeenCalledWith({
+      userId: user.id,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'maybe',
+    });
   });
 
   it('returns a form error when the selected day is not linked to a race series', async () => {

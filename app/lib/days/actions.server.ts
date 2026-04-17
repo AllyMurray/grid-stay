@@ -1,8 +1,15 @@
 import type { User } from '~/lib/auth/schemas';
-import { createManualDay } from '~/lib/db/services/manual-day.server';
+import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import {
+  createManualDay,
+  listManualDays,
+  toAvailableManualDay,
+} from '~/lib/db/services/manual-day.server';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
 import { CreateManualDaySchema } from '~/lib/schemas/manual-day';
 import { canCreateManualDays } from './manual-days.server';
+import { getRaceSeriesDaysForDay } from './series.server';
+import { reconcileSeriesSubscriptionsForDays } from './series-subscriptions.server';
 
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
@@ -21,6 +28,9 @@ export async function submitCreateManualDay(
   formData: FormData,
   user: User,
   saveManualDay: typeof createManualDay = createManualDay,
+  loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
+  loadManualDays: typeof listManualDays = listManualDays,
+  reconcileSeries: typeof reconcileSeriesSubscriptionsForDays = reconcileSeriesSubscriptionsForDays,
 ): Promise<CreateManualDayActionResult> {
   if (!canCreateManualDays(user)) {
     return {
@@ -41,6 +51,24 @@ export async function submitCreateManualDay(
   }
 
   const day = await saveManualDay(parsed.data, user);
+  if (day.series) {
+    const [snapshot, manualDays] = await Promise.all([
+      loadSnapshot(),
+      loadManualDays(),
+    ]);
+    const selectedDay = toAvailableManualDay(day);
+    const allDays = [...(snapshot?.days ?? []), ...manualDays];
+    const series = getRaceSeriesDaysForDay(
+      allDays.some((entry) => entry.dayId === selectedDay.dayId)
+        ? allDays
+        : [...allDays, selectedDay],
+      selectedDay.dayId,
+    );
+
+    if (series) {
+      await reconcileSeries(series.days);
+    }
+  }
 
   return {
     ok: true,

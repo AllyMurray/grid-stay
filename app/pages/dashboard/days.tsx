@@ -484,7 +484,7 @@ function DayProviderBookingLink({ day }: { day: DayRow }) {
 }
 
 function formatRaceSeriesCount(count: number) {
-  return `${count} race ${count === 1 ? 'round' : 'rounds'} in the calendar`;
+  return `${count} ${count === 1 ? 'event' : 'events'} in the series`;
 }
 
 function SeriesBookingAction({
@@ -505,7 +505,7 @@ function SeriesBookingAction({
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const successMessage = successResult
     ? `Added ${successResult.addedCount} ${
-        successResult.addedCount === 1 ? 'round' : 'rounds'
+        successResult.addedCount === 1 ? 'event' : 'events'
       }. ${successResult.existingCount} existing ${
         successResult.existingCount === 1 ? 'booking' : 'bookings'
       } kept their status.`
@@ -521,7 +521,7 @@ function SeriesBookingAction({
         {series.existingBookingCount} already in My Bookings
       </Text>
       <Text size="xs" c="dimmed">
-        Existing round bookings keep their status and notes.
+        Existing event bookings keep their status and notes.
       </Text>
 
       {missingCount > 0 ? (
@@ -558,7 +558,7 @@ function SeriesBookingAction({
 
       {missingCount === 0 ? (
         <Text size="xs" c="dimmed" className="day-booking-error">
-          All race rounds from this series are already in My Bookings.
+          All linked events from this series are already in My Bookings.
         </Text>
       ) : null}
 

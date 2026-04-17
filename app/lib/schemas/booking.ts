@@ -25,7 +25,7 @@ export const SharedStaySelectionSchema = CreateBookingSchema.extend({
 
 export const BulkRaceSeriesBookingSchema = z.object({
   dayId: z.string().min(1),
-  status: BookingStatusSchema,
+  status: z.enum(['booked', 'maybe']),
 });
 
 export const UpdateBookingSchema = z.object({

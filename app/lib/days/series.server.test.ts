@@ -64,27 +64,28 @@ describe('manual race series helpers', () => {
 
     expect(summaries['race:academy-1']).toEqual({
       name: 'Caterham Academy',
-      totalCount: 2,
+      totalCount: 3,
       existingBookingCount: 1,
     });
     expect(summaries['race:academy-2']).toEqual({
       name: 'Caterham Academy',
-      totalCount: 2,
+      totalCount: 3,
       existingBookingCount: 1,
     });
     expect(summaries['manual:test-day']).toEqual({
       name: 'Caterham Academy',
-      totalCount: 2,
+      totalCount: 3,
       existingBookingCount: 1,
     });
   });
 
-  it('returns the race rounds when the selected day is a linked manual extra day', () => {
+  it('returns every linked event when the selected day is a linked manual extra day', () => {
     const series = getRaceSeriesDaysForDay(linkedSeriesDays, 'manual:test-day');
 
     expect(series).toEqual({
+      seriesKey: 'caterham-academy',
       seriesName: 'Caterham Academy',
-      days: [linkedSeriesDays[0]!, linkedSeriesDays[1]!],
+      days: [linkedSeriesDays[2]!, linkedSeriesDays[0]!, linkedSeriesDays[1]!],
     });
   });
 });

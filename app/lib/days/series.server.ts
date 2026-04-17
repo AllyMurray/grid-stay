@@ -6,9 +6,27 @@ export interface RaceSeriesSummary {
   existingBookingCount: number;
 }
 
-function getLinkedSeriesName(day: AvailableDay): string | null {
+function normalizeSeriesKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function getLinkedSeriesName(day: AvailableDay): string | null {
   const series = day.source.metadata?.series?.trim();
   return series ? series : null;
+}
+
+export function getLinkedSeriesKey(day: AvailableDay): string | null {
+  const explicitKey = day.source.metadata?.seriesKey?.trim();
+  if (explicitKey) {
+    return explicitKey;
+  }
+
+  const seriesName = getLinkedSeriesName(day);
+  return seriesName ? normalizeSeriesKey(seriesName) : null;
 }
 
 function compareAvailableDays(left: AvailableDay, right: AvailableDay) {
@@ -24,35 +42,30 @@ function compareAvailableDays(left: AvailableDay, right: AvailableDay) {
 }
 
 export function getRaceSeriesName(day: AvailableDay): string | null {
-  if (day.type !== 'race_day') {
-    return null;
-  }
-
   return getLinkedSeriesName(day);
 }
 
 export function getRaceSeriesDaysForDay(
   days: AvailableDay[],
   dayId: string,
-): { seriesName: string; days: AvailableDay[] } | null {
+): { seriesKey: string; seriesName: string; days: AvailableDay[] } | null {
   const selectedDay = days.find((day) => day.dayId === dayId);
 
   if (!selectedDay) {
     return null;
   }
 
+  const seriesKey = getLinkedSeriesKey(selectedDay);
   const seriesName = getLinkedSeriesName(selectedDay);
-  if (!seriesName) {
+  if (!seriesKey || !seriesName) {
     return null;
   }
 
   return {
+    seriesKey,
     seriesName,
     days: days
-      .filter(
-        (day) =>
-          day.type === 'race_day' && getLinkedSeriesName(day) === seriesName,
-      )
+      .filter((day) => getLinkedSeriesKey(day) === seriesKey)
       .sort(compareAvailableDays),
   };
 }
@@ -65,26 +78,27 @@ export function buildRaceSeriesSummaryByDayId(
   const groupedBySeries = new Map<string, AvailableDay[]>();
 
   for (const day of days) {
-    const seriesName = getRaceSeriesName(day);
-    if (!seriesName) {
+    const seriesKey = getLinkedSeriesKey(day);
+    const seriesName = getLinkedSeriesName(day);
+    if (!seriesKey || !seriesName) {
       continue;
     }
 
-    const current = groupedBySeries.get(seriesName);
+    const current = groupedBySeries.get(seriesKey);
 
     if (current) {
       current.push(day);
       continue;
     }
 
-    groupedBySeries.set(seriesName, [day]);
+    groupedBySeries.set(seriesKey, [day]);
   }
 
   const summaryByDayId: Record<string, RaceSeriesSummary> = {};
 
-  for (const [seriesName, seriesDays] of groupedBySeries.entries()) {
+  for (const [seriesKey, seriesDays] of groupedBySeries.entries()) {
     const summary = {
-      name: getRaceSeriesName(seriesDays[0]!)!,
+      name: getLinkedSeriesName(seriesDays[0]!)!,
       totalCount: seriesDays.length,
       existingBookingCount: seriesDays.filter((day) =>
         existingBookingDayIds.has(day.dayId),
@@ -92,7 +106,7 @@ export function buildRaceSeriesSummaryByDayId(
     } satisfies RaceSeriesSummary;
 
     for (const day of days) {
-      if (getLinkedSeriesName(day) === seriesName) {
+      if (getLinkedSeriesKey(day) === seriesKey) {
         summaryByDayId[day.dayId] = summary;
       }
     }

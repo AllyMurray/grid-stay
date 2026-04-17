@@ -334,9 +334,7 @@ describe('AvailableDaysPage', () => {
 
     expect(screen.getByText('Caterham Academy')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        '7 race rounds in the calendar • 2 already in My Bookings',
-      ),
+      screen.getByText('7 events in the series • 2 already in My Bookings'),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /add missing as maybe/i }),
@@ -385,13 +383,11 @@ describe('AvailableDaysPage', () => {
     );
 
     expect(
-      screen.getByText(
-        '5 race rounds in the calendar • 5 already in My Bookings',
-      ),
+      screen.getByText('5 events in the series • 5 already in My Bookings'),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'All race rounds from this series are already in My Bookings.',
+        'All linked events from this series are already in My Bookings.',
       ),
     ).toBeInTheDocument();
     expect(
