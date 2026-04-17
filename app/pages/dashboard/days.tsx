@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Badge,
   Box,
   Button,
@@ -454,17 +455,16 @@ function DayProviderBookingLink({ day }: { day: DayRow }) {
   }
 
   return (
-    <Button
+    <Anchor
       component="a"
       href={day.bookingUrl}
       target="_blank"
       rel="noreferrer"
       size="sm"
-      variant="default"
-      className="day-booking-button"
+      fw={700}
     >
       Book on provider site
-    </Button>
+    </Anchor>
   );
 }
 
@@ -1001,21 +1001,23 @@ function DayDetailContent({
             {formatDayLongDate(day.date)} • {day.provider}
           </Text>
           {day.description ? <Text size="sm">{day.description}</Text> : null}
+          <Group gap="xs" wrap="wrap">
+            <Badge color={typeColor(day.type)} size="lg">
+              {titleCase(day.type)}
+            </Badge>
+            {booking ? (
+              <Badge color={bookingColor(booking.status)} variant="light">
+                {titleCase(booking.status)}
+              </Badge>
+            ) : (
+              <Badge variant="light" color="gray">
+                Not added
+              </Badge>
+            )}
+          </Group>
+          <DayProviderBookingLink day={day} />
         </Stack>
         <Stack gap="xs" align="flex-end" className="day-detail-actions">
-          <Badge color={typeColor(day.type)} size="lg">
-            {titleCase(day.type)}
-          </Badge>
-          {booking ? (
-            <Badge color={bookingColor(booking.status)} variant="light">
-              {titleCase(booking.status)}
-            </Badge>
-          ) : (
-            <Badge variant="light" color="gray">
-              Not added
-            </Badge>
-          )}
-          <DayProviderBookingLink day={day} />
           <DayBookingAction day={day} booking={booking} />
         </Stack>
       </Group>
