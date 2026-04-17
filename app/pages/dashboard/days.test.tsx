@@ -260,10 +260,10 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('My plan')).toBeInTheDocument();
     expect(screen.getByText('Group plan')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /^maybe$/i }),
+      screen.getByRole('button', { name: /add as maybe/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /^booked$/i }),
+      screen.getByRole('button', { name: /add as booked/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /book on provider site/i }),

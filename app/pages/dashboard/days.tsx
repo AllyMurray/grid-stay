@@ -437,7 +437,7 @@ function DayBookingAction({
             disabled={isSubmitting}
             className="day-booking-button"
           >
-            Maybe
+            Add as maybe
           </Button>
           <Button
             type="submit"
@@ -449,7 +449,7 @@ function DayBookingAction({
             loading={isSubmitting}
             className="day-booking-button"
           >
-            Booked
+            Add as booked
           </Button>
         </Group>
       </fetcher.Form>
