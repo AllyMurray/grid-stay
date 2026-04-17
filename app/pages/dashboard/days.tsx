@@ -427,17 +427,31 @@ function DayBookingAction({
         <input type="hidden" name="circuit" value={day.circuit} />
         <input type="hidden" name="provider" value={day.provider} />
         <input type="hidden" name="description" value={day.description} />
-        <input type="hidden" name="status" value="booked" />
-        <Button
-          type="submit"
-          size="sm"
-          color="brand"
-          variant="filled"
-          loading={isSubmitting}
-          className="day-booking-button"
-        >
-          Add to my bookings
-        </Button>
+        <Group gap="xs" wrap="wrap" className="day-booking-button-row">
+          <Button
+            type="submit"
+            name="status"
+            value="maybe"
+            size="sm"
+            variant="default"
+            disabled={isSubmitting}
+            className="day-booking-button"
+          >
+            Maybe
+          </Button>
+          <Button
+            type="submit"
+            name="status"
+            value="booked"
+            size="sm"
+            color="brand"
+            variant="filled"
+            loading={isSubmitting}
+            className="day-booking-button"
+          >
+            Booked
+          </Button>
+        </Group>
       </fetcher.Form>
 
       {formError ? (

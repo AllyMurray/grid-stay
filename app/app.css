@@ -320,6 +320,7 @@ html[data-mantine-color-scheme='dark'] .day-card {
 .day-detail-meta-items,
 .day-detail-actions,
 .day-booking-action,
+.day-booking-button-row,
 .day-booking-form {
   width: 100%;
 }
@@ -334,6 +335,10 @@ html[data-mantine-color-scheme='dark'] .day-card {
 
 .day-booking-button {
   width: 100%;
+}
+
+.day-booking-button-row .day-booking-button {
+  flex: 1 1 calc(50% - 0.25rem);
 }
 
 .day-booking-error {
@@ -545,9 +550,18 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
   .day-detail-meta-items,
   .day-detail-actions,
   .day-booking-action,
+  .day-booking-button-row,
   .day-booking-form,
   .day-booking-button {
     width: auto;
+  }
+
+  .day-booking-button-row {
+    justify-content: flex-end;
+  }
+
+  .day-booking-button-row .day-booking-button {
+    flex: 0 0 auto;
   }
 
   .day-detail-meta-bar {

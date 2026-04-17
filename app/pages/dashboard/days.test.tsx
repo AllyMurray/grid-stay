@@ -169,7 +169,10 @@ describe('AvailableDaysPage', () => {
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/2 attending/i).length).toBeGreaterThan(0);
     expect(
-      screen.queryByRole('button', { name: /add to my bookings/i }),
+      screen.queryByRole('button', { name: /^maybe$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^booked$/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -257,7 +260,10 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('My plan')).toBeInTheDocument();
     expect(screen.getByText('Group plan')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /add to my bookings/i }),
+      screen.getByRole('button', { name: /^maybe$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^booked$/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /book on provider site/i }),

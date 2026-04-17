@@ -55,6 +55,36 @@ describe('booking action helpers', () => {
     );
   });
 
+  it('accepts maybe status when creating a booking', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'day-1');
+    formData.set('date', '2026-05-10');
+    formData.set('type', 'race_day');
+    formData.set('circuit', 'Snetterton');
+    formData.set('provider', 'Caterham Motorsport');
+    formData.set('description', '');
+    formData.set('status', 'maybe');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+
+    const result = await submitCreateBooking(
+      formData,
+      user,
+      saveBooking as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveBooking).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dayId: 'day-1',
+        status: 'maybe',
+      }),
+      user,
+    );
+  });
+
   it('returns field errors instead of throwing for an invalid create payload', async () => {
     const formData = new FormData();
     formData.set('date', 'not-a-date');
