@@ -13,6 +13,10 @@ vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
 }));
 
+vi.mock('~/lib/db/services/manual-day.server', () => ({
+  listManualDays: vi.fn(async () => []),
+}));
+
 import type { AvailableDay } from '~/lib/days/types';
 import {
   submitBookingDelete,
@@ -297,6 +301,102 @@ describe('booking action helpers', () => {
         }),
       ],
       'booked',
+      user,
+    );
+  });
+
+  it('adds all rounds when the selected day is a linked manual extra day', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'manual:test-day');
+    formData.set('status', 'maybe');
+
+    const snapshotDays: AvailableDay[] = [
+      {
+        dayId: 'day-1',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        source: {
+          sourceType: 'caterham',
+          sourceName: 'caterham',
+          metadata: {
+            series: 'Caterham Academy',
+          },
+        },
+      },
+      {
+        dayId: 'day-2',
+        date: '2026-05-24',
+        type: 'race_day',
+        circuit: 'Brands Hatch',
+        provider: 'Caterham Motorsport',
+        description: 'Round 2',
+        source: {
+          sourceType: 'caterham',
+          sourceName: 'caterham',
+          metadata: {
+            series: 'Caterham Academy',
+          },
+        },
+      },
+    ];
+
+    const manualDays: AvailableDay[] = [
+      {
+        dayId: 'manual:test-day',
+        date: '2026-04-01',
+        type: 'test_day',
+        circuit: 'Donington Park',
+        provider: 'Caterham Motorsport',
+        description: 'Official test day',
+        source: {
+          sourceType: 'manual',
+          sourceName: 'manual',
+          metadata: {
+            series: 'Caterham Academy',
+          },
+        },
+      },
+    ];
+
+    const saveBookings = vi.fn(async () => ({
+      addedCount: 2,
+      existingCount: 0,
+    }));
+
+    const result = await submitBulkRaceSeriesBooking(
+      formData,
+      user,
+      async () => ({
+        days: snapshotDays,
+        errors: [],
+        refreshedAt: '2026-04-17T09:00:00.000Z',
+      }),
+      saveBookings as never,
+      async () => manualDays,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      seriesName: 'Caterham Academy',
+      totalCount: 2,
+      addedCount: 2,
+      existingCount: 0,
+    });
+    expect(saveBookings).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          dayId: 'day-1',
+          circuit: 'Snetterton',
+        }),
+        expect.objectContaining({
+          dayId: 'day-2',
+          circuit: 'Brands Hatch',
+        }),
+      ],
+      'maybe',
       user,
     );
   });

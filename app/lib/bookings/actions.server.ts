@@ -8,6 +8,7 @@ import {
   ensureBookingsForDays,
   updateBooking,
 } from '~/lib/db/services/booking.server';
+import { listManualDays } from '~/lib/db/services/manual-day.server';
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
@@ -121,6 +122,7 @@ export async function submitBulkRaceSeriesBooking(
   user: User,
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   saveBookings: typeof ensureBookingsForDays = ensureBookingsForDays,
+  loadManualDays: typeof listManualDays = listManualDays,
 ): Promise<BulkRaceSeriesBookingActionResult> {
   const parsed = BulkRaceSeriesBookingSchema.safeParse(
     Object.fromEntries(formData),
@@ -134,8 +136,13 @@ export async function submitBulkRaceSeriesBooking(
     };
   }
 
-  const snapshot = await loadSnapshot();
-  if (!snapshot) {
+  const [snapshot, manualDays] = await Promise.all([
+    loadSnapshot(),
+    loadManualDays(),
+  ]);
+  const days = [...(snapshot?.days ?? []), ...manualDays];
+
+  if (days.length === 0) {
     return {
       ok: false,
       formError:
@@ -144,7 +151,7 @@ export async function submitBulkRaceSeriesBooking(
     };
   }
 
-  const series = getRaceSeriesDaysForDay(snapshot.days, parsed.data.dayId);
+  const series = getRaceSeriesDaysForDay(days, parsed.data.dayId);
   if (!series || series.days.length === 0) {
     return {
       ok: false,

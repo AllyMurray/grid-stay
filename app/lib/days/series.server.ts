@@ -6,6 +6,11 @@ export interface RaceSeriesSummary {
   existingBookingCount: number;
 }
 
+function getLinkedSeriesName(day: AvailableDay): string | null {
+  const series = day.source.metadata?.series?.trim();
+  return series ? series : null;
+}
+
 function compareAvailableDays(left: AvailableDay, right: AvailableDay) {
   if (left.date !== right.date) {
     return left.date.localeCompare(right.date);
@@ -23,8 +28,7 @@ export function getRaceSeriesName(day: AvailableDay): string | null {
     return null;
   }
 
-  const series = day.source.metadata?.series?.trim();
-  return series ? series : null;
+  return getLinkedSeriesName(day);
 }
 
 export function getRaceSeriesDaysForDay(
@@ -37,7 +41,7 @@ export function getRaceSeriesDaysForDay(
     return null;
   }
 
-  const seriesName = getRaceSeriesName(selectedDay);
+  const seriesName = getLinkedSeriesName(selectedDay);
   if (!seriesName) {
     return null;
   }
@@ -47,9 +51,7 @@ export function getRaceSeriesDaysForDay(
     days: days
       .filter(
         (day) =>
-          day.type === 'race_day' &&
-          day.source.sourceType === selectedDay.source.sourceType &&
-          getRaceSeriesName(day) === seriesName,
+          day.type === 'race_day' && getLinkedSeriesName(day) === seriesName,
       )
       .sort(compareAvailableDays),
   };
@@ -68,20 +70,19 @@ export function buildRaceSeriesSummaryByDayId(
       continue;
     }
 
-    const key = `${day.source.sourceType}:${seriesName}`;
-    const current = groupedBySeries.get(key);
+    const current = groupedBySeries.get(seriesName);
 
     if (current) {
       current.push(day);
       continue;
     }
 
-    groupedBySeries.set(key, [day]);
+    groupedBySeries.set(seriesName, [day]);
   }
 
   const summaryByDayId: Record<string, RaceSeriesSummary> = {};
 
-  for (const seriesDays of groupedBySeries.values()) {
+  for (const [seriesName, seriesDays] of groupedBySeries.entries()) {
     const summary = {
       name: getRaceSeriesName(seriesDays[0]!)!,
       totalCount: seriesDays.length,
@@ -90,8 +91,10 @@ export function buildRaceSeriesSummaryByDayId(
       ).length,
     } satisfies RaceSeriesSummary;
 
-    for (const day of seriesDays) {
-      summaryByDayId[day.dayId] = summary;
+    for (const day of days) {
+      if (getLinkedSeriesName(day) === seriesName) {
+        summaryByDayId[day.dayId] = summary;
+      }
     }
   }
 

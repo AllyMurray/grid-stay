@@ -5,34 +5,34 @@ import {
 } from './series.server';
 import type { AvailableDay } from './types';
 
-const manualSeriesDays: AvailableDay[] = [
+const linkedSeriesDays: AvailableDay[] = [
   {
-    dayId: 'manual:academy-1',
+    dayId: 'race:academy-1',
     date: '2026-04-12',
     type: 'race_day',
     circuit: 'Snetterton',
     provider: 'Caterham Motorsport',
     description: 'Academy Round 1',
     source: {
-      sourceType: 'manual',
-      sourceName: 'manual',
-      externalId: 'manual-1',
+      sourceType: 'caterham',
+      sourceName: 'caterham',
+      externalId: 'round-1',
       metadata: {
         series: 'Caterham Academy',
       },
     },
   },
   {
-    dayId: 'manual:academy-2',
+    dayId: 'race:academy-2',
     date: '2026-05-17',
     type: 'race_day',
     circuit: 'Brands Hatch',
     provider: 'Caterham Motorsport',
     description: 'Academy Round 2',
     source: {
-      sourceType: 'manual',
-      sourceName: 'manual',
-      externalId: 'manual-2',
+      sourceType: 'caterham',
+      sourceName: 'caterham',
+      externalId: 'round-2',
       metadata: {
         series: 'Caterham Academy',
       },
@@ -57,33 +57,34 @@ const manualSeriesDays: AvailableDay[] = [
 ];
 
 describe('manual race series helpers', () => {
-  it('groups manual race days by series name', () => {
-    const summaries = buildRaceSeriesSummaryByDayId(manualSeriesDays, [
-      'manual:academy-1',
+  it('includes linked manual extra days in the series summary map', () => {
+    const summaries = buildRaceSeriesSummaryByDayId(linkedSeriesDays, [
+      'race:academy-1',
     ]);
 
-    expect(summaries['manual:academy-1']).toEqual({
+    expect(summaries['race:academy-1']).toEqual({
       name: 'Caterham Academy',
       totalCount: 2,
       existingBookingCount: 1,
     });
-    expect(summaries['manual:academy-2']).toEqual({
+    expect(summaries['race:academy-2']).toEqual({
       name: 'Caterham Academy',
       totalCount: 2,
       existingBookingCount: 1,
     });
-    expect(summaries['manual:test-day']).toBeUndefined();
+    expect(summaries['manual:test-day']).toEqual({
+      name: 'Caterham Academy',
+      totalCount: 2,
+      existingBookingCount: 1,
+    });
   });
 
-  it('returns the linked manual race days for the selected round', () => {
-    const series = getRaceSeriesDaysForDay(
-      manualSeriesDays,
-      'manual:academy-2',
-    );
+  it('returns the race rounds when the selected day is a linked manual extra day', () => {
+    const series = getRaceSeriesDaysForDay(linkedSeriesDays, 'manual:test-day');
 
     expect(series).toEqual({
       seriesName: 'Caterham Academy',
-      days: [manualSeriesDays[0]!, manualSeriesDays[1]!],
+      days: [linkedSeriesDays[0]!, linkedSeriesDays[1]!],
     });
   });
 });
