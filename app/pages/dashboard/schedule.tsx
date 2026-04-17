@@ -175,15 +175,15 @@ function DetailField({ label, value }: { label: string; value: string }) {
 function ScheduleLegend() {
   return (
     <Group gap="xs" wrap="wrap">
-      <Badge color="green" variant="filled">
-        Booked
-      </Badge>
-      <Badge color="yellow" variant="light">
-        Maybe
-      </Badge>
-      <Badge color="gray" variant="light">
-        Cancelled
-      </Badge>
+      {(['booked', 'maybe', 'cancelled'] as const).map((status) => (
+        <Badge
+          key={status}
+          color={bookingColor(status)}
+          variant={bookingVariant(status)}
+        >
+          {titleCase(status)}
+        </Badge>
+      ))}
     </Group>
   );
 }
