@@ -1097,43 +1097,55 @@ function DayDetailContent({
   return (
     <Stack gap="lg">
       <Stack gap="md" className="day-detail-header">
-        <Stack gap={4} className="day-detail-heading">
-          <Text size="sm" fw={700} c="brand.7">
-            Selected day
-          </Text>
-          <Title order={2}>{day.circuit}</Title>
-          <Text size="sm" c="dimmed">
-            {formatDayLongDate(day.date)} • {day.provider}
-          </Text>
-          {day.description ? <Text size="sm">{day.description}</Text> : null}
-        </Stack>
-        <Group
-          justify="space-between"
-          align="center"
-          gap="md"
-          wrap="wrap"
-          className="day-detail-meta-bar"
-        >
-          <Group gap="xs" wrap="wrap" className="day-detail-meta-items">
-            <Badge color={typeColor(day.type)} size="lg">
-              {titleCase(day.type)}
-            </Badge>
-            {booking ? (
-              <Badge color={bookingColor(booking.status)} variant="light">
-                {titleCase(booking.status)}
+        <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl">
+          <Stack gap="md" className="day-detail-heading">
+            <Stack gap={4}>
+              <Text size="sm" fw={700} c="brand.7">
+                Selected day
+              </Text>
+              <Title order={2}>{day.circuit}</Title>
+              <Text size="sm" c="dimmed">
+                {formatDayLongDate(day.date)} • {day.provider}
+              </Text>
+              {day.description ? (
+                <Text size="sm">{day.description}</Text>
+              ) : null}
+            </Stack>
+
+            <Group gap="xs" wrap="wrap" className="day-detail-meta-items">
+              <Badge color={typeColor(day.type)} size="lg">
+                {titleCase(day.type)}
               </Badge>
-            ) : (
-              <Badge variant="light" color="gray">
-                Not added
-              </Badge>
-            )}
-            <DayProviderBookingLink day={day} />
-          </Group>
-          <Stack gap="xs" align="flex-end" className="day-detail-actions">
-            <DayBookingAction day={day} booking={booking} />
-            {series ? <SeriesBookingAction day={day} series={series} /> : null}
+              {booking ? (
+                <Badge color={bookingColor(booking.status)} variant="light">
+                  {titleCase(booking.status)}
+                </Badge>
+              ) : (
+                <Badge variant="light" color="gray">
+                  Not added
+                </Badge>
+              )}
+              <DayProviderBookingLink day={day} />
+            </Group>
           </Stack>
-        </Group>
+
+          <Stack gap="md" className="day-detail-actions">
+            <Stack gap={6} className="day-detail-action-group">
+              <Text size="xs" fw={700} c="dimmed">
+                This day
+              </Text>
+              <DayBookingAction day={day} booking={booking} />
+            </Stack>
+            {series ? (
+              <Stack gap={6} className="day-detail-action-group">
+                <Text size="xs" fw={700} c="dimmed">
+                  Entire series
+                </Text>
+                <SeriesBookingAction day={day} series={series} />
+              </Stack>
+            ) : null}
+          </Stack>
+        </SimpleGrid>
       </Stack>
 
       <Box className="selected-day-summary">
