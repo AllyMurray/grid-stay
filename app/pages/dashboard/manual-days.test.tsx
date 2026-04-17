@@ -32,6 +32,7 @@ const manualDays: ManualDayRecord[] = [
     type: 'track_day',
     circuit: 'Donington Park',
     provider: 'Caterham Motorsport',
+    series: 'Caterham 270R',
     description: 'Pre-season track day',
     bookingUrl: 'https://example.com/donington',
     createdAt: '2026-01-10T08:00:00.000Z',
@@ -60,6 +61,7 @@ describe('ManualDaysPage', () => {
         manualDays={manualDays}
         circuitOptions={['Donington Park', 'Silverstone']}
         providerOptions={['Caterham Motorsport', 'MSV Trackdays']}
+        seriesOptions={['Caterham 270R']}
       />,
     );
 
@@ -74,6 +76,7 @@ describe('ManualDaysPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('March 2026')).toBeInTheDocument();
     expect(screen.getAllByText('Donington Park').length).toBeGreaterThan(0);
+    expect(screen.getByText('Series • Caterham 270R')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Provider site' })).toHaveAttribute(
       'href',
       'https://example.com/donington',
@@ -87,6 +90,9 @@ describe('ManualDaysPage', () => {
     expect(
       screen.getByRole('combobox', { name: 'Provider' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Series' }),
+    ).toBeInTheDocument();
   });
 
   it('shows the empty state when no manual days exist', () => {
@@ -95,6 +101,7 @@ describe('ManualDaysPage', () => {
         manualDays={[]}
         circuitOptions={['Donington Park']}
         providerOptions={['Caterham Motorsport']}
+        seriesOptions={[]}
       />,
     );
 

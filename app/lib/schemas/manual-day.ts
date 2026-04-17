@@ -15,6 +15,7 @@ export const CreateManualDaySchema = z.object({
   type: AvailableDayTypeSchema,
   circuit: z.string().trim().min(1).max(120),
   provider: z.string().trim().min(1).max(120),
+  series: z.string().trim().max(120).optional().default(''),
   description: z.string().trim().max(200).default(''),
   bookingUrl: z
     .string()

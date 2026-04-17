@@ -2,6 +2,7 @@ import { useLoaderData } from 'react-router';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { submitCreateManualDay } from '~/lib/days/actions.server';
 import { listCircuitOptions } from '~/lib/days/aggregation.server';
+import { getRaceSeriesName } from '~/lib/days/series.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
 import {
@@ -9,6 +10,10 @@ import {
   type ManualDaysPageProps,
 } from '~/pages/dashboard/manual-days';
 import type { Route } from './+types/manual-days';
+
+function isNonEmptyString(value: string | null | undefined): value is string {
+  return Boolean(value);
+}
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { headers } = await requireAdmin(request);
@@ -26,12 +31,25 @@ export async function loader({ request }: Route.LoaderArgs) {
       ...manualDays.map((day) => day.provider),
     ]),
   ].sort();
+  const seriesOptions = [
+    ...new Set([
+      ...(snapshot?.days
+        .map((day) => getRaceSeriesName(day))
+        .filter(isNonEmptyString) ?? []),
+      ...manualDays
+        .map((day) =>
+          day.type === 'race_day' ? (day.series?.trim() ?? '') : '',
+        )
+        .filter(isNonEmptyString),
+    ]),
+  ].sort();
 
   return Response.json(
     {
       manualDays,
       circuitOptions,
       providerOptions,
+      seriesOptions,
     } satisfies ManualDaysPageProps,
     {
       headers,

@@ -63,6 +63,7 @@ export function toAvailableManualDay(day: ManualDayRecord): AvailableDay {
       externalId: day.manualDayId,
       metadata: {
         createdByUserId: day.ownerUserId,
+        series: day.series,
       },
     },
   };
@@ -85,6 +86,7 @@ export async function createManualDay(
     type: input.type,
     circuit: input.circuit.trim(),
     provider: input.provider.trim(),
+    series: sanitizeOptional(input.series),
     description: input.description.trim(),
     bookingUrl: sanitizeOptional(input.bookingUrl),
     createdAt: now,

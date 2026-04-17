@@ -25,6 +25,7 @@ export interface ManualDaysPageProps {
   manualDays: ManualDayRecord[];
   circuitOptions: string[];
   providerOptions: string[];
+  seriesOptions: string[];
 }
 
 function titleCase(value: string) {
@@ -84,7 +85,11 @@ function groupManualDaysByMonth(manualDays: ManualDayRecord[]) {
 function ManualDayForm({
   circuitOptions,
   providerOptions,
-}: Pick<ManualDaysPageProps, 'circuitOptions' | 'providerOptions'>) {
+  seriesOptions,
+}: Pick<
+  ManualDaysPageProps,
+  'circuitOptions' | 'providerOptions' | 'seriesOptions'
+>) {
   const fetcher = useFetcher<CreateManualDayActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const successResult = fetcher.data?.ok ? fetcher.data : null;
@@ -150,18 +155,29 @@ function ManualDayForm({
             </SimpleGrid>
 
             <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
-              <Textarea
-                label="Session details"
-                name="description"
-                placeholder="Pre-season track day"
-                rows={2}
-                error={getFieldError(fieldErrors, 'description')}
+              <Autocomplete
+                label="Series"
+                name="series"
+                placeholder="Caterham 270R"
+                data={seriesOptions}
+                description="Optional. Use this when a manual race day belongs to a series."
+                error={getFieldError(fieldErrors, 'series')}
               />
               <TextInput
                 label="Booking link"
                 name="bookingUrl"
                 placeholder="https://..."
                 error={getFieldError(fieldErrors, 'bookingUrl')}
+              />
+            </SimpleGrid>
+
+            <SimpleGrid cols={{ base: 1 }} spacing="md">
+              <Textarea
+                label="Session details"
+                name="description"
+                placeholder="Pre-season track day"
+                rows={2}
+                error={getFieldError(fieldErrors, 'description')}
               />
             </SimpleGrid>
 
@@ -208,6 +224,11 @@ function ManualDayRow({ manualDay }: { manualDay: ManualDayRecord }) {
           <Text size="sm" c="dimmed">
             {formatFullDate(manualDay.date)} • {manualDay.provider}
           </Text>
+          {manualDay.series ? (
+            <Text size="xs" c="dimmed">
+              Series • {manualDay.series}
+            </Text>
+          ) : null}
           <Text size="sm">{manualDay.description || 'No extra details'}</Text>
           <Text size="xs" c="dimmed">
             Added {formatCreatedDate(manualDay.createdAt)}
@@ -245,6 +266,7 @@ export function ManualDaysPage({
   manualDays,
   circuitOptions,
   providerOptions,
+  seriesOptions,
 }: ManualDaysPageProps) {
   const groups = groupManualDaysByMonth(manualDays);
 
@@ -266,6 +288,10 @@ export function ManualDaysPage({
                 label: 'With booking links',
                 value: manualDays.filter((day) => day.bookingUrl).length,
               },
+              {
+                label: 'Linked to series',
+                value: manualDays.filter((day) => day.series).length,
+              },
             ]}
           />
         }
@@ -279,6 +305,7 @@ export function ManualDaysPage({
       <ManualDayForm
         circuitOptions={circuitOptions}
         providerOptions={providerOptions}
+        seriesOptions={seriesOptions}
       />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>

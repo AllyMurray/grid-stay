@@ -20,6 +20,7 @@ export const ManualDayEntity = new Entity(
       },
       circuit: { type: 'string', required: true },
       provider: { type: 'string', required: true },
+      series: { type: 'string' },
       description: { type: 'string', required: true },
       bookingUrl: { type: 'string' },
       createdAt: { type: 'string', required: true },

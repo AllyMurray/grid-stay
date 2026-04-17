@@ -28,6 +28,7 @@ describe('manual day action helper', () => {
     formData.set('type', 'track_day');
     formData.set('circuit', 'Donington Park');
     formData.set('provider', 'Caterham Motorsport');
+    formData.set('series', 'Caterham 270R');
     formData.set('description', 'Pre-season track day');
     formData.set('bookingUrl', 'https://example.com/bookings/pre-season');
 
@@ -50,6 +51,7 @@ describe('manual day action helper', () => {
         date: '2026-03-01',
         type: 'track_day',
         circuit: 'Donington Park',
+        series: 'Caterham 270R',
       }),
       allowedUser,
     );
