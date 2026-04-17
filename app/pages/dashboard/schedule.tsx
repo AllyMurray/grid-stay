@@ -40,11 +40,11 @@ function titleCase(value: string) {
 function bookingColor(status: BookingRecord['status']) {
   switch (status) {
     case 'booked':
-      return 'green';
+      return '#2f6f4f';
     case 'maybe':
-      return 'yellow';
+      return '#8a5b1c';
     case 'cancelled':
-      return 'gray';
+      return '#565d66';
   }
 }
 
@@ -53,7 +53,7 @@ function bookingVariant(status: BookingRecord['status']) {
     case 'booked':
       return 'filled' as const;
     case 'maybe':
-      return 'light' as const;
+      return 'filled' as const;
     case 'cancelled':
       return 'light' as const;
   }
