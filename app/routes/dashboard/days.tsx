@@ -5,6 +5,7 @@ import {
   submitCreateBooking,
   submitSharedStaySelection,
 } from '~/lib/bookings/actions.server';
+import { submitCreateManualDay } from '~/lib/days/actions.server';
 import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import { loadDaysIndex } from '~/lib/days/dashboard-feed.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
@@ -18,7 +19,7 @@ function revalidationFilterKey(url: URL) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const data = await loadDaysIndex(user.id, new URL(request.url));
+  const data = await loadDaysIndex(user, new URL(request.url));
 
   return Response.json(data, { headers });
 }
@@ -28,11 +29,13 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent');
   const result =
-    intent === 'useSharedStay'
-      ? await submitSharedStaySelection(formData, user)
-      : intent === 'addRaceSeries'
-        ? await submitBulkRaceSeriesBooking(formData, user)
-        : await submitCreateBooking(formData, user);
+    intent === 'createManualDay'
+      ? await submitCreateManualDay(formData, user)
+      : intent === 'useSharedStay'
+        ? await submitSharedStaySelection(formData, user)
+        : intent === 'addRaceSeries'
+          ? await submitBulkRaceSeriesBooking(formData, user)
+          : await submitCreateBooking(formData, user);
 
   return Response.json(result, {
     headers,

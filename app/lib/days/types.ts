@@ -11,7 +11,7 @@ export interface AvailableDay {
   description: string;
   bookingUrl?: string;
   source: {
-    sourceType: 'caterham' | 'testing' | 'trackdays';
+    sourceType: 'caterham' | 'testing' | 'trackdays' | 'manual';
     sourceName: string;
     externalId?: string;
     metadata?: Record<string, string | undefined>;

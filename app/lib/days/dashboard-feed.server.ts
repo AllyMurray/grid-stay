@@ -1,3 +1,4 @@
+import type { User } from '~/lib/auth/schemas';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import {
   listAttendanceByDay,
@@ -7,11 +8,13 @@ import {
   type DayAttendanceOverview,
   dayAttendanceSummaryStore,
 } from '~/lib/db/services/day-attendance-summary.server';
+import { listManualDaysForUser } from '~/lib/db/services/manual-day.server';
 import {
   filterAvailableDays,
   listCircuitOptions,
   normalizeCircuitName,
 } from './aggregation.server';
+import { canCreateManualDays } from './manual-days.server';
 import {
   buildRaceSeriesSummaryByDayId,
   type RaceSeriesSummary,
@@ -61,6 +64,7 @@ export interface DaysIndexData extends DaysFeedData {
   errors: DaySourceError[];
   filters: DaysFilters;
   refreshedAt: string;
+  canCreateManualDays: boolean;
   monthOptions: string[];
   circuitOptions: string[];
   providerOptions: string[];
@@ -92,6 +96,22 @@ function toDayRow(day: AvailableDay): DayRow {
     description: day.description,
     bookingUrl: day.bookingUrl,
   };
+}
+
+function compareAvailableDays(left: AvailableDay, right: AvailableDay) {
+  if (left.date !== right.date) {
+    return left.date.localeCompare(right.date);
+  }
+
+  if (left.circuit !== right.circuit) {
+    return left.circuit.localeCompare(right.circuit);
+  }
+
+  if (left.provider !== right.provider) {
+    return left.provider.localeCompare(right.provider);
+  }
+
+  return left.dayId.localeCompare(right.dayId);
 }
 
 function combineAttendanceOverviews(
@@ -164,29 +184,35 @@ export function createDaysFilterKey(filters: DaysFilters): string {
   return params.toString();
 }
 
-async function loadFilteredDays(url: URL) {
-  const snapshot = await getAvailableDaysSnapshot();
+async function loadFilteredDays(userId: string, url: URL) {
+  const [snapshot, manualDays] = await Promise.all([
+    getAvailableDaysSnapshot(),
+    listManualDaysForUser(userId),
+  ]);
   const filters = getFilters(url);
   const raw = snapshot ?? {
     days: [],
     errors: EMPTY_ERRORS,
   };
-  const filteredDays = filterAvailableDays(raw.days, {
+  const allDays = [...raw.days, ...manualDays].sort(compareAvailableDays);
+  const filteredDays = filterAvailableDays(allDays, {
     month: filters.month || undefined,
     circuit: filters.circuit || undefined,
     provider: filters.provider || undefined,
     type: parseType(filters.type),
-  });
+  }).sort(compareAvailableDays);
 
   return {
-    allDays: raw.days,
+    allDays,
     filters,
     errors: raw.errors,
     refreshedAt: snapshot?.refreshedAt ?? '',
     filteredDays,
-    monthOptions: [...new Set(raw.days.map((day) => day.date.slice(0, 7)))],
-    circuitOptions: listCircuitOptions(raw.days),
-    providerOptions: [...new Set(raw.days.map((day) => day.provider))].sort(),
+    monthOptions: [
+      ...new Set(allDays.map((day) => day.date.slice(0, 7))),
+    ].sort(),
+    circuitOptions: listCircuitOptions(allDays),
+    providerOptions: [...new Set(allDays.map((day) => day.provider))].sort(),
   };
 }
 
@@ -218,7 +244,7 @@ async function loadDaysFeedPage(
 }
 
 export async function loadDaysIndex(
-  userId: string,
+  user: Pick<User, 'id' | 'email'>,
   url: URL,
 ): Promise<DaysIndexData> {
   const selectedDayId = getSelectedDayId(url);
@@ -234,7 +260,10 @@ export async function loadDaysIndex(
       providerOptions,
     },
     myBookings,
-  ] = await Promise.all([loadFilteredDays(url), listMyBookings(userId)]);
+  ] = await Promise.all([
+    loadFilteredDays(user.id, url),
+    listMyBookings(user.id),
+  ]);
   const raceSeriesByDayId = buildRaceSeriesSummaryByDayId(
     allDays,
     myBookings.map((booking) => booking.dayId),
@@ -263,6 +292,7 @@ export async function loadDaysIndex(
     errors,
     filters,
     refreshedAt,
+    canCreateManualDays: canCreateManualDays(user),
     monthOptions,
     circuitOptions,
     providerOptions,
@@ -300,8 +330,11 @@ export async function loadDaysIndex(
   };
 }
 
-export async function loadDaysFeed(url: URL): Promise<DaysFeedData> {
-  const { filters, filteredDays } = await loadFilteredDays(url);
+export async function loadDaysFeed(
+  user: Pick<User, 'id'>,
+  url: URL,
+): Promise<DaysFeedData> {
+  const { filters, filteredDays } = await loadFilteredDays(user.id, url);
   return loadDaysFeedPage(
     filteredDays,
     filters,

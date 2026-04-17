@@ -70,6 +70,7 @@ const defaultData: DaysIndexData = {
   nextOffset: null,
   refreshedAt: '2026-04-15T10:30:00.000Z',
   errors: [],
+  canCreateManualDays: false,
   filters: {
     month: '',
     circuit: '',
@@ -244,6 +245,29 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByRole('combobox', { name: 'Month' })).toHaveDisplayValue(
       'May 2026',
     );
+  });
+
+  it('shows the private day form only for allowed users', () => {
+    const view = renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          canCreateManualDays: true,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Add a private day' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Only visible to you')).toBeInTheDocument();
+
+    view.unmount();
+    renderWithProviders(<AvailableDaysPage data={defaultData} />);
+
+    expect(
+      screen.queryByRole('heading', { name: 'Add a private day' }),
+    ).not.toBeInTheDocument();
   });
 
   it('updates the selected detail when another day link is opened', async () => {
