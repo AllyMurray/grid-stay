@@ -22,6 +22,7 @@ import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type {
+  BulkRaceSeriesBookingActionResult,
   CreateBookingActionResult,
   SharedStaySelectionActionResult,
 } from '~/lib/bookings/actions.server';
@@ -479,6 +480,99 @@ function DayProviderBookingLink({ day }: { day: DayRow }) {
     >
       Book on provider site
     </Anchor>
+  );
+}
+
+function formatRaceSeriesCount(count: number) {
+  return `${count} race ${count === 1 ? 'day' : 'days'} in the calendar`;
+}
+
+function SeriesBookingAction({
+  day,
+  series,
+}: {
+  day: DayRow;
+  series: NonNullable<DaysIndexData['raceSeriesByDayId'][string]>;
+}) {
+  const fetcher = useFetcher<BulkRaceSeriesBookingActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const missingCount = Math.max(
+    series.totalCount - series.existingBookingCount,
+    0,
+  );
+  const successResult = fetcher.data?.ok ? fetcher.data : null;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const successMessage = successResult
+    ? `Added ${successResult.addedCount} ${
+        successResult.addedCount === 1 ? 'round' : 'rounds'
+      }. ${successResult.existingCount} existing ${
+        successResult.existingCount === 1 ? 'booking' : 'bookings'
+      } kept their status.`
+    : null;
+
+  return (
+    <Stack gap={4} className="day-booking-action">
+      <Text size="xs" fw={700} c="dimmed">
+        {series.name}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {formatRaceSeriesCount(series.totalCount)} •{' '}
+        {series.existingBookingCount} already in My Bookings
+      </Text>
+      <Text size="xs" c="dimmed">
+        Existing bookings keep their status and notes.
+      </Text>
+
+      <fetcher.Form method="post" className="day-booking-form">
+        <input type="hidden" name="intent" value="addRaceSeries" />
+        <input type="hidden" name="dayId" value={day.dayId} />
+        <Group gap="xs" wrap="wrap" className="day-booking-button-row">
+          <Button
+            type="submit"
+            name="status"
+            value="maybe"
+            size="sm"
+            variant="default"
+            disabled={isSubmitting || missingCount === 0}
+            className="day-booking-button"
+          >
+            Add missing as maybe
+          </Button>
+          <Button
+            type="submit"
+            name="status"
+            value="booked"
+            size="sm"
+            color="brand"
+            variant="filled"
+            loading={isSubmitting}
+            disabled={missingCount === 0}
+            className="day-booking-button"
+          >
+            Add missing as booked
+          </Button>
+        </Group>
+      </fetcher.Form>
+
+      {missingCount === 0 ? (
+        <Text size="xs" c="dimmed" className="day-booking-error">
+          Every round from this series is already in your bookings.
+        </Text>
+      ) : null}
+
+      {successMessage ? (
+        <Text size="xs" c="dimmed" className="day-booking-error">
+          {successMessage}
+        </Text>
+      ) : null}
+
+      {formError ? (
+        <Text size="xs" c="red" className="day-booking-error">
+          {formError}
+        </Text>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -981,12 +1075,14 @@ function DayDetailContent({
   day,
   summary,
   booking,
+  series,
   attendanceDetails,
   attendanceLoading,
 }: {
   day: DayRow;
   summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
+  series?: DaysIndexData['raceSeriesByDayId'][string];
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
@@ -1035,6 +1131,7 @@ function DayDetailContent({
           </Group>
           <Stack gap="xs" align="flex-end" className="day-detail-actions">
             <DayBookingAction day={day} booking={booking} />
+            {series ? <SeriesBookingAction day={day} series={series} /> : null}
           </Stack>
         </Group>
       </Stack>
@@ -1185,12 +1282,14 @@ function DayDetailPanel({
   day,
   summary,
   booking,
+  series,
   attendanceDetails,
   attendanceLoading,
 }: {
   day: DayRow;
   summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
+  series?: DaysIndexData['raceSeriesByDayId'][string];
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
@@ -1200,6 +1299,7 @@ function DayDetailPanel({
         day={day}
         summary={summary}
         booking={booking}
+        series={series}
         attendanceDetails={attendanceDetails}
         attendanceLoading={attendanceLoading}
       />
@@ -1389,6 +1489,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           : null;
   const selectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
+    : null;
+  const selectedDaySeries = selectedDayFromUrl
+    ? data.raceSeriesByDayId[selectedDayFromUrl.dayId]
     : null;
   const attendanceLoading =
     Boolean(selectedDayFromUrl) &&
@@ -1684,6 +1787,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 selectedDayFromUrl.dayId,
               )}
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
+              series={selectedDaySeries ?? undefined}
               attendanceDetails={selectedDayAttendanceDetails}
               attendanceLoading={attendanceLoading}
             />

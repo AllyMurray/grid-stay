@@ -79,6 +79,7 @@ const defaultData: DaysIndexData = {
   monthOptions: ['2026-05'],
   circuitOptions: ['Silverstone'],
   providerOptions: ['MSV'],
+  raceSeriesByDayId: {},
   myBookingsByDay: {},
   selectedDay: null,
   selectedDayPosition: null,
@@ -279,6 +280,47 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
+  });
+
+  it('shows bulk series actions for race days with a linked series', () => {
+    const selectedDay = {
+      ...defaultData.days[0]!,
+      provider: 'Caterham Motorsport',
+      description: 'Caterham Academy • Round 1',
+    };
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDaySummary: defaultData.attendanceSummaries['day-1'],
+          selectedDayAttendance: defaultAttendanceByDay['day-1'],
+          raceSeriesByDayId: {
+            'day-1': {
+              name: 'Caterham Academy',
+              totalCount: 7,
+              existingBookingCount: 2,
+            },
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+    );
+
+    expect(screen.getByText('Caterham Academy')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '7 race days in the calendar • 2 already in My Bookings',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /add missing as maybe/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: /add missing as booked/i }),
+    ).toBeVisible();
   });
 
   it('moves between loaded matching days from the selected-day header', async () => {

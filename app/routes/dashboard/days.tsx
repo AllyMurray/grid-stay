@@ -1,6 +1,7 @@
 import { type ShouldRevalidateFunctionArgs, useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
 import {
+  submitBulkRaceSeriesBooking,
   submitCreateBooking,
   submitSharedStaySelection,
 } from '~/lib/bookings/actions.server';
@@ -25,10 +26,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
   const formData = await request.formData();
+  const intent = formData.get('intent');
   const result =
-    formData.get('intent') === 'useSharedStay'
+    intent === 'useSharedStay'
       ? await submitSharedStaySelection(formData, user)
-      : await submitCreateBooking(formData, user);
+      : intent === 'addRaceSeries'
+        ? await submitBulkRaceSeriesBooking(formData, user)
+        : await submitCreateBooking(formData, user);
 
   return Response.json(result, {
     headers,

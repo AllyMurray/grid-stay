@@ -2,6 +2,7 @@ import type { User } from '~/lib/auth/schemas';
 import type { BookingStatus } from '~/lib/constants/enums';
 import type { DayAttendanceSummary, SharedAttendee } from '~/lib/days/types';
 import type {
+  BulkRaceSeriesBookingInput,
   CreateBookingInput,
   DeleteBookingInput,
   SharedStaySelectionInput,
@@ -77,6 +78,43 @@ function sanitizeOptional(value?: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function getBookingRefreshChanges(
+  existing: BookingRecord,
+  input: CreateBookingInput,
+  user: User,
+  updatedAt: string,
+): Partial<BookingRecord> | null {
+  const changes: Partial<BookingRecord> = {};
+
+  if (existing.date !== input.date) {
+    changes.date = input.date;
+  }
+  if (existing.circuit !== input.circuit) {
+    changes.circuit = input.circuit;
+  }
+  if (existing.provider !== input.provider) {
+    changes.provider = input.provider;
+  }
+  if (existing.description !== input.description) {
+    changes.description = input.description;
+  }
+  if (existing.userName !== user.name) {
+    changes.userName = user.name;
+  }
+  if ((existing.userImage ?? '') !== (user.picture ?? '')) {
+    changes.userImage = user.picture;
+  }
+
+  if (Object.keys(changes).length === 0) {
+    return null;
+  }
+
+  return {
+    ...changes,
+    updatedAt,
+  };
+}
+
 async function syncDayAttendanceSummariesSafely(
   dayIds: string[],
   store: BookingPersistence,
@@ -140,6 +178,70 @@ export async function createBooking(
   } as BookingRecord);
   await syncDayAttendanceSummariesSafely([created.dayId], store, summaryStore);
   return created;
+}
+
+export async function ensureBookingsForDays(
+  inputs: CreateBookingInput[],
+  defaultStatus: BulkRaceSeriesBookingInput['status'],
+  user: User,
+  store: BookingPersistence = bookingStore,
+  summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+): Promise<{
+  addedCount: number;
+  existingCount: number;
+}> {
+  const existingBookings = await store.listByUser(user.id);
+  const existingByDayId = new Map(
+    existingBookings.map((booking) => [booking.dayId, booking]),
+  );
+  const now = new Date().toISOString();
+  const createdDayIds: string[] = [];
+  let addedCount = 0;
+  let existingCount = 0;
+
+  for (const input of inputs) {
+    const existing = existingByDayId.get(input.dayId);
+
+    if (existing) {
+      existingCount += 1;
+      const changes = getBookingRefreshChanges(existing, input, user, now);
+
+      if (changes) {
+        await store.update(user.id, existing.bookingId, changes);
+      }
+      continue;
+    }
+
+    const created = await store.create({
+      bookingId: input.dayId,
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: input.dayId,
+      date: input.date,
+      status: defaultStatus,
+      circuit: input.circuit,
+      provider: input.provider,
+      description: input.description,
+      createdAt: now,
+      updatedAt: now,
+      bookingReference: undefined,
+      accommodationName: undefined,
+      accommodationReference: undefined,
+      notes: undefined,
+    } as BookingRecord);
+    createdDayIds.push(created.dayId);
+    addedCount += 1;
+  }
+
+  if (createdDayIds.length > 0) {
+    await syncDayAttendanceSummariesSafely(createdDayIds, store, summaryStore);
+  }
+
+  return {
+    addedCount,
+    existingCount,
+  };
 }
 
 export async function updateBooking(

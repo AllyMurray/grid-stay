@@ -12,6 +12,10 @@ import {
   listCircuitOptions,
   normalizeCircuitName,
 } from './aggregation.server';
+import {
+  buildRaceSeriesSummaryByDayId,
+  type RaceSeriesSummary,
+} from './series.server';
 import type {
   AvailableDay,
   AvailableDayType,
@@ -60,6 +64,7 @@ export interface DaysIndexData extends DaysFeedData {
   monthOptions: string[];
   circuitOptions: string[];
   providerOptions: string[];
+  raceSeriesByDayId: Record<string, RaceSeriesSummary>;
   myBookingsByDay: Record<string, DayBookingSnapshot>;
   selectedDay: DayRow | null;
   selectedDayPosition: number | null;
@@ -174,6 +179,7 @@ async function loadFilteredDays(url: URL) {
   });
 
   return {
+    allDays: raw.days,
     filters,
     errors: raw.errors,
     refreshedAt: snapshot?.refreshedAt ?? '',
@@ -218,6 +224,7 @@ export async function loadDaysIndex(
   const selectedDayId = getSelectedDayId(url);
   const [
     {
+      allDays,
       filters,
       errors,
       refreshedAt,
@@ -228,6 +235,10 @@ export async function loadDaysIndex(
     },
     myBookings,
   ] = await Promise.all([loadFilteredDays(url), listMyBookings(userId)]);
+  const raceSeriesByDayId = buildRaceSeriesSummaryByDayId(
+    allDays,
+    myBookings.map((booking) => booking.dayId),
+  );
   const page = await loadDaysFeedPage(filteredDays, filters, 0);
   const visibleDayIds = new Set(filteredDays.map((day) => day.dayId));
   const selectedDayRecord = selectedDayId
@@ -255,6 +266,7 @@ export async function loadDaysIndex(
     monthOptions,
     circuitOptions,
     providerOptions,
+    raceSeriesByDayId,
     myBookingsByDay: Object.fromEntries(
       myBookings.flatMap((booking) => {
         if (!visibleDayIds.has(booking.dayId)) {

@@ -47,6 +47,7 @@ import {
   bookingStore,
   createBooking,
   deleteBooking,
+  ensureBookingsForDays,
   listMyBookings,
   summarizeDayAttendances,
   updateBooking,
@@ -422,6 +423,75 @@ describe('booking service', () => {
     expect(memory.summaries.get('day-1')).toMatchObject({
       attendeeCount: 1,
       accommodationNames: ['Trackside Hotel'],
+    });
+  });
+
+  it('adds missing bookings in bulk without changing existing statuses or notes', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'day-1',
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'maybe',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      bookingReference: 'REF-1',
+      notes: 'Keep this',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    const result = await ensureBookingsForDays(
+      [
+        {
+          dayId: 'day-1',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Round 1 refreshed',
+          status: 'booked',
+        },
+        {
+          dayId: 'day-2',
+          date: '2026-05-24',
+          type: 'race_day',
+          circuit: 'Brands Hatch',
+          provider: 'Caterham Motorsport',
+          description: 'Round 2',
+          status: 'booked',
+        },
+      ],
+      'booked',
+      user,
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(result).toEqual({
+      addedCount: 1,
+      existingCount: 1,
+    });
+    expect(memory.items).toHaveLength(2);
+    expect(memory.items[0]).toMatchObject({
+      dayId: 'day-1',
+      status: 'maybe',
+      bookingReference: 'REF-1',
+      notes: 'Keep this',
+      description: 'Round 1 refreshed',
+    });
+    expect(memory.items[1]).toMatchObject({
+      dayId: 'day-2',
+      status: 'booked',
+      circuit: 'Brands Hatch',
+    });
+    expect(memory.summaries.get('day-2')).toMatchObject({
+      attendeeCount: 1,
+      accommodationNames: [],
     });
   });
 

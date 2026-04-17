@@ -1,17 +1,22 @@
 import type { User } from '~/lib/auth/schemas';
+import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
+import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import {
   applySharedStaySelection,
   createBooking,
   deleteBooking,
+  ensureBookingsForDays,
   updateBooking,
 } from '~/lib/db/services/booking.server';
 import type {
+  BulkRaceSeriesBookingInput,
   CreateBookingInput,
   DeleteBookingInput,
   SharedStaySelectionInput,
   UpdateBookingInput,
 } from '~/lib/schemas/booking';
 import {
+  BulkRaceSeriesBookingSchema,
   CreateBookingSchema,
   DeleteBookingSchema,
   SharedStaySelectionSchema,
@@ -57,6 +62,20 @@ export type SharedStaySelectionActionResult =
       fieldErrors: FieldErrors<keyof SharedStaySelectionInput>;
     };
 
+export type BulkRaceSeriesBookingActionResult =
+  | {
+      ok: true;
+      seriesName: string;
+      totalCount: number;
+      addedCount: number;
+      existingCount: number;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<keyof BulkRaceSeriesBookingInput>;
+    };
+
 export async function submitCreateBooking(
   formData: FormData,
   user: User,
@@ -95,6 +114,66 @@ export async function submitSharedStaySelection(
 
   await saveSelection(parsed.data, user);
   return { ok: true };
+}
+
+export async function submitBulkRaceSeriesBooking(
+  formData: FormData,
+  user: User,
+  loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
+  saveBookings: typeof ensureBookingsForDays = ensureBookingsForDays,
+): Promise<BulkRaceSeriesBookingActionResult> {
+  const parsed = BulkRaceSeriesBookingSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not add the full race series right now.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const snapshot = await loadSnapshot();
+  if (!snapshot) {
+    return {
+      ok: false,
+      formError:
+        'The race calendar is not ready yet. Try again after the next refresh.',
+      fieldErrors: {},
+    };
+  }
+
+  const series = getRaceSeriesDaysForDay(snapshot.days, parsed.data.dayId);
+  if (!series || series.days.length === 0) {
+    return {
+      ok: false,
+      formError: 'This day is not linked to a race series yet.',
+      fieldErrors: {},
+    };
+  }
+
+  const result = await saveBookings(
+    series.days.map((day) => ({
+      dayId: day.dayId,
+      date: day.date,
+      type: day.type,
+      circuit: day.circuit,
+      provider: day.provider,
+      description: day.description,
+      status: parsed.data.status,
+    })),
+    parsed.data.status,
+    user,
+  );
+
+  return {
+    ok: true,
+    seriesName: series.seriesName,
+    totalCount: series.days.length,
+    addedCount: result.addedCount,
+    existingCount: result.existingCount,
+  };
 }
 
 export async function submitBookingUpdate(
