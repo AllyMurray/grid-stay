@@ -1,9 +1,23 @@
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
 import type { DiscoveryResult } from '~/lib/discovery/types';
+import {
+  angleseyTestingAdapter,
+  croftTestingAdapter,
+  malloryTestingAdapter,
+  thruxtonTestingAdapter,
+} from '~/lib/testing/adapters/independent-venues.server';
 import { knockhillAdapter } from '~/lib/testing/adapters/knockhill.server';
 import { msvAdapter } from '~/lib/testing/adapters/msv.server';
 import { silverstoneAdapter } from '~/lib/testing/adapters/silverstone.server';
 import type { TestingAdapter, TestingDay } from '~/lib/testing/types';
+import {
+  angleseyTrackDayAdapter,
+  castleCombeTrackDayAdapter,
+  croftTrackDayAdapter,
+  lyddenTrackDayAdapter,
+  malloryTrackDayAdapter,
+  thruxtonTrackDayAdapter,
+} from '~/lib/trackdays/adapters/independent-venues.server';
 import { knockhillTrackDayAdapter } from '~/lib/trackdays/adapters/knockhill.server';
 import { msvTrackDayAdapter } from '~/lib/trackdays/adapters/msv.server';
 import { silverstoneTrackDayAdapter } from '~/lib/trackdays/adapters/silverstone.server';
@@ -27,12 +41,22 @@ const DEFAULT_TESTING_ADAPTERS = [
   silverstoneAdapter,
   knockhillAdapter,
   msvAdapter,
+  angleseyTestingAdapter,
+  croftTestingAdapter,
+  malloryTestingAdapter,
+  thruxtonTestingAdapter,
 ];
 
 const DEFAULT_TRACKDAY_ADAPTERS = [
   silverstoneTrackDayAdapter,
   knockhillTrackDayAdapter,
   msvTrackDayAdapter,
+  angleseyTrackDayAdapter,
+  castleCombeTrackDayAdapter,
+  croftTrackDayAdapter,
+  lyddenTrackDayAdapter,
+  malloryTrackDayAdapter,
+  thruxtonTrackDayAdapter,
 ];
 
 function createTestingDayIdentity(
@@ -114,9 +138,17 @@ function providerLabel(source: string): string {
       return 'MSV Testing';
     case 'msv-trackday':
       return 'MSV Trackdays';
+    case 'anglesey-testing':
+      return 'Anglesey Circuit';
+    case 'croft-testing':
+      return 'Croft Circuit';
+    case 'mallory-testing':
+      return 'Mallory Park Circuit';
     case 'silverstone':
     case 'silverstone-trackday':
       return 'Silverstone';
+    case 'thruxton-testing':
+      return 'Thruxton';
     default:
       return 'Knockhill';
   }

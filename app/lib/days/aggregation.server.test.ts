@@ -202,6 +202,40 @@ describe('listAvailableDays', () => {
       },
     ]);
   });
+
+  it('maps newly added testing sources to the correct provider labels', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [],
+      testingAdapters: [
+        {
+          name: 'anglesey-testing',
+          description: 'Anglesey testing adapter',
+          circuitIds: ['anglesey'],
+          async fetchSchedule() {
+            return [
+              {
+                date: '2026-11-05',
+                circuitName: 'Anglesey',
+                circuitId: 'anglesey',
+                format: 'General Testing',
+                availability: 'unknown' as const,
+                source: 'anglesey-testing',
+              },
+            ];
+          },
+        },
+      ],
+      trackDayAdapters: [],
+    });
+
+    expect(result.days).toEqual([
+      expect.objectContaining({
+        circuit: 'Anglesey',
+        provider: 'Anglesey Circuit',
+      }),
+    ]);
+  });
 });
 
 describe('filterAvailableDays', () => {
