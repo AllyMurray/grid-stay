@@ -240,7 +240,7 @@ describe('AvailableDaysPage', () => {
       />,
     );
 
-    expect(screen.getByRole('textbox', { name: 'Month' })).toHaveDisplayValue(
+    expect(screen.getByRole('combobox', { name: 'Month' })).toHaveDisplayValue(
       'May 2026',
     );
   });

@@ -640,7 +640,7 @@ export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
           }
         />
       ) : (
-        <Grid gutter={{ base: 'md', sm: 'lg' }} align="start">
+        <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
           <Grid.Col span={{ base: 12, lg: 4 }}>
             <Paper
               className="shell-card booking-list-panel"
@@ -659,7 +659,7 @@ export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
                   </Text>
                 </Group>
 
-                <Grid gutter="sm">
+                <Grid gap="sm">
                   <Grid.Col span={{ base: 12, sm: 7, lg: 12, xl: 7 }}>
                     <TextInput
                       aria-label="Search trips"

@@ -85,7 +85,7 @@ export function HomePage({ hasSession }: HomePageProps) {
 
       <Box component="section" id="product" py={56}>
         <Container size="xl">
-          <Grid gutter="xl" align="center">
+          <Grid gap="xl" align="center">
             <Grid.Col span={{ base: 12, lg: 5 }}>
               <Stack gap="lg">
                 <Badge color="brand" variant="light" w="fit-content">

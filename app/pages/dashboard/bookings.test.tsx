@@ -90,7 +90,7 @@ describe('MyBookingsPage', () => {
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);
 
     await user.click(
-      screen.getByRole('textbox', { name: /filter trips by status/i }),
+      screen.getByRole('combobox', { name: /filter trips by status/i }),
     );
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
 
