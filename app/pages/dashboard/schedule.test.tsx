@@ -31,7 +31,7 @@ vi.mock('@mantine/schedule', async () => {
       events = [],
       onEventClick,
     }: {
-      events?: Array<{ id: string; title: string }>;
+      events?: Array<{ id: string; title: string; end: string }>;
       onEventClick?: (event: { id: string }, reactEvent: Event) => void;
     }) => (
       <div data-testid="schedule">
@@ -39,6 +39,7 @@ vi.mock('@mantine/schedule', async () => {
           <button
             key={event.id}
             type="button"
+            data-end={event.end}
             onClick={(reactEvent) =>
               onEventClick?.(event, reactEvent.nativeEvent)
             }
@@ -111,6 +112,10 @@ describe('BookingSchedulePage', () => {
       screen.getByRole('heading', { name: 'Schedule' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('schedule')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Silverstone' })).toHaveAttribute(
+      'data-end',
+      '2026-05-03 23:59:59',
+    );
     expect(
       screen.getByRole('heading', { name: 'Silverstone' }),
     ).toBeInTheDocument();

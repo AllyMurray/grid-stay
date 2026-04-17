@@ -117,7 +117,7 @@ function buildScheduleEvents(
     id: booking.bookingId,
     title: booking.circuit,
     start: `${booking.date} 00:00:00`,
-    end: dayjs(booking.date).add(1, 'day').format('YYYY-MM-DD HH:mm:ss'),
+    end: dayjs(booking.date).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
     color: bookingColor(booking.status),
     variant: bookingVariant(booking.status),
     payload: { bookingId: booking.bookingId },
