@@ -5,7 +5,7 @@ vi.mock('~/lib/db/services/available-days-cache.server', () => ({
 }));
 
 vi.mock('~/lib/db/services/manual-day.server', () => ({
-  listManualDaysForUser: vi.fn(),
+  listManualDays: vi.fn(),
 }));
 
 vi.mock('~/lib/db/services/booking.server', () => ({
@@ -32,18 +32,18 @@ vi.mock('~/lib/days/series.server', async () => {
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
-import { listManualDaysForUser } from '~/lib/db/services/manual-day.server';
+import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { loadDaysIndex } from './dashboard-feed.server';
 
 describe('days dashboard feed', () => {
   beforeEach(() => {
     vi.mocked(getAvailableDaysSnapshot).mockReset();
-    vi.mocked(listManualDaysForUser).mockReset();
+    vi.mocked(listManualDays).mockReset();
     vi.mocked(listMyBookings).mockReset();
     vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockReset();
   });
 
-  it('merges private manual days into the owner feed without using the scrape cache for them', async () => {
+  it('merges shared manual days into every member feed while keeping admin creation separate', async () => {
     vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
       refreshedAt: '2026-04-17T09:30:00.000Z',
       errors: [],
@@ -62,7 +62,7 @@ describe('days dashboard feed', () => {
         },
       ],
     });
-    vi.mocked(listManualDaysForUser).mockResolvedValue([
+    vi.mocked(listManualDays).mockResolvedValue([
       {
         dayId: 'manual:1',
         date: '2026-05-12',
@@ -86,12 +86,13 @@ describe('days dashboard feed', () => {
     const data = await loadDaysIndex(
       {
         id: 'user-1',
-        email: 'allymurray88@gmail.com',
+        email: 'driver@example.com',
+        role: 'member',
       },
       new URL('https://gridstay.app/dashboard/days'),
     );
 
-    expect(data.canCreateManualDays).toBe(true);
+    expect(data.canCreateManualDays).toBe(false);
     expect(data.totalCount).toBe(2);
     expect(data.days.map((day) => day.dayId)).toEqual(['race:1', 'manual:1']);
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);

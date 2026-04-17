@@ -25,7 +25,7 @@ export async function submitCreateManualDay(
   if (!canCreateManualDays(user)) {
     return {
       ok: false,
-      formError: 'This account cannot add private days yet.',
+      formError: 'This account cannot add manual days yet.',
       fieldErrors: {},
     };
   }
@@ -35,7 +35,7 @@ export async function submitCreateManualDay(
   if (!parsed.success) {
     return {
       ok: false,
-      formError: 'Could not save this private day yet.',
+      formError: 'Could not save this manual day yet.',
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }

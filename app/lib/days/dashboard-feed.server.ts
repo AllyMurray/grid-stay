@@ -8,7 +8,7 @@ import {
   type DayAttendanceOverview,
   dayAttendanceSummaryStore,
 } from '~/lib/db/services/day-attendance-summary.server';
-import { listManualDaysForUser } from '~/lib/db/services/manual-day.server';
+import { listManualDays } from '~/lib/db/services/manual-day.server';
 import {
   filterAvailableDays,
   listCircuitOptions,
@@ -184,10 +184,10 @@ export function createDaysFilterKey(filters: DaysFilters): string {
   return params.toString();
 }
 
-async function loadFilteredDays(userId: string, url: URL) {
+async function loadFilteredDays(url: URL) {
   const [snapshot, manualDays] = await Promise.all([
     getAvailableDaysSnapshot(),
-    listManualDaysForUser(userId),
+    listManualDays(),
   ]);
   const filters = getFilters(url);
   const raw = snapshot ?? {
@@ -244,7 +244,7 @@ async function loadDaysFeedPage(
 }
 
 export async function loadDaysIndex(
-  user: Pick<User, 'id' | 'email'>,
+  user: Pick<User, 'id' | 'email' | 'role'>,
   url: URL,
 ): Promise<DaysIndexData> {
   const selectedDayId = getSelectedDayId(url);
@@ -260,10 +260,7 @@ export async function loadDaysIndex(
       providerOptions,
     },
     myBookings,
-  ] = await Promise.all([
-    loadFilteredDays(user.id, url),
-    listMyBookings(user.id),
-  ]);
+  ] = await Promise.all([loadFilteredDays(url), listMyBookings(user.id)]);
   const raceSeriesByDayId = buildRaceSeriesSummaryByDayId(
     allDays,
     myBookings.map((booking) => booking.dayId),
@@ -330,11 +327,8 @@ export async function loadDaysIndex(
   };
 }
 
-export async function loadDaysFeed(
-  user: Pick<User, 'id'>,
-  url: URL,
-): Promise<DaysFeedData> {
-  const { filters, filteredDays } = await loadFilteredDays(user.id, url);
+export async function loadDaysFeed(url: URL): Promise<DaysFeedData> {
+  const { filters, filteredDays } = await loadFilteredDays(url);
   return loadDaysFeedPage(
     filteredDays,
     filters,

@@ -1,5 +1,6 @@
 import { redirect } from 'react-router';
 import { auth } from './auth.server';
+import { isAdminUser } from './authorization';
 import type { User } from './schemas';
 
 interface AuthResult {
@@ -50,7 +51,7 @@ export async function requireUser(request: Request): Promise<AuthResult> {
 export async function requireAdmin(request: Request): Promise<AuthResult> {
   const result = await requireUser(request);
 
-  if (result.user.role !== 'owner' && result.user.role !== 'admin') {
+  if (!isAdminUser(result.user)) {
     throw new Response('Forbidden', { status: 403 });
   }
 

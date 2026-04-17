@@ -22,7 +22,7 @@ const blockedUser: User = {
 };
 
 describe('manual day action helper', () => {
-  it('creates a private day for the allowed account', async () => {
+  it('creates a manual day for the allowed account', async () => {
     const formData = new FormData();
     formData.set('date', '2026-03-01');
     formData.set('type', 'track_day');
@@ -55,7 +55,7 @@ describe('manual day action helper', () => {
     );
   });
 
-  it('rejects private day creation for other accounts', async () => {
+  it('rejects manual day creation for other accounts', async () => {
     const formData = new FormData();
     formData.set('date', '2026-03-01');
     formData.set('type', 'track_day');
@@ -66,12 +66,12 @@ describe('manual day action helper', () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) {
-      throw new Error('Expected private day creation to be rejected');
+      throw new Error('Expected manual day creation to be rejected');
     }
-    expect(result.formError).toBe('This account cannot add private days yet.');
+    expect(result.formError).toBe('This account cannot add manual days yet.');
   });
 
-  it('returns field errors for an invalid private day payload', async () => {
+  it('returns field errors for an invalid manual day payload', async () => {
     const formData = new FormData();
     formData.set('date', 'invalid-date');
     formData.set('type', 'track_day');
@@ -85,7 +85,7 @@ describe('manual day action helper', () => {
     if (result.ok) {
       throw new Error('Expected validation failure');
     }
-    expect(result.formError).toBe('Could not save this private day yet.');
+    expect(result.formError).toBe('Could not save this manual day yet.');
     expect(result.fieldErrors.date?.[0]).toBeDefined();
     expect(result.fieldErrors.circuit?.[0]).toBeDefined();
     expect(result.fieldErrors.bookingUrl?.[0]).toBeDefined();

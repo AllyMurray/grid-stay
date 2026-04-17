@@ -7,9 +7,11 @@ import {
   type ManualDayRecord,
 } from '../entities/manual-day.server';
 
+const GLOBAL_MANUAL_DAY_SCOPE = 'global';
+
 export interface ManualDayPersistence {
   create(item: ManualDayRecord): Promise<ManualDayRecord>;
-  listByOwner(ownerUserId: string): Promise<ManualDayRecord[]>;
+  listAll(): Promise<ManualDayRecord[]>;
 }
 
 export const manualDayStore: ManualDayPersistence = {
@@ -19,8 +21,12 @@ export const manualDayStore: ManualDayPersistence = {
     });
     return item;
   },
-  async listByOwner(ownerUserId) {
-    const response = await ManualDayEntity.query.ownerDay({ ownerUserId }).go();
+  async listAll() {
+    const response = await ManualDayEntity.query
+      .visibilityDay({
+        visibilityScope: GLOBAL_MANUAL_DAY_SCOPE,
+      })
+      .go();
     return response.data;
   },
 };
@@ -56,7 +62,7 @@ export function toAvailableManualDay(day: ManualDayRecord): AvailableDay {
       sourceName: 'manual',
       externalId: day.manualDayId,
       metadata: {
-        ownerUserId: day.ownerUserId,
+        createdByUserId: day.ownerUserId,
       },
     },
   };
@@ -72,6 +78,7 @@ export async function createManualDay(
 
   return store.create({
     ownerUserId: user.id,
+    visibilityScope: GLOBAL_MANUAL_DAY_SCOPE,
     manualDayId,
     dayId: `manual:${manualDayId}`,
     date: input.date,
@@ -85,11 +92,10 @@ export async function createManualDay(
   } as ManualDayRecord);
 }
 
-export async function listManualDaysForUser(
-  userId: string,
+export async function listManualDays(
   store: ManualDayPersistence = manualDayStore,
 ): Promise<AvailableDay[]> {
-  const manualDays = await store.listByOwner(userId);
+  const manualDays = await store.listAll();
 
   return manualDays.sort(compareManualDays).map(toAvailableManualDay);
 }

@@ -600,14 +600,14 @@ function ManualDayForm({ filters }: { filters: DaysIndexData['filters'] }) {
       <Stack gap="md">
         <Group justify="space-between" align="flex-start" gap="md">
           <Stack gap={2}>
-            <Title order={3}>Add a private day</Title>
+            <Title order={3}>Add a manual day</Title>
             <Text size="sm" c="dimmed">
-              Keep extra Caterham dates in your own feed even when they are not
-              in the official scrape.
+              Add extra Caterham dates that should appear for everyone even when
+              they are not in the official scrape.
             </Text>
           </Stack>
           <Badge variant="light" color="gray" size="sm">
-            Only visible to you
+            Admin only
           </Badge>
         </Group>
 
@@ -674,7 +674,7 @@ function ManualDayForm({ filters }: { filters: DaysIndexData['filters'] }) {
                 {successResult ? (
                   <Group gap="xs" wrap="wrap">
                     <Text size="sm" c="green">
-                      Private day added.
+                      Manual day added.
                     </Text>
                     <Button
                       component={Link}
@@ -693,14 +693,14 @@ function ManualDayForm({ filters }: { filters: DaysIndexData['filters'] }) {
                   </Text>
                 ) : (
                   <Text size="sm" c="dimmed">
-                    It stays separate from the scheduled scrape and only shows
-                    in your account.
+                    It stays separate from the scheduled scrape and appears in
+                    the shared calendar for everyone.
                   </Text>
                 )}
               </Stack>
 
               <Button type="submit" loading={isSubmitting}>
-                Save private day
+                Save manual day
               </Button>
             </Group>
           </Stack>

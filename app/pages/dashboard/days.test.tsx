@@ -247,7 +247,7 @@ describe('AvailableDaysPage', () => {
     );
   });
 
-  it('shows the private day form only for allowed users', () => {
+  it('shows the manual day form only for allowed admins', () => {
     const view = renderWithProviders(
       <AvailableDaysPage
         data={{
@@ -258,15 +258,15 @@ describe('AvailableDaysPage', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Add a private day' }),
+      screen.getByRole('heading', { name: 'Add a manual day' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Only visible to you')).toBeInTheDocument();
+    expect(screen.getByText('Admin only')).toBeInTheDocument();
 
     view.unmount();
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
     expect(
-      screen.queryByRole('heading', { name: 'Add a private day' }),
+      screen.queryByRole('heading', { name: 'Add a manual day' }),
     ).not.toBeInTheDocument();
   });
 

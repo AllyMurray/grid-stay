@@ -10,6 +10,7 @@ export const ManualDayEntity = new Entity(
     },
     attributes: {
       ownerUserId: { type: 'string', required: true },
+      visibilityScope: { type: 'string', required: true },
       manualDayId: { type: 'string', required: true },
       dayId: { type: 'string', required: true },
       date: { type: 'string', required: true },
@@ -28,6 +29,11 @@ export const ManualDayEntity = new Entity(
       ownerDay: {
         pk: { field: 'pk', composite: ['ownerUserId'] },
         sk: { field: 'sk', composite: ['date', 'manualDayId'] },
+      },
+      visibilityDay: {
+        index: 'gsi1',
+        pk: { field: 'gsi1pk', composite: ['visibilityScope'] },
+        sk: { field: 'gsi1sk', composite: ['date', 'manualDayId'] },
       },
     },
   },
