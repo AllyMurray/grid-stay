@@ -129,7 +129,7 @@ export function extractJsonLdEntries(html: string): JsonLdObject[] {
   const entries: JsonLdObject[] = [];
 
   for (const match of html.matchAll(
-    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    /<script[^>]*type=["']application\/ld(?:\+|&#43;|&#x2b;)json["'][^>]*>([\s\S]*?)<\/script>/gi,
   )) {
     const content = match[1]?.trim();
     if (!content) {
