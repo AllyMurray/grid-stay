@@ -95,7 +95,15 @@ export async function createManualDay(
 export async function listManualDays(
   store: ManualDayPersistence = manualDayStore,
 ): Promise<AvailableDay[]> {
+  const manualDays = await listManagedManualDays(store);
+
+  return manualDays.map(toAvailableManualDay);
+}
+
+export async function listManagedManualDays(
+  store: ManualDayPersistence = manualDayStore,
+): Promise<ManualDayRecord[]> {
   const manualDays = await store.listAll();
 
-  return manualDays.sort(compareManualDays).map(toAvailableManualDay);
+  return manualDays.sort(compareManualDays);
 }

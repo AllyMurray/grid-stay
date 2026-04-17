@@ -12,8 +12,6 @@ import {
   SimpleGrid,
   Stack,
   Text,
-  Textarea,
-  TextInput,
   Title,
   UnstyledButton,
 } from '@mantine/core';
@@ -29,7 +27,6 @@ import type {
   SharedStaySelectionActionResult,
 } from '~/lib/bookings/actions.server';
 import type { BookingStatus } from '~/lib/constants/enums';
-import type { CreateManualDayActionResult } from '~/lib/days/actions.server';
 import type {
   DayBookingSnapshot,
   DayRow,
@@ -205,13 +202,6 @@ function formatMonthOption(value: string) {
     month: 'long',
     year: 'numeric',
   }).format(new Date(Date.UTC(year, month - 1, 1)));
-}
-
-function getFieldError(
-  fieldErrors: Partial<Record<string, string[] | undefined>> | undefined,
-  fieldName: string,
-) {
-  return fieldErrors?.[fieldName]?.[0] ?? undefined;
 }
 
 interface DayAttendanceSummaryPreview {
@@ -583,130 +573,6 @@ function SeriesBookingAction({
         </Text>
       ) : null}
     </Stack>
-  );
-}
-
-function ManualDayForm({ filters }: { filters: DaysIndexData['filters'] }) {
-  const fetcher = useFetcher<CreateManualDayActionResult>();
-  const isSubmitting = fetcher.state !== 'idle';
-  const successResult = fetcher.data?.ok ? fetcher.data : null;
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
-
-  return (
-    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
-      <Stack gap="md">
-        <Group justify="space-between" align="flex-start" gap="md">
-          <Stack gap={2}>
-            <Title order={3}>Add a manual day</Title>
-            <Text size="sm" c="dimmed">
-              Add extra Caterham dates that should appear for everyone even when
-              they are not in the official scrape.
-            </Text>
-          </Stack>
-          <Badge variant="light" color="gray" size="sm">
-            Admin only
-          </Badge>
-        </Group>
-
-        <fetcher.Form
-          method="post"
-          key={successResult?.dayId ?? 'manual-day-form'}
-        >
-          <input type="hidden" name="intent" value="createManualDay" />
-          <Stack gap="md">
-            <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
-              <TextInput
-                label="Date"
-                name="date"
-                type="date"
-                required
-                error={getFieldError(fieldErrors, 'date')}
-              />
-              <Select
-                label="Type"
-                name="type"
-                data={[
-                  { value: 'race_day', label: 'Race day' },
-                  { value: 'test_day', label: 'Test day' },
-                  { value: 'track_day', label: 'Track day' },
-                ]}
-                defaultValue="track_day"
-                allowDeselect={false}
-                error={getFieldError(fieldErrors, 'type')}
-              />
-              <TextInput
-                label="Circuit"
-                name="circuit"
-                placeholder="Donington Park"
-                required
-                error={getFieldError(fieldErrors, 'circuit')}
-              />
-              <TextInput
-                label="Provider"
-                name="provider"
-                placeholder="Caterham Motorsport"
-                required
-                error={getFieldError(fieldErrors, 'provider')}
-              />
-            </SimpleGrid>
-
-            <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="md">
-              <Textarea
-                label="Session details"
-                name="description"
-                placeholder="Pre-season track day"
-                rows={2}
-                error={getFieldError(fieldErrors, 'description')}
-              />
-              <TextInput
-                label="Booking link"
-                name="bookingUrl"
-                placeholder="https://..."
-                error={getFieldError(fieldErrors, 'bookingUrl')}
-              />
-            </SimpleGrid>
-
-            <Group justify="space-between" align="center" gap="sm">
-              <Stack gap={4}>
-                {successResult ? (
-                  <Group gap="xs" wrap="wrap">
-                    <Text size="sm" c="green">
-                      Manual day added.
-                    </Text>
-                    <Button
-                      component={Link}
-                      to={createDaysIndexHref(filters, successResult.dayId)}
-                      variant="subtle"
-                      size="sm"
-                      preventScrollReset
-                    >
-                      Open it
-                    </Button>
-                  </Group>
-                ) : null}
-                {formError ? (
-                  <Text size="sm" c="red">
-                    {formError}
-                  </Text>
-                ) : (
-                  <Text size="sm" c="dimmed">
-                    It stays separate from the scheduled scrape and appears in
-                    the shared calendar for everyone.
-                  </Text>
-                )}
-              </Stack>
-
-              <Button type="submit" loading={isSubmitting}>
-                Save manual day
-              </Button>
-            </Group>
-          </Stack>
-        </fetcher.Form>
-      </Stack>
-    </Paper>
   );
 }
 
@@ -1773,9 +1639,20 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           </Stack>
         }
         actions={
-          <Button component={Link} to="/dashboard/bookings" variant="default">
-            Open my bookings
-          </Button>
+          <>
+            {data.canCreateManualDays ? (
+              <Button
+                component={Link}
+                to="/dashboard/manual-days"
+                variant="default"
+              >
+                Manage manual days
+              </Button>
+            ) : null}
+            <Button component={Link} to="/dashboard/bookings" variant="default">
+              Open my bookings
+            </Button>
+          </>
         }
       />
 
@@ -1855,10 +1732,6 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           </Form>
         </Stack>
       </Paper>
-
-      {data.canCreateManualDays ? (
-        <ManualDayForm filters={data.filters} />
-      ) : null}
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">

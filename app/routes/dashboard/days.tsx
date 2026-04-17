@@ -5,7 +5,6 @@ import {
   submitCreateBooking,
   submitSharedStaySelection,
 } from '~/lib/bookings/actions.server';
-import { submitCreateManualDay } from '~/lib/days/actions.server';
 import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import { loadDaysIndex } from '~/lib/days/dashboard-feed.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
@@ -29,13 +28,11 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get('intent');
   const result =
-    intent === 'createManualDay'
-      ? await submitCreateManualDay(formData, user)
-      : intent === 'useSharedStay'
-        ? await submitSharedStaySelection(formData, user)
-        : intent === 'addRaceSeries'
-          ? await submitBulkRaceSeriesBooking(formData, user)
-          : await submitCreateBooking(formData, user);
+    intent === 'useSharedStay'
+      ? await submitSharedStaySelection(formData, user)
+      : intent === 'addRaceSeries'
+        ? await submitBulkRaceSeriesBooking(formData, user)
+        : await submitCreateBooking(formData, user);
 
   return Response.json(result, {
     headers,

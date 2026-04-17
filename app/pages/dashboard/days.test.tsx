@@ -247,7 +247,7 @@ describe('AvailableDaysPage', () => {
     );
   });
 
-  it('shows the manual day form only for allowed admins', () => {
+  it('shows the manual-day management link only for allowed admins', () => {
     const view = renderWithProviders(
       <AvailableDaysPage
         data={{
@@ -258,15 +258,14 @@ describe('AvailableDaysPage', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Add a manual day' }),
+      screen.getByRole('link', { name: 'Manage manual days' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Admin only')).toBeInTheDocument();
 
     view.unmount();
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
     expect(
-      screen.queryByRole('heading', { name: 'Add a manual day' }),
+      screen.queryByRole('link', { name: 'Manage manual days' }),
     ).not.toBeInTheDocument();
   });
 

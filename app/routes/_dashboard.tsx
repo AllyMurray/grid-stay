@@ -17,12 +17,14 @@ import {
   IconCalendarMonth,
   IconHome2,
   IconHotelService,
+  IconLock,
   IconMoon,
   IconRoad,
   IconSun,
   IconUsersGroup,
 } from '@tabler/icons-react';
 import { Link, Outlet, useLoaderData, useLocation } from 'react-router';
+import { isAdminUser } from '~/lib/auth/authorization';
 import { requireUser } from '~/lib/auth/helpers.server';
 import type { User } from '~/lib/auth/schemas';
 import type { Route } from './+types/_dashboard';
@@ -55,6 +57,16 @@ export default function DashboardLayoutRoute() {
       icon: IconRoad,
       active: location.pathname.startsWith('/dashboard/days'),
     },
+    ...(isAdminUser(user)
+      ? [
+          {
+            label: 'Manual Days',
+            to: '/dashboard/manual-days',
+            icon: IconLock,
+            active: location.pathname.startsWith('/dashboard/manual-days'),
+          },
+        ]
+      : []),
     {
       label: 'Schedule',
       to: '/dashboard/schedule',
