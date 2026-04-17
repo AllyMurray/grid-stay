@@ -88,6 +88,9 @@ describe('ManualDaysPage', () => {
       screen.getByRole('combobox', { name: 'Circuit' }),
     ).toBeInTheDocument();
     expect(
+      screen.getByPlaceholderText('Start typing a circuit'),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('combobox', { name: 'Provider' }),
     ).toBeInTheDocument();
     expect(

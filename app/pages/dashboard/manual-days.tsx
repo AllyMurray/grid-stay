@@ -134,14 +134,12 @@ function ManualDayForm({
                 allowDeselect={false}
                 error={getFieldError(fieldErrors, 'type')}
               />
-              <Select
+              <Autocomplete
                 label="Circuit"
                 name="circuit"
-                placeholder="Choose a circuit"
+                placeholder="Start typing a circuit"
                 data={circuitOptions}
-                searchable
                 required
-                clearable={false}
                 error={getFieldError(fieldErrors, 'circuit')}
               />
               <Autocomplete
