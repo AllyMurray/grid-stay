@@ -55,7 +55,13 @@ const manualDays: ManualDayRecord[] = [
 
 describe('ManualDaysPage', () => {
   it('renders the add form and grouped manual-day list', () => {
-    renderWithProviders(<ManualDaysPage manualDays={manualDays} />);
+    renderWithProviders(
+      <ManualDaysPage
+        manualDays={manualDays}
+        circuitOptions={['Donington Park', 'Silverstone']}
+        providerOptions={['Caterham Motorsport', 'MSV Trackdays']}
+      />,
+    );
 
     expect(
       screen.getByRole('heading', { name: 'Manual Days' }),
@@ -67,7 +73,7 @@ describe('ManualDaysPage', () => {
       screen.getByRole('heading', { name: 'Manually added days' }),
     ).toBeInTheDocument();
     expect(screen.getByText('March 2026')).toBeInTheDocument();
-    expect(screen.getByText('Donington Park')).toBeInTheDocument();
+    expect(screen.getAllByText('Donington Park').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Provider site' })).toHaveAttribute(
       'href',
       'https://example.com/donington',
@@ -75,10 +81,22 @@ describe('ManualDaysPage', () => {
     expect(
       screen.getAllByRole('link', { name: 'Open in available days' }),
     ).toHaveLength(2);
+    expect(
+      screen.getByRole('combobox', { name: 'Circuit' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Provider' }),
+    ).toBeInTheDocument();
   });
 
   it('shows the empty state when no manual days exist', () => {
-    renderWithProviders(<ManualDaysPage manualDays={[]} />);
+    renderWithProviders(
+      <ManualDaysPage
+        manualDays={[]}
+        circuitOptions={['Donington Park']}
+        providerOptions={['Caterham Motorsport']}
+      />,
+    );
 
     expect(screen.getByText('No manual days yet')).toBeInTheDocument();
     expect(

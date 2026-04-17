@@ -1,5 +1,6 @@
 import {
   Anchor,
+  Autocomplete,
   Badge,
   Button,
   Divider,
@@ -22,6 +23,8 @@ import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 
 export interface ManualDaysPageProps {
   manualDays: ManualDayRecord[];
+  circuitOptions: string[];
+  providerOptions: string[];
 }
 
 function titleCase(value: string) {
@@ -78,7 +81,10 @@ function groupManualDaysByMonth(manualDays: ManualDayRecord[]) {
   return [...groups.entries()].map(([month, days]) => ({ month, days }));
 }
 
-function ManualDayForm() {
+function ManualDayForm({
+  circuitOptions,
+  providerOptions,
+}: Pick<ManualDaysPageProps, 'circuitOptions' | 'providerOptions'>) {
   const fetcher = useFetcher<CreateManualDayActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const successResult = fetcher.data?.ok ? fetcher.data : null;
@@ -123,17 +129,21 @@ function ManualDayForm() {
                 allowDeselect={false}
                 error={getFieldError(fieldErrors, 'type')}
               />
-              <TextInput
+              <Select
                 label="Circuit"
                 name="circuit"
-                placeholder="Donington Park"
+                placeholder="Choose a circuit"
+                data={circuitOptions}
+                searchable
                 required
+                clearable={false}
                 error={getFieldError(fieldErrors, 'circuit')}
               />
-              <TextInput
+              <Autocomplete
                 label="Provider"
                 name="provider"
-                placeholder="Caterham Motorsport"
+                placeholder="Start typing a provider"
+                data={providerOptions}
                 required
                 error={getFieldError(fieldErrors, 'provider')}
               />
@@ -231,7 +241,11 @@ function ManualDayRow({ manualDay }: { manualDay: ManualDayRecord }) {
   );
 }
 
-export function ManualDaysPage({ manualDays }: ManualDaysPageProps) {
+export function ManualDaysPage({
+  manualDays,
+  circuitOptions,
+  providerOptions,
+}: ManualDaysPageProps) {
   const groups = groupManualDaysByMonth(manualDays);
 
   return (
@@ -262,7 +276,10 @@ export function ManualDaysPage({ manualDays }: ManualDaysPageProps) {
         }
       />
 
-      <ManualDayForm />
+      <ManualDayForm
+        circuitOptions={circuitOptions}
+        providerOptions={providerOptions}
+      />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="lg">

@@ -1,6 +1,8 @@
 import { useLoaderData } from 'react-router';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { submitCreateManualDay } from '~/lib/days/actions.server';
+import { listCircuitOptions } from '~/lib/days/aggregation.server';
+import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
 import {
   ManualDaysPage,
@@ -10,11 +12,31 @@ import type { Route } from './+types/manual-days';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { headers } = await requireAdmin(request);
-  const manualDays = await listManagedManualDays();
+  const [manualDays, snapshot] = await Promise.all([
+    listManagedManualDays(),
+    getAvailableDaysSnapshot(),
+  ]);
+  const circuitOptions = listCircuitOptions([
+    ...(snapshot?.days ?? []),
+    ...manualDays,
+  ]);
+  const providerOptions = [
+    ...new Set([
+      ...(snapshot?.days.map((day) => day.provider) ?? []),
+      ...manualDays.map((day) => day.provider),
+    ]),
+  ].sort();
 
-  return Response.json({ manualDays } satisfies ManualDaysPageProps, {
-    headers,
-  });
+  return Response.json(
+    {
+      manualDays,
+      circuitOptions,
+      providerOptions,
+    } satisfies ManualDaysPageProps,
+    {
+      headers,
+    },
+  );
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -30,5 +52,5 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function ManualDaysRoute() {
   const data = useLoaderData<typeof loader>() as ManualDaysPageProps;
-  return <ManualDaysPage manualDays={data.manualDays} />;
+  return <ManualDaysPage {...data} />;
 }
