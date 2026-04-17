@@ -21,7 +21,9 @@ import {
 import type { Route } from './+types/root';
 import { theme } from './theme';
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
+import '@mantine/schedule/styles.css';
 import './app.css';
 
 export const links: Route.LinksFunction = () => [

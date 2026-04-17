@@ -14,6 +14,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconCalendarMonth,
   IconHome2,
   IconHotelService,
   IconMoon,
@@ -53,6 +54,12 @@ export default function DashboardLayoutRoute() {
       to: '/dashboard/days',
       icon: IconRoad,
       active: location.pathname.startsWith('/dashboard/days'),
+    },
+    {
+      label: 'Schedule',
+      to: '/dashboard/schedule',
+      icon: IconCalendarMonth,
+      active: location.pathname.startsWith('/dashboard/schedule'),
     },
     {
       label: 'My Bookings',

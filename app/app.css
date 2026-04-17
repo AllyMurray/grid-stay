@@ -426,6 +426,25 @@ html[data-mantine-color-scheme='dark'] .day-card {
   display: none;
 }
 
+.schedule-mobile-row {
+  padding: 0.85rem 0.75rem;
+  border-radius: 8px;
+}
+
+.schedule-mobile-date {
+  flex: 0 0 4.5rem;
+  min-width: 4.5rem;
+}
+
+.schedule-mobile-summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-mobile-row:hover {
+  background: rgba(16, 20, 24, 0.03);
+}
+
 html[data-mantine-color-scheme='dark'] .booking-list-item:hover {
   background: rgba(255, 255, 255, 0.04);
 }
@@ -439,6 +458,10 @@ html[data-mantine-color-scheme='dark'] .day-list-item:hover {
 }
 
 html[data-mantine-color-scheme='dark'] .attendee-roster-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-mantine-color-scheme='dark'] .schedule-mobile-row:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 

@@ -18,6 +18,7 @@ export default [
   layout('routes/_dashboard.tsx', [
     route('dashboard', 'routes/dashboard/index.tsx'),
     route('dashboard/days', 'routes/dashboard/days.tsx'),
+    route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
     route('dashboard/members', 'routes/dashboard/members.tsx'),
   ]),
