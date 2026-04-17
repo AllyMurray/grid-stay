@@ -37,6 +37,11 @@ export interface DaySourceDependencies {
   today?: string;
 }
 
+interface AdapterFetchResult {
+  days: AvailableDay[];
+  errors: DaySourceError[];
+}
+
 const DEFAULT_TESTING_ADAPTERS = [
   silverstoneAdapter,
   knockhillAdapter,
@@ -231,20 +236,46 @@ export async function fetchRaceDaysFromCaterham(): Promise<AvailableDay[]> {
 
 async function fetchFromTestingAdapters(
   adapters: TestingAdapter[],
-): Promise<AvailableDay[]> {
-  const result = await Promise.all(
+): Promise<AdapterFetchResult> {
+  const results = await Promise.allSettled(
     adapters.map((adapter) => adapter.fetchSchedule(adapter.circuitIds)),
   );
-  return result.flatMap((days) => days.map(normalizeTestingDay));
+
+  const days: AvailableDay[] = [];
+  const errors: DaySourceError[] = [];
+
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      days.push(...result.value.map(normalizeTestingDay));
+      return;
+    }
+
+    errors.push(toError(adapters[index]?.name ?? 'testing', result.reason));
+  });
+
+  return { days, errors };
 }
 
 async function fetchFromTrackDayAdapters(
   adapters: TrackDayAdapter[],
-): Promise<AvailableDay[]> {
-  const result = await Promise.all(
+): Promise<AdapterFetchResult> {
+  const results = await Promise.allSettled(
     adapters.map((adapter) => adapter.fetchSchedule(adapter.circuitIds)),
   );
-  return result.flatMap((days) => days.map(normalizeTrackDay));
+
+  const days: AvailableDay[] = [];
+  const errors: DaySourceError[] = [];
+
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      days.push(...result.value.map(normalizeTrackDay));
+      return;
+    }
+
+    errors.push(toError(adapters[index]?.name ?? 'trackdays', result.reason));
+  });
+
+  return { days, errors };
 }
 
 function toError(source: string, error: unknown): DaySourceError {
@@ -259,7 +290,7 @@ export async function listAvailableDays(
 ): Promise<AvailableDaysResult> {
   const today = dependencies.today ?? new Date().toISOString().slice(0, 10);
   const raceLoader = dependencies.fetchRaceDays ?? fetchRaceDaysFromCaterham;
-  const results = await Promise.allSettled([
+  const [raceResult, testingResult, trackDayResult] = await Promise.allSettled([
     raceLoader(),
     fetchFromTestingAdapters(
       dependencies.testingAdapters ?? DEFAULT_TESTING_ADAPTERS,
@@ -269,18 +300,28 @@ export async function listAvailableDays(
     ),
   ]);
 
-  const sources = ['caterham', 'testing', 'trackdays'] as const;
   const days: AvailableDay[] = [];
   const errors: DaySourceError[] = [];
 
-  results.forEach((result, index) => {
-    if (result.status === 'fulfilled') {
-      days.push(...result.value);
-      return;
-    }
+  if (raceResult.status === 'fulfilled') {
+    days.push(...raceResult.value);
+  } else {
+    errors.push(toError('caterham', raceResult.reason));
+  }
 
-    errors.push(toError(sources[index], result.reason));
-  });
+  if (testingResult.status === 'fulfilled') {
+    days.push(...testingResult.value.days);
+    errors.push(...testingResult.value.errors);
+  } else {
+    errors.push(toError('testing', testingResult.reason));
+  }
+
+  if (trackDayResult.status === 'fulfilled') {
+    days.push(...trackDayResult.value.days);
+    errors.push(...trackDayResult.value.errors);
+  } else {
+    errors.push(toError('trackdays', trackDayResult.reason));
+  }
 
   const deduped = new Map<string, AvailableDay>();
   for (const day of days) {

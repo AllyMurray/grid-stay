@@ -197,8 +197,58 @@ describe('listAvailableDays', () => {
     expect(result.days).toHaveLength(1);
     expect(result.errors).toEqual([
       {
-        source: 'testing',
+        source: 'broken-testing',
         message: 'Testing feed timed out',
+      },
+    ]);
+  });
+
+  it('keeps successful track day adapters when another track day feed fails', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [],
+      testingAdapters: [],
+      trackDayAdapters: [
+        {
+          name: 'broken-trackdays',
+          description: 'Broken track day adapter',
+          circuitIds: ['broken'],
+          async fetchSchedule() {
+            throw new Error('Provider returned 500');
+          },
+        },
+        {
+          name: 'working-trackdays',
+          description: 'Working track day adapter',
+          circuitIds: ['croft'],
+          async fetchSchedule() {
+            return [
+              {
+                date: '2026-04-24',
+                circuitName: 'Croft',
+                circuitId: 'croft',
+                organizer: 'Croft Circuit',
+                format: 'Croft Car Track Day',
+                availability: 'unknown' as const,
+                source: 'croft-trackday',
+              },
+            ];
+          },
+        },
+      ],
+    });
+
+    expect(result.days).toEqual([
+      expect.objectContaining({
+        date: '2026-04-24',
+        circuit: 'Croft',
+        type: 'track_day',
+      }),
+    ]);
+    expect(result.errors).toEqual([
+      {
+        source: 'broken-trackdays',
+        message: 'Provider returned 500',
       },
     ]);
   });
