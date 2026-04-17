@@ -1649,7 +1649,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 <Button
                   component={Link}
                   to={createDaysIndexHref(data.filters)}
-                  variant="subtle"
+                  variant="default"
                   preventScrollReset
                 >
                   Back to available days
