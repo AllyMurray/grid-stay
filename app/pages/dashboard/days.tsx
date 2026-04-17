@@ -484,7 +484,7 @@ function DayProviderBookingLink({ day }: { day: DayRow }) {
 }
 
 function formatRaceSeriesCount(count: number) {
-  return `${count} race ${count === 1 ? 'day' : 'days'} in the calendar`;
+  return `${count} race ${count === 1 ? 'round' : 'rounds'} in the calendar`;
 }
 
 function SeriesBookingAction({
@@ -521,43 +521,44 @@ function SeriesBookingAction({
         {series.existingBookingCount} already in My Bookings
       </Text>
       <Text size="xs" c="dimmed">
-        Existing bookings keep their status and notes.
+        Existing round bookings keep their status and notes.
       </Text>
 
-      <fetcher.Form method="post" className="day-booking-form">
-        <input type="hidden" name="intent" value="addRaceSeries" />
-        <input type="hidden" name="dayId" value={day.dayId} />
-        <Group gap="xs" wrap="wrap" className="day-booking-button-row">
-          <Button
-            type="submit"
-            name="status"
-            value="maybe"
-            size="sm"
-            variant="default"
-            disabled={isSubmitting || missingCount === 0}
-            className="day-booking-button"
-          >
-            Add missing as maybe
-          </Button>
-          <Button
-            type="submit"
-            name="status"
-            value="booked"
-            size="sm"
-            color="brand"
-            variant="filled"
-            loading={isSubmitting}
-            disabled={missingCount === 0}
-            className="day-booking-button"
-          >
-            Add missing as booked
-          </Button>
-        </Group>
-      </fetcher.Form>
+      {missingCount > 0 ? (
+        <fetcher.Form method="post" className="day-booking-form">
+          <input type="hidden" name="intent" value="addRaceSeries" />
+          <input type="hidden" name="dayId" value={day.dayId} />
+          <Group gap="xs" wrap="wrap" className="day-booking-button-row">
+            <Button
+              type="submit"
+              name="status"
+              value="maybe"
+              size="sm"
+              variant="default"
+              disabled={isSubmitting}
+              className="day-booking-button"
+            >
+              Add missing as maybe
+            </Button>
+            <Button
+              type="submit"
+              name="status"
+              value="booked"
+              size="sm"
+              color="brand"
+              variant="filled"
+              loading={isSubmitting}
+              className="day-booking-button"
+            >
+              Add missing as booked
+            </Button>
+          </Group>
+        </fetcher.Form>
+      ) : null}
 
       {missingCount === 0 ? (
         <Text size="xs" c="dimmed" className="day-booking-error">
-          Every round from this series is already in your bookings.
+          All race rounds from this series are already in My Bookings.
         </Text>
       ) : null}
 

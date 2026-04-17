@@ -335,7 +335,7 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('Caterham Academy')).toBeInTheDocument();
     expect(
       screen.getByText(
-        '7 race days in the calendar • 2 already in My Bookings',
+        '7 race rounds in the calendar • 2 already in My Bookings',
       ),
     ).toBeInTheDocument();
     expect(
@@ -344,6 +344,62 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('button', { name: /add missing as booked/i }),
     ).toBeVisible();
+  });
+
+  it('uses non-actionable series copy when every linked race round is already booked', () => {
+    const selectedDay = {
+      dayId: 'manual:drift-day',
+      date: '2026-04-22',
+      type: 'track_day' as const,
+      circuit: 'Brands Hatch',
+      provider: 'Caterham Motorsport',
+      description: 'Drift Day',
+    };
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          days: [selectedDay, ...defaultData.days],
+          selectedDay,
+          selectedDayPosition: 2,
+          selectedDaySummary: {
+            attendeeCount: 0,
+            accommodationNames: [],
+          },
+          selectedDayAttendance: {
+            attendeeCount: 0,
+            accommodationNames: [],
+            attendees: [],
+          },
+          raceSeriesByDayId: {
+            'manual:drift-day': {
+              name: 'Caterham Academy',
+              totalCount: 5,
+              existingBookingCount: 5,
+            },
+          },
+        }}
+      />,
+      '/dashboard/days?day=manual%3Adrift-day',
+    );
+
+    expect(
+      screen.getByText(
+        '5 race rounds in the calendar • 5 already in My Bookings',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'All race rounds from this series are already in My Bookings.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /add missing as maybe/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /add missing as booked/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('moves between loaded matching days from the selected-day header', async () => {
