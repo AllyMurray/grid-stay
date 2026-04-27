@@ -104,6 +104,12 @@ function toCreateBookingInput(
     date: day.date,
     type: day.type,
     circuit: day.circuit,
+    ...(day.circuitId ? { circuitId: day.circuitId } : {}),
+    ...(day.circuitName ? { circuitName: day.circuitName } : {}),
+    ...(day.layout ? { layout: day.layout } : {}),
+    ...(day.circuitKnown !== undefined
+      ? { circuitKnown: day.circuitKnown }
+      : {}),
     provider: day.provider,
     description: day.description,
     status,
@@ -246,6 +252,12 @@ export async function submitBulkRaceSeriesBooking(
       date: day.date,
       type: day.type,
       circuit: day.circuit,
+      ...(day.circuitId ? { circuitId: day.circuitId } : {}),
+      ...(day.circuitName ? { circuitName: day.circuitName } : {}),
+      ...(day.layout ? { layout: day.layout } : {}),
+      ...(day.circuitKnown !== undefined
+        ? { circuitKnown: day.circuitKnown }
+        : {}),
       provider: day.provider,
       description: day.description,
       status: parsed.data.status,

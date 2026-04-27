@@ -176,6 +176,10 @@ describe('booking service', () => {
         date: '2026-05-10',
         type: 'race_day',
         circuit: 'Snetterton',
+        circuitId: 'snetterton',
+        circuitName: 'Snetterton',
+        layout: '300',
+        circuitKnown: true,
         provider: 'Caterham Motorsport',
         description: 'Round 1',
         status: 'booked',
@@ -188,6 +192,13 @@ describe('booking service', () => {
     expect(created.dayId).toBe('day-1');
     expect(created.bookingId).toBe('day-1');
     expect(created.type).toBe('race_day');
+    expect(created).toMatchObject({
+      circuit: 'Snetterton',
+      circuitId: 'snetterton',
+      circuitName: 'Snetterton',
+      layout: '300',
+      circuitKnown: true,
+    });
     expect(memory.items).toHaveLength(1);
     expect(memory.summaries.get('day-1')).toMatchObject({
       attendeeCount: 1,
@@ -200,6 +211,10 @@ describe('booking service', () => {
         date: '2026-05-10',
         type: 'race_day',
         circuit: 'Snetterton',
+        circuitId: 'snetterton',
+        circuitName: 'Snetterton',
+        layout: '300',
+        circuitKnown: true,
         provider: 'Caterham Motorsport',
         description: 'Round 1',
         status: 'maybe',
@@ -454,6 +469,10 @@ describe('booking service', () => {
           date: '2026-05-10',
           type: 'race_day',
           circuit: 'Snetterton',
+          circuitId: 'snetterton',
+          circuitName: 'Snetterton',
+          layout: '300',
+          circuitKnown: true,
           provider: 'Caterham Motorsport',
           description: 'Round 1 refreshed',
           status: 'booked',
@@ -463,6 +482,10 @@ describe('booking service', () => {
           date: '2026-05-24',
           type: 'race_day',
           circuit: 'Brands Hatch',
+          circuitId: 'brands-hatch',
+          circuitName: 'Brands Hatch',
+          layout: 'Indy',
+          circuitKnown: true,
           provider: 'Caterham Motorsport',
           description: 'Round 2',
           status: 'booked',
@@ -486,12 +509,20 @@ describe('booking service', () => {
       bookingReference: 'REF-1',
       notes: 'Keep this',
       description: 'Round 1 refreshed',
+      circuitId: 'snetterton',
+      circuitName: 'Snetterton',
+      layout: '300',
+      circuitKnown: true,
     });
     expect(memory.items[1]).toMatchObject({
       dayId: 'day-2',
       type: 'race_day',
       status: 'booked',
       circuit: 'Brands Hatch',
+      circuitId: 'brands-hatch',
+      circuitName: 'Brands Hatch',
+      layout: 'Indy',
+      circuitKnown: true,
     });
     expect(memory.summaries.get('day-2')).toMatchObject({
       attendeeCount: 1,

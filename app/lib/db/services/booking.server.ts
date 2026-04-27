@@ -95,6 +95,18 @@ function getBookingRefreshChanges(
   if (existing.circuit !== input.circuit) {
     changes.circuit = input.circuit;
   }
+  if ((existing.circuitId ?? '') !== (input.circuitId ?? '')) {
+    changes.circuitId = input.circuitId;
+  }
+  if ((existing.circuitName ?? '') !== (input.circuitName ?? '')) {
+    changes.circuitName = input.circuitName;
+  }
+  if ((existing.layout ?? '') !== (input.layout ?? '')) {
+    changes.layout = input.layout;
+  }
+  if ((existing.circuitKnown ?? false) !== (input.circuitKnown ?? false)) {
+    changes.circuitKnown = input.circuitKnown;
+  }
   if (existing.provider !== input.provider) {
     changes.provider = input.provider;
   }
@@ -149,6 +161,10 @@ export async function createBooking(
       type: input.type,
       status: input.status,
       circuit: input.circuit,
+      circuitId: input.circuitId,
+      circuitName: input.circuitName,
+      layout: input.layout,
+      circuitKnown: input.circuitKnown,
       provider: input.provider,
       description: input.description,
       userName: user.name,
@@ -173,6 +189,10 @@ export async function createBooking(
     type: input.type,
     status: input.status,
     circuit: input.circuit,
+    circuitId: input.circuitId,
+    circuitName: input.circuitName,
+    layout: input.layout,
+    circuitKnown: input.circuitKnown,
     provider: input.provider,
     description: input.description,
     createdAt: now,
@@ -228,6 +248,10 @@ export async function ensureBookingsForDays(
       type: input.type,
       status: defaultStatus,
       circuit: input.circuit,
+      circuitId: input.circuitId,
+      circuitName: input.circuitName,
+      layout: input.layout,
+      circuitKnown: input.circuitKnown,
       provider: input.provider,
       description: input.description,
       createdAt: now,
@@ -306,6 +330,10 @@ export async function applySharedStaySelection(
       type: input.type,
       status: existing.status === 'cancelled' ? input.status : existing.status,
       circuit: input.circuit,
+      circuitId: input.circuitId,
+      circuitName: input.circuitName,
+      layout: input.layout,
+      circuitKnown: input.circuitKnown,
       provider: input.provider,
       description: input.description,
       userName: user.name,
@@ -331,6 +359,10 @@ export async function applySharedStaySelection(
     type: input.type,
     status: input.status,
     circuit: input.circuit,
+    circuitId: input.circuitId,
+    circuitName: input.circuitName,
+    layout: input.layout,
+    circuitKnown: input.circuitKnown,
     provider: input.provider,
     description: input.description,
     createdAt: now,
