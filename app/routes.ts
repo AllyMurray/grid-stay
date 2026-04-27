@@ -10,7 +10,9 @@ export default [
   route('auth/login', 'routes/auth/login.tsx'),
   route('auth/logout', 'routes/auth/logout.tsx'),
   route('api/auth/*', 'routes/api.auth.$.tsx'),
+  route('api/calendar-feed', 'routes/api.calendar-feed.tsx'),
   route('api/dashboard/days-feed', 'routes/api.dashboard.days-feed.tsx'),
+  route('calendar/:token', 'routes/calendar.$token.tsx'),
   route(
     'api/days/:dayId/attendees',
     'routes/dashboard/days.$dayId.attendees.tsx',

@@ -125,6 +125,36 @@ describe('BookingSchedulePage', () => {
     ).toHaveAttribute('href', '/dashboard/bookings');
   });
 
+  it('opens the calendar sync modal with subscription links', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <BookingSchedulePage
+        bookings={[bookingOne, bookingTwo]}
+        calendarFeedUrl="https://gridstay.app/calendar/private-token.ics"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /sync calendar/i }));
+
+    expect(
+      await screen.findByDisplayValue(
+        'https://gridstay.app/calendar/private-token.ics',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /subscribe on this device/i }),
+    ).toHaveAttribute(
+      'href',
+      'webcal://gridstay.app/calendar/private-token.ics',
+    );
+    expect(
+      screen.getByRole('link', { name: /add to google calendar/i }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('https%3A%2F%2Fgridstay.app'),
+    );
+  });
+
   it('updates the selected booking when a schedule event is clicked', async () => {
     const user = userEvent.setup();
     renderWithProviders(

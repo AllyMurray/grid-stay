@@ -1,15 +1,18 @@
 import {
+  Alert,
   Badge,
   Button,
   Divider,
   Group,
+  Modal,
   Paper,
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
   Schedule,
   type ScheduleEventData,
@@ -17,7 +20,7 @@ import {
 } from '@mantine/schedule';
 import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
@@ -25,6 +28,22 @@ import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface BookingSchedulePageProps {
   bookings: BookingRecord[];
+  calendarFeedUrl?: string | null;
+  calendarFeedAction?: string;
+}
+
+type CalendarFeedActionResult =
+  | {
+      ok: true;
+      feedUrl: string;
+    }
+  | {
+      ok: false;
+      formError: string;
+    };
+
+function toWebcalUrl(feedUrl: string) {
+  return feedUrl.replace(/^https?:\/\//, 'webcal://');
 }
 
 interface ScheduleBookingEventPayload {
@@ -188,6 +207,113 @@ function ScheduleLegend() {
   );
 }
 
+function CalendarSyncModal({
+  opened,
+  onClose,
+  initialFeedUrl,
+  action,
+}: {
+  opened: boolean;
+  onClose: () => void;
+  initialFeedUrl: string | null;
+  action: string;
+}) {
+  const fetcher = useFetcher<CalendarFeedActionResult>();
+  const [copied, setCopied] = useState(false);
+  const isSubmitting = fetcher.state !== 'idle';
+  const actionFeedUrl = fetcher.data?.ok ? fetcher.data.feedUrl : null;
+  const feedUrl = actionFeedUrl ?? initialFeedUrl;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title="Sync calendar"
+      centered
+      size="lg"
+    >
+      <Stack gap="md">
+        <Text size="sm" c="dimmed">
+          Subscribe from Apple Calendar, Google Calendar, Outlook, or another
+          calendar app. Cancelled trips are left out of the feed.
+        </Text>
+
+        {formError ? (
+          <Alert color="red" variant="light">
+            {formError}
+          </Alert>
+        ) : null}
+
+        {feedUrl ? (
+          <>
+            <TextInput
+              label="Private calendar link"
+              value={feedUrl}
+              readOnly
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <Group gap="sm" wrap="wrap">
+              <Button component="a" href={toWebcalUrl(feedUrl)}>
+                Subscribe on this device
+              </Button>
+              <Button
+                component="a"
+                href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(
+                  feedUrl,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                variant="default"
+              >
+                Add to Google Calendar
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(feedUrl);
+                    setCopied(true);
+                  } catch {
+                    setCopied(false);
+                  }
+                }}
+              >
+                {copied ? 'Copied' : 'Copy link'}
+              </Button>
+            </Group>
+          </>
+        ) : (
+          <Text size="sm">
+            Create a private calendar link first. Anyone with the link can see
+            the trips in your schedule.
+          </Text>
+        )}
+
+        <Divider />
+
+        <Group justify="space-between" align="center" gap="md">
+          <Text size="sm" c="dimmed">
+            Regenerating the link turns off the previous one.
+          </Text>
+          <fetcher.Form method="post" action={action}>
+            <input
+              type="hidden"
+              name="intent"
+              value={feedUrl ? 'regenerateCalendarFeed' : 'createCalendarFeed'}
+            />
+            <Button type="submit" variant="default" loading={isSubmitting}>
+              {feedUrl ? 'Regenerate link' : 'Create link'}
+            </Button>
+          </fetcher.Form>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+}
+
 function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
   const sections = groupBookingsByMonth(bookings);
 
@@ -254,10 +380,15 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
   );
 }
 
-export function BookingSchedulePage({ bookings }: BookingSchedulePageProps) {
+export function BookingSchedulePage({
+  bookings,
+  calendarFeedUrl = null,
+  calendarFeedAction = '/api/calendar-feed',
+}: BookingSchedulePageProps) {
   const isMobile = useMediaQuery('(max-width: 48em)', false, {
     getInitialValueInEffect: false,
   });
+  const [syncOpened, syncHandlers] = useDisclosure(false);
   const sortedBookings = useMemo(
     () => [...bookings].sort(sortBookings),
     [bookings],
@@ -311,6 +442,12 @@ export function BookingSchedulePage({ bookings }: BookingSchedulePageProps) {
 
   return (
     <Stack gap="xl">
+      <CalendarSyncModal
+        opened={syncOpened}
+        onClose={syncHandlers.close}
+        initialFeedUrl={calendarFeedUrl}
+        action={calendarFeedAction}
+      />
       <PageHeader
         eyebrow="Trip calendar"
         title="Schedule"
@@ -326,9 +463,14 @@ export function BookingSchedulePage({ bookings }: BookingSchedulePageProps) {
           />
         }
         actions={
-          <Button component={Link} to="/dashboard/bookings" variant="default">
-            Manage bookings
-          </Button>
+          <Group gap="sm" wrap="wrap">
+            <Button type="button" variant="default" onClick={syncHandlers.open}>
+              Sync calendar
+            </Button>
+            <Button component={Link} to="/dashboard/bookings" variant="default">
+              Manage bookings
+            </Button>
+          </Group>
         }
       />
 
