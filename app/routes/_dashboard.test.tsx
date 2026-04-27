@@ -1,5 +1,5 @@
 import { MantineProvider } from '@mantine/core';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
@@ -52,17 +52,8 @@ function renderDashboard() {
   return render(<Stub initialEntries={['/dashboard']} />);
 }
 
-function getAppShellStyles() {
-  return Array.from(
-    document.querySelectorAll('style[data-mantine-styles="inline"]'),
-  )
-    .map((styleElement) => styleElement.textContent ?? '')
-    .filter((styleText) => styleText.includes('--app-shell-navbar'))
-    .join('\n');
-}
-
 describe('DashboardLayoutRoute', () => {
-  it('updates Mantine AppShell mobile navbar styles when the menu opens', async () => {
+  it('opens the mobile navigation drawer from the menu button', async () => {
     const user = userEvent.setup();
     renderDashboard();
 
@@ -70,18 +61,13 @@ describe('DashboardLayoutRoute', () => {
       name: 'Open menu',
     });
 
-    expect(getAppShellStyles()).toContain(
-      '--app-shell-navbar-transform:translateX(calc(var(--app-shell-navbar-width) * -1))',
-    );
-
     await user.click(menuButton);
 
-    await waitFor(() => {
-      expect(getAppShellStyles()).not.toContain(
-        '--app-shell-navbar-transform:translateX(calc(var(--app-shell-navbar-width) * -1))',
-      );
-    });
-    expect(getAppShellStyles()).toContain('--app-shell-navbar-width:100%');
+    const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+
+    expect(
+      within(drawer).getByRole('link', { name: 'Members' }),
+    ).toHaveAttribute('href', '/dashboard/members');
     expect(menuButton).toHaveAttribute('aria-expanded', 'true');
   });
 

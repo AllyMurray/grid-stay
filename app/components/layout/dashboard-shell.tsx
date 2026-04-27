@@ -6,6 +6,7 @@ import {
   Button,
   Container,
   Divider,
+  Drawer,
   Group,
   Indicator,
   NavLink,
@@ -27,14 +28,120 @@ import {
   IconSun,
   IconUsersGroup,
 } from '@tabler/icons-react';
+import type { ComponentType } from 'react';
 import { useEffect } from 'react';
 import { Link, Outlet, useLocation, useRevalidator } from 'react-router';
 import { isAdminUser } from '~/lib/auth/authorization';
 import type { User } from '~/lib/auth/schemas';
 
+interface DashboardNavItem {
+  label: string;
+  to: string;
+  icon: ComponentType<{ size?: number | string }>;
+  active: boolean;
+  count?: number;
+}
+
 export interface DashboardShellProps {
   user: User;
   unreadNotificationCount: number;
+}
+
+interface DashboardNavContentProps {
+  user: User;
+  navItems: DashboardNavItem[];
+  adminNavItems: DashboardNavItem[];
+  isAdmin: boolean;
+  onNavigate: () => void;
+}
+
+function DashboardNavContent({
+  user,
+  navItems,
+  adminNavItems,
+  isAdmin,
+  onNavigate,
+}: DashboardNavContentProps) {
+  return (
+    <>
+      <AppShell.Section>
+        <Stack className="dashboard-sidebar-profile" gap="md">
+          <Group align="flex-start" wrap="nowrap">
+            <Avatar src={user.picture} alt={user.name} radius="sm" size={40} />
+            <Stack gap={0}>
+              <Text fw={700}>{user.name}</Text>
+              <Text size="sm" c="dimmed" lineClamp={1}>
+                {user.email}
+              </Text>
+            </Stack>
+          </Group>
+          <Button component={Link} to="/auth/logout" variant="subtle" fullWidth>
+            Log out
+          </Button>
+        </Stack>
+      </AppShell.Section>
+
+      <AppShell.Section grow mt="lg">
+        <Stack gap="md">
+          <Stack gap={4}>
+            {navItems.map((item) => {
+              const itemCount = item.count ?? 0;
+              const Icon = item.icon;
+
+              return (
+                <NavLink
+                  key={item.to}
+                  component={Link}
+                  to={item.to}
+                  label={item.label}
+                  leftSection={<Icon size={18} />}
+                  rightSection={
+                    itemCount > 0 ? (
+                      <Text size="xs" fw={800} c="brand.7">
+                        {itemCount}
+                      </Text>
+                    ) : null
+                  }
+                  active={item.active}
+                  variant="filled"
+                  color="brand"
+                  onClick={onNavigate}
+                />
+              );
+            })}
+          </Stack>
+
+          {isAdmin ? (
+            <Stack gap={6}>
+              <Divider />
+              <Text size="xs" fw={800} c="dimmed" tt="uppercase">
+                Admin
+              </Text>
+              <Stack gap={4}>
+                {adminNavItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <NavLink
+                      key={item.to}
+                      component={Link}
+                      to={item.to}
+                      label={item.label}
+                      leftSection={<Icon size={18} />}
+                      active={item.active}
+                      variant="filled"
+                      color="brand"
+                      onClick={onNavigate}
+                    />
+                  );
+                })}
+              </Stack>
+            </Stack>
+          ) : null}
+        </Stack>
+      </AppShell.Section>
+    </>
+  );
 }
 
 export function DashboardShell({
@@ -49,6 +156,7 @@ export function DashboardShell({
   const [opened, { toggle, close }] = useDisclosure(false);
   const revalidator = useRevalidator();
   const isAdmin = isAdminUser(user);
+  const mobileMenuId = 'dashboard-mobile-menu';
 
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {
@@ -127,7 +235,7 @@ export function DashboardShell({
       navbar={{
         width: 248,
         breakpoint: 'sm',
-        collapsed: { mobile: !opened },
+        collapsed: { mobile: true },
       }}
       padding={{ base: 'xs', sm: 'md' }}
     >
@@ -137,6 +245,7 @@ export function DashboardShell({
             <Burger
               opened={opened}
               onClick={toggle}
+              aria-controls={mobileMenuId}
               aria-expanded={opened}
               aria-label={opened ? 'Close menu' : 'Open menu'}
               hiddenFrom="sm"
@@ -203,88 +312,36 @@ export function DashboardShell({
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p={{ base: 'sm', sm: 'md' }}>
-        <AppShell.Section>
-          <Stack className="dashboard-sidebar-profile" gap="md">
-            <Group align="flex-start" wrap="nowrap">
-              <Avatar
-                src={user.picture}
-                alt={user.name}
-                radius="sm"
-                size={40}
-              />
-              <Stack gap={0}>
-                <Text fw={700}>{user.name}</Text>
-                <Text size="sm" c="dimmed" lineClamp={1}>
-                  {user.email}
-                </Text>
-              </Stack>
-            </Group>
-            <Button
-              component={Link}
-              to="/auth/logout"
-              variant="subtle"
-              fullWidth
-            >
-              Log out
-            </Button>
-          </Stack>
-        </AppShell.Section>
+      <Drawer
+        id={mobileMenuId}
+        opened={opened}
+        onClose={close}
+        title="Navigation"
+        position="left"
+        size="min(20rem, 88vw)"
+        padding="md"
+        hiddenFrom="sm"
+        closeButtonProps={{ 'aria-label': 'Close menu' }}
+      >
+        <Stack gap="lg">
+          <DashboardNavContent
+            user={user}
+            navItems={navItems}
+            adminNavItems={adminNavItems}
+            isAdmin={isAdmin}
+            onNavigate={close}
+          />
+        </Stack>
+      </Drawer>
 
-        <AppShell.Section grow mt="lg">
-          <Stack gap="md">
-            <Stack gap={4}>
-              {navItems.map((item) => {
-                const itemCount = 'count' in item ? (item.count ?? 0) : 0;
-
-                return (
-                  <NavLink
-                    key={item.to}
-                    component={Link}
-                    to={item.to}
-                    label={item.label}
-                    leftSection={<item.icon size={18} />}
-                    rightSection={
-                      itemCount > 0 ? (
-                        <Text size="xs" fw={800} c="brand.7">
-                          {itemCount}
-                        </Text>
-                      ) : null
-                    }
-                    active={item.active}
-                    variant="filled"
-                    color="brand"
-                    onClick={close}
-                  />
-                );
-              })}
-            </Stack>
-
-            {isAdmin ? (
-              <Stack gap={6}>
-                <Divider />
-                <Text size="xs" fw={800} c="dimmed" tt="uppercase">
-                  Admin
-                </Text>
-                <Stack gap={4}>
-                  {adminNavItems.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      component={Link}
-                      to={item.to}
-                      label={item.label}
-                      leftSection={<item.icon size={18} />}
-                      active={item.active}
-                      variant="filled"
-                      color="brand"
-                      onClick={close}
-                    />
-                  ))}
-                </Stack>
-              </Stack>
-            ) : null}
-          </Stack>
-        </AppShell.Section>
+      <AppShell.Navbar p="md" visibleFrom="sm">
+        <DashboardNavContent
+          user={user}
+          navItems={navItems}
+          adminNavItems={adminNavItems}
+          isAdmin={isAdmin}
+          onNavigate={close}
+        />
       </AppShell.Navbar>
 
       <AppShell.Main>
