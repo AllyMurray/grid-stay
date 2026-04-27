@@ -11,5 +11,6 @@ export const User = z.object({
   name: z.string(),
   picture: z.string().optional(),
   role: z.enum(USER_ROLE_VALUES).default('member'),
+  createdAt: z.string().optional(),
 });
 export type User = z.infer<typeof User>;

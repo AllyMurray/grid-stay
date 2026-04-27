@@ -6,6 +6,7 @@ import {
 import {
   isAdminUser,
   isBootstrapMemberEmail,
+  isGrandfatheredMemberUser,
   normalizeEmail,
 } from './authorization';
 import type { User } from './schemas';
@@ -174,6 +175,10 @@ export async function ensureUserMemberAccess(
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<boolean> {
   if (isAdminUser(user) || isBootstrapMemberEmail(user.email)) {
+    return true;
+  }
+
+  if (isGrandfatheredMemberUser(user)) {
     return true;
   }
 
