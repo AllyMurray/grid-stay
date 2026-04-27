@@ -31,14 +31,42 @@ describe('AdminFeedPage', () => {
           },
         ]}
         refreshedAt="2026-04-15T10:30:00.000Z"
-        dayCount={24}
+        dayCount={26}
+        snapshotDayCount={24}
+        manualDayCount={2}
+        dateRange={{
+          firstDate: '2026-05-01',
+          lastDate: '2026-10-11',
+        }}
+        sourceSummaries={[
+          {
+            key: 'testing:focused-events',
+            label: 'focused-events',
+            sourceType: 'testing',
+            dayCount: 24,
+          },
+          {
+            key: 'manual:manual',
+            label: 'Manual days',
+            sourceType: 'manual',
+            dayCount: 2,
+          },
+        ]}
+        health={{
+          status: 'warning',
+          message:
+            'The latest refresh completed with one or more source errors.',
+        }}
       />,
     );
 
     expect(
       screen.getByRole('heading', { name: 'Feed status' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('24')).toBeInTheDocument();
+    expect(screen.getByText('26')).toBeInTheDocument();
+    expect(screen.getByText('Source coverage')).toBeInTheDocument();
+    expect(screen.getByText('focused-events')).toBeInTheDocument();
+    expect(screen.getAllByText('Manual days').length).toBeGreaterThan(0);
     expect(
       screen.getByText('Some sources could not be loaded.'),
     ).toBeInTheDocument();
@@ -56,6 +84,25 @@ describe('AdminFeedPage', () => {
         sourceErrors={[]}
         refreshedAt="2026-04-15T10:30:00.000Z"
         dayCount={24}
+        snapshotDayCount={24}
+        manualDayCount={0}
+        dateRange={{
+          firstDate: '2026-05-01',
+          lastDate: '2026-10-11',
+        }}
+        sourceSummaries={[
+          {
+            key: 'trackdays:msv-trackday',
+            label: 'msv-trackday',
+            sourceType: 'trackdays',
+            dayCount: 24,
+          },
+        ]}
+        health={{
+          status: 'healthy',
+          message:
+            'The latest available-days snapshot is current and error-free.',
+        }}
       />,
     );
 
