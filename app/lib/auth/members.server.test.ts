@@ -215,25 +215,4 @@ describe('listSiteMembers', () => {
 
     expect(members.map((member) => member.id)).toEqual(['user-1', 'user-2']);
   });
-
-  it('includes existing members created before invite enforcement without accepted invites', async () => {
-    const members = await listSiteMembers(
-      async () => [
-        {
-          ...userRecords[1]!,
-          createdAt: '2026-04-27T18:59:00.000Z',
-        },
-        {
-          ...userRecords[2]!,
-          createdAt: '2026-04-27T19:11:00.000Z',
-        },
-      ],
-      async (userId) => bookingsByUser[userId] ?? [],
-      '2026-04-16',
-      async () => [],
-      async () => [],
-    );
-
-    expect(members.map((member) => member.id)).toEqual(['user-2']);
-  });
 });

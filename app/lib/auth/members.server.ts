@@ -10,7 +10,6 @@ import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.serve
 import {
   isAdminUser,
   isBootstrapMemberEmail,
-  isGrandfatheredMemberUser,
   normalizeEmail,
 } from './authorization';
 import type { User } from './schemas';
@@ -29,7 +28,6 @@ export interface AuthUserRecord {
   displayName?: string;
   image?: string;
   role?: User['role'];
-  createdAt?: string;
 }
 
 export interface MemberDirectoryEntry {
@@ -240,7 +238,6 @@ function filterInvitedUsers(
     (user) =>
       isAdminUser({ email: user.email, role: user.role ?? 'member' }) ||
       isBootstrapMemberEmail(user.email) ||
-      isGrandfatheredMemberUser(user) ||
       acceptedInviteEmails.has(normalizeEmail(user.email)),
   );
 }

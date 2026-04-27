@@ -31,10 +31,6 @@ async function readAuthSession(request: Request): Promise<{
         name: session.user.name,
         picture: session.user.image ?? undefined,
         role: (session.user as any).role ?? 'member',
-        createdAt:
-          session.user.createdAt instanceof Date
-            ? session.user.createdAt.toISOString()
-            : session.user.createdAt,
       },
       headers: sessionResult.headers,
     },

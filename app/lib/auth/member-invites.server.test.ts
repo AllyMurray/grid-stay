@@ -132,43 +132,6 @@ describe('member invite helpers', () => {
     expect(allowed).toBe(true);
   });
 
-  it('allows existing members created before invite enforcement', async () => {
-    vi.stubEnv(
-      'GRID_STAY_INVITE_GRANDFATHERED_BEFORE',
-      '2026-04-27T19:10:00.000Z',
-    );
-
-    const allowed = await ensureUserMemberAccess(
-      {
-        ...inviter,
-        createdAt: '2026-04-27T18:59:00.000Z',
-      },
-      createMemoryStore().store,
-    );
-
-    expect(allowed).toBe(true);
-  });
-
-  it('rejects new members created after invite enforcement without an invite', async () => {
-    vi.stubEnv(
-      'GRID_STAY_INVITE_GRANDFATHERED_BEFORE',
-      '2026-04-27T19:10:00.000Z',
-    );
-
-    const allowed = await ensureUserMemberAccess(
-      {
-        id: 'user-2',
-        email: 'uninvited@example.com',
-        name: 'Uninvited Driver',
-        role: 'member',
-        createdAt: '2026-04-27T19:11:00.000Z',
-      },
-      createMemoryStore().store,
-    );
-
-    expect(allowed).toBe(false);
-  });
-
   it('rejects invalid invite emails in action results', async () => {
     const formData = new FormData();
     formData.set('email', 'not-an-email');

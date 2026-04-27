@@ -49,7 +49,6 @@ describe('auth helpers', () => {
           name: 'Driver One',
           image: 'https://example.com/driver.png',
           role: 'member',
-          createdAt: new Date('2026-04-27T11:00:00.000Z'),
         },
       },
     });
@@ -68,7 +67,6 @@ describe('auth helpers', () => {
         name: 'Driver One',
         picture: 'https://example.com/driver.png',
         role: 'member',
-        createdAt: '2026-04-27T11:00:00.000Z',
       },
     });
     expect(result?.headers).toBe(headers);
@@ -91,7 +89,6 @@ describe('auth helpers', () => {
           email: 'driver@example.com',
           name: 'Driver One',
           role: 'member',
-          createdAt: new Date('2026-04-27T11:00:00.000Z'),
         },
       },
     });
@@ -101,14 +98,7 @@ describe('auth helpers', () => {
     );
 
     expect(result.user.email).toBe('driver@example.com');
-    expect(ensureUserMemberAccess).toHaveBeenCalledWith({
-      id: 'user-1',
-      email: 'driver@example.com',
-      name: 'Driver One',
-      picture: undefined,
-      role: 'member',
-      createdAt: '2026-04-27T11:00:00.000Z',
-    });
+    expect(ensureUserMemberAccess).toHaveBeenCalledWith(result.user);
   });
 
   it('rejects required users without an invite', async () => {
