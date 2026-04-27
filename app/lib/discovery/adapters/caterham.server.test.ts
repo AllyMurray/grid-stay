@@ -30,5 +30,6 @@ describe('Caterham calendar adapter', () => {
       'Round 1 - Snetterton 300',
       'Round 2 - Snetterton 300',
     ]);
+    expect(rounds.map((round) => round.layout)).toEqual(['300', '300']);
   });
 });

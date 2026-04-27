@@ -2,10 +2,8 @@
  * Caterham adapter for discovering Caterham racing series.
  * Extracts calendar data from https://caterhamcars.com/en/motorsport/championship-calendar
  */
-import {
-  normalizeCircuitLabel,
-  normalizeCircuitName,
-} from '~/lib/circuit-sources/shared.server';
+import { normalizeCircuitLabel } from '~/lib/circuit-sources/shared.server';
+import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
 import type {
   DiscoveredRound,
   DiscoveredSeason,
@@ -151,13 +149,18 @@ export function getSeriesRounds(
     e.championships.includes(seriesId.toUpperCase()),
   );
 
-  return seriesEvents.map((event, index) => ({
-    roundNumber: index + 1,
-    name: `Round ${index + 1} - ${normalizeCircuitLabel(event.circuit)}`,
-    circuit: normalizeCircuitName(event.circuit),
-    startDate: event.date,
-    endDate: event.endDate,
-  }));
+  return seriesEvents.map((event, index) => {
+    const canonicalCircuit = resolveCanonicalCircuit(event.circuit);
+
+    return {
+      roundNumber: index + 1,
+      name: `Round ${index + 1} - ${normalizeCircuitLabel(event.circuit)}`,
+      circuit: canonicalCircuit.circuitName,
+      layout: canonicalCircuit.layout,
+      startDate: event.date,
+      endDate: event.endDate,
+    };
+  });
 }
 
 /**

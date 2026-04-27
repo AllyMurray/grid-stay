@@ -73,6 +73,13 @@ describe('listAvailableDays', () => {
     expect(result.days[0]?.bookingUrl).toBe(
       'https://example.com/silverstone/testing',
     );
+    expect(result.days[0]).toEqual(
+      expect.objectContaining({
+        circuitId: 'silverstone',
+        circuitName: 'Silverstone',
+        circuitKnown: true,
+      }),
+    );
     expect(result.days[1]?.bookingUrl).toBe(
       'https://example.com/donington/trackday',
     );
@@ -126,6 +133,22 @@ describe('listAvailableDays', () => {
     expect(result.days.map((day) => day.description)).toEqual([
       'National • General Track Evening • Evening',
       'National • General Track Day • Full Day',
+    ]);
+    expect(result.days).toEqual([
+      expect.objectContaining({
+        circuit: 'Donington Park',
+        circuitId: 'donington-park',
+        circuitName: 'Donington Park',
+        layout: 'National',
+        circuitKnown: true,
+      }),
+      expect.objectContaining({
+        circuit: 'Donington Park',
+        circuitId: 'donington-park',
+        circuitName: 'Donington Park',
+        layout: 'National',
+        circuitKnown: true,
+      }),
     ]);
   });
 

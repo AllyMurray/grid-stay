@@ -7,6 +7,10 @@ export interface AvailableDay {
   date: string;
   type: AvailableDayType;
   circuit: string;
+  circuitId?: string;
+  circuitName?: string;
+  layout?: string;
+  circuitKnown?: boolean;
   provider: string;
   description: string;
   bookingUrl?: string;

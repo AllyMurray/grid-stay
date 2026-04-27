@@ -1,5 +1,6 @@
 import { ulid } from 'ulid';
 import type { User } from '~/lib/auth/schemas';
+import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
 import type { AvailableDay } from '~/lib/days/types';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
 import {
@@ -49,11 +50,17 @@ function compareManualDays(left: ManualDayRecord, right: ManualDayRecord) {
 }
 
 export function toAvailableManualDay(day: ManualDayRecord): AvailableDay {
+  const canonicalCircuit = resolveCanonicalCircuit(day.circuit);
+
   return {
     dayId: day.dayId,
     date: day.date,
     type: day.type,
-    circuit: day.circuit,
+    circuit: canonicalCircuit.circuitName,
+    circuitId: canonicalCircuit.circuitId,
+    circuitName: canonicalCircuit.circuitName,
+    layout: canonicalCircuit.layout,
+    circuitKnown: canonicalCircuit.known,
     provider: day.provider,
     description: day.description,
     bookingUrl: day.bookingUrl,

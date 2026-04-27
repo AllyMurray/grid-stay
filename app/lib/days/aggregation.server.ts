@@ -2,6 +2,7 @@ import {
   normalizeCircuitName,
   normalizeCircuitText,
 } from '~/lib/circuit-sources/shared.server';
+import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
 import { getLinkedSeriesKey } from '~/lib/days/series.server';
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
 import type { DiscoveryResult } from '~/lib/discovery/types';
@@ -116,6 +117,7 @@ function createRaceDayIdentity(
     externalId?: string;
     roundNumber?: number | string;
     circuit?: string;
+    layout?: string;
     name?: string;
     endDate?: string;
   },
@@ -166,46 +168,71 @@ function providerLabel(source: string): string {
   }
 }
 
-function normalizeTestingDay(day: TestingDay): AvailableDay {
+function applyCanonicalCircuit(
+  day: AvailableDay,
+  circuit: string,
+  layout?: string,
+): AvailableDay {
+  const canonicalCircuit = resolveCanonicalCircuit(circuit, layout);
+
   return {
-    ...createTestingDayIdentity(day),
-    date: day.date,
-    type: 'test_day',
-    circuit: day.circuitName,
-    provider: providerLabel(day.source),
-    description: compactDescription([day.layout, day.format, day.group]),
-    bookingUrl: day.bookingUrl,
-    source: {
-      sourceType: 'testing',
-      sourceName: day.source,
-      externalId: day.externalId,
-      metadata: {
-        circuitId: day.circuitId,
-        availability: day.availability,
-      },
-    },
+    ...day,
+    circuit: canonicalCircuit.circuitName,
+    circuitId: canonicalCircuit.circuitId,
+    circuitName: canonicalCircuit.circuitName,
+    layout: canonicalCircuit.layout,
+    circuitKnown: canonicalCircuit.known,
   };
 }
 
-function normalizeTrackDay(day: TrackDay): AvailableDay {
-  return {
-    ...createTrackDayIdentity(day),
-    date: day.date,
-    type: 'track_day',
-    circuit: day.circuitName,
-    provider: day.organizer || providerLabel(day.source),
-    description: compactDescription([day.layout, day.format, day.duration]),
-    bookingUrl: day.bookingUrl,
-    source: {
-      sourceType: 'trackdays',
-      sourceName: day.source,
-      externalId: day.externalId,
-      metadata: {
-        circuitId: day.circuitId,
-        availability: day.availability,
+function normalizeTestingDay(day: TestingDay): AvailableDay {
+  return applyCanonicalCircuit(
+    {
+      ...createTestingDayIdentity(day),
+      date: day.date,
+      type: 'test_day',
+      circuit: day.circuitName,
+      provider: providerLabel(day.source),
+      description: compactDescription([day.layout, day.format, day.group]),
+      bookingUrl: day.bookingUrl,
+      source: {
+        sourceType: 'testing',
+        sourceName: day.source,
+        externalId: day.externalId,
+        metadata: {
+          circuitId: day.circuitId,
+          availability: day.availability,
+        },
       },
     },
-  };
+    day.circuitName,
+    day.layout,
+  );
+}
+
+function normalizeTrackDay(day: TrackDay): AvailableDay {
+  return applyCanonicalCircuit(
+    {
+      ...createTrackDayIdentity(day),
+      date: day.date,
+      type: 'track_day',
+      circuit: day.circuitName,
+      provider: day.organizer || providerLabel(day.source),
+      description: compactDescription([day.layout, day.format, day.duration]),
+      bookingUrl: day.bookingUrl,
+      source: {
+        sourceType: 'trackdays',
+        sourceName: day.source,
+        externalId: day.externalId,
+        metadata: {
+          circuitId: day.circuitId,
+          availability: day.availability,
+        },
+      },
+    },
+    day.circuitName,
+    day.layout,
+  );
 }
 
 function normalizeRaceResults(results: DiscoveryResult[]): AvailableDay[] {
@@ -213,27 +240,33 @@ function normalizeRaceResults(results: DiscoveryResult[]): AvailableDay[] {
     (result.seasons ?? []).flatMap((season) =>
       (season.rounds ?? [])
         .filter((round) => round.startDate)
-        .map((round) => ({
-          ...createRaceDayIdentity(result, round),
-          date: round.startDate!,
-          type: 'race_day',
-          circuit: normalizeCircuitName(round.circuit ?? result.name),
-          provider: result.organiser ?? 'Caterham Motorsport',
-          description: normalizeCircuitText(
-            compactDescription([result.name, round.name]),
-          ),
-          source: {
-            sourceType: 'caterham',
-            sourceName: 'caterham',
-            externalId:
-              round.externalId ??
-              `${result.externalId ?? result.name}-${round.roundNumber}`,
-            metadata: {
-              series: result.name,
-              endDate: round.endDate,
+        .map((round) =>
+          applyCanonicalCircuit(
+            {
+              ...createRaceDayIdentity(result, round),
+              date: round.startDate!,
+              type: 'race_day',
+              circuit: normalizeCircuitName(round.circuit ?? result.name),
+              provider: result.organiser ?? 'Caterham Motorsport',
+              description: normalizeCircuitText(
+                compactDescription([result.name, round.name]),
+              ),
+              source: {
+                sourceType: 'caterham',
+                sourceName: 'caterham',
+                externalId:
+                  round.externalId ??
+                  `${result.externalId ?? result.name}-${round.roundNumber}`,
+                metadata: {
+                  series: result.name,
+                  endDate: round.endDate,
+                },
+              },
             },
-          },
-        })),
+            round.circuit ?? result.name,
+            round.layout,
+          ),
+        ),
     ),
   );
 }
@@ -362,16 +395,31 @@ export interface AvailableDayFilters {
 }
 
 export function normalizeAvailableDayCircuit(day: AvailableDay): AvailableDay {
-  const circuit = normalizeCircuitName(day.circuit);
+  const canonicalCircuit = resolveCanonicalCircuit(
+    day.circuitName ?? day.circuit,
+    day.layout,
+  );
+  const circuit = canonicalCircuit.circuitName;
   const description = normalizeCircuitText(day.description);
 
-  if (circuit === day.circuit && description === day.description) {
+  if (
+    circuit === day.circuit &&
+    description === day.description &&
+    canonicalCircuit.circuitId === day.circuitId &&
+    canonicalCircuit.circuitName === day.circuitName &&
+    canonicalCircuit.layout === day.layout &&
+    canonicalCircuit.known === day.circuitKnown
+  ) {
     return day;
   }
 
   return {
     ...day,
     circuit,
+    circuitId: canonicalCircuit.circuitId,
+    circuitName: canonicalCircuit.circuitName,
+    layout: canonicalCircuit.layout,
+    circuitKnown: canonicalCircuit.known,
     description,
   };
 }

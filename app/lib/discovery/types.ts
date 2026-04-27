@@ -52,6 +52,8 @@ export interface DiscoveredRound {
   name: string;
   /** Circuit/venue name */
   circuit?: string;
+  /** Track layout/configuration, separate from the venue name */
+  layout?: string;
   /** Start date (ISO format) */
   startDate?: string;
   /** End date (ISO format) */
