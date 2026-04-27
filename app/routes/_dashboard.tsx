@@ -11,6 +11,7 @@ import {
   Stack,
   Text,
   ThemeIcon,
+  useComputedColorScheme,
   useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -42,7 +43,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function DashboardLayoutRoute() {
   const { user } = useLoaderData<LoaderData>();
   const location = useLocation();
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const { toggleColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme('light', {
+    getInitialValueInEffect: false,
+  });
   const [opened, { toggle, close }] = useDisclosure(false);
   const isAdmin = isAdminUser(user);
 
@@ -136,9 +140,13 @@ export default function DashboardLayoutRoute() {
               onClick={() => toggleColorScheme()}
               size="lg"
               radius="sm"
-              aria-label="Toggle color scheme"
+              aria-label={
+                computedColorScheme === 'dark'
+                  ? 'Switch to light theme'
+                  : 'Switch to dark theme'
+              }
             >
-              {colorScheme === 'dark' ? (
+              {computedColorScheme === 'dark' ? (
                 <IconSun size={18} />
               ) : (
                 <IconMoon size={18} />
