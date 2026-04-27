@@ -3,8 +3,8 @@ import { AvailableDayTypeSchema } from './booking';
 
 function isValidUrl(value: string) {
   try {
-    new URL(value);
-    return true;
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:';
   } catch {
     return false;
   }
@@ -24,7 +24,7 @@ export const CreateManualDaySchema = z.object({
     .optional()
     .default('')
     .refine((value) => !value || isValidUrl(value), {
-      message: 'Enter a full URL including https://',
+      message: 'Enter a full http:// or https:// URL',
     }),
 });
 

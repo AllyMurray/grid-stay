@@ -194,4 +194,23 @@ describe('manual day action helper', () => {
     expect(result.fieldErrors.circuit?.[0]).toBeDefined();
     expect(result.fieldErrors.bookingUrl?.[0]).toBeDefined();
   });
+
+  it('rejects non-web manual day booking URLs', async () => {
+    const formData = new FormData();
+    formData.set('date', '2026-03-01');
+    formData.set('type', 'track_day');
+    formData.set('circuit', 'Donington Park');
+    formData.set('provider', 'Caterham Motorsport');
+    formData.set('bookingUrl', 'javascript:alert(1)');
+
+    const result = await submitCreateManualDay(formData, allowedUser);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected validation failure');
+    }
+    expect(result.fieldErrors.bookingUrl?.[0]).toBe(
+      'Enter a full http:// or https:// URL',
+    );
+  });
 });
