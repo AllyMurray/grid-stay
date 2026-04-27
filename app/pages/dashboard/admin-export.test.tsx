@@ -39,10 +39,11 @@ describe('AdminExportPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getByText('Calendar feeds')).toBeInTheDocument();
-    expect(screen.getByText(/Calendar feed tokens are redacted/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /download json/i })).toHaveAttribute(
-      'href',
-      '/dashboard/admin/export?download=json',
-    );
+    expect(
+      screen.getByText(/Calendar feed tokens are redacted/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /download json/i }),
+    ).toHaveAttribute('href', '/dashboard/admin/export?download=json');
   });
 });

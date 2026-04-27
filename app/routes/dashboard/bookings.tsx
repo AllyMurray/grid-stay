@@ -4,8 +4,8 @@ import {
   submitBookingDelete,
   submitBookingUpdate,
 } from '~/lib/bookings/actions.server';
-import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
 import type { Route } from './+types/bookings';

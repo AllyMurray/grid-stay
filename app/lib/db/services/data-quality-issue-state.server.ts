@@ -7,7 +7,9 @@ import {
 export const DAYS_DATA_QUALITY_ISSUE_SCOPE = 'days';
 
 export interface DataQualityIssueStatePersistence {
-  create(item: DataQualityIssueStateRecord): Promise<DataQualityIssueStateRecord>;
+  create(
+    item: DataQualityIssueStateRecord,
+  ): Promise<DataQualityIssueStateRecord>;
   update(
     issueId: string,
     changes: Partial<DataQualityIssueStateRecord>,

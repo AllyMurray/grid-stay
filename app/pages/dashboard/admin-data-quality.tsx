@@ -4,19 +4,19 @@ import {
   Group,
   Paper,
   ScrollArea,
-  TextInput,
   Stack,
   Table,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
 import { IconCircleCheck } from '@tabler/icons-react';
 import { Link, useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
-import type { DataQualityIssueStateActionResult } from '~/lib/days/data-quality.server';
 import type {
   DataQualityIssue,
+  DataQualityIssueStateActionResult,
   DaysDataQualityReport,
 } from '~/lib/days/data-quality.server';
 
@@ -202,7 +202,10 @@ export function AdminDataQualityPage({
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Badge color={statusColor(issue.status)} variant="light">
+                        <Badge
+                          color={statusColor(issue.status)}
+                          variant="light"
+                        >
                           {issue.status}
                         </Badge>
                       </Table.Td>

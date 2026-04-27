@@ -377,9 +377,7 @@ function CalendarSyncModal({
                 type="hidden"
                 name="intent"
                 value={
-                  feedExists
-                    ? 'regenerateCalendarFeed'
-                    : 'createCalendarFeed'
+                  feedExists ? 'regenerateCalendarFeed' : 'createCalendarFeed'
                 }
               />
               {optionInputs}

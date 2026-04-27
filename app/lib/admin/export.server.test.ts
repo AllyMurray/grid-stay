@@ -49,8 +49,8 @@ vi.mock('~/lib/db/entities/series-subscription.server', () => ({
   SeriesSubscriptionEntity: {},
 }));
 
-import type { CalendarFeedRecord } from '~/lib/db/entities/calendar-feed.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import type { CalendarFeedRecord } from '~/lib/db/entities/calendar-feed.server';
 import {
   createAdminDataExport,
   summarizeAdminDataExport,

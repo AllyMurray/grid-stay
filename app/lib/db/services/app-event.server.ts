@@ -91,8 +91,7 @@ function createRecord(input: AppEventInput): AppEventRecord {
     eventId: ulid(),
     eventScope: APP_EVENT_SCOPE,
     category: input.category,
-    severity:
-      input.severity ?? (input.category === 'error' ? 'error' : 'info'),
+    severity: input.severity ?? (input.category === 'error' ? 'error' : 'info'),
     action: input.action,
     message: input.message,
     actorUserId: input.actor?.userId,
@@ -118,7 +117,10 @@ export async function recordAppEventSafely(
   try {
     await recordAppEvent(input, store);
   } catch (error) {
-    console.error('Failed to record app event', { action: input.action, error });
+    console.error('Failed to record app event', {
+      action: input.action,
+      error,
+    });
   }
 }
 
@@ -127,8 +129,5 @@ export async function listRecentAppEvents(
   store: AppEventPersistence = appEventStore,
 ): Promise<AppEvent[]> {
   const records = await store.listAll();
-  return records
-    .sort(sortNewestFirst)
-    .slice(0, limit)
-    .map(toEvent);
+  return records.sort(sortNewestFirst).slice(0, limit).map(toEvent);
 }

@@ -76,7 +76,8 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
 
           <Text size="sm" c="dimmed">
             Calendar feed tokens are redacted from the export. Booking
-            references, accommodation references, and private notes are included.
+            references, accommodation references, and private notes are
+            included.
           </Text>
         </Stack>
       </Paper>

@@ -76,7 +76,7 @@ describe('calendar feed service', () => {
 
   it('regenerates a feed and disables the previous token', async () => {
     const memory = createMemoryStore();
-    const first = await ensureCalendarFeedForUser(
+    await ensureCalendarFeedForUser(
       'user-1',
       memory.store,
       () => 'first-token',

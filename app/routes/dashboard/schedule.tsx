@@ -9,8 +9,8 @@ import {
   regenerateCalendarFeedForUser,
   saveCalendarFeedOptionsForUser,
 } from '~/lib/calendar/feed.server';
-import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { BookingSchedulePage } from '~/pages/dashboard/schedule';
 import type { Route } from './+types/schedule';
