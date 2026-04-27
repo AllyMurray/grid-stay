@@ -163,4 +163,53 @@ describe('available days cache service', () => {
       refreshedAt: '2026-04-15T20:00:00.000Z',
     });
   });
+
+  it('ignores day shards from older refresh generations', async () => {
+    const memory = createMemoryStore([
+      {
+        cacheKey: 'available-days',
+        scope: 'meta',
+        refreshedAt: '2026-04-20T20:00:00.000Z',
+        payload: JSON.stringify({ errors: [] }),
+      } as AvailableDaysCacheRecord,
+      {
+        cacheKey: 'available-days',
+        scope: 'day#current-day',
+        refreshedAt: '2026-04-20T20:00:00.000Z',
+        payload: JSON.stringify({
+          dayId: 'current-day',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Academy',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+          },
+        }),
+      } as AvailableDaysCacheRecord,
+      {
+        cacheKey: 'available-days',
+        scope: 'day#stale-day',
+        refreshedAt: '2026-04-19T20:00:00.000Z',
+        payload: JSON.stringify({
+          dayId: 'stale-day',
+          date: '2026-05-09',
+          type: 'track_day',
+          circuit: 'Brands Hatch',
+          provider: 'MSV Trackdays',
+          description: 'Stale event',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'msv',
+          },
+        }),
+      } as AvailableDaysCacheRecord,
+    ]);
+
+    const snapshot = await getAvailableDaysSnapshot(memory.store);
+
+    expect(snapshot?.days.map((day) => day.dayId)).toEqual(['current-day']);
+  });
 });

@@ -100,6 +100,7 @@ function parseShardedSnapshot(
 
   const days = records
     .filter(isDayRecord)
+    .filter((record) => record.refreshedAt === metaRecord.refreshedAt)
     .map((record) => parseJson<AvailableDay>(record.payload))
     .filter((day): day is AvailableDay => Boolean(day))
     .sort((left, right) =>
@@ -164,12 +165,19 @@ export async function refreshAvailableDaysSnapshot(
   const refreshedAt = new Date().toISOString();
   const existing = await store.list();
   const nextRecords = buildSnapshotRecords(input, refreshedAt);
+  const metaRecord = nextRecords.find(
+    (record) => record.scope === AVAILABLE_DAYS_META_SCOPE,
+  );
+  const dayRecords = nextRecords.filter(isDayRecord);
   const nextScopes = new Set(nextRecords.map((record) => record.scope));
   const staleScopes = existing
     .map((record) => record.scope)
     .filter((scope) => !nextScopes.has(scope));
 
-  await store.putMany(nextRecords);
+  await store.putMany(dayRecords);
+  if (metaRecord) {
+    await store.putMany([metaRecord]);
+  }
   if (staleScopes.length > 0) {
     await store.deleteScopes(staleScopes);
   }
