@@ -28,6 +28,7 @@ import type {
   AdminMemberProfile,
   AdminSeriesOption,
 } from '~/lib/admin/member-management.server';
+import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface AdminMemberDetailPageProps {
   profile: AdminMemberProfile;
@@ -41,12 +42,12 @@ function titleCase(value: string) {
 }
 
 function formatFullDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(value));
+  });
 }
 
 function bookingColor(

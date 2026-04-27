@@ -17,6 +17,7 @@ import {
 import { Form, Link } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
+import { formatDateOnly } from '~/lib/dates/date-only';
 import type { AvailableDay } from '~/lib/days/types';
 import type { UserDayNotification } from '~/lib/db/services/day-notification.server';
 
@@ -42,12 +43,12 @@ function typeColor(type: AvailableDay['type']) {
 }
 
 function formatNotificationDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(value));
+  });
 }
 
 function dayHref(dayId: string) {

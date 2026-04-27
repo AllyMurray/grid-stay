@@ -20,6 +20,7 @@ import type {
   MemberInviteSummary,
 } from '~/lib/auth/member-invites.server';
 import type { MemberDirectoryEntry } from '~/lib/auth/members.server';
+import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface MembersPageProps {
   members: MemberDirectoryEntry[];
@@ -27,10 +28,10 @@ export interface MembersPageProps {
 }
 
 function formatMemberDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     day: 'numeric',
     month: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function getNextTripSummary(member: MemberDirectoryEntry) {

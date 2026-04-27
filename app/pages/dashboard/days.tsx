@@ -27,6 +27,7 @@ import type {
   SharedStaySelectionActionResult,
 } from '~/lib/bookings/actions.server';
 import type { BookingStatus } from '~/lib/constants/enums';
+import { formatDateOnly } from '~/lib/dates/date-only';
 import type {
   DayBookingSnapshot,
   DayRow,
@@ -171,25 +172,25 @@ function formatRefreshedAt(value: string) {
 }
 
 function formatDayListDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     day: 'numeric',
     month: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function formatDayListWeekday(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     weekday: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function formatDayLongDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(new Date(value));
+  });
 }
 
 function formatMonthOption(value: string) {

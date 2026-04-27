@@ -18,6 +18,7 @@ import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import { formatDateOnly } from '~/lib/dates/date-only';
 import type { CreateManualDayActionResult } from '~/lib/days/actions.server';
 import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 
@@ -35,12 +36,12 @@ function titleCase(value: string) {
 }
 
 function formatFullDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(new Date(value));
+  });
 }
 
 function formatCreatedDate(value: string) {

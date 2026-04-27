@@ -24,6 +24,7 @@ import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface BookingSchedulePageProps {
@@ -78,26 +79,26 @@ function bookingVariant(status: BookingRecord['status']) {
 }
 
 function formatLongDate(date: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(date, {
     weekday: 'short',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(new Date(date));
+  });
 }
 
 function formatShortDate(date: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(date, {
     day: 'numeric',
     month: 'short',
-  }).format(new Date(date));
+  });
 }
 
 function formatMonthLabel(date: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(date, {
     month: 'long',
     year: 'numeric',
-  }).format(new Date(date));
+  });
 }
 
 function sortBookings(a: BookingRecord, b: BookingRecord) {

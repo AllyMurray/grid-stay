@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import { formatDateOnly } from '~/lib/dates/date-only';
 import type { AvailableDay } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
@@ -61,11 +62,11 @@ function bookingColor(status: BookingRecord['status']) {
 }
 
 function formatOverviewDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function bookingReferenceLabel(type?: AvailableDay['type']) {

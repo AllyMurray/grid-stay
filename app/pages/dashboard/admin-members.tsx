@@ -15,16 +15,17 @@ import { Link } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type { AdminMemberDirectoryEntry } from '~/lib/auth/members.server';
+import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface AdminMembersPageProps {
   members: AdminMemberDirectoryEntry[];
 }
 
 function formatMemberDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(value, {
     day: 'numeric',
     month: 'short',
-  }).format(new Date(value));
+  });
 }
 
 function matchesMember(member: AdminMemberDirectoryEntry, query: string) {

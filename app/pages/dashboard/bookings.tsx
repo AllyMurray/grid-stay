@@ -32,6 +32,7 @@ import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
+import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface MyBookingsPageProps {
@@ -129,17 +130,17 @@ function BookingSectionHeading({
 }
 
 function formatBookingDate(date: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(date, {
     day: 'numeric',
     month: 'short',
-  }).format(new Date(date));
+  });
 }
 
 function formatBookingMonth(date: string) {
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateOnly(date, {
     month: 'long',
     year: 'numeric',
-  }).format(new Date(date));
+  });
 }
 
 function sortBookings(a: BookingRecord, b: BookingRecord) {
