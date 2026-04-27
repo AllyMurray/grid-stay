@@ -2,7 +2,7 @@ import { useLoaderData } from 'react-router';
 import {
   buildAdminSeriesOptions,
   getAdminMemberProfile,
-  submitAdminMemberSeriesAction,
+  submitAdminMemberAction,
 } from '~/lib/admin/member-management.server';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
@@ -33,9 +33,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { headers } = await requireAdmin(request);
+  const { user, headers } = await requireAdmin(request);
   const formData = await request.formData();
-  const result = await submitAdminMemberSeriesAction(formData, params.memberId);
+  const result = await submitAdminMemberAction(formData, params.memberId, user);
 
   return Response.json(result, {
     headers,

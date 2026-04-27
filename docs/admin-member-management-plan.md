@@ -13,6 +13,8 @@ Add an admin area where Ally can:
 - open a member detail page
 - view that member's bookings
 - manage that member's series subscriptions
+- correct the display name shown inside Grid Stay without editing the Google
+  account name
 
 This should be available only to admin users. In practice, the current admin
 check is driven by [app/lib/auth/authorization.ts](/Users/ally/Projects/repos/grid-stay/app/lib/auth/authorization.ts),
@@ -59,6 +61,8 @@ Purpose:
 
 - show the selected member's upcoming bookings
 - show current series subscriptions
+- show the Google-provided name and any Grid Stay display-name override
+- let an admin save or clear the display-name override
 - let an admin add the member to a series
 - let an admin change subscription status between `booked` and `maybe`
 - let an admin remove a subscription
@@ -106,8 +110,6 @@ Do not show:
 
 ## Data model and service approach
 
-No schema migration is required for the first pass.
-
 The repo already has the right primitives:
 
 - bookings
@@ -126,9 +128,20 @@ Relevant existing files:
 Add a member profile loader that:
 
 - loads the auth user by `memberId`
+- applies any Grid Stay display-name override
 - loads that user's bookings
 - loads that user's series subscriptions
 - returns a safe page view model
+
+Add a member profile override record for:
+
+- `userId`
+- `displayName`
+- `updatedByUserId`
+- timestamps
+
+An empty display-name save removes the override and falls back to the
+Google-provided name.
 
 Add series subscription service helpers for:
 
@@ -208,7 +221,9 @@ These should use existing layout primitives where possible:
 6. Build the admin members list page.
 7. Build the admin member detail page.
 8. Add admin actions for add/update/remove series subscriptions.
-9. Add tests for route protection, page rendering, and subscription behavior.
+9. Add admin actions for save/clear display-name overrides.
+10. Add tests for route protection, page rendering, display names, and
+    subscription behavior.
 
 ## Test coverage to add
 
@@ -226,11 +241,14 @@ These should use existing layout primitives where possible:
 ### Admin member detail
 
 - selected member summary renders
+- display-name override form renders with the Google name fallback
 - bookings render without private fields
 - current subscriptions render
 
 ### Actions
 
+- saving a display-name override changes the name shown in member directories
+- saving a blank display name clears the override
 - adding a series creates or updates the subscription
 - adding a series backfills only missing bookings
 - existing bookings are preserved

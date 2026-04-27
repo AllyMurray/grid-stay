@@ -13,6 +13,8 @@ const profile: AdminMemberProfile = {
   id: 'user-1',
   email: 'driver@example.com',
   name: 'Driver One',
+  authName: 'driver one',
+  displayName: 'Driver One',
   picture: 'https://example.com/driver.png',
   role: 'member',
   bookings: [
@@ -76,6 +78,11 @@ describe('AdminMemberDetailPage', () => {
       screen.getByRole('heading', { name: 'Driver One' }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('driver@example.com').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Display name')).toHaveValue('Driver One');
+    expect(screen.getByText(/Google name: driver one/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Save display name' }),
+    ).toBeVisible();
     expect(
       screen.getByRole('heading', { name: 'Upcoming bookings' }),
     ).toBeInTheDocument();

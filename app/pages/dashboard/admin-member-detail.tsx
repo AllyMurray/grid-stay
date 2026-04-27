@@ -10,6 +10,7 @@ import {
   Select,
   Stack,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
 import {
@@ -17,13 +18,14 @@ import {
   IconDeviceFloppy,
   IconPlus,
   IconTrash,
+  IconUserEdit,
 } from '@tabler/icons-react';
 import { Link, useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type {
+  AdminMemberActionResult,
   AdminMemberProfile,
-  AdminMemberSeriesActionResult,
   AdminSeriesOption,
 } from '~/lib/admin/member-management.server';
 
@@ -124,11 +126,83 @@ function MemberBookings({ profile }: { profile: AdminMemberProfile }) {
   );
 }
 
+function MemberProfileCard({ profile }: { profile: AdminMemberProfile }) {
+  const fetcher = useFetcher<AdminMemberActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const success = fetcher.data?.ok ? fetcher.data : null;
+
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="lg">
+        <Group gap="sm" align="center" wrap="nowrap">
+          <Avatar
+            src={profile.picture}
+            alt={profile.name}
+            radius="sm"
+            size={48}
+          >
+            {profile.name.charAt(0).toUpperCase()}
+          </Avatar>
+          <Stack gap={2} style={{ minWidth: 0 }}>
+            <Text fw={700}>{profile.name}</Text>
+            <Text size="sm" c="dimmed" lineClamp={1}>
+              {profile.email}
+            </Text>
+          </Stack>
+        </Group>
+
+        <Divider />
+
+        <fetcher.Form
+          method="post"
+          key={success?.message ?? profile.displayName ?? 'display-name'}
+        >
+          <Stack gap="sm">
+            <input type="hidden" name="intent" value="updateDisplayName" />
+            <TextInput
+              label="Display name"
+              name="displayName"
+              placeholder={profile.authName}
+              defaultValue={profile.displayName ?? ''}
+              description={`Google name: ${profile.authName}. Leave blank to use it.`}
+              error={getFieldError(fieldErrors, 'displayName')}
+              leftSection={<IconUserEdit size={16} />}
+            />
+            {success ? (
+              <Alert color="green" variant="light">
+                {success.message}
+              </Alert>
+            ) : formError ? (
+              <Alert color="red" variant="light">
+                {formError}
+              </Alert>
+            ) : null}
+            <Group justify="flex-start">
+              <Button
+                type="submit"
+                variant="default"
+                leftSection={<IconDeviceFloppy size={16} />}
+                loading={isSubmitting}
+              >
+                Save display name
+              </Button>
+            </Group>
+          </Stack>
+        </fetcher.Form>
+      </Stack>
+    </Paper>
+  );
+}
+
 function SeriesManagement({
   profile,
   seriesOptions,
 }: AdminMemberDetailPageProps) {
-  const fetcher = useFetcher<AdminMemberSeriesActionResult>();
+  const fetcher = useFetcher<AdminMemberActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const fieldErrors =
     fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
@@ -332,24 +406,7 @@ export function AdminMemberDetailPage({
         }
       />
 
-      <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
-        <Group gap="sm" align="center" wrap="nowrap">
-          <Avatar
-            src={profile.picture}
-            alt={profile.name}
-            radius="sm"
-            size={48}
-          >
-            {profile.name.charAt(0).toUpperCase()}
-          </Avatar>
-          <Stack gap={2} style={{ minWidth: 0 }}>
-            <Text fw={700}>{profile.name}</Text>
-            <Text size="sm" c="dimmed" lineClamp={1}>
-              {profile.email}
-            </Text>
-          </Stack>
-        </Group>
-      </Paper>
+      <MemberProfileCard profile={profile} />
 
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, lg: 7 }}>

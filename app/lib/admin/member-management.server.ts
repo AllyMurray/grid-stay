@@ -18,10 +18,20 @@ import {
   listMyBookings,
 } from '~/lib/db/services/booking.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
+import { setMemberDisplayName } from '~/lib/db/services/member-profile.server';
 import {
   seriesSubscriptionStore,
   upsertSeriesSubscription,
 } from '~/lib/db/services/series-subscription.server';
+
+const AdminMemberDisplayNameSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .max(80, 'Display name must be 80 characters or fewer.')
+    .optional()
+    .default(''),
+});
 
 const AdminMemberSeriesSchema = z.object({
   seriesKey: z.string().trim().min(1),
@@ -55,13 +65,17 @@ export interface AdminMemberProfile {
   id: string;
   email: string;
   name: string;
+  authName: string;
+  displayName?: string;
   picture?: string;
   role: User['role'];
   bookings: AdminMemberBooking[];
   subscriptions: SeriesSubscriptionRecord[];
 }
 
-export type AdminMemberSeriesActionResult =
+type AdminMemberActionField = 'displayName' | 'seriesKey' | 'status';
+
+export type AdminMemberActionResult =
   | {
       ok: true;
       message: string;
@@ -71,8 +85,10 @@ export type AdminMemberSeriesActionResult =
   | {
       ok: false;
       formError: string;
-      fieldErrors: FieldErrors<'seriesKey' | 'status'>;
+      fieldErrors: FieldErrors<AdminMemberActionField>;
     };
+
+export type AdminMemberSeriesActionResult = AdminMemberActionResult;
 
 export interface AdminMemberProfileDependencies {
   loadMember?: typeof getSiteMemberById;
@@ -81,11 +97,12 @@ export interface AdminMemberProfileDependencies {
   today?: string;
 }
 
-export interface AdminMemberSeriesActionDependencies {
+export interface AdminMemberActionDependencies {
   loadMember?: typeof getSiteMemberById;
   loadSnapshot?: typeof getAvailableDaysSnapshot;
   loadManualDays?: typeof listManualDays;
   saveBookings?: typeof ensureBookingsForDays;
+  saveDisplayName?: typeof setMemberDisplayName;
   saveSubscription?: typeof upsertSeriesSubscription;
   updateSubscription?: (
     userId: string,
@@ -143,8 +160,8 @@ function toUser(member: AuthUserRecord): User {
 
 function formError(
   message: string,
-  fieldErrors: FieldErrors<'seriesKey' | 'status'> = {},
-): AdminMemberSeriesActionResult {
+  fieldErrors: FieldErrors<AdminMemberActionField> = {},
+): AdminMemberActionResult {
   return {
     ok: false,
     formError: message,
@@ -229,6 +246,8 @@ export async function getAdminMemberProfile(
     id: member.id,
     email: member.email,
     name: member.name,
+    authName: member.authName ?? member.name,
+    displayName: member.displayName,
     picture: member.image,
     role: member.role ?? 'member',
     bookings: bookings
@@ -239,17 +258,44 @@ export async function getAdminMemberProfile(
   };
 }
 
-export async function submitAdminMemberSeriesAction(
+export async function submitAdminMemberAction(
   formData: FormData,
   memberId: string,
-  dependencies: AdminMemberSeriesActionDependencies = {},
-): Promise<AdminMemberSeriesActionResult> {
+  adminUser: Pick<User, 'id'>,
+  dependencies: AdminMemberActionDependencies = {},
+): Promise<AdminMemberActionResult> {
   const intent = formData.get('intent');
   const loadMember = dependencies.loadMember ?? getSiteMemberById;
   const member = await loadMember(memberId);
 
   if (!member) {
     return formError('This member could not be found.');
+  }
+
+  if (intent === 'updateDisplayName') {
+    const parsed = AdminMemberDisplayNameSchema.safeParse(
+      Object.fromEntries(formData),
+    );
+
+    if (!parsed.success) {
+      return formError(
+        'Could not update this display name.',
+        parsed.error.flatten().fieldErrors,
+      );
+    }
+
+    await (dependencies.saveDisplayName ?? setMemberDisplayName)({
+      userId: member.id,
+      displayName: parsed.data.displayName,
+      updatedByUserId: adminUser.id,
+    });
+
+    return {
+      ok: true,
+      message: parsed.data.displayName
+        ? 'Display name updated.'
+        : 'Display name reset to Google name.',
+    };
   }
 
   if (intent === 'removeSeries') {
@@ -346,4 +392,17 @@ export async function submitAdminMemberSeriesAction(
     addedCount: result.addedCount,
     existingCount: result.existingCount,
   };
+}
+
+export async function submitAdminMemberSeriesAction(
+  formData: FormData,
+  memberId: string,
+  dependencies: AdminMemberActionDependencies = {},
+): Promise<AdminMemberActionResult> {
+  return submitAdminMemberAction(
+    formData,
+    memberId,
+    { id: 'system' },
+    dependencies,
+  );
 }

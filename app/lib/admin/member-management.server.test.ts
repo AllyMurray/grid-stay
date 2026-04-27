@@ -16,6 +16,10 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
 
+vi.mock('~/lib/db/services/member-profile.server', () => ({
+  setMemberDisplayName: vi.fn(),
+}));
+
 vi.mock('~/lib/db/services/series-subscription.server', () => ({
   seriesSubscriptionStore: {
     delete: vi.fn(),
@@ -28,7 +32,7 @@ vi.mock('~/lib/db/services/series-subscription.server', () => ({
 import {
   buildAdminSeriesOptions,
   getAdminMemberProfile,
-  submitAdminMemberSeriesAction,
+  submitAdminMemberAction,
 } from './member-management.server';
 
 const member: AuthUserRecord = {
@@ -118,6 +122,8 @@ describe('admin member management helpers', () => {
     expect(profile).toMatchObject({
       id: 'user-1',
       email: 'driver@example.com',
+      name: 'Driver One',
+      authName: 'Driver One',
       bookings: [
         {
           bookingId: 'booking-1',
@@ -136,6 +142,33 @@ describe('admin member management helpers', () => {
     expect(profile.bookings[0]).not.toHaveProperty('notes');
   });
 
+  it('updates a member display-name override', async () => {
+    const formData = new FormData();
+    formData.set('intent', 'updateDisplayName');
+    formData.set('displayName', '  Adam Mann  ');
+    const saveDisplayName = vi.fn(async () => null);
+
+    const result = await submitAdminMemberAction(
+      formData,
+      'user-1',
+      { id: 'admin-1' },
+      {
+        loadMember: async () => member,
+        saveDisplayName: saveDisplayName as never,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      message: 'Display name updated.',
+    });
+    expect(saveDisplayName).toHaveBeenCalledWith({
+      userId: 'user-1',
+      displayName: 'Adam Mann',
+      updatedByUserId: 'admin-1',
+    });
+  });
+
   it('adds a series to a member and backfills missing bookings', async () => {
     const formData = new FormData();
     formData.set('intent', 'addSeries');
@@ -148,17 +181,22 @@ describe('admin member management helpers', () => {
     }));
     const saveSubscription = vi.fn(async () => subscription);
 
-    const result = await submitAdminMemberSeriesAction(formData, 'user-1', {
-      loadMember: async () => member,
-      loadSnapshot: async () => ({
-        days: [academyDays[0]!],
-        errors: [],
-        refreshedAt: '2026-04-01T10:00:00.000Z',
-      }),
-      loadManualDays: async () => [academyDays[1]!],
-      saveBookings: saveBookings as never,
-      saveSubscription: saveSubscription as never,
-    });
+    const result = await submitAdminMemberAction(
+      formData,
+      'user-1',
+      { id: 'admin-1' },
+      {
+        loadMember: async () => member,
+        loadSnapshot: async () => ({
+          days: [academyDays[0]!],
+          errors: [],
+          refreshedAt: '2026-04-01T10:00:00.000Z',
+        }),
+        loadManualDays: async () => [academyDays[1]!],
+        saveBookings: saveBookings as never,
+        saveSubscription: saveSubscription as never,
+      },
+    );
 
     expect(result).toEqual({
       ok: true,
@@ -192,10 +230,15 @@ describe('admin member management helpers', () => {
     formData.set('status', 'maybe');
     const updateSubscription = vi.fn(async () => subscription);
 
-    const result = await submitAdminMemberSeriesAction(formData, 'user-1', {
-      loadMember: async () => member,
-      updateSubscription,
-    });
+    const result = await submitAdminMemberAction(
+      formData,
+      'user-1',
+      { id: 'admin-1' },
+      {
+        loadMember: async () => member,
+        updateSubscription,
+      },
+    );
 
     expect(result).toEqual({
       ok: true,
@@ -218,11 +261,16 @@ describe('admin member management helpers', () => {
     const deleteSubscription = vi.fn(async () => undefined);
     const saveBookings = vi.fn();
 
-    const result = await submitAdminMemberSeriesAction(formData, 'user-1', {
-      loadMember: async () => member,
-      deleteSubscription,
-      saveBookings: saveBookings as never,
-    });
+    const result = await submitAdminMemberAction(
+      formData,
+      'user-1',
+      { id: 'admin-1' },
+      {
+        loadMember: async () => member,
+        deleteSubscription,
+        saveBookings: saveBookings as never,
+      },
+    );
 
     expect(result).toEqual({
       ok: true,

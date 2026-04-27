@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
 import type { User } from './schemas';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -18,6 +19,8 @@ export interface AuthUserRecord {
   id: string;
   email: string;
   name: string;
+  authName?: string;
+  displayName?: string;
   image?: string;
   role?: User['role'];
 }
@@ -42,6 +45,14 @@ export interface MemberDirectoryEntry {
 export interface AdminMemberDirectoryEntry extends MemberDirectoryEntry {
   email: string;
 }
+
+type MemberProfileSummary = Pick<MemberProfileRecord, 'userId' | 'displayName'>;
+
+type LoadMemberProfiles = () => Promise<MemberProfileSummary[]>;
+
+type LoadMemberProfile = (
+  userId: string,
+) => Promise<MemberProfileSummary | null>;
 
 async function scanAuthUsers(): Promise<AuthUserRecord[]> {
   const users: AuthUserRecord[] = [];
@@ -77,6 +88,59 @@ function getActiveBookings(bookings: BookingRecord[], today: string) {
       (booking) => booking.status !== 'cancelled' && booking.date >= today,
     )
     .sort((left, right) => left.date.localeCompare(right.date));
+}
+
+async function loadMemberProfilesDefault(): Promise<MemberProfileSummary[]> {
+  const { listMemberProfiles } = await import(
+    '~/lib/db/services/member-profile.server'
+  );
+  return listMemberProfiles();
+}
+
+async function loadMemberProfileDefault(
+  userId: string,
+): Promise<MemberProfileSummary | null> {
+  const { getMemberProfile } = await import(
+    '~/lib/db/services/member-profile.server'
+  );
+  return getMemberProfile(userId);
+}
+
+function withMemberProfile(
+  user: AuthUserRecord,
+  profile: MemberProfileSummary | null | undefined,
+): AuthUserRecord {
+  const authName = user.authName ?? user.name;
+  const displayName = profile?.displayName.trim();
+
+  if (!displayName) {
+    return {
+      ...user,
+      authName,
+      displayName: undefined,
+      name: authName,
+    };
+  }
+
+  return {
+    ...user,
+    authName,
+    displayName,
+    name: displayName,
+  };
+}
+
+function applyMemberProfiles(
+  users: AuthUserRecord[],
+  profiles: MemberProfileSummary[],
+): AuthUserRecord[] {
+  const profilesByUser = new Map(
+    profiles.map((profile) => [profile.userId, profile]),
+  );
+
+  return users.map((user) =>
+    withMemberProfile(user, profilesByUser.get(user.id)),
+  );
 }
 
 function summarizeMember(
@@ -152,10 +216,12 @@ export async function listSiteMembers(
     return listMyBookings(userId);
   },
   today = new Date().toISOString().slice(0, 10),
+  loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
 ): Promise<MemberDirectoryEntry[]> {
-  const users = await loadUsers();
+  const [users, profiles] = await Promise.all([loadUsers(), loadProfiles()]);
+  const usersWithProfiles = applyMemberProfiles(users, profiles);
   const members = await Promise.all(
-    users.map(async (user) =>
+    usersWithProfiles.map(async (user) =>
       summarizeMember(user, await loadBookings(user.id), today),
     ),
   );
@@ -172,10 +238,12 @@ export async function listAdminSiteMembers(
     return listMyBookings(userId);
   },
   today = new Date().toISOString().slice(0, 10),
+  loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
 ): Promise<AdminMemberDirectoryEntry[]> {
-  const users = await loadUsers();
+  const [users, profiles] = await Promise.all([loadUsers(), loadProfiles()]);
+  const usersWithProfiles = applyMemberProfiles(users, profiles);
   const members = await Promise.all(
-    users.map(async (user) =>
+    usersWithProfiles.map(async (user) =>
       summarizeAdminMember(user, await loadBookings(user.id), today),
     ),
   );
@@ -186,7 +254,12 @@ export async function listAdminSiteMembers(
 export async function getSiteMemberById(
   memberId: string,
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
+  loadProfile: LoadMemberProfile = loadMemberProfileDefault,
 ): Promise<AuthUserRecord | null> {
-  const users = await loadUsers();
-  return users.find((user) => user.id === memberId) ?? null;
+  const [users, profile] = await Promise.all([
+    loadUsers(),
+    loadProfile(memberId),
+  ]);
+  const user = users.find((candidate) => candidate.id === memberId);
+  return user ? withMemberProfile(user, profile) : null;
 }

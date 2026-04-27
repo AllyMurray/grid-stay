@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
-import { listAdminSiteMembers, listSiteMembers } from './members.server';
+import {
+  getSiteMemberById,
+  listAdminSiteMembers,
+  listSiteMembers,
+} from './members.server';
 
 const userRecords = [
   {
@@ -98,6 +102,7 @@ describe('listSiteMembers', () => {
       async () => userRecords,
       async (userId) => bookingsByUser[userId] ?? [],
       '2026-04-16',
+      async () => [],
     );
 
     expect(members).toHaveLength(3);
@@ -137,11 +142,50 @@ describe('listSiteMembers', () => {
       async () => userRecords,
       async (userId) => bookingsByUser[userId] ?? [],
       '2026-04-16',
+      async () => [],
     );
 
     expect(members[0]).toMatchObject({
       id: 'user-1',
       email: 'ally@example.com',
+    });
+  });
+
+  it('uses admin display-name overrides without exposing public emails', async () => {
+    const members = await listSiteMembers(
+      async () => userRecords,
+      async (userId) => bookingsByUser[userId] ?? [],
+      '2026-04-16',
+      async () => [
+        {
+          userId: 'user-2',
+          displayName: 'Adam Mann',
+        },
+      ],
+    );
+
+    expect(members[1]).toMatchObject({
+      id: 'user-2',
+      name: 'Adam Mann',
+    });
+    expect(members[1]).not.toHaveProperty('email');
+  });
+
+  it('keeps the auth name when returning a member with an override', async () => {
+    const member = await getSiteMemberById(
+      'user-2',
+      async () => userRecords,
+      async () => ({
+        userId: 'user-2',
+        displayName: 'Adam Mann',
+      }),
+    );
+
+    expect(member).toMatchObject({
+      id: 'user-2',
+      authName: 'Driver Two',
+      displayName: 'Adam Mann',
+      name: 'Adam Mann',
     });
   });
 });
