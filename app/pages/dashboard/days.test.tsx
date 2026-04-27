@@ -69,7 +69,6 @@ const defaultData: DaysIndexData = {
   totalCount: 2,
   nextOffset: null,
   refreshedAt: '2026-04-15T10:30:00.000Z',
-  errors: [],
   canCreateManualDays: false,
   filters: {
     month: '',
@@ -266,6 +265,14 @@ describe('AvailableDaysPage', () => {
 
     expect(
       screen.queryByRole('link', { name: 'Manage manual days' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render the source loading warning in the member feed', () => {
+    renderWithProviders(<AvailableDaysPage data={defaultData} />);
+
+    expect(
+      screen.queryByText(/Some sources could not be loaded/i),
     ).not.toBeInTheDocument();
   });
 

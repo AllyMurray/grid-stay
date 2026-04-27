@@ -61,7 +61,6 @@ export interface DaysFeedData {
 }
 
 export interface DaysIndexData extends DaysFeedData {
-  errors: DaySourceError[];
   filters: DaysFilters;
   refreshedAt: string;
   canCreateManualDays: boolean;
@@ -252,7 +251,6 @@ export async function loadDaysIndex(
     {
       allDays,
       filters,
-      errors,
       refreshedAt,
       filteredDays,
       monthOptions,
@@ -286,7 +284,6 @@ export async function loadDaysIndex(
 
   return {
     ...page,
-    errors,
     filters,
     refreshedAt,
     canCreateManualDays: canCreateManualDays(user),

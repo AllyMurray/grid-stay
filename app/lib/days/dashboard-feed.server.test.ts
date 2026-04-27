@@ -46,7 +46,12 @@ describe('days dashboard feed', () => {
   it('merges shared manual days into every member feed while keeping admin creation separate', async () => {
     vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
       refreshedAt: '2026-04-17T09:30:00.000Z',
-      errors: [],
+      errors: [
+        {
+          source: 'broken-testing',
+          message: 'Timed out loading feed',
+        },
+      ],
       days: [
         {
           dayId: 'race:1',
@@ -93,6 +98,7 @@ describe('days dashboard feed', () => {
     );
 
     expect(data.canCreateManualDays).toBe(false);
+    expect('errors' in data).toBe(false);
     expect(data.totalCount).toBe(2);
     expect(data.days.map((day) => day.dayId)).toEqual(['race:1', 'manual:1']);
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);

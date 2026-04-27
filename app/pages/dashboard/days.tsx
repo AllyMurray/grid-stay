@@ -1,5 +1,4 @@
 import {
-  Alert,
   Anchor,
   Badge,
   Box,
@@ -15,7 +14,6 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Form, Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
@@ -1647,15 +1645,6 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           </>
         }
       />
-
-      {data.errors.length > 0 ? (
-        <Alert color="yellow" icon={<IconAlertCircle size={18} />}>
-          Some sources could not be loaded right now:{' '}
-          {data.errors
-            .map((error) => `${error.source}: ${error.message}`)
-            .join(' | ')}
-        </Alert>
-      ) : null}
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">
