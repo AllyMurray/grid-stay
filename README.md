@@ -41,6 +41,9 @@ See [docs/deployment-and-domains.md](/Users/ally/Projects/repos/grid-stay/docs/d
 for the current domain setup, stage hostnames, certificate mapping, deploy
 commands, and Google OAuth configuration.
 
+See [docs/production-data-recovery.md](/Users/ally/Projects/repos/grid-stay/docs/production-data-recovery.md)
+for DynamoDB PITR checks, restore steps, and admin export/recovery tools.
+
 ## Future Improvements
 
 - If `/dashboard/days` needs to move below the current sub-second first load,
