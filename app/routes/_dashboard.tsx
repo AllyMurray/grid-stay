@@ -2,6 +2,7 @@ import {
   ActionIcon,
   AppShell,
   Avatar,
+  Box,
   Burger,
   Button,
   Container,
@@ -27,7 +28,13 @@ import {
   IconSun,
   IconUsersGroup,
 } from '@tabler/icons-react';
-import { type TouchEvent, useCallback, useEffect, useRef } from 'react';
+import {
+  type PointerEvent as ReactPointerEvent,
+  type TouchEvent,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 import {
   Link,
   Outlet,
@@ -75,7 +82,16 @@ export default function DashboardLayoutRoute() {
     suppressMenuClickTimerRef.current = null;
   }, []);
 
-  function handleMenuTouchEnd(event: TouchEvent<HTMLButtonElement>) {
+  function activateMenuFromTouchLikeEvent(
+    event: TouchEvent<HTMLButtonElement> | ReactPointerEvent<HTMLButtonElement>,
+  ) {
+    if (suppressNextMenuClickRef.current) {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      return;
+    }
+
     if (event.cancelable) {
       event.preventDefault();
     }
@@ -87,6 +103,22 @@ export default function DashboardLayoutRoute() {
       suppressMenuClickTimerRef.current = null;
     }, 700);
     toggle();
+  }
+
+  function handleMenuTouchStart(event: TouchEvent<HTMLButtonElement>) {
+    activateMenuFromTouchLikeEvent(event);
+  }
+
+  function handleMenuTouchEnd(event: TouchEvent<HTMLButtonElement>) {
+    activateMenuFromTouchLikeEvent(event);
+  }
+
+  function handleMenuPointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return;
+    }
+
+    activateMenuFromTouchLikeEvent(event);
   }
 
   function handleMenuClick() {
@@ -177,13 +209,89 @@ export default function DashboardLayoutRoute() {
     },
   ];
 
+  function renderProfileSummary() {
+    return (
+      <Stack className="dashboard-sidebar-profile" gap="md">
+        <Group align="flex-start" wrap="nowrap">
+          <Avatar src={user.picture} alt={user.name} radius="sm" size={40} />
+          <Stack gap={0}>
+            <Text fw={700}>{user.name}</Text>
+            <Text size="sm" c="dimmed" lineClamp={1}>
+              {user.email}
+            </Text>
+          </Stack>
+        </Group>
+        <Button component={Link} to="/auth/logout" variant="subtle" fullWidth>
+          Log out
+        </Button>
+      </Stack>
+    );
+  }
+
+  function renderNavigationLinks() {
+    return (
+      <Stack gap="md">
+        <Stack gap={4}>
+          {navItems.map((item) => {
+            const itemCount = 'count' in item ? (item.count ?? 0) : 0;
+
+            return (
+              <NavLink
+                key={item.to}
+                component={Link}
+                to={item.to}
+                label={item.label}
+                leftSection={<item.icon size={18} />}
+                rightSection={
+                  itemCount > 0 ? (
+                    <Text size="xs" fw={800} c="brand.7">
+                      {itemCount}
+                    </Text>
+                  ) : null
+                }
+                active={item.active}
+                variant="filled"
+                color="brand"
+                onClick={close}
+              />
+            );
+          })}
+        </Stack>
+
+        {isAdmin ? (
+          <Stack gap={6}>
+            <Divider />
+            <Text size="xs" fw={800} c="dimmed" tt="uppercase">
+              Admin
+            </Text>
+            <Stack gap={4}>
+              {adminNavItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  component={Link}
+                  to={item.to}
+                  label={item.label}
+                  leftSection={<item.icon size={18} />}
+                  active={item.active}
+                  variant="filled"
+                  color="brand"
+                  onClick={close}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        ) : null}
+      </Stack>
+    );
+  }
+
   return (
     <AppShell
       header={{ height: { base: 64, sm: 68 } }}
       navbar={{
         width: 248,
         breakpoint: 'sm',
-        collapsed: { mobile: !opened, desktop: false },
+        collapsed: { mobile: true, desktop: false },
       }}
       padding={{ base: 'xs', sm: 'md' }}
     >
@@ -193,6 +301,8 @@ export default function DashboardLayoutRoute() {
             <Burger
               opened={opened}
               onClick={handleMenuClick}
+              onPointerUp={handleMenuPointerUp}
+              onTouchStart={handleMenuTouchStart}
               onTouchEnd={handleMenuTouchEnd}
               aria-expanded={opened}
               aria-label={opened ? 'Close menu' : 'Open menu'}
@@ -260,87 +370,38 @@ export default function DashboardLayoutRoute() {
         </Group>
       </AppShell.Header>
 
+      {opened ? (
+        <Box
+          className="dashboard-mobile-menu"
+          hiddenFrom="sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Dashboard menu"
+        >
+          <button
+            type="button"
+            className="dashboard-mobile-menu-backdrop"
+            aria-label="Close menu"
+            onClick={close}
+          />
+          <Box
+            component="nav"
+            className="dashboard-mobile-menu-panel"
+            aria-label="Dashboard mobile navigation"
+          >
+            <Stack gap="lg">
+              {renderProfileSummary()}
+              {renderNavigationLinks()}
+            </Stack>
+          </Box>
+        </Box>
+      ) : null}
+
       <AppShell.Navbar p={{ base: 'sm', sm: 'md' }}>
-        <AppShell.Section>
-          <Stack className="dashboard-sidebar-profile" gap="md">
-            <Group align="flex-start" wrap="nowrap">
-              <Avatar
-                src={user.picture}
-                alt={user.name}
-                radius="sm"
-                size={40}
-              />
-              <Stack gap={0}>
-                <Text fw={700}>{user.name}</Text>
-                <Text size="sm" c="dimmed" lineClamp={1}>
-                  {user.email}
-                </Text>
-              </Stack>
-            </Group>
-            <Button
-              component={Link}
-              to="/auth/logout"
-              variant="subtle"
-              fullWidth
-            >
-              Log out
-            </Button>
-          </Stack>
-        </AppShell.Section>
+        <AppShell.Section>{renderProfileSummary()}</AppShell.Section>
 
         <AppShell.Section grow mt="lg">
-          <Stack gap="md">
-            <Stack gap={4}>
-              {navItems.map((item) => {
-                const itemCount = 'count' in item ? (item.count ?? 0) : 0;
-
-                return (
-                  <NavLink
-                    key={item.to}
-                    component={Link}
-                    to={item.to}
-                    label={item.label}
-                    leftSection={<item.icon size={18} />}
-                    rightSection={
-                      itemCount > 0 ? (
-                        <Text size="xs" fw={800} c="brand.7">
-                          {itemCount}
-                        </Text>
-                      ) : null
-                    }
-                    active={item.active}
-                    variant="filled"
-                    color="brand"
-                    onClick={close}
-                  />
-                );
-              })}
-            </Stack>
-
-            {isAdmin ? (
-              <Stack gap={6}>
-                <Divider />
-                <Text size="xs" fw={800} c="dimmed" tt="uppercase">
-                  Admin
-                </Text>
-                <Stack gap={4}>
-                  {adminNavItems.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      component={Link}
-                      to={item.to}
-                      label={item.label}
-                      leftSection={<item.icon size={18} />}
-                      active={item.active}
-                      variant="filled"
-                      color="brand"
-                      onClick={close}
-                    />
-                  ))}
-                </Stack>
-              </Stack>
-            ) : null}
-          </Stack>
+          {renderNavigationLinks()}
         </AppShell.Section>
       </AppShell.Navbar>
 

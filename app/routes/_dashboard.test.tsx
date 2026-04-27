@@ -67,10 +67,20 @@ describe('DashboardLayoutRoute', () => {
     });
 
     expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      screen.queryByRole('navigation', {
+        name: 'Dashboard mobile navigation',
+      }),
+    ).not.toBeInTheDocument();
 
     fireEvent.touchEnd(menuButton);
 
     expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByRole('navigation', {
+        name: 'Dashboard mobile navigation',
+      }),
+    ).toBeInTheDocument();
 
     fireEvent.click(menuButton);
 
