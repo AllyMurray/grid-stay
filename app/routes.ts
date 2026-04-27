@@ -25,6 +25,7 @@ export default [
       'dashboard/admin/members/:memberId',
       'routes/dashboard/admin.members.$memberId.tsx',
     ),
+    route('dashboard/notifications', 'routes/dashboard/notifications.tsx'),
     route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
     route('dashboard/members', 'routes/dashboard/members.tsx'),

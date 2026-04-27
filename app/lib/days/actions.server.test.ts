@@ -26,6 +26,10 @@ vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(async () => null),
 }));
 
+vi.mock('~/lib/db/services/day-notification.server', () => ({
+  createAvailableDayNotificationsSafely: vi.fn(async () => []),
+}));
+
 vi.mock('~/lib/days/series-subscriptions.server', () => ({
   reconcileSeriesSubscriptionsForDays: vi.fn(async () => ({
     seriesKey: 'caterham-270r',
@@ -35,6 +39,7 @@ vi.mock('~/lib/days/series-subscriptions.server', () => ({
   })),
 }));
 
+import { createAvailableDayNotificationsSafely } from '~/lib/db/services/day-notification.server';
 import { submitCreateManualDay } from './actions.server';
 
 const allowedUser: User = {
@@ -85,6 +90,11 @@ describe('manual day action helper', () => {
       }),
       allowedUser,
     );
+    expect(createAvailableDayNotificationsSafely).toHaveBeenCalledWith([
+      expect.objectContaining({
+        dayId: 'manual:day-1',
+      }),
+    ]);
   });
 
   it('reconciles linked series subscriptions when a series-linked manual day is created', async () => {

@@ -7,6 +7,7 @@ import {
   Container,
   Divider,
   Group,
+  Indicator,
   NavLink,
   Stack,
   Text,
@@ -16,6 +17,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconBell,
   IconCalendarMonth,
   IconHome2,
   IconHotelService,
@@ -36,19 +38,23 @@ import {
 import { isAdminUser } from '~/lib/auth/authorization';
 import { requireUser } from '~/lib/auth/helpers.server';
 import type { User } from '~/lib/auth/schemas';
+import { countUnreadDayNotifications } from '~/lib/db/services/day-notification.server';
 import type { Route } from './+types/_dashboard';
 
 interface LoaderData {
   user: User;
+  unreadNotificationCount: number;
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  return Response.json({ user }, { headers });
+  const unreadNotificationCount = await countUnreadDayNotifications(user.id);
+
+  return Response.json({ user, unreadNotificationCount }, { headers });
 }
 
 export default function DashboardLayoutRoute() {
-  const { user } = useLoaderData<LoaderData>();
+  const { user, unreadNotificationCount } = useLoaderData<LoaderData>();
   const location = useLocation();
   const { toggleColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('light', {
@@ -99,6 +105,13 @@ export default function DashboardLayoutRoute() {
       to: '/dashboard/bookings',
       icon: IconHotelService,
       active: location.pathname.startsWith('/dashboard/bookings'),
+    },
+    {
+      label: 'Notifications',
+      to: '/dashboard/notifications',
+      icon: IconBell,
+      active: location.pathname.startsWith('/dashboard/notifications'),
+      count: unreadNotificationCount,
     },
     {
       label: 'Members',
@@ -162,6 +175,27 @@ export default function DashboardLayoutRoute() {
           </Group>
 
           <Group gap="xs" wrap="nowrap">
+            <Indicator
+              disabled={unreadNotificationCount === 0}
+              label={unreadNotificationCount}
+              size={18}
+              color="brand"
+            >
+              <ActionIcon
+                component={Link}
+                to="/dashboard/notifications"
+                variant="default"
+                size="lg"
+                radius="sm"
+                aria-label={
+                  unreadNotificationCount === 0
+                    ? 'Open notifications'
+                    : `Open notifications, ${unreadNotificationCount} unread`
+                }
+              >
+                <IconBell size={18} />
+              </ActionIcon>
+            </Indicator>
             <ActionIcon
               variant="default"
               onClick={() => toggleColorScheme()}
@@ -214,19 +248,30 @@ export default function DashboardLayoutRoute() {
         <AppShell.Section grow mt="lg">
           <Stack gap="md">
             <Stack gap={4}>
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  component={Link}
-                  to={item.to}
-                  label={item.label}
-                  leftSection={<item.icon size={18} />}
-                  active={item.active}
-                  variant="filled"
-                  color="brand"
-                  onClick={close}
-                />
-              ))}
+              {navItems.map((item) => {
+                const itemCount = 'count' in item ? (item.count ?? 0) : 0;
+
+                return (
+                  <NavLink
+                    key={item.to}
+                    component={Link}
+                    to={item.to}
+                    label={item.label}
+                    leftSection={<item.icon size={18} />}
+                    rightSection={
+                      itemCount > 0 ? (
+                        <Text size="xs" fw={800} c="brand.7">
+                          {itemCount}
+                        </Text>
+                      ) : null
+                    }
+                    active={item.active}
+                    variant="filled"
+                    color="brand"
+                    onClick={close}
+                  />
+                );
+              })}
             </Stack>
 
             {isAdmin ? (

@@ -1,5 +1,6 @@
 import type { User } from '~/lib/auth/schemas';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import { createAvailableDayNotificationsSafely } from '~/lib/db/services/day-notification.server';
 import {
   createManualDay,
   listManualDays,
@@ -31,6 +32,7 @@ export async function submitCreateManualDay(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays = listManualDays,
   reconcileSeries: typeof reconcileSeriesSubscriptionsForDays = reconcileSeriesSubscriptionsForDays,
+  notifyAvailableDays: typeof createAvailableDayNotificationsSafely = createAvailableDayNotificationsSafely,
 ): Promise<CreateManualDayActionResult> {
   if (!canCreateManualDays(user)) {
     return {
@@ -51,12 +53,14 @@ export async function submitCreateManualDay(
   }
 
   const day = await saveManualDay(parsed.data, user);
+  const selectedDay = toAvailableManualDay(day);
+  await notifyAvailableDays([selectedDay]);
+
   if (day.series) {
     const [snapshot, manualDays] = await Promise.all([
       loadSnapshot(),
       loadManualDays(),
     ]);
-    const selectedDay = toAvailableManualDay(day);
     const allDays = [...(snapshot?.days ?? []), ...manualDays];
     const series = getRaceSeriesDaysForDay(
       allDays.some((entry) => entry.dayId === selectedDay.dayId)

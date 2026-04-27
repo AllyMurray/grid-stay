@@ -10,6 +10,10 @@ vi.mock('~/lib/auth/helpers.server', () => ({
   requireUser: vi.fn(),
 }));
 
+vi.mock('~/lib/db/services/day-notification.server', () => ({
+  countUnreadDayNotifications: vi.fn(async () => 0),
+}));
+
 const dashboardUser = {
   id: 'user-1',
   email: 'driver@example.com',
@@ -30,7 +34,7 @@ function renderDashboard() {
   const Stub = createRoutesStub([
     {
       path: '/dashboard',
-      loader: () => ({ user: dashboardUser }),
+      loader: () => ({ user: dashboardUser, unreadNotificationCount: 0 }),
       Component: () => (
         <MantineProvider theme={theme}>
           <DashboardLayoutRoute />
