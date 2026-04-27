@@ -114,6 +114,7 @@ function getBookingRefreshChanges(
 
   return {
     ...changes,
+    status: existing.status,
     updatedAt,
   };
 }

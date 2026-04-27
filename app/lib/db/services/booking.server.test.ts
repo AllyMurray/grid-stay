@@ -499,6 +499,74 @@ describe('booking service', () => {
     });
   });
 
+  it('keeps the current status when refreshing existing bulk bookings', async () => {
+    const existing = {
+      bookingId: 'day-1',
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      type: 'race_day',
+      status: 'maybe',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    };
+    const store = {
+      create: vi.fn(),
+      delete: vi.fn(),
+      listByUser: vi.fn(async () => [existing]),
+      findByUserAndDay: vi.fn(),
+      getByUser: vi.fn(),
+      listByDay: vi.fn(async () => [existing]),
+      update: vi.fn(async (_userId: string, _bookingId: string, changes) => {
+        if (!('status' in changes)) {
+          throw new Error('status is required for booking index refreshes');
+        }
+
+        return { ...existing, ...changes };
+      }),
+    };
+    const summaryStore = {
+      put: vi.fn(async () => undefined),
+    };
+
+    await expect(
+      ensureBookingsForDays(
+        [
+          {
+            dayId: 'day-1',
+            date: '2026-05-10',
+            type: 'race_day',
+            circuit: 'Snetterton',
+            provider: 'Caterham Motorsport',
+            description: 'Round 1 refreshed',
+            status: 'booked',
+          },
+        ],
+        'booked',
+        user,
+        store as never,
+        summaryStore as never,
+      ),
+    ).resolves.toEqual({
+      addedCount: 0,
+      existingCount: 1,
+    });
+
+    expect(store.update).toHaveBeenCalledWith(
+      user.id,
+      existing.bookingId,
+      expect.objectContaining({
+        description: 'Round 1 refreshed',
+        status: 'maybe',
+      }),
+    );
+  });
+
   it('handles statuses when sorting personal bookings and communal attendance', async () => {
     const memory = createMemoryStore();
     memory.items.push(
