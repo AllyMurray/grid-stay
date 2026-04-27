@@ -19,6 +19,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconActivityHeartbeat,
+  IconAlertTriangle,
   IconBell,
   IconCalendarMonth,
   IconHome2,
@@ -227,6 +228,12 @@ export function DashboardShell({
       to: '/dashboard/admin/feed',
       icon: IconActivityHeartbeat,
       active: location.pathname.startsWith('/dashboard/admin/feed'),
+    },
+    {
+      label: 'Data Quality',
+      to: '/dashboard/admin/data-quality',
+      icon: IconAlertTriangle,
+      active: location.pathname.startsWith('/dashboard/admin/data-quality'),
     },
     {
       label: 'Member Management',
