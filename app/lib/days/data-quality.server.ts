@@ -1,4 +1,10 @@
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import {
+  listDataQualityIssueStates,
+  reopenDataQualityIssue,
+  setDataQualityIssueState,
+} from '~/lib/db/services/data-quality-issue-state.server';
+import type { User } from '~/lib/auth/schemas';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { normalizeAvailableDayCircuit } from './aggregation.server';
 import type { AvailableDay } from './types';
@@ -10,22 +16,46 @@ export type DataQualityIssueType =
   | 'duplicate_event';
 
 export interface DataQualityIssue {
+  issueId: string;
   type: DataQualityIssueType;
   severity: 'warning' | 'info';
+  status: 'open' | 'ignored' | 'resolved';
   dayId: string;
   date: string;
   circuit: string;
   provider: string;
   description: string;
   message: string;
+  stateNote?: string;
+  stateUpdatedByName?: string;
+  stateUpdatedAt?: string;
 }
 
 export interface DaysDataQualityReport {
   refreshedAt: string;
   dayCount: number;
   issueCount: number;
+  openIssueCount: number;
+  ignoredIssueCount: number;
+  resolvedIssueCount: number;
   issues: DataQualityIssue[];
 }
+
+export type DataQualityIssueStateActionResult =
+  | {
+      ok: true;
+      message: string;
+      issueId: string;
+      status: 'open' | 'ignored' | 'resolved';
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: {
+        issueId?: string[];
+        note?: string[];
+      };
+    };
 
 function getDuplicateKey(day: AvailableDay): string {
   const normalized = normalizeAvailableDayCircuit(day);
@@ -47,8 +77,10 @@ function createDayIssue(
   severity: DataQualityIssue['severity'] = 'warning',
 ): DataQualityIssue {
   return {
+    issueId: `${type}:${day.dayId}`,
     type,
     severity,
+    status: 'open',
     dayId: day.dayId,
     date: day.date,
     circuit: day.circuit,
@@ -56,6 +88,28 @@ function createDayIssue(
     description: day.description,
     message,
   };
+}
+
+function applyIssueStates(
+  issues: DataQualityIssue[],
+  states: Awaited<ReturnType<typeof listDataQualityIssueStates>>,
+) {
+  const stateById = new Map(states.map((state) => [state.issueId, state]));
+
+  return issues.map((issue) => {
+    const state = stateById.get(issue.issueId);
+    if (!state) {
+      return issue;
+    }
+
+    return {
+      ...issue,
+      status: state.status,
+      stateNote: state.note,
+      stateUpdatedByName: state.updatedByName,
+      stateUpdatedAt: state.updatedAt,
+    };
+  });
 }
 
 function findDayIssues(days: AvailableDay[]): DataQualityIssue[] {
@@ -136,18 +190,95 @@ function findDayIssues(days: AvailableDay[]): DataQualityIssue[] {
 export async function loadDaysDataQualityReport(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays = listManualDays,
+  loadIssueStates: typeof listDataQualityIssueStates = listDataQualityIssueStates,
 ): Promise<DaysDataQualityReport> {
-  const [snapshot, manualDays] = await Promise.all([
+  const [snapshot, manualDays, issueStates] = await Promise.all([
     loadSnapshot(),
     loadManualDays(),
+    loadIssueStates(),
   ]);
   const days = [...(snapshot?.days ?? []), ...manualDays];
-  const issues = findDayIssues(days);
+  const issues = applyIssueStates(findDayIssues(days), issueStates);
+  const openIssueCount = issues.filter(
+    (issue) => issue.status === 'open',
+  ).length;
+  const ignoredIssueCount = issues.filter(
+    (issue) => issue.status === 'ignored',
+  ).length;
+  const resolvedIssueCount = issues.filter(
+    (issue) => issue.status === 'resolved',
+  ).length;
 
   return {
     refreshedAt: snapshot?.refreshedAt ?? '',
     dayCount: days.length,
-    issueCount: issues.length,
+    issueCount: openIssueCount,
+    openIssueCount,
+    ignoredIssueCount,
+    resolvedIssueCount,
     issues,
+  };
+}
+
+function readIssueId(formData: FormData) {
+  const issueId = formData.get('issueId');
+  return typeof issueId === 'string' ? issueId.trim() : '';
+}
+
+function readNote(formData: FormData) {
+  const note = formData.get('note');
+  return typeof note === 'string' ? note.trim() : '';
+}
+
+export async function submitDataQualityIssueStateAction(
+  formData: FormData,
+  user: Pick<User, 'id' | 'name'>,
+  saveState: typeof setDataQualityIssueState = setDataQualityIssueState,
+  reopenIssue: typeof reopenDataQualityIssue = reopenDataQualityIssue,
+): Promise<DataQualityIssueStateActionResult> {
+  const intent = formData.get('intent');
+  const issueId = readIssueId(formData);
+
+  if (!issueId) {
+    return {
+      ok: false,
+      formError: 'Could not update this issue.',
+      fieldErrors: {
+        issueId: ['Issue id is required.'],
+      },
+    };
+  }
+
+  if (intent === 'reopenIssue') {
+    await reopenIssue(issueId);
+    return {
+      ok: true,
+      message: 'Issue reopened.',
+      issueId,
+      status: 'open',
+    };
+  }
+
+  if (intent === 'ignoreIssue' || intent === 'resolveIssue') {
+    const status = intent === 'ignoreIssue' ? 'ignored' : 'resolved';
+    await saveState({
+      issueId,
+      status,
+      note: readNote(formData),
+      user,
+    });
+
+    return {
+      ok: true,
+      message: status === 'ignored' ? 'Issue ignored.' : 'Issue resolved.',
+      issueId,
+      status,
+    };
+  }
+
+  return {
+    ok: false,
+    formError: 'This issue action is not supported.',
+    fieldErrors: {},
   };
 }

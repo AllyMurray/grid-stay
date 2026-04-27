@@ -1,17 +1,20 @@
 import {
   Badge,
   Button,
+  Group,
   Paper,
   ScrollArea,
+  TextInput,
   Stack,
   Table,
   Text,
   Title,
 } from '@mantine/core';
 import { IconCircleCheck } from '@tabler/icons-react';
-import { Link } from 'react-router';
+import { Link, useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import type { DataQualityIssueStateActionResult } from '~/lib/days/data-quality.server';
 import type {
   DataQualityIssue,
   DaysDataQualityReport,
@@ -35,13 +38,102 @@ function formatIssueType(type: DataQualityIssue['type']) {
 }
 
 function issueColor(issue: DataQualityIssue) {
+  if (issue.status === 'resolved') {
+    return 'green';
+  }
+
+  if (issue.status === 'ignored') {
+    return 'gray';
+  }
+
   return issue.severity === 'warning' ? 'yellow' : 'blue';
+}
+
+function statusColor(status: DataQualityIssue['status']) {
+  switch (status) {
+    case 'open':
+      return 'yellow';
+    case 'ignored':
+      return 'gray';
+    case 'resolved':
+      return 'green';
+  }
+}
+
+function IssueActions({ issue }: { issue: DataQualityIssue }) {
+  const fetcher = useFetcher<DataQualityIssueStateActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+
+  if (issue.status !== 'open') {
+    return (
+      <Stack gap={4}>
+        {issue.stateNote ? (
+          <Text size="xs" c="dimmed">
+            {issue.stateNote}
+          </Text>
+        ) : null}
+        <fetcher.Form method="post">
+          <input type="hidden" name="issueId" value={issue.issueId} />
+          <Button
+            type="submit"
+            name="intent"
+            value="reopenIssue"
+            size="xs"
+            variant="default"
+            loading={isSubmitting}
+          >
+            Reopen
+          </Button>
+        </fetcher.Form>
+      </Stack>
+    );
+  }
+
+  return (
+    <fetcher.Form method="post">
+      <Stack gap="xs">
+        <input type="hidden" name="issueId" value={issue.issueId} />
+        <TextInput
+          name="note"
+          placeholder="Optional note"
+          aria-label={`Note for ${issue.issueId}`}
+          size="xs"
+        />
+        <Group gap="xs" wrap="nowrap">
+          <Button
+            type="submit"
+            name="intent"
+            value="ignoreIssue"
+            size="xs"
+            variant="default"
+            loading={isSubmitting}
+          >
+            Ignore
+          </Button>
+          <Button
+            type="submit"
+            name="intent"
+            value="resolveIssue"
+            size="xs"
+            variant="default"
+            color="green"
+            loading={isSubmitting}
+          >
+            Resolve
+          </Button>
+        </Group>
+      </Stack>
+    </fetcher.Form>
+  );
 }
 
 export function AdminDataQualityPage({
   refreshedAt,
   dayCount,
   issueCount,
+  openIssueCount,
+  ignoredIssueCount,
+  resolvedIssueCount,
   issues,
 }: AdminDataQualityPageProps) {
   return (
@@ -54,7 +146,9 @@ export function AdminDataQualityPage({
           <HeaderStatGrid
             items={[
               { label: 'Days checked', value: dayCount },
-              { label: 'Issues found', value: issueCount },
+              { label: 'Open issues', value: openIssueCount ?? issueCount },
+              { label: 'Ignored', value: ignoredIssueCount ?? 0 },
+              { label: 'Resolved', value: resolvedIssueCount ?? 0 },
               { label: 'Last refresh', value: formatRefreshedAt(refreshedAt) },
             ]}
           />
@@ -87,22 +181,29 @@ export function AdminDataQualityPage({
             </Stack>
           ) : (
             <ScrollArea>
-              <Table striped highlightOnHover miw={860}>
+              <Table striped highlightOnHover miw={1120}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Type</Table.Th>
+                    <Table.Th>Status</Table.Th>
                     <Table.Th>Date</Table.Th>
                     <Table.Th>Circuit</Table.Th>
                     <Table.Th>Provider</Table.Th>
                     <Table.Th>Message</Table.Th>
+                    <Table.Th>Action</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {issues.map((issue) => (
-                    <Table.Tr key={`${issue.dayId}:${issue.type}`}>
+                    <Table.Tr key={issue.issueId}>
                       <Table.Td>
                         <Badge color={issueColor(issue)} variant="light">
                           {formatIssueType(issue.type)}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge color={statusColor(issue.status)} variant="light">
+                          {issue.status}
                         </Badge>
                       </Table.Td>
                       <Table.Td>{issue.date}</Table.Td>
@@ -118,6 +219,9 @@ export function AdminDataQualityPage({
                       </Table.Td>
                       <Table.Td>{issue.provider}</Table.Td>
                       <Table.Td>{issue.message}</Table.Td>
+                      <Table.Td>
+                        <IssueActions issue={issue} />
+                      </Table.Td>
                     </Table.Tr>
                   ))}
                 </Table.Tbody>
