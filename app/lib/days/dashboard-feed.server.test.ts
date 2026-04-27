@@ -33,21 +33,37 @@ vi.mock('~/lib/days/preferences.server', () => ({
   getSavedDaysFilters: vi.fn(),
 }));
 
+vi.mock('~/lib/days/shared-plan.server', () => ({
+  getSharedDayPlan: vi.fn(),
+}));
+
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
-import { listMyBookings } from '~/lib/db/services/booking.server';
+import {
+  listAttendanceByDay,
+  listMyBookings,
+} from '~/lib/db/services/booking.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { loadDaysIndex } from './dashboard-feed.server';
 import { getSavedDaysFilters } from './preferences.server';
+import { getSharedDayPlan } from './shared-plan.server';
 
 describe('days dashboard feed', () => {
   beforeEach(() => {
     vi.mocked(getAvailableDaysSnapshot).mockReset();
     vi.mocked(listManualDays).mockReset();
+    vi.mocked(listAttendanceByDay).mockReset();
+    vi.mocked(listAttendanceByDay).mockResolvedValue({
+      attendeeCount: 0,
+      accommodationNames: [],
+      attendees: [],
+    });
     vi.mocked(listMyBookings).mockReset();
     vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockReset();
     vi.mocked(getSavedDaysFilters).mockReset();
     vi.mocked(getSavedDaysFilters).mockResolvedValue(null);
+    vi.mocked(getSharedDayPlan).mockReset();
+    vi.mocked(getSharedDayPlan).mockResolvedValue(null);
   });
 
   it('merges shared manual days into every member feed while keeping admin creation separate', async () => {
@@ -147,6 +163,55 @@ describe('days dashboard feed', () => {
       circuits: ['Snetterton'],
       provider: 'Caterham Motorsport',
       type: 'race_day',
+    });
+  });
+
+  it('loads the selected day shared planning note', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'race:1',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Round 1',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+    vi.mocked(getSharedDayPlan).mockResolvedValue({
+      dayId: 'race:1',
+      notes: 'Meet in paddock bay 12.',
+      updatedByName: 'Driver One',
+      updatedAt: '2026-04-27T10:00:00.000Z',
+    });
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days?day=race%3A1'),
+    );
+
+    expect(getSharedDayPlan).toHaveBeenCalledWith('race:1');
+    expect(data.selectedDayPlan).toEqual({
+      dayId: 'race:1',
+      notes: 'Meet in paddock bay 12.',
+      updatedByName: 'Driver One',
+      updatedAt: '2026-04-27T10:00:00.000Z',
     });
   });
 

@@ -11,6 +11,7 @@ import {
   submitClearSavedDaysFilters,
   submitSaveDaysFilters,
 } from '~/lib/days/preferences.server';
+import { submitSharedDayPlan } from '~/lib/days/shared-plan.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
 import type { Route } from './+types/days';
 
@@ -19,7 +20,8 @@ type AvailableDaysActionResult =
   | Awaited<ReturnType<typeof submitClearSavedDaysFilters>>
   | Awaited<ReturnType<typeof submitSharedStaySelection>>
   | Awaited<ReturnType<typeof submitBulkRaceSeriesBooking>>
-  | Awaited<ReturnType<typeof submitCreateBooking>>;
+  | Awaited<ReturnType<typeof submitCreateBooking>>
+  | Awaited<ReturnType<typeof submitSharedDayPlan>>;
 
 function revalidationFilterKey(url: URL) {
   const params = new URLSearchParams(url.searchParams);
@@ -46,6 +48,8 @@ export async function action({ request }: Route.ActionArgs) {
     result = await submitClearSavedDaysFilters(user.id);
   } else if (intent === 'useSharedStay') {
     result = await submitSharedStaySelection(formData, user);
+  } else if (intent === 'saveSharedDayPlan') {
+    result = await submitSharedDayPlan(formData, user);
   } else if (intent === 'addRaceSeries') {
     result = await submitBulkRaceSeriesBooking(formData, user);
   } else {

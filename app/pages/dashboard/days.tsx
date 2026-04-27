@@ -12,6 +12,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  Textarea,
   Title,
   UnstyledButton,
 } from '@mantine/core';
@@ -37,6 +38,10 @@ import type {
   DaysPreferenceActionResult,
   SavedDaysFilters,
 } from '~/lib/days/preferences.server';
+import type {
+  SharedDayPlan,
+  SharedDayPlanActionResult,
+} from '~/lib/days/shared-plan.server';
 import type {
   DayAttendanceSummary as DayAttendanceDetails,
   SharedAttendee,
@@ -1123,11 +1128,72 @@ function SharedStayAssignments({
   );
 }
 
+function SharedPlanNoteEditor({
+  day,
+  plan,
+}: {
+  day: DayRow;
+  plan?: SharedDayPlan | null;
+}) {
+  const fetcher = useFetcher<SharedDayPlanActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const noteError =
+    fetcher.data && !fetcher.data.ok
+      ? fetcher.data.fieldErrors.notes?.[0]
+      : null;
+
+  return (
+    <Stack gap="sm">
+      <Group justify="space-between" align="flex-end" gap="md">
+        <Stack gap={2}>
+          <Text fw={700}>Shared planning note</Text>
+          <Text size="sm" c="dimmed">
+            Keep group-visible logistics here, separate from private booking
+            references.
+          </Text>
+        </Stack>
+        {plan ? (
+          <Text size="sm" c="dimmed">
+            Updated by {plan.updatedByName}
+          </Text>
+        ) : null}
+      </Group>
+
+      <fetcher.Form method="post">
+        <Stack gap="xs">
+          <input type="hidden" name="intent" value="saveSharedDayPlan" />
+          <input type="hidden" name="dayId" value={day.dayId} />
+          <Textarea
+            name="notes"
+            aria-label="Shared planning note"
+            placeholder="Meeting point, dinner booking, convoy notes..."
+            rows={4}
+            maxLength={1000}
+            defaultValue={plan?.notes ?? ''}
+            error={noteError}
+          />
+          <Group justify="space-between" align="center" gap="md">
+            <Text size="xs" c={formError ? 'red' : 'dimmed'}>
+              {formError ?? 'Leave blank and save to clear the shared note.'}
+            </Text>
+            <Button type="submit" size="sm" loading={isSubmitting}>
+              Save shared note
+            </Button>
+          </Group>
+        </Stack>
+      </fetcher.Form>
+    </Stack>
+  );
+}
+
 function DayDetailContent({
   day,
   summary,
   booking,
   series,
+  sharedPlan,
   attendanceDetails,
   attendanceLoading,
 }: {
@@ -1135,6 +1201,7 @@ function DayDetailContent({
   summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
   series?: DaysIndexData['raceSeriesByDayId'][string];
+  sharedPlan?: SharedDayPlan | null;
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
@@ -1257,6 +1324,10 @@ function DayDetailContent({
 
       <Divider />
 
+      <SharedPlanNoteEditor day={day} plan={sharedPlan} />
+
+      <Divider />
+
       <Stack gap="sm">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
@@ -1347,6 +1418,7 @@ function DayDetailPanel({
   summary,
   booking,
   series,
+  sharedPlan,
   attendanceDetails,
   attendanceLoading,
 }: {
@@ -1354,6 +1426,7 @@ function DayDetailPanel({
   summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
   series?: DaysIndexData['raceSeriesByDayId'][string];
+  sharedPlan?: SharedDayPlan | null;
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
@@ -1364,6 +1437,7 @@ function DayDetailPanel({
         summary={summary}
         booking={booking}
         series={series}
+        sharedPlan={sharedPlan}
         attendanceDetails={attendanceDetails}
         attendanceLoading={attendanceLoading}
       />
@@ -2002,6 +2076,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               )}
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
               series={selectedDaySeries ?? undefined}
+              sharedPlan={
+                selectedDayMatchesRouteData ? data.selectedDayPlan : null
+              }
               attendanceDetails={selectedDayAttendanceDetails}
               attendanceLoading={attendanceLoading}
             />

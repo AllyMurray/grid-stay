@@ -26,6 +26,7 @@ import {
   getLinkedSeriesName,
   type RaceSeriesSummary,
 } from './series.server';
+import { getSharedDayPlan, type SharedDayPlan } from './shared-plan.server';
 import type {
   AvailableDay,
   AvailableDayType,
@@ -91,6 +92,7 @@ export interface DaysIndexData extends DaysFeedData {
   selectedDayNext: DayRow | null;
   selectedDaySummary: DayAttendanceOverview | null;
   selectedDayAttendance: DayAttendanceSummary | null;
+  selectedDayPlan: SharedDayPlan | null;
 }
 
 const EMPTY_ERRORS: DaySourceError[] = [
@@ -356,9 +358,13 @@ export async function loadDaysIndex(
     : -1;
   let selectedDaySummary: DayAttendanceOverview | null = null;
   let selectedDayAttendance: DayAttendanceSummary | null = null;
+  let selectedDayPlan: SharedDayPlan | null = null;
 
   if (selectedDayRecord) {
-    selectedDayAttendance = await listAttendanceByDay(selectedDayRecord.dayId);
+    [selectedDayAttendance, selectedDayPlan] = await Promise.all([
+      listAttendanceByDay(selectedDayRecord.dayId),
+      getSharedDayPlan(selectedDayRecord.dayId),
+    ]);
     selectedDaySummary = {
       attendeeCount: selectedDayAttendance.attendeeCount,
       accommodationNames: selectedDayAttendance.accommodationNames,
@@ -406,6 +412,7 @@ export async function loadDaysIndex(
         : null,
     selectedDaySummary,
     selectedDayAttendance,
+    selectedDayPlan,
   };
 }
 

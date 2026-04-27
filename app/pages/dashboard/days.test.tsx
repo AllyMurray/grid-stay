@@ -1,6 +1,6 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createRoutesStub } from 'react-router';
+import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import type {
   DaysFeedData,
@@ -18,11 +18,12 @@ function renderWithProviders(
     DayAttendanceSummary
   > = defaultAttendanceByDay,
   feedPagesByOffset: Record<number, DaysFeedData> = {},
+  action: (args: ActionFunctionArgs) => Promise<unknown> = async () => null,
 ) {
   const Stub = createRoutesStub([
     {
       path: '/dashboard/days',
-      action: async () => null,
+      action,
       Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
     },
     {
@@ -90,6 +91,7 @@ const defaultData: DaysIndexData = {
   selectedDayNext: null,
   selectedDaySummary: null,
   selectedDayAttendance: null,
+  selectedDayPlan: null,
   attendanceSummaries: {
     'day-1': {
       attendeeCount: 2,
@@ -481,6 +483,57 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('button', { name: /add missing as booked/i }),
     ).toBeVisible();
+  });
+
+  it('renders and submits the shared planning note for a selected day', async () => {
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay: defaultData.days[0]!,
+          selectedDayPosition: 1,
+          selectedDaySummary: defaultData.attendanceSummaries['day-1'],
+          selectedDayAttendance: defaultAttendanceByDay['day-1'],
+          selectedDayPlan: {
+            dayId: 'day-1',
+            notes: 'Meet by garage 4.',
+            updatedByName: 'Driver One',
+            updatedAt: '2026-04-27T10:00:00.000Z',
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+      defaultAttendanceByDay,
+      {},
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return {
+          ok: true,
+          plan: null,
+        };
+      },
+    );
+
+    const note = await screen.findByRole('textbox', {
+      name: 'Shared planning note',
+    });
+    expect(note).toHaveDisplayValue('Meet by garage 4.');
+    expect(screen.getByText('Updated by Driver One')).toBeInTheDocument();
+
+    fireEvent.change(note, {
+      target: { value: 'Meet by garage 6.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save shared note' }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        intent: 'saveSharedDayPlan',
+        dayId: 'day-1',
+        notes: 'Meet by garage 6.',
+      }),
+    );
   });
 
   it('uses non-actionable series copy when every linked race round is already booked', () => {
