@@ -10,10 +10,12 @@ export interface SeriesSubscriptionPersistence {
     seriesKey: string,
     changes: Partial<SeriesSubscriptionRecord>,
   ): Promise<SeriesSubscriptionRecord>;
+  delete(userId: string, seriesKey: string): Promise<void>;
   getByUserAndSeries(
     userId: string,
     seriesKey: string,
   ): Promise<SeriesSubscriptionRecord | null>;
+  listByUser(userId: string): Promise<SeriesSubscriptionRecord[]>;
   listBySeries(seriesKey: string): Promise<SeriesSubscriptionRecord[]>;
 }
 
@@ -30,12 +32,25 @@ export const seriesSubscriptionStore: SeriesSubscriptionPersistence = {
       .go({ response: 'all_new' });
     return updated.data;
   },
+  async delete(userId, seriesKey) {
+    await SeriesSubscriptionEntity.delete({ userId, seriesKey }).go({
+      response: 'none',
+    });
+  },
   async getByUserAndSeries(userId, seriesKey) {
     const response = await SeriesSubscriptionEntity.get({
       userId,
       seriesKey,
     }).go();
     return response.data ?? null;
+  },
+  async listByUser(userId) {
+    const response = await SeriesSubscriptionEntity.query
+      .subscription({
+        userId,
+      })
+      .go();
+    return response.data;
   },
   async listBySeries(seriesKey) {
     const response = await SeriesSubscriptionEntity.query

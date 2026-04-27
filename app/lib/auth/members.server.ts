@@ -14,7 +14,7 @@ const SSTResource = Resource as unknown as {
   AuthTable: { name: string };
 };
 
-interface AuthUserRecord {
+export interface AuthUserRecord {
   id: string;
   email: string;
   name: string;
@@ -37,6 +37,10 @@ export interface MemberDirectoryEntry {
         accommodationName?: string;
       }
     | undefined;
+}
+
+export interface AdminMemberDirectoryEntry extends MemberDirectoryEntry {
+  email: string;
 }
 
 async function scanAuthUsers(): Promise<AuthUserRecord[]> {
@@ -105,6 +109,17 @@ function summarizeMember(
   };
 }
 
+function summarizeAdminMember(
+  user: AuthUserRecord,
+  bookings: BookingRecord[],
+  today: string,
+): AdminMemberDirectoryEntry {
+  return {
+    ...summarizeMember(user, bookings, today),
+    email: user.email,
+  };
+}
+
 function compareMembers(
   left: MemberDirectoryEntry,
   right: MemberDirectoryEntry,
@@ -146,4 +161,32 @@ export async function listSiteMembers(
   );
 
   return members.sort(compareMembers);
+}
+
+export async function listAdminSiteMembers(
+  loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
+  loadBookings: (userId: string) => Promise<BookingRecord[]> = async (
+    userId,
+  ) => {
+    const { listMyBookings } = await import('~/lib/db/services/booking.server');
+    return listMyBookings(userId);
+  },
+  today = new Date().toISOString().slice(0, 10),
+): Promise<AdminMemberDirectoryEntry[]> {
+  const users = await loadUsers();
+  const members = await Promise.all(
+    users.map(async (user) =>
+      summarizeAdminMember(user, await loadBookings(user.id), today),
+    ),
+  );
+
+  return members.sort(compareMembers);
+}
+
+export async function getSiteMemberById(
+  memberId: string,
+  loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
+): Promise<AuthUserRecord | null> {
+  const users = await loadUsers();
+  return users.find((user) => user.id === memberId) ?? null;
 }

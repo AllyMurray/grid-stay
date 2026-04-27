@@ -1,0 +1,349 @@
+import { z } from 'zod';
+import {
+  type AuthUserRecord,
+  getSiteMemberById,
+} from '~/lib/auth/members.server';
+import type { User } from '~/lib/auth/schemas';
+import {
+  getLinkedSeriesKey,
+  getLinkedSeriesName,
+  getRaceSeriesDaysForDay,
+} from '~/lib/days/series.server';
+import type { AvailableDay } from '~/lib/days/types';
+import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import type { SeriesSubscriptionRecord } from '~/lib/db/entities/series-subscription.server';
+import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import {
+  ensureBookingsForDays,
+  listMyBookings,
+} from '~/lib/db/services/booking.server';
+import { listManualDays } from '~/lib/db/services/manual-day.server';
+import {
+  seriesSubscriptionStore,
+  upsertSeriesSubscription,
+} from '~/lib/db/services/series-subscription.server';
+
+const AdminMemberSeriesSchema = z.object({
+  seriesKey: z.string().trim().min(1),
+  status: z.enum(['booked', 'maybe']),
+});
+
+const AdminMemberSeriesKeySchema = z.object({
+  seriesKey: z.string().trim().min(1),
+});
+
+type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
+
+export interface AdminSeriesOption {
+  seriesKey: string;
+  seriesName: string;
+  dayCount: number;
+}
+
+export interface AdminMemberBooking {
+  bookingId: string;
+  dayId: string;
+  date: string;
+  status: BookingRecord['status'];
+  circuit: string;
+  provider: string;
+  description: string;
+  accommodationName?: string;
+}
+
+export interface AdminMemberProfile {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  role: User['role'];
+  bookings: AdminMemberBooking[];
+  subscriptions: SeriesSubscriptionRecord[];
+}
+
+export type AdminMemberSeriesActionResult =
+  | {
+      ok: true;
+      message: string;
+      addedCount?: number;
+      existingCount?: number;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<'seriesKey' | 'status'>;
+    };
+
+export interface AdminMemberProfileDependencies {
+  loadMember?: typeof getSiteMemberById;
+  loadBookings?: (userId: string) => Promise<BookingRecord[]>;
+  loadSubscriptions?: (userId: string) => Promise<SeriesSubscriptionRecord[]>;
+  today?: string;
+}
+
+export interface AdminMemberSeriesActionDependencies {
+  loadMember?: typeof getSiteMemberById;
+  loadSnapshot?: typeof getAvailableDaysSnapshot;
+  loadManualDays?: typeof listManualDays;
+  saveBookings?: typeof ensureBookingsForDays;
+  saveSubscription?: typeof upsertSeriesSubscription;
+  updateSubscription?: (
+    userId: string,
+    seriesKey: string,
+    changes: Partial<SeriesSubscriptionRecord>,
+  ) => Promise<SeriesSubscriptionRecord>;
+  deleteSubscription?: (userId: string, seriesKey: string) => Promise<void>;
+}
+
+function sortBookings(left: BookingRecord, right: BookingRecord) {
+  if (left.status === 'cancelled' && right.status !== 'cancelled') {
+    return 1;
+  }
+
+  if (right.status === 'cancelled' && left.status !== 'cancelled') {
+    return -1;
+  }
+
+  if (left.date !== right.date) {
+    return left.date.localeCompare(right.date);
+  }
+
+  return left.circuit.localeCompare(right.circuit);
+}
+
+function sortSubscriptions(
+  left: SeriesSubscriptionRecord,
+  right: SeriesSubscriptionRecord,
+) {
+  return left.seriesName.localeCompare(right.seriesName);
+}
+
+function toAdminMemberBooking(booking: BookingRecord): AdminMemberBooking {
+  return {
+    bookingId: booking.bookingId,
+    dayId: booking.dayId,
+    date: booking.date,
+    status: booking.status,
+    circuit: booking.circuit,
+    provider: booking.provider,
+    description: booking.description,
+    accommodationName: booking.accommodationName,
+  };
+}
+
+function toUser(member: AuthUserRecord): User {
+  return {
+    id: member.id,
+    email: member.email,
+    name: member.name,
+    picture: member.image,
+    role: member.role ?? 'member',
+  };
+}
+
+function formError(
+  message: string,
+  fieldErrors: FieldErrors<'seriesKey' | 'status'> = {},
+): AdminMemberSeriesActionResult {
+  return {
+    ok: false,
+    formError: message,
+    fieldErrors,
+  };
+}
+
+function findSeriesDays(days: AvailableDay[], seriesKey: string) {
+  const selectedDay = days.find((day) => getLinkedSeriesKey(day) === seriesKey);
+  if (!selectedDay) {
+    return null;
+  }
+
+  return getRaceSeriesDaysForDay(days, selectedDay.dayId);
+}
+
+async function loadAvailableAndManualDays(
+  loadSnapshot: typeof getAvailableDaysSnapshot,
+  loadManual: typeof listManualDays,
+) {
+  const [snapshot, manualDays] = await Promise.all([
+    loadSnapshot(),
+    loadManual(),
+  ]);
+
+  return [...(snapshot?.days ?? []), ...manualDays];
+}
+
+export function buildAdminSeriesOptions(
+  days: AvailableDay[],
+): AdminSeriesOption[] {
+  const seriesByKey = new Map<string, AdminSeriesOption>();
+
+  for (const day of days) {
+    const seriesKey = getLinkedSeriesKey(day);
+    const seriesName = getLinkedSeriesName(day);
+
+    if (!seriesKey || !seriesName) {
+      continue;
+    }
+
+    const current = seriesByKey.get(seriesKey);
+    if (current) {
+      current.dayCount += 1;
+      continue;
+    }
+
+    seriesByKey.set(seriesKey, {
+      seriesKey,
+      seriesName,
+      dayCount: 1,
+    });
+  }
+
+  return [...seriesByKey.values()].sort((left, right) =>
+    left.seriesName.localeCompare(right.seriesName),
+  );
+}
+
+export async function getAdminMemberProfile(
+  memberId: string,
+  dependencies: AdminMemberProfileDependencies = {},
+): Promise<AdminMemberProfile> {
+  const loadMember = dependencies.loadMember ?? getSiteMemberById;
+  const loadBookings = dependencies.loadBookings ?? listMyBookings;
+  const loadSubscriptions =
+    dependencies.loadSubscriptions ??
+    ((userId: string) => seriesSubscriptionStore.listByUser(userId));
+  const today = dependencies.today ?? new Date().toISOString().slice(0, 10);
+  const member = await loadMember(memberId);
+
+  if (!member) {
+    throw new Response('Member not found', { status: 404 });
+  }
+
+  const [bookings, subscriptions] = await Promise.all([
+    loadBookings(member.id),
+    loadSubscriptions(member.id),
+  ]);
+
+  return {
+    id: member.id,
+    email: member.email,
+    name: member.name,
+    picture: member.image,
+    role: member.role ?? 'member',
+    bookings: bookings
+      .filter((booking) => booking.date >= today)
+      .sort(sortBookings)
+      .map(toAdminMemberBooking),
+    subscriptions: subscriptions.sort(sortSubscriptions),
+  };
+}
+
+export async function submitAdminMemberSeriesAction(
+  formData: FormData,
+  memberId: string,
+  dependencies: AdminMemberSeriesActionDependencies = {},
+): Promise<AdminMemberSeriesActionResult> {
+  const intent = formData.get('intent');
+  const loadMember = dependencies.loadMember ?? getSiteMemberById;
+  const member = await loadMember(memberId);
+
+  if (!member) {
+    return formError('This member could not be found.');
+  }
+
+  if (intent === 'removeSeries') {
+    const parsed = AdminMemberSeriesKeySchema.safeParse(
+      Object.fromEntries(formData),
+    );
+
+    if (!parsed.success) {
+      return formError(
+        'Could not remove this series subscription.',
+        parsed.error.flatten().fieldErrors,
+      );
+    }
+
+    await (dependencies.deleteSubscription ?? seriesSubscriptionStore.delete)(
+      member.id,
+      parsed.data.seriesKey,
+    );
+
+    return {
+      ok: true,
+      message: 'Series subscription removed.',
+    };
+  }
+
+  const parsed = AdminMemberSeriesSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return formError(
+      intent === 'updateSeries'
+        ? 'Could not update this series subscription.'
+        : 'Could not add this member to the series.',
+      parsed.error.flatten().fieldErrors,
+    );
+  }
+
+  if (intent === 'updateSeries') {
+    await (dependencies.updateSubscription ?? seriesSubscriptionStore.update)(
+      member.id,
+      parsed.data.seriesKey,
+      {
+        status: parsed.data.status,
+        updatedAt: new Date().toISOString(),
+      },
+    );
+
+    return {
+      ok: true,
+      message: 'Series subscription updated.',
+    };
+  }
+
+  if (intent !== 'addSeries') {
+    return formError('This member action is not supported.');
+  }
+
+  const days = await loadAvailableAndManualDays(
+    dependencies.loadSnapshot ?? getAvailableDaysSnapshot,
+    dependencies.loadManualDays ?? listManualDays,
+  );
+  const series = findSeriesDays(days, parsed.data.seriesKey);
+
+  if (!series || series.days.length === 0) {
+    return formError('This series is not available in the calendar yet.');
+  }
+
+  const user = toUser(member);
+  const result = await (dependencies.saveBookings ?? ensureBookingsForDays)(
+    series.days.map((day) => ({
+      dayId: day.dayId,
+      date: day.date,
+      type: day.type,
+      circuit: day.circuit,
+      provider: day.provider,
+      description: day.description,
+      status: parsed.data.status,
+    })),
+    parsed.data.status,
+    user,
+  );
+
+  await (dependencies.saveSubscription ?? upsertSeriesSubscription)({
+    userId: member.id,
+    seriesKey: series.seriesKey,
+    seriesName: series.seriesName,
+    status: parsed.data.status,
+  });
+
+  return {
+    ok: true,
+    message: `${series.seriesName} added to ${member.name}.`,
+    addedCount: result.addedCount,
+    existingCount: result.existingCount,
+  };
+}

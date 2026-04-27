@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
-import { listSiteMembers } from './members.server';
+import { listAdminSiteMembers, listSiteMembers } from './members.server';
 
 const userRecords = [
   {
@@ -112,6 +112,7 @@ describe('listSiteMembers', () => {
         circuit: 'Silverstone',
       },
     });
+    expect(members[0]).not.toHaveProperty('email');
     expect(members[1]).toMatchObject({
       id: 'user-2',
       name: 'Driver Two',
@@ -128,6 +129,19 @@ describe('listSiteMembers', () => {
       activeTripsCount: 0,
       sharedStayCount: 0,
       nextTrip: undefined,
+    });
+  });
+
+  it('includes email addresses only in the admin member directory', async () => {
+    const members = await listAdminSiteMembers(
+      async () => userRecords,
+      async (userId) => bookingsByUser[userId] ?? [],
+      '2026-04-16',
+    );
+
+    expect(members[0]).toMatchObject({
+      id: 'user-1',
+      email: 'ally@example.com',
     });
   });
 });

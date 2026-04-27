@@ -5,6 +5,7 @@ import {
   Burger,
   Button,
   Container,
+  Divider,
   Group,
   NavLink,
   Stack,
@@ -43,6 +44,7 @@ export default function DashboardLayoutRoute() {
   const location = useLocation();
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const [opened, { toggle, close }] = useDisclosure(false);
+  const isAdmin = isAdminUser(user);
 
   const navItems = [
     {
@@ -57,16 +59,6 @@ export default function DashboardLayoutRoute() {
       icon: IconRoad,
       active: location.pathname.startsWith('/dashboard/days'),
     },
-    ...(isAdminUser(user)
-      ? [
-          {
-            label: 'Manual Days',
-            to: '/dashboard/manual-days',
-            icon: IconLock,
-            active: location.pathname.startsWith('/dashboard/manual-days'),
-          },
-        ]
-      : []),
     {
       label: 'Schedule',
       to: '/dashboard/schedule',
@@ -84,6 +76,20 @@ export default function DashboardLayoutRoute() {
       to: '/dashboard/members',
       icon: IconUsersGroup,
       active: location.pathname.startsWith('/dashboard/members'),
+    },
+  ];
+  const adminNavItems = [
+    {
+      label: 'Manual Days',
+      to: '/dashboard/manual-days',
+      icon: IconLock,
+      active: location.pathname.startsWith('/dashboard/manual-days'),
+    },
+    {
+      label: 'Member Management',
+      to: '/dashboard/admin/members',
+      icon: IconUsersGroup,
+      active: location.pathname.startsWith('/dashboard/admin/members'),
     },
   ];
 
@@ -171,20 +177,46 @@ export default function DashboardLayoutRoute() {
         </AppShell.Section>
 
         <AppShell.Section grow mt="lg">
-          <Stack gap={4}>
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                component={Link}
-                to={item.to}
-                label={item.label}
-                leftSection={<item.icon size={18} />}
-                active={item.active}
-                variant="filled"
-                color="brand"
-                onClick={close}
-              />
-            ))}
+          <Stack gap="md">
+            <Stack gap={4}>
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  component={Link}
+                  to={item.to}
+                  label={item.label}
+                  leftSection={<item.icon size={18} />}
+                  active={item.active}
+                  variant="filled"
+                  color="brand"
+                  onClick={close}
+                />
+              ))}
+            </Stack>
+
+            {isAdmin ? (
+              <Stack gap={6}>
+                <Divider />
+                <Text size="xs" fw={800} c="dimmed" tt="uppercase">
+                  Admin
+                </Text>
+                <Stack gap={4}>
+                  {adminNavItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      component={Link}
+                      to={item.to}
+                      label={item.label}
+                      leftSection={<item.icon size={18} />}
+                      active={item.active}
+                      variant="filled"
+                      color="brand"
+                      onClick={close}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            ) : null}
           </Stack>
         </AppShell.Section>
       </AppShell.Navbar>

@@ -19,6 +19,11 @@ export default [
     route('dashboard', 'routes/dashboard/index.tsx'),
     route('dashboard/days', 'routes/dashboard/days.tsx'),
     route('dashboard/manual-days', 'routes/dashboard/manual-days.tsx'),
+    route('dashboard/admin/members', 'routes/dashboard/admin.members.tsx'),
+    route(
+      'dashboard/admin/members/:memberId',
+      'routes/dashboard/admin.members.$memberId.tsx',
+    ),
     route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
     route('dashboard/members', 'routes/dashboard/members.tsx'),
