@@ -3,6 +3,7 @@ import { requireAdmin } from '~/lib/auth/helpers.server';
 import { submitCreateManualDay } from '~/lib/days/actions.server';
 import { listCircuitOptions } from '~/lib/days/aggregation.server';
 import { getRaceSeriesName } from '~/lib/days/series.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
 import {
@@ -61,6 +62,24 @@ export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireAdmin(request);
   const formData = await request.formData();
   const result = await submitCreateManualDay(formData, user);
+
+  if (result.ok) {
+    await recordAppEventSafely({
+      category: 'audit',
+      action: 'manualDay.created',
+      message: 'Manual day created.',
+      actor: { userId: user.id, name: user.name },
+      subject: {
+        type: 'manualDay',
+        id: result.dayId,
+      },
+      metadata: {
+        date: formData.get('date')?.toString(),
+        circuit: formData.get('circuit')?.toString(),
+        type: formData.get('type')?.toString(),
+      },
+    });
+  }
 
   return Response.json(result, {
     headers,

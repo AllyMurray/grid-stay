@@ -12,6 +12,7 @@ import {
   submitSaveDaysFilters,
 } from '~/lib/days/preferences.server';
 import { submitSharedDayPlan } from '~/lib/days/shared-plan.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
 import type { Route } from './+types/days';
 
@@ -54,6 +55,80 @@ export async function action({ request }: Route.ActionArgs) {
     result = await submitBulkRaceSeriesBooking(formData, user);
   } else {
     result = await submitCreateBooking(formData, user);
+  }
+
+  if (result.ok) {
+    if (intent === 'useSharedStay') {
+      await recordAppEventSafely({
+        category: 'audit',
+        action: 'booking.sharedStay.selected',
+        message: 'Shared stay selected from available days.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+        metadata: {
+          accommodationName: formData.get('accommodationName')?.toString(),
+        },
+      });
+    } else if (intent === 'saveSharedDayPlan') {
+      const savedPlan = 'plan' in result ? result.plan : null;
+      await recordAppEventSafely({
+        category: 'audit',
+        action: savedPlan ? 'dayPlan.saved' : 'dayPlan.deleted',
+        message: savedPlan
+          ? 'Shared day plan saved.'
+          : 'Shared day plan deleted.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+      });
+    } else if (intent === 'addRaceSeries') {
+      const seriesResult =
+        'seriesName' in result
+          ? result
+          : {
+              seriesName: 'Race series',
+              totalCount: undefined,
+              addedCount: undefined,
+              existingCount: undefined,
+            };
+      await recordAppEventSafely({
+        category: 'audit',
+        action: 'booking.raceSeries.added',
+        message: `${seriesResult.seriesName} added from available days.`,
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+        metadata: {
+          totalCount: seriesResult.totalCount,
+          addedCount: seriesResult.addedCount,
+          existingCount: seriesResult.existingCount,
+        },
+      });
+    } else if (
+      intent !== 'saveDaysFilters' &&
+      intent !== 'clearSavedDaysFilters'
+    ) {
+      await recordAppEventSafely({
+        category: 'audit',
+        action: 'booking.created',
+        message: 'Booking created from available days.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+        metadata: {
+          status: formData.get('status')?.toString(),
+        },
+      });
+    }
   }
 
   return Response.json(result, {

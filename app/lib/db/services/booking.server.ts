@@ -143,6 +143,22 @@ async function syncDayAttendanceSummariesSafely(
       dayIds,
       error,
     });
+    const { recordAppEventSafely } = await import(
+      '~/lib/db/services/app-event.server'
+    );
+    await recordAppEventSafely({
+      category: 'error',
+      action: 'booking.attendanceSummary.failed',
+      message: 'Failed to refresh booking attendance summaries.',
+      subject: {
+        type: 'day',
+        id: dayIds.join(','),
+      },
+      metadata: {
+        dayIds,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
   }
 }
 

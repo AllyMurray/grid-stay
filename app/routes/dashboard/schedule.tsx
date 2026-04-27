@@ -9,6 +9,7 @@ import {
   regenerateCalendarFeedForUser,
   saveCalendarFeedOptionsForUser,
 } from '~/lib/calendar/feed.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { BookingSchedulePage } from '~/pages/dashboard/schedule';
@@ -54,6 +55,31 @@ export async function action({ request }: Route.ActionArgs) {
             undefined,
             options,
           );
+
+  await recordAppEventSafely({
+    category: 'audit',
+    action:
+      intent === 'regenerateCalendarFeed'
+        ? 'calendarFeed.regenerated'
+        : intent === 'saveCalendarFeedOptions'
+          ? 'calendarFeed.optionsSaved'
+          : 'calendarFeed.created',
+    message:
+      intent === 'regenerateCalendarFeed'
+        ? 'Calendar feed link regenerated.'
+        : intent === 'saveCalendarFeedOptions'
+          ? 'Calendar feed options saved.'
+          : 'Calendar feed created.',
+    actor: { userId: user.id, name: user.name },
+    subject: {
+      type: 'calendarFeed',
+      id: feed.tokenHash,
+    },
+    metadata: {
+      includeMaybe: options.includeMaybe,
+      includeStay: options.includeStay,
+    },
+  });
 
   return Response.json(
     {

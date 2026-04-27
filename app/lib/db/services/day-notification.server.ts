@@ -124,6 +124,22 @@ export async function createAvailableDayNotificationsSafely(
       dayIds: days.map((day) => day.dayId),
       error,
     });
+    const { recordAppEventSafely } = await import(
+      '~/lib/db/services/app-event.server'
+    );
+    await recordAppEventSafely({
+      category: 'error',
+      action: 'availableDays.notifications.failed',
+      message: 'Failed to create available day notifications.',
+      subject: {
+        type: 'availableDays',
+        id: 'notifications',
+      },
+      metadata: {
+        dayIds: days.map((day) => day.dayId),
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
     return [];
   }
 }

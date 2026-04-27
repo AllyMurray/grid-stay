@@ -4,6 +4,7 @@ import {
   submitBookingDelete,
   submitBookingUpdate,
 } from '~/lib/bookings/actions.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
@@ -23,6 +24,24 @@ export async function action({ request }: Route.ActionArgs) {
     intent === 'deleteBooking'
       ? await submitBookingDelete(formData, user.id)
       : await submitBookingUpdate(formData, user.id);
+
+  if (result.ok) {
+    await recordAppEventSafely({
+      category: 'audit',
+      action:
+        intent === 'deleteBooking' ? 'booking.deleted' : 'booking.updated',
+      message:
+        intent === 'deleteBooking' ? 'Booking deleted.' : 'Booking updated.',
+      actor: { userId: user.id, name: user.name },
+      subject: {
+        type: 'booking',
+        id: formData.get('bookingId')?.toString(),
+      },
+      metadata: {
+        status: formData.get('status')?.toString(),
+      },
+    });
+  }
 
   return Response.json(result, {
     headers,

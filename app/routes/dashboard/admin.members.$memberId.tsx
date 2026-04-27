@@ -5,6 +5,7 @@ import {
   submitAdminMemberAction,
 } from '~/lib/admin/member-management.server';
 import { requireAdmin } from '~/lib/auth/helpers.server';
+import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import {
@@ -35,7 +36,26 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   const { user, headers } = await requireAdmin(request);
   const formData = await request.formData();
+  const intent = String(formData.get('intent') ?? 'unknown');
   const result = await submitAdminMemberAction(formData, params.memberId, user);
+
+  if (result.ok) {
+    await recordAppEventSafely({
+      category: 'audit',
+      action: `admin.member.${intent}`,
+      message: result.message,
+      actor: { userId: user.id, name: user.name },
+      subject: {
+        type: 'member',
+        id: params.memberId,
+      },
+      metadata: {
+        seriesKey: formData.get('seriesKey')?.toString(),
+        addedCount: result.addedCount,
+        existingCount: result.existingCount,
+      },
+    });
+  }
 
   return Response.json(result, {
     headers,
