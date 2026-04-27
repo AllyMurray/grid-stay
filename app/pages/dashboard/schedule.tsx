@@ -31,14 +31,18 @@ import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface BookingSchedulePageProps {
   bookings: BookingRecord[];
+  calendarFeedExists?: boolean;
   calendarFeedUrl?: string | null;
+  calendarFeedTokenHint?: string | null;
   calendarFeedOptions?: CalendarFeedOptions;
 }
 
 type CalendarFeedActionResult =
   | {
       ok: true;
-      feedUrl: string;
+      feedExists: boolean;
+      feedUrl: string | null;
+      tokenHint: string | null;
       options: CalendarFeedOptions;
     }
   | {
@@ -219,12 +223,16 @@ function ScheduleLegend() {
 function CalendarSyncModal({
   opened,
   onClose,
+  initialFeedExists,
   initialFeedUrl,
+  initialTokenHint,
   initialOptions,
 }: {
   opened: boolean;
   onClose: () => void;
+  initialFeedExists: boolean;
   initialFeedUrl: string | null;
+  initialTokenHint: string | null;
   initialOptions: CalendarFeedOptions;
 }) {
   const fetcher = useFetcher<CalendarFeedActionResult>();
@@ -233,7 +241,11 @@ function CalendarSyncModal({
   const [includeStay, setIncludeStay] = useState(initialOptions.includeStay);
   const isSubmitting = fetcher.state !== 'idle';
   const actionFeedUrl = fetcher.data?.ok ? fetcher.data.feedUrl : null;
+  const actionFeedExists = fetcher.data?.ok ? fetcher.data.feedExists : null;
+  const actionTokenHint = fetcher.data?.ok ? fetcher.data.tokenHint : null;
   const feedUrl = actionFeedUrl ?? initialFeedUrl;
+  const feedExists = actionFeedExists ?? initialFeedExists;
+  const tokenHint = actionTokenHint ?? initialTokenHint;
   const formError =
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
@@ -326,6 +338,12 @@ function CalendarSyncModal({
               </Button>
             </Group>
           </>
+        ) : feedExists ? (
+          <Text size="sm">
+            A private calendar feed is active
+            {tokenHint ? `, ending ${tokenHint}` : ''}. Regenerate the link to
+            copy a fresh URL.
+          </Text>
         ) : (
           <Text size="sm">
             Create a private calendar link first. Anyone with the link can see
@@ -341,7 +359,7 @@ function CalendarSyncModal({
             the previous one.
           </Text>
           <Group gap="xs" justify="flex-end">
-            {feedUrl ? (
+            {feedExists ? (
               <fetcher.Form method="post">
                 <input
                   type="hidden"
@@ -359,12 +377,14 @@ function CalendarSyncModal({
                 type="hidden"
                 name="intent"
                 value={
-                  feedUrl ? 'regenerateCalendarFeed' : 'createCalendarFeed'
+                  feedExists
+                    ? 'regenerateCalendarFeed'
+                    : 'createCalendarFeed'
                 }
               />
               {optionInputs}
               <Button type="submit" variant="default" loading={isSubmitting}>
-                {feedUrl ? 'Regenerate link' : 'Create link'}
+                {feedExists ? 'Regenerate link' : 'Create link'}
               </Button>
             </fetcher.Form>
           </Group>
@@ -442,7 +462,9 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
 
 export function BookingSchedulePage({
   bookings,
+  calendarFeedExists = false,
   calendarFeedUrl = null,
+  calendarFeedTokenHint = null,
   calendarFeedOptions = defaultCalendarFeedOptions,
 }: BookingSchedulePageProps) {
   const isMobile = useMediaQuery('(max-width: 48em)', false, {
@@ -505,7 +527,9 @@ export function BookingSchedulePage({
       <CalendarSyncModal
         opened={syncOpened}
         onClose={syncHandlers.close}
+        initialFeedExists={calendarFeedExists || Boolean(calendarFeedUrl)}
         initialFeedUrl={calendarFeedUrl}
+        initialTokenHint={calendarFeedTokenHint}
         initialOptions={calendarFeedOptions}
       />
       <PageHeader

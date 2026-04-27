@@ -54,6 +54,10 @@ export function createCalendarFeedToken() {
   return randomBytes(32).toString('base64url');
 }
 
+export function createCalendarFeedTokenHint(token: string) {
+  return token.slice(-8);
+}
+
 export function getCalendarFeedOptions(
   feed: Pick<CalendarFeedRecord, 'includeMaybe' | 'includeStay'> | null,
 ): CalendarFeedOptions {
@@ -100,10 +104,12 @@ async function createCalendarFeed(
 ): Promise<CalendarFeedRecord> {
   const token = tokenFactory();
   const now = new Date().toISOString();
+  const tokenHash = hashCalendarFeedToken(token);
+  const tokenHint = createCalendarFeedTokenHint(token);
 
-  return store.create({
-    token,
-    tokenHash: hashCalendarFeedToken(token),
+  const record = await store.create({
+    tokenHash,
+    tokenHint,
     feedScope: calendarFeedScope,
     userId,
     includeMaybe: options.includeMaybe,
@@ -112,6 +118,11 @@ async function createCalendarFeed(
     updatedAt: now,
     revokedAt: undefined,
   } as CalendarFeedRecord);
+
+  return {
+    ...record,
+    token,
+  };
 }
 
 export async function getActiveCalendarFeedForUser(

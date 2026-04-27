@@ -25,9 +25,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   return Response.json(
     {
       bookings,
-      calendarFeedUrl: calendarFeed
+      calendarFeedExists: Boolean(calendarFeed),
+      calendarFeedUrl: calendarFeed?.token
         ? buildCalendarFeedUrl(request, calendarFeed.token)
         : null,
+      calendarFeedTokenHint: calendarFeed?.tokenHint ?? null,
       calendarFeedOptions: getCalendarFeedOptions(calendarFeed),
     },
     { headers },
@@ -84,7 +86,9 @@ export async function action({ request }: Route.ActionArgs) {
   return Response.json(
     {
       ok: true,
-      feedUrl: buildCalendarFeedUrl(request, feed.token),
+      feedExists: true,
+      feedUrl: feed.token ? buildCalendarFeedUrl(request, feed.token) : null,
+      tokenHint: feed.tokenHint ?? null,
       options: getCalendarFeedOptions(feed),
     },
     { headers },
@@ -94,13 +98,17 @@ export async function action({ request }: Route.ActionArgs) {
 export default function BookingScheduleRoute() {
   const data = useLoaderData<typeof loader>() as {
     bookings: BookingRecord[];
+    calendarFeedExists: boolean;
     calendarFeedUrl: string | null;
+    calendarFeedTokenHint: string | null;
     calendarFeedOptions: ReturnType<typeof getCalendarFeedOptions>;
   };
   return (
     <BookingSchedulePage
       bookings={data.bookings}
+      calendarFeedExists={data.calendarFeedExists}
       calendarFeedUrl={data.calendarFeedUrl}
+      calendarFeedTokenHint={data.calendarFeedTokenHint}
       calendarFeedOptions={data.calendarFeedOptions}
     />
   );

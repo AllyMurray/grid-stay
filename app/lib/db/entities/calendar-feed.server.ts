@@ -11,7 +11,8 @@ export const CalendarFeedEntity = new Entity(
     attributes: {
       tokenHash: { type: 'string', required: true },
       feedScope: { type: 'string', required: true },
-      token: { type: 'string', required: true },
+      token: { type: 'string' },
+      tokenHint: { type: 'string' },
       userId: { type: 'string', required: true },
       includeMaybe: { type: 'boolean' },
       includeStay: { type: 'boolean' },

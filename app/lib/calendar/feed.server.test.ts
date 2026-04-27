@@ -60,9 +60,12 @@ describe('calendar feed service', () => {
       () => 'second-token',
     );
 
-    expect(second).toBe(first);
+    expect(second.tokenHash).toBe(first.tokenHash);
+    expect(second.token).toBeUndefined();
     expect(memory.items).toHaveLength(1);
     expect(first.token).toBe('first-token');
+    expect(memory.items[0]?.token).toBeUndefined();
+    expect(memory.items[0]?.tokenHint).toBe('st-token');
     expect(first.tokenHash).toBe(hashCalendarFeedToken('first-token'));
     expect(first.tokenHash).not.toBe(first.token);
     expect(getCalendarFeedOptions(first)).toEqual({
@@ -87,10 +90,13 @@ describe('calendar feed service', () => {
     await expect(
       getActiveCalendarFeedByToken('first-token', memory.store),
     ).resolves.toBeNull();
-    await expect(
-      getActiveCalendarFeedByToken('second-token', memory.store),
-    ).resolves.toBe(second);
-    expect(first.revokedAt).toBeTruthy();
+    const activeSecond = await getActiveCalendarFeedByToken(
+      'second-token',
+      memory.store,
+    );
+    expect(activeSecond?.tokenHash).toBe(second.tokenHash);
+    expect(activeSecond?.token).toBeUndefined();
+    expect(memory.items[0]?.revokedAt).toBeTruthy();
     expect(second.revokedAt).toBeUndefined();
   });
 
@@ -112,7 +118,9 @@ describe('calendar feed service', () => {
       () => 'unused-token',
     );
 
-    expect(updated.token).toBe(feed.token);
+    expect(updated.tokenHash).toBe(feed.tokenHash);
+    expect(updated.token).toBeUndefined();
+    expect(memory.items[0]?.token).toBeUndefined();
     expect(getCalendarFeedOptions(updated)).toEqual({
       includeMaybe: false,
       includeStay: false,

@@ -175,7 +175,9 @@ describe('BookingSchedulePage', () => {
         submitted = Object.fromEntries(await request.formData());
         return {
           ok: true,
+          feedExists: true,
           feedUrl: 'https://gridstay.app/calendar/new-token.ics',
+          tokenHint: 'new-token',
           options: {
             includeMaybe: true,
             includeStay: true,
@@ -217,7 +219,9 @@ describe('BookingSchedulePage', () => {
         submitted = Object.fromEntries(await request.formData());
         return {
           ok: true,
+          feedExists: true,
           feedUrl: 'https://gridstay.app/calendar/private-token.ics',
+          tokenHint: 'te-token',
           options: {
             includeMaybe: false,
             includeStay: false,
@@ -244,6 +248,47 @@ describe('BookingSchedulePage', () => {
         includeStay: 'false',
       }),
     );
+  });
+
+  it('regenerates an active calendar feed when the stored token is not available', async () => {
+    const user = userEvent.setup();
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <BookingSchedulePage
+        bookings={[bookingOne, bookingTwo]}
+        calendarFeedExists
+        calendarFeedTokenHint="abc12345"
+      />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return {
+          ok: true,
+          feedExists: true,
+          feedUrl: 'https://gridstay.app/calendar/regenerated-token.ics',
+          tokenHint: 'ed-token',
+          options: {
+            includeMaybe: true,
+            includeStay: true,
+          },
+        };
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: /sync calendar/i }));
+    await screen.findByText(/ending abc12345/i);
+    await user.click(screen.getByRole('button', { name: /regenerate link/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({ intent: 'regenerateCalendarFeed' }),
+      ),
+    );
+    expect(
+      await screen.findByDisplayValue(
+        'https://gridstay.app/calendar/regenerated-token.ics',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('updates the selected booking when a schedule event is clicked', async () => {
