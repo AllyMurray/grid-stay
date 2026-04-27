@@ -1,3 +1,7 @@
+import {
+  normalizeCircuitName,
+  normalizeCircuitText,
+} from '~/lib/circuit-sources/shared.server';
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
 import type { DiscoveryResult } from '~/lib/discovery/types';
 import {
@@ -29,6 +33,8 @@ import type {
   AvailableDayType,
   DaySourceError,
 } from './types';
+
+export { normalizeCircuitName } from '~/lib/circuit-sources/shared.server';
 
 export interface DaySourceDependencies {
   fetchRaceDays?: () => Promise<AvailableDay[]>;
@@ -210,9 +216,11 @@ function normalizeRaceResults(results: DiscoveryResult[]): AvailableDay[] {
           ...createRaceDayIdentity(result, round),
           date: round.startDate!,
           type: 'race_day',
-          circuit: round.circuit ?? result.name,
+          circuit: normalizeCircuitName(round.circuit ?? result.name),
           provider: result.organiser ?? 'Caterham Motorsport',
-          description: compactDescription([result.name, round.name]),
+          description: normalizeCircuitText(
+            compactDescription([result.name, round.name]),
+          ),
           source: {
             sourceType: 'caterham',
             sourceName: 'caterham',
@@ -325,10 +333,12 @@ export async function listAvailableDays(
 
   const deduped = new Map<string, AvailableDay>();
   for (const day of days) {
-    if (day.date < today) {
+    const normalizedDay = normalizeAvailableDayCircuit(day);
+
+    if (normalizedDay.date < today) {
       continue;
     }
-    deduped.set(day.dayId, day);
+    deduped.set(normalizedDay.dayId, normalizedDay);
   }
 
   return {
@@ -349,18 +359,28 @@ export interface AvailableDayFilters {
   type?: AvailableDayType;
 }
 
-const CIRCUIT_LAYOUT_SUFFIX_PATTERN =
-  /\s*(?:-|\(|\/)?\s*(GP|Grand Prix|Indy|International|National)\)?$/i;
+export function normalizeAvailableDayCircuit(day: AvailableDay): AvailableDay {
+  const circuit = normalizeCircuitName(day.circuit);
+  const description = normalizeCircuitText(day.description);
 
-export function normalizeCircuitName(circuit: string): string {
-  return circuit.replace(CIRCUIT_LAYOUT_SUFFIX_PATTERN, '').trim();
+  if (circuit === day.circuit && description === day.description) {
+    return day;
+  }
+
+  return {
+    ...day,
+    circuit,
+    description,
+  };
 }
 
 export function listCircuitOptions(
   days: Array<Pick<AvailableDay, 'circuit'>>,
 ): string[] {
   return [
-    ...new Set(days.map((day) => normalizeCircuitName(day.circuit))),
+    ...new Set(
+      days.map((day) => normalizeCircuitName(day.circuit)).filter(Boolean),
+    ),
   ].sort();
 }
 

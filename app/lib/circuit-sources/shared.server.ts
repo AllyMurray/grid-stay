@@ -28,6 +28,9 @@ const MONTHS: Record<string, string> = {
   december: '12',
 };
 
+const CIRCUIT_LAYOUT_SUFFIX_PATTERN =
+  /\s*(?:-|\(|\/)?\s*(GP|Grand Prix|Indy|International|National|100|200|300)\)?$/i;
+
 export interface JsonLdObject {
   [key: string]: unknown;
 }
@@ -63,6 +66,20 @@ export function stripHtml(value: string): string {
   return decodeHtmlEntities(value)
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function normalizeCircuitText(value: string): string {
+  return value.replace(/\bSntterton\b/gi, 'Snetterton');
+}
+
+export function normalizeCircuitLabel(value: string): string {
+  return normalizeCircuitText(value).replace(/\s+/g, ' ').trim();
+}
+
+export function normalizeCircuitName(circuit: string): string {
+  return normalizeCircuitLabel(circuit)
+    .replace(CIRCUIT_LAYOUT_SUFFIX_PATTERN, '')
     .trim();
 }
 

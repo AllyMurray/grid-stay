@@ -173,4 +173,61 @@ describe('days dashboard feed', () => {
       'silverstone',
     ]);
   });
+
+  it('consolidates cached Snetterton layout variants in options and rows', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'snetterton-layout',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Sntterton 300',
+          provider: 'Caterham Motorsport',
+          description: 'Caterham Academy • Round 1 - Sntterton 300',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+          },
+        },
+        {
+          dayId: 'snetterton-base',
+          date: '2026-05-11',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Caterham Academy • Round 2 - Snetterton',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days?circuit=Snetterton'),
+    );
+
+    expect(data.circuitOptions).toEqual(['Snetterton']);
+    expect(data.totalCount).toBe(2);
+    expect(data.days.map((day) => day.circuit)).toEqual([
+      'Snetterton',
+      'Snetterton',
+    ]);
+    expect(data.days[0]?.description).toBe(
+      'Caterham Academy • Round 1 - Snetterton 300',
+    );
+  });
 });

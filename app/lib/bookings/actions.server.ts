@@ -1,4 +1,5 @@
 import type { User } from '~/lib/auth/schemas';
+import { normalizeAvailableDayCircuit } from '~/lib/days/aggregation.server';
 import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
@@ -90,7 +91,8 @@ async function resolveBookableDay(
     loadManualDays(),
   ]);
   const days = [...(snapshot?.days ?? []), ...manualDays];
-  return days.find((day) => day.dayId === dayId) ?? null;
+  const day = days.find((entry) => entry.dayId === dayId);
+  return day ? normalizeAvailableDayCircuit(day) : null;
 }
 
 function toCreateBookingInput(
@@ -216,7 +218,9 @@ export async function submitBulkRaceSeriesBooking(
     loadSnapshot(),
     loadManualDays(),
   ]);
-  const days = [...(snapshot?.days ?? []), ...manualDays];
+  const days = [...(snapshot?.days ?? []), ...manualDays].map(
+    normalizeAvailableDayCircuit,
+  );
 
   if (days.length === 0) {
     return {

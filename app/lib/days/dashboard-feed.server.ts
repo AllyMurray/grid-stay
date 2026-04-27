@@ -12,6 +12,7 @@ import { listManualDays } from '~/lib/db/services/manual-day.server';
 import {
   filterAvailableDays,
   listCircuitOptions,
+  normalizeAvailableDayCircuit,
   normalizeCircuitName,
 } from './aggregation.server';
 import { canCreateManualDays } from './manual-days.server';
@@ -200,7 +201,9 @@ async function loadFilteredDays(url: URL) {
     days: [],
     errors: EMPTY_ERRORS,
   };
-  const allDays = [...raw.days, ...manualDays].sort(compareAvailableDays);
+  const allDays = [...raw.days, ...manualDays]
+    .map(normalizeAvailableDayCircuit)
+    .sort(compareAvailableDays);
   const filteredDays = filterAvailableDays(allDays, {
     month: filters.month || undefined,
     circuits: filters.circuits,
