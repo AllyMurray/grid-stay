@@ -2,6 +2,7 @@ import {
   Alert,
   Badge,
   Button,
+  Checkbox,
   Divider,
   Group,
   Modal,
@@ -24,18 +25,21 @@ import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface BookingSchedulePageProps {
   bookings: BookingRecord[];
   calendarFeedUrl?: string | null;
+  calendarFeedOptions?: CalendarFeedOptions;
 }
 
 type CalendarFeedActionResult =
   | {
       ok: true;
       feedUrl: string;
+      options: CalendarFeedOptions;
     }
   | {
       ok: false;
@@ -45,6 +49,11 @@ type CalendarFeedActionResult =
 function toWebcalUrl(feedUrl: string) {
   return feedUrl.replace(/^https?:\/\//, 'webcal://');
 }
+
+const defaultCalendarFeedOptions: CalendarFeedOptions = {
+  includeMaybe: true,
+  includeStay: true,
+};
 
 interface ScheduleBookingEventPayload {
   bookingId: string;
@@ -211,18 +220,36 @@ function CalendarSyncModal({
   opened,
   onClose,
   initialFeedUrl,
+  initialOptions,
 }: {
   opened: boolean;
   onClose: () => void;
   initialFeedUrl: string | null;
+  initialOptions: CalendarFeedOptions;
 }) {
   const fetcher = useFetcher<CalendarFeedActionResult>();
   const [copied, setCopied] = useState(false);
+  const [includeMaybe, setIncludeMaybe] = useState(initialOptions.includeMaybe);
+  const [includeStay, setIncludeStay] = useState(initialOptions.includeStay);
   const isSubmitting = fetcher.state !== 'idle';
   const actionFeedUrl = fetcher.data?.ok ? fetcher.data.feedUrl : null;
   const feedUrl = actionFeedUrl ?? initialFeedUrl;
   const formError =
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
+  useEffect(() => {
+    if (fetcher.data?.ok) {
+      setIncludeMaybe(fetcher.data.options.includeMaybe);
+      setIncludeStay(fetcher.data.options.includeStay);
+    }
+  }, [fetcher.data]);
+
+  const optionInputs = (
+    <>
+      <input type="hidden" name="includeMaybe" value={String(includeMaybe)} />
+      <input type="hidden" name="includeStay" value={String(includeStay)} />
+    </>
+  );
 
   return (
     <Modal
@@ -235,8 +262,24 @@ function CalendarSyncModal({
       <Stack gap="md">
         <Text size="sm" c="dimmed">
           Subscribe from Apple Calendar, Google Calendar, Outlook, or another
-          calendar app. Cancelled trips are left out of the feed.
+          calendar app. Cancelled trips are always left out of the feed.
         </Text>
+
+        <Stack gap="xs">
+          <Text size="sm" fw={700}>
+            Calendar contents
+          </Text>
+          <Checkbox
+            label="Include trips marked maybe"
+            checked={includeMaybe}
+            onChange={(event) => setIncludeMaybe(event.currentTarget.checked)}
+          />
+          <Checkbox
+            label="Include shared stay names"
+            checked={includeStay}
+            onChange={(event) => setIncludeStay(event.currentTarget.checked)}
+          />
+        </Stack>
 
         {formError ? (
           <Alert color="red" variant="light">
@@ -294,18 +337,37 @@ function CalendarSyncModal({
 
         <Group justify="space-between" align="center" gap="md">
           <Text size="sm" c="dimmed">
-            Regenerating the link turns off the previous one.
+            Saving options updates this feed. Regenerating the link turns off
+            the previous one.
           </Text>
-          <fetcher.Form method="post">
-            <input
-              type="hidden"
-              name="intent"
-              value={feedUrl ? 'regenerateCalendarFeed' : 'createCalendarFeed'}
-            />
-            <Button type="submit" variant="default" loading={isSubmitting}>
-              {feedUrl ? 'Regenerate link' : 'Create link'}
-            </Button>
-          </fetcher.Form>
+          <Group gap="xs" justify="flex-end">
+            {feedUrl ? (
+              <fetcher.Form method="post">
+                <input
+                  type="hidden"
+                  name="intent"
+                  value="saveCalendarFeedOptions"
+                />
+                {optionInputs}
+                <Button type="submit" variant="default" loading={isSubmitting}>
+                  Save options
+                </Button>
+              </fetcher.Form>
+            ) : null}
+            <fetcher.Form method="post">
+              <input
+                type="hidden"
+                name="intent"
+                value={
+                  feedUrl ? 'regenerateCalendarFeed' : 'createCalendarFeed'
+                }
+              />
+              {optionInputs}
+              <Button type="submit" variant="default" loading={isSubmitting}>
+                {feedUrl ? 'Regenerate link' : 'Create link'}
+              </Button>
+            </fetcher.Form>
+          </Group>
         </Group>
       </Stack>
     </Modal>
@@ -381,6 +443,7 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
 export function BookingSchedulePage({
   bookings,
   calendarFeedUrl = null,
+  calendarFeedOptions = defaultCalendarFeedOptions,
 }: BookingSchedulePageProps) {
   const isMobile = useMediaQuery('(max-width: 48em)', false, {
     getInitialValueInEffect: false,
@@ -443,6 +506,7 @@ export function BookingSchedulePage({
         opened={syncOpened}
         onClose={syncHandlers.close}
         initialFeedUrl={calendarFeedUrl}
+        initialOptions={calendarFeedOptions}
       />
       <PageHeader
         eyebrow="Trip calendar"

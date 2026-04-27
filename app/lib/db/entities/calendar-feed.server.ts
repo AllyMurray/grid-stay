@@ -13,6 +13,8 @@ export const CalendarFeedEntity = new Entity(
       feedScope: { type: 'string', required: true },
       token: { type: 'string', required: true },
       userId: { type: 'string', required: true },
+      includeMaybe: { type: 'boolean' },
+      includeStay: { type: 'boolean' },
       createdAt: { type: 'string', required: true },
       updatedAt: { type: 'string', required: true },
       revokedAt: { type: 'string' },

@@ -1,5 +1,6 @@
 import {
   getActiveCalendarFeedByToken,
+  getCalendarFeedOptions,
   stripCalendarFeedTokenSuffix,
 } from '~/lib/calendar/feed.server';
 import { buildCalendarIcs } from '~/lib/calendar/ics.server';
@@ -15,7 +16,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 
   const bookings = await listMyBookings(feed.userId);
-  const calendar = buildCalendarIcs(bookings);
+  const calendar = buildCalendarIcs(bookings, getCalendarFeedOptions(feed));
 
   return new Response(calendar, {
     headers: {

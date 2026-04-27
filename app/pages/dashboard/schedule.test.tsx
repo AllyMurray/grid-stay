@@ -157,6 +157,12 @@ describe('BookingSchedulePage', () => {
       'href',
       expect.stringContaining('https%3A%2F%2Fgridstay.app'),
     );
+    expect(
+      screen.getByRole('checkbox', { name: /include trips marked maybe/i }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: /include shared stay names/i }),
+    ).toBeChecked();
   });
 
   it('creates the calendar feed through the schedule route action', async () => {
@@ -170,6 +176,10 @@ describe('BookingSchedulePage', () => {
         return {
           ok: true,
           feedUrl: 'https://gridstay.app/calendar/new-token.ics',
+          options: {
+            includeMaybe: true,
+            includeStay: true,
+          },
         };
       },
     );
@@ -188,6 +198,52 @@ describe('BookingSchedulePage', () => {
         'https://gridstay.app/calendar/new-token.ics',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('saves calendar feed content options without regenerating the link', async () => {
+    const user = userEvent.setup();
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <BookingSchedulePage
+        bookings={[bookingOne, bookingTwo]}
+        calendarFeedUrl="https://gridstay.app/calendar/private-token.ics"
+        calendarFeedOptions={{
+          includeMaybe: true,
+          includeStay: true,
+        }}
+      />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return {
+          ok: true,
+          feedUrl: 'https://gridstay.app/calendar/private-token.ics',
+          options: {
+            includeMaybe: false,
+            includeStay: false,
+          },
+        };
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: /sync calendar/i }));
+    await user.click(
+      await screen.findByRole('checkbox', {
+        name: /include trips marked maybe/i,
+      }),
+    );
+    await user.click(
+      screen.getByRole('checkbox', { name: /include shared stay names/i }),
+    );
+    await user.click(screen.getByRole('button', { name: /save options/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual({
+        intent: 'saveCalendarFeedOptions',
+        includeMaybe: 'false',
+        includeStay: 'false',
+      }),
+    );
   });
 
   it('updates the selected booking when a schedule event is clicked', async () => {

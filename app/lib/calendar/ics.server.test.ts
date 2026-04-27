@@ -92,6 +92,29 @@ describe('buildCalendarIcs', () => {
     expect(calendar).not.toContain('Quiet room');
   });
 
+  it('can exclude maybe bookings and shared stay names', () => {
+    const calendar = buildCalendarIcs(
+      [
+        booking,
+        {
+          ...booking,
+          bookingId: 'booking-2',
+          dayId: 'day-2',
+          status: 'maybe',
+          circuit: 'Donington Park',
+        },
+      ],
+      {
+        includeMaybe: false,
+        includeStay: false,
+      },
+    );
+
+    expect(calendar).toContain('Silverstone');
+    expect(calendar).not.toContain('Donington Park');
+    expect(calendar).not.toContain('Trackside Hotel');
+  });
+
   it('escapes reserved ICS text characters', () => {
     const calendar = buildCalendarIcs([
       {

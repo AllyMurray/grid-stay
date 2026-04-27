@@ -9,8 +9,11 @@ import {
   type CalendarFeedPersistence,
   ensureCalendarFeedForUser,
   getActiveCalendarFeedByToken,
+  getCalendarFeedOptions,
   hashCalendarFeedToken,
+  parseCalendarFeedOptionsFromFormData,
   regenerateCalendarFeedForUser,
+  saveCalendarFeedOptionsForUser,
 } from './feed.server';
 
 function createMemoryStore() {
@@ -62,6 +65,10 @@ describe('calendar feed service', () => {
     expect(first.token).toBe('first-token');
     expect(first.tokenHash).toBe(hashCalendarFeedToken('first-token'));
     expect(first.tokenHash).not.toBe(first.token);
+    expect(getCalendarFeedOptions(first)).toEqual({
+      includeMaybe: true,
+      includeStay: true,
+    });
   });
 
   it('regenerates a feed and disables the previous token', async () => {
@@ -85,5 +92,42 @@ describe('calendar feed service', () => {
     ).resolves.toBe(second);
     expect(first.revokedAt).toBeTruthy();
     expect(second.revokedAt).toBeUndefined();
+  });
+
+  it('updates feed options without changing the active token', async () => {
+    const memory = createMemoryStore();
+    const feed = await ensureCalendarFeedForUser(
+      'user-1',
+      memory.store,
+      () => 'first-token',
+    );
+
+    const updated = await saveCalendarFeedOptionsForUser(
+      'user-1',
+      {
+        includeMaybe: false,
+        includeStay: false,
+      },
+      memory.store,
+      () => 'unused-token',
+    );
+
+    expect(updated.token).toBe(feed.token);
+    expect(getCalendarFeedOptions(updated)).toEqual({
+      includeMaybe: false,
+      includeStay: false,
+    });
+    expect(memory.items).toHaveLength(1);
+  });
+
+  it('parses calendar feed options from form values', () => {
+    const formData = new FormData();
+    formData.set('includeMaybe', 'false');
+    formData.set('includeStay', 'true');
+
+    expect(parseCalendarFeedOptionsFromFormData(formData)).toEqual({
+      includeMaybe: false,
+      includeStay: true,
+    });
   });
 });

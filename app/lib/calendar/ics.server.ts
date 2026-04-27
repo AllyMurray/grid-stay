@@ -72,7 +72,10 @@ function getDayTypeLabel(booking: BookingRecord) {
   return type ? dayTypeLabels[type] : null;
 }
 
-function buildDescription(booking: BookingRecord) {
+function buildDescription(
+  booking: BookingRecord,
+  options: { includeStay: boolean },
+) {
   const dayTypeLabel = getDayTypeLabel(booking);
 
   return [
@@ -80,7 +83,7 @@ function buildDescription(booking: BookingRecord) {
     dayTypeLabel ? `Type: ${dayTypeLabel}` : null,
     `Provider: ${booking.provider}`,
     `Status: ${titleCase(booking.status)}`,
-    booking.accommodationName?.trim()
+    options.includeStay && booking.accommodationName?.trim()
       ? `Stay: ${booking.accommodationName.trim()}`
       : null,
   ]
@@ -103,7 +106,11 @@ function eventSummary(booking: BookingRecord) {
     : title;
 }
 
-function buildEventLines(booking: BookingRecord, generatedAt: Date) {
+function buildEventLines(
+  booking: BookingRecord,
+  generatedAt: Date,
+  options: { includeStay: boolean },
+) {
   const dayTypeLabel = getDayTypeLabel(booking);
   const lines = [
     'BEGIN:VEVENT',
@@ -115,7 +122,7 @@ function buildEventLines(booking: BookingRecord, generatedAt: Date) {
     `SUMMARY:${escapeIcsText(eventSummary(booking))}`,
     `LOCATION:${escapeIcsText(booking.circuit)}`,
     dayTypeLabel ? `CATEGORIES:${escapeIcsText(dayTypeLabel)}` : null,
-    `DESCRIPTION:${escapeIcsText(buildDescription(booking))}`,
+    `DESCRIPTION:${escapeIcsText(buildDescription(booking, options))}`,
     `STATUS:${eventStatus(booking.status)}`,
     'TRANSP:TRANSPARENT',
     `X-GRID-STAY-STATUS:${booking.status}`,
@@ -127,12 +134,23 @@ function buildEventLines(booking: BookingRecord, generatedAt: Date) {
 
 export function buildCalendarIcs(
   bookings: BookingRecord[],
-  options: { generatedAt?: Date; calendarName?: string } = {},
+  options: {
+    generatedAt?: Date;
+    calendarName?: string;
+    includeMaybe?: boolean;
+    includeStay?: boolean;
+  } = {},
 ) {
   const generatedAt = options.generatedAt ?? new Date();
   const calendarName = options.calendarName ?? 'Grid Stay Schedule';
+  const includeMaybe = options.includeMaybe ?? true;
+  const includeStay = options.includeStay ?? true;
   const activeBookings = bookings
-    .filter((booking) => booking.status !== 'cancelled')
+    .filter(
+      (booking) =>
+        booking.status !== 'cancelled' &&
+        (includeMaybe || booking.status !== 'maybe'),
+    )
     .sort((left, right) =>
       left.date === right.date
         ? left.circuit.localeCompare(right.circuit)
@@ -149,7 +167,7 @@ export function buildCalendarIcs(
     'REFRESH-INTERVAL;VALUE=DURATION:PT6H',
     'X-PUBLISHED-TTL:PT6H',
     ...activeBookings.flatMap((booking) =>
-      buildEventLines(booking, generatedAt),
+      buildEventLines(booking, generatedAt, { includeStay }),
     ),
     'END:VCALENDAR',
   ];

@@ -6,6 +6,11 @@ import {
 
 const calendarFeedScope = 'schedule';
 
+export interface CalendarFeedOptions {
+  includeMaybe: boolean;
+  includeStay: boolean;
+}
+
 export interface CalendarFeedPersistence {
   create(item: CalendarFeedRecord): Promise<CalendarFeedRecord>;
   update(
@@ -49,6 +54,34 @@ export function createCalendarFeedToken() {
   return randomBytes(32).toString('base64url');
 }
 
+export function getCalendarFeedOptions(
+  feed: Pick<CalendarFeedRecord, 'includeMaybe' | 'includeStay'> | null,
+): CalendarFeedOptions {
+  return {
+    includeMaybe: feed?.includeMaybe ?? true,
+    includeStay: feed?.includeStay ?? true,
+  };
+}
+
+export function parseCalendarFeedOptionsFromFormData(
+  formData: FormData,
+): CalendarFeedOptions {
+  const parseBoolean = (name: string, fallback: boolean) => {
+    const values = formData.getAll(name).map((value) => String(value));
+
+    if (values.length === 0) {
+      return fallback;
+    }
+
+    return values.includes('true') || values.includes('on');
+  };
+
+  return {
+    includeMaybe: parseBoolean('includeMaybe', true),
+    includeStay: parseBoolean('includeStay', true),
+  };
+}
+
 function getActiveFeed(feeds: CalendarFeedRecord[]) {
   return (
     feeds
@@ -63,6 +96,7 @@ async function createCalendarFeed(
   userId: string,
   store: CalendarFeedPersistence,
   tokenFactory: () => string,
+  options: CalendarFeedOptions,
 ): Promise<CalendarFeedRecord> {
   const token = tokenFactory();
   const now = new Date().toISOString();
@@ -72,6 +106,8 @@ async function createCalendarFeed(
     tokenHash: hashCalendarFeedToken(token),
     feedScope: calendarFeedScope,
     userId,
+    includeMaybe: options.includeMaybe,
+    includeStay: options.includeStay,
     createdAt: now,
     updatedAt: now,
     revokedAt: undefined,
@@ -89,15 +125,33 @@ export async function ensureCalendarFeedForUser(
   userId: string,
   store: CalendarFeedPersistence = calendarFeedStore,
   tokenFactory = createCalendarFeedToken,
+  options: CalendarFeedOptions = { includeMaybe: true, includeStay: true },
 ) {
   const activeFeed = await getActiveCalendarFeedForUser(userId, store);
-  return activeFeed ?? createCalendarFeed(userId, store, tokenFactory);
+  if (!activeFeed) {
+    return createCalendarFeed(userId, store, tokenFactory, options);
+  }
+
+  const currentOptions = getCalendarFeedOptions(activeFeed);
+  if (
+    currentOptions.includeMaybe === options.includeMaybe &&
+    currentOptions.includeStay === options.includeStay
+  ) {
+    return activeFeed;
+  }
+
+  return store.update(activeFeed.tokenHash, activeFeed.feedScope, {
+    includeMaybe: options.includeMaybe,
+    includeStay: options.includeStay,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export async function regenerateCalendarFeedForUser(
   userId: string,
   store: CalendarFeedPersistence = calendarFeedStore,
   tokenFactory = createCalendarFeedToken,
+  options: CalendarFeedOptions = { includeMaybe: true, includeStay: true },
 ) {
   const now = new Date().toISOString();
   const feeds = await store.listByUser(userId);
@@ -112,7 +166,16 @@ export async function regenerateCalendarFeedForUser(
       ),
   );
 
-  return createCalendarFeed(userId, store, tokenFactory);
+  return createCalendarFeed(userId, store, tokenFactory, options);
+}
+
+export async function saveCalendarFeedOptionsForUser(
+  userId: string,
+  options: CalendarFeedOptions,
+  store: CalendarFeedPersistence = calendarFeedStore,
+  tokenFactory = createCalendarFeedToken,
+) {
+  return ensureCalendarFeedForUser(userId, store, tokenFactory, options);
 }
 
 export async function getActiveCalendarFeedByToken(
