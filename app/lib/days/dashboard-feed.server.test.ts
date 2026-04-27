@@ -29,11 +29,16 @@ vi.mock('~/lib/days/series.server', async () => {
   };
 });
 
+vi.mock('~/lib/days/preferences.server', () => ({
+  getSavedDaysFilters: vi.fn(),
+}));
+
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { loadDaysIndex } from './dashboard-feed.server';
+import { getSavedDaysFilters } from './preferences.server';
 
 describe('days dashboard feed', () => {
   beforeEach(() => {
@@ -41,6 +46,8 @@ describe('days dashboard feed', () => {
     vi.mocked(listManualDays).mockReset();
     vi.mocked(listMyBookings).mockReset();
     vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockReset();
+    vi.mocked(getSavedDaysFilters).mockReset();
+    vi.mocked(getSavedDaysFilters).mockResolvedValue(null);
   });
 
   it('merges shared manual days into every member feed while keeping admin creation separate', async () => {
@@ -103,6 +110,44 @@ describe('days dashboard feed', () => {
     expect(data.days.map((day) => day.dayId)).toEqual(['race:1', 'manual:1']);
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);
     expect(data.providerOptions).toEqual(['Caterham Motorsport']);
+  });
+
+  it('returns saved available-days filters for the signed-in member', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+    vi.mocked(getSavedDaysFilters).mockResolvedValue({
+      month: '2026-05',
+      series: 'caterham-academy',
+      circuits: ['Snetterton'],
+      provider: 'Caterham Motorsport',
+      type: 'race_day',
+    });
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days'),
+    );
+
+    expect(getSavedDaysFilters).toHaveBeenCalledWith('user-1');
+    expect(data.savedFilters).toEqual({
+      month: '2026-05',
+      series: 'caterham-academy',
+      circuits: ['Snetterton'],
+      provider: 'Caterham Motorsport',
+      type: 'race_day',
+    });
   });
 
   it('filters the member feed by multiple circuit query values', async () => {

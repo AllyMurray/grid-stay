@@ -17,6 +17,10 @@ import {
 } from './aggregation.server';
 import { canCreateManualDays } from './manual-days.server';
 import {
+  getSavedDaysFilters,
+  type SavedDaysFilters,
+} from './preferences.server';
+import {
   buildRaceSeriesSummaryByDayId,
   getLinkedSeriesKey,
   getLinkedSeriesName,
@@ -52,7 +56,7 @@ export interface DaysFilters {
   series: string;
   circuits: string[];
   provider: string;
-  type: string;
+  type: '' | AvailableDayType;
 }
 
 export interface RaceSeriesFilterOption {
@@ -78,6 +82,7 @@ export interface DaysIndexData extends DaysFeedData {
   seriesOptions: RaceSeriesFilterOption[];
   circuitOptions: string[];
   providerOptions: string[];
+  savedFilters: SavedDaysFilters | null;
   raceSeriesByDayId: Record<string, RaceSeriesSummary>;
   myBookingsByDay: Record<string, DayBookingSnapshot>;
   selectedDay: DayRow | null;
@@ -180,7 +185,7 @@ function getFilters(url: URL): DaysFilters {
     series: url.searchParams.get('series')?.trim() ?? '',
     circuits: getCircuitFilters(url),
     provider: url.searchParams.get('provider')?.trim() ?? '',
-    type: url.searchParams.get('type')?.trim() ?? '',
+    type: parseType(url.searchParams.get('type')?.trim() ?? '') ?? '',
   };
 }
 
@@ -331,7 +336,12 @@ export async function loadDaysIndex(
       providerOptions,
     },
     myBookings,
-  ] = await Promise.all([loadFilteredDays(url), listMyBookings(user.id)]);
+    savedFilters,
+  ] = await Promise.all([
+    loadFilteredDays(url),
+    listMyBookings(user.id),
+    getSavedDaysFilters(user.id),
+  ]);
   const raceSeriesByDayId = buildRaceSeriesSummaryByDayId(
     allDays,
     myBookings.map((booking) => booking.dayId),
@@ -364,6 +374,7 @@ export async function loadDaysIndex(
     seriesOptions,
     circuitOptions,
     providerOptions,
+    savedFilters,
     raceSeriesByDayId,
     myBookingsByDay: Object.fromEntries(
       myBookings.flatMap((booking) => {

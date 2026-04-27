@@ -34,6 +34,10 @@ import type {
   DaysIndexData,
 } from '~/lib/days/dashboard-feed.server';
 import type {
+  DaysPreferenceActionResult,
+  SavedDaysFilters,
+} from '~/lib/days/preferences.server';
+import type {
   DayAttendanceSummary as DayAttendanceDetails,
   SharedAttendee,
 } from '~/lib/days/types';
@@ -147,6 +151,42 @@ function countActiveFilters(filters: DaysIndexData['filters']) {
     (filters.provider ? 1 : 0) +
     (filters.type ? 1 : 0)
   );
+}
+
+function DaysFilterHiddenInputs({ filters }: { filters: SavedDaysFilters }) {
+  return (
+    <>
+      <input type="hidden" name="month" value={filters.month} />
+      <input type="hidden" name="series" value={filters.series} />
+      {filters.circuits.map((circuit) => (
+        <input key={circuit} type="hidden" name="circuit" value={circuit} />
+      ))}
+      <input type="hidden" name="provider" value={filters.provider} />
+      <input type="hidden" name="type" value={filters.type} />
+    </>
+  );
+}
+
+function getSeriesFilterLabel(
+  value: string,
+  options: DaysIndexData['seriesOptions'],
+) {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
+
+function formatSavedFilterSummary(
+  filters: SavedDaysFilters,
+  seriesOptions: DaysIndexData['seriesOptions'],
+) {
+  const parts = [
+    filters.month ? formatMonthOption(filters.month) : null,
+    filters.series ? getSeriesFilterLabel(filters.series, seriesOptions) : null,
+    filters.circuits.length > 0 ? filters.circuits.join(', ') : null,
+    filters.provider || null,
+    filters.type ? titleCase(filters.type) : null,
+  ].filter(Boolean);
+
+  return parts.join(' • ') || 'No filters saved';
 }
 
 function typeColor(type: DayRow['type']) {
@@ -1327,6 +1367,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const feedFetcher = useFetcher<DaysFeedData>();
   const attendanceFetcher = useFetcher<DayAttendanceDetails>();
   const adjacentAttendanceFetcher = useFetcher<DayAttendanceDetails>();
+  const preferenceFetcher = useFetcher<DaysPreferenceActionResult>();
   const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() =>
     createLoadedDaysState(data),
   );
@@ -1344,6 +1385,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const pendingAdjacentAttendanceDayIdRef = useRef<string | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
+  const savedFilterCount = data.savedFilters
+    ? countActiveFilters(data.savedFilters)
+    : 0;
+  const savedFilterHref = data.savedFilters
+    ? createDaysIndexHref(data.savedFilters)
+    : null;
+  const preferenceSubmitting = preferenceFetcher.state !== 'idle';
+  const preferenceMessage = !preferenceFetcher.data
+    ? null
+    : preferenceFetcher.data.ok
+      ? preferenceFetcher.data.message
+      : preferenceFetcher.data.formError;
   const selectedDayId = searchParams.get('day')?.trim() || null;
   const [selectedSeries, setSelectedSeries] = useState(data.filters.series);
   const [selectedCircuits, setSelectedCircuits] = useState(
@@ -1699,14 +1752,92 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 day type.
               </Text>
             </Stack>
-            {activeFilterCount > 0 ? (
-              <Button component={Link} to="/dashboard/days" variant="subtle">
-                Clear filters
-              </Button>
-            ) : null}
+            <Group gap="xs" justify="flex-end">
+              {activeFilterCount > 0 ? (
+                <preferenceFetcher.Form
+                  method="post"
+                  aria-label="Save applied filters"
+                >
+                  <input type="hidden" name="intent" value="saveDaysFilters" />
+                  <DaysFilterHiddenInputs filters={data.filters} />
+                  <Button
+                    type="submit"
+                    variant="default"
+                    loading={preferenceSubmitting}
+                  >
+                    Save applied filters
+                  </Button>
+                </preferenceFetcher.Form>
+              ) : null}
+              {activeFilterCount > 0 ? (
+                <Button component={Link} to="/dashboard/days" variant="subtle">
+                  Clear filters
+                </Button>
+              ) : null}
+            </Group>
           </Group>
 
-          <Form method="get">
+          {data.savedFilters && savedFilterHref ? (
+            <Paper withBorder p="sm" radius="md">
+              <Group justify="space-between" gap="md" align="center">
+                <Stack gap={2}>
+                  <Group gap="xs" wrap="wrap">
+                    <Text fw={700}>Saved view</Text>
+                    <Badge variant="light" color="brand">
+                      {savedFilterCount}{' '}
+                      {savedFilterCount === 1 ? 'filter' : 'filters'}
+                    </Badge>
+                  </Group>
+                  <Text size="sm" c="dimmed">
+                    {formatSavedFilterSummary(
+                      data.savedFilters,
+                      data.seriesOptions,
+                    )}
+                  </Text>
+                </Stack>
+                <Group gap="xs" justify="flex-end">
+                  <Button
+                    component={Link}
+                    to={savedFilterHref}
+                    variant="light"
+                    color="brand"
+                  >
+                    Apply saved view
+                  </Button>
+                  <preferenceFetcher.Form
+                    method="post"
+                    aria-label="Clear saved filters"
+                  >
+                    <input
+                      type="hidden"
+                      name="intent"
+                      value="clearSavedDaysFilters"
+                    />
+                    <Button
+                      type="submit"
+                      variant="subtle"
+                      color="gray"
+                      loading={preferenceSubmitting}
+                    >
+                      Clear saved
+                    </Button>
+                  </preferenceFetcher.Form>
+                </Group>
+              </Group>
+            </Paper>
+          ) : null}
+
+          {preferenceMessage ? (
+            <Text
+              size="sm"
+              c={preferenceFetcher.data?.ok ? 'dimmed' : 'red'}
+              fw={700}
+            >
+              {preferenceMessage}
+            </Text>
+          ) : null}
+
+          <Form method="get" aria-label="Available days filters">
             <Stack gap="md">
               <SimpleGrid cols={{ base: 1, sm: 2, xl: 5 }} spacing="md">
                 <Select

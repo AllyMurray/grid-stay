@@ -81,6 +81,7 @@ const defaultData: DaysIndexData = {
   seriesOptions: [],
   circuitOptions: ['Silverstone'],
   providerOptions: ['MSV'],
+  savedFilters: null,
   raceSeriesByDayId: {},
   myBookingsByDay: {},
   selectedDay: null,
@@ -249,7 +250,7 @@ describe('AvailableDaysPage', () => {
   });
 
   it('renders selected circuit filters as repeatable form values', () => {
-    const view = renderWithProviders(
+    renderWithProviders(
       <AvailableDaysPage
         data={{
           ...defaultData,
@@ -264,17 +265,18 @@ describe('AvailableDaysPage', () => {
 
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
+    const filtersForm = screen.getByRole('form', {
+      name: 'Available days filters',
+    });
     expect(
       Array.from(
-        view.container.querySelectorAll<HTMLInputElement>(
-          'input[name="circuit"]',
-        ),
+        filtersForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]'),
       ).map((input) => input.value),
     ).toEqual(['Brands Hatch', 'Silverstone']);
   });
 
   it('limits selected circuit filter values to the selected race series options', async () => {
-    const view = renderWithProviders(
+    renderWithProviders(
       <AvailableDaysPage
         data={{
           ...defaultData,
@@ -306,12 +308,70 @@ describe('AvailableDaysPage', () => {
     await waitFor(() => {
       expect(
         Array.from(
-          view.container.querySelectorAll<HTMLInputElement>(
-            'input[name="circuit"]',
-          ),
+          screen
+            .getByRole('form', { name: 'Available days filters' })
+            .querySelectorAll<HTMLInputElement>('input[name="circuit"]'),
         ).map((input) => input.value),
       ).toEqual(['Snetterton']);
     });
+  });
+
+  it('shows saved filter controls and posts the applied filters', () => {
+    const view = renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          filters: {
+            month: '2026-05',
+            series: 'caterham-academy',
+            circuits: ['Brands Hatch', 'Snetterton'],
+            provider: 'Caterham Motorsport',
+            type: 'race_day',
+          },
+          savedFilters: {
+            month: '2026-06',
+            series: 'caterham-academy',
+            circuits: ['Snetterton'],
+            provider: '',
+            type: '',
+          },
+          seriesOptions: [
+            {
+              value: 'caterham-academy',
+              label: 'Caterham Academy',
+              circuitOptions: ['Brands Hatch', 'Snetterton'],
+            },
+          ],
+          providerOptions: ['Caterham Motorsport'],
+          circuitOptions: ['Brands Hatch', 'Snetterton'],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Saved view')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Apply saved view' }),
+    ).toHaveAttribute(
+      'href',
+      '/dashboard/days?month=2026-06&series=caterham-academy&circuit=Snetterton',
+    );
+
+    const saveForm = screen.getByRole('form', {
+      name: 'Save applied filters',
+    });
+    expect(
+      saveForm.querySelector<HTMLInputElement>('input[name="month"]')?.value,
+    ).toBe('2026-05');
+    expect(
+      Array.from(
+        saveForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]'),
+      ).map((input) => input.value),
+    ).toEqual(['Brands Hatch', 'Snetterton']);
+    expect(
+      view.container.querySelector<HTMLInputElement>(
+        'input[name="intent"][value="clearSavedDaysFilters"]',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows the manual-day management link only for allowed admins', () => {
