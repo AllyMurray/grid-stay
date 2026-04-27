@@ -27,7 +27,7 @@ import {
   IconSun,
   IconUsersGroup,
 } from '@tabler/icons-react';
-import { useEffect } from 'react';
+import { type TouchEvent, useCallback, useEffect, useRef } from 'react';
 import {
   Link,
   Outlet,
@@ -61,8 +61,43 @@ export default function DashboardLayoutRoute() {
     getInitialValueInEffect: false,
   });
   const [opened, { toggle, close }] = useDisclosure(false);
+  const suppressNextMenuClickRef = useRef(false);
+  const suppressMenuClickTimerRef = useRef<number | null>(null);
   const revalidator = useRevalidator();
   const isAdmin = isAdminUser(user);
+
+  const clearMenuClickSuppressionTimer = useCallback(() => {
+    if (suppressMenuClickTimerRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(suppressMenuClickTimerRef.current);
+    suppressMenuClickTimerRef.current = null;
+  }, []);
+
+  function handleMenuTouchEnd(event: TouchEvent<HTMLButtonElement>) {
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+
+    suppressNextMenuClickRef.current = true;
+    clearMenuClickSuppressionTimer();
+    suppressMenuClickTimerRef.current = window.setTimeout(() => {
+      suppressNextMenuClickRef.current = false;
+      suppressMenuClickTimerRef.current = null;
+    }, 700);
+    toggle();
+  }
+
+  function handleMenuClick() {
+    if (suppressNextMenuClickRef.current) {
+      suppressNextMenuClickRef.current = false;
+      clearMenuClickSuppressionTimer();
+      return;
+    }
+
+    toggle();
+  }
 
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {
@@ -80,6 +115,13 @@ export default function DashboardLayoutRoute() {
       window.removeEventListener('pageshow', handlePageShow);
     };
   }, [close, revalidator]);
+
+  useEffect(
+    () => () => {
+      clearMenuClickSuppressionTimer();
+    },
+    [clearMenuClickSuppressionTimer],
+  );
 
   const navItems = [
     {
@@ -150,7 +192,8 @@ export default function DashboardLayoutRoute() {
           <Group gap="sm">
             <Burger
               opened={opened}
-              onClick={toggle}
+              onClick={handleMenuClick}
+              onTouchEnd={handleMenuTouchEnd}
               aria-expanded={opened}
               aria-label={opened ? 'Close menu' : 'Open menu'}
               hiddenFrom="sm"
