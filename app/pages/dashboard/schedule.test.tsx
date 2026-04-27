@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createRoutesStub } from 'react-router';
+import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
@@ -52,10 +52,14 @@ vi.mock('@mantine/schedule', async () => {
   };
 });
 
-function renderWithProviders(ui: React.ReactElement) {
+function renderWithProviders(
+  ui: React.ReactElement,
+  action?: (args: ActionFunctionArgs) => Promise<unknown>,
+) {
   const Stub = createRoutesStub([
     {
       path: '/',
+      action: action ?? (async () => null),
       Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
     },
   ]);
@@ -153,6 +157,37 @@ describe('BookingSchedulePage', () => {
       'href',
       expect.stringContaining('https%3A%2F%2Fgridstay.app'),
     );
+  });
+
+  it('creates the calendar feed through the schedule route action', async () => {
+    const user = userEvent.setup();
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return {
+          ok: true,
+          feedUrl: 'https://gridstay.app/calendar/new-token.ics',
+        };
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: /sync calendar/i }));
+    await screen.findByText(/create a private calendar link first/i);
+    await user.click(screen.getByRole('button', { name: /create link/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({ intent: 'createCalendarFeed' }),
+      ),
+    );
+    expect(
+      await screen.findByDisplayValue(
+        'https://gridstay.app/calendar/new-token.ics',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('updates the selected booking when a schedule event is clicked', async () => {

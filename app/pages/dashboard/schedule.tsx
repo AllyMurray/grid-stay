@@ -29,7 +29,6 @@ import type { BookingRecord } from '~/lib/db/entities/booking.server';
 export interface BookingSchedulePageProps {
   bookings: BookingRecord[];
   calendarFeedUrl?: string | null;
-  calendarFeedAction?: string;
 }
 
 type CalendarFeedActionResult =
@@ -211,12 +210,10 @@ function CalendarSyncModal({
   opened,
   onClose,
   initialFeedUrl,
-  action,
 }: {
   opened: boolean;
   onClose: () => void;
   initialFeedUrl: string | null;
-  action: string;
 }) {
   const fetcher = useFetcher<CalendarFeedActionResult>();
   const [copied, setCopied] = useState(false);
@@ -298,7 +295,7 @@ function CalendarSyncModal({
           <Text size="sm" c="dimmed">
             Regenerating the link turns off the previous one.
           </Text>
-          <fetcher.Form method="post" action={action}>
+          <fetcher.Form method="post">
             <input
               type="hidden"
               name="intent"
@@ -383,7 +380,6 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
 export function BookingSchedulePage({
   bookings,
   calendarFeedUrl = null,
-  calendarFeedAction = '/api/calendar-feed',
 }: BookingSchedulePageProps) {
   const isMobile = useMediaQuery('(max-width: 48em)', false, {
     getInitialValueInEffect: false,
@@ -446,7 +442,6 @@ export function BookingSchedulePage({
         opened={syncOpened}
         onClose={syncHandlers.close}
         initialFeedUrl={calendarFeedUrl}
-        action={calendarFeedAction}
       />
       <PageHeader
         eyebrow="Trip calendar"
