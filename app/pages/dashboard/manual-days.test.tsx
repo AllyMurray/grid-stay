@@ -59,8 +59,6 @@ describe('ManualDaysPage', () => {
     renderWithProviders(
       <ManualDaysPage
         manualDays={manualDays}
-        sourceErrors={[]}
-        refreshedAt="2026-04-15T10:30:00.000Z"
         circuitOptions={['Donington Park', 'Silverstone']}
         providerOptions={['Caterham Motorsport', 'MSV Trackdays']}
         seriesOptions={['Caterham 270R']}
@@ -77,8 +75,8 @@ describe('ManualDaysPage', () => {
       screen.getByRole('heading', { name: 'Manually added days' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Feed source status' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('heading', { name: 'Feed source status' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('March 2026')).toBeInTheDocument();
     expect(screen.getAllByText('Donington Park').length).toBeGreaterThan(0);
     expect(screen.getByText('Series • Caterham 270R')).toBeInTheDocument();
@@ -107,8 +105,6 @@ describe('ManualDaysPage', () => {
     renderWithProviders(
       <ManualDaysPage
         manualDays={[]}
-        sourceErrors={[]}
-        refreshedAt=""
         circuitOptions={['Donington Park']}
         providerOptions={['Caterham Motorsport']}
         seriesOptions={[]}
@@ -120,31 +116,6 @@ describe('ManualDaysPage', () => {
       screen.getByText(
         'Add the first extra Caterham date here and it will appear in Available Days for everyone.',
       ),
-    ).toBeInTheDocument();
-  });
-
-  it('shows source loading errors only on the admin page', () => {
-    renderWithProviders(
-      <ManualDaysPage
-        manualDays={[]}
-        sourceErrors={[
-          {
-            source: 'broken-testing',
-            message: 'Timed out loading feed',
-          },
-        ]}
-        refreshedAt="2026-04-15T10:30:00.000Z"
-        circuitOptions={['Donington Park']}
-        providerOptions={['Caterham Motorsport']}
-        seriesOptions={[]}
-      />,
-    );
-
-    expect(
-      screen.getByText('Some sources could not be loaded.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('broken-testing: Timed out loading feed'),
     ).toBeInTheDocument();
   });
 });

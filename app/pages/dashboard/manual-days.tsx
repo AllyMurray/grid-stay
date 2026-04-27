@@ -1,5 +1,4 @@
 import {
-  Alert,
   Anchor,
   Autocomplete,
   Badge,
@@ -15,20 +14,16 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { CreateManualDayActionResult } from '~/lib/days/actions.server';
-import type { DaySourceError } from '~/lib/days/types';
 import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 
 export interface ManualDaysPageProps {
   manualDays: ManualDayRecord[];
-  sourceErrors: DaySourceError[];
-  refreshedAt: string;
   circuitOptions: string[];
   providerOptions: string[];
   seriesOptions: string[];
@@ -57,59 +52,11 @@ function formatCreatedDate(value: string) {
   }).format(new Date(value));
 }
 
-function formatRefreshedAt(value: string) {
-  if (!value) {
-    return 'Waiting for the first refresh';
-  }
-
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 function formatMonthLabel(value: string) {
   return new Intl.DateTimeFormat('en-GB', {
     month: 'long',
     year: 'numeric',
   }).format(new Date(`${value}-01T00:00:00Z`));
-}
-
-function FeedSourceStatus({
-  sourceErrors,
-  refreshedAt,
-}: Pick<ManualDaysPageProps, 'sourceErrors' | 'refreshedAt'>) {
-  return (
-    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
-      <Stack gap="md">
-        <Stack gap={2}>
-          <Title order={3}>Feed source status</Title>
-          <Text size="sm" c="dimmed">
-            Last refresh {formatRefreshedAt(refreshedAt)}
-          </Text>
-        </Stack>
-
-        {sourceErrors.length > 0 ? (
-          <Alert color="yellow" icon={<IconAlertCircle size={18} />}>
-            <Stack gap={4}>
-              <Text size="sm" fw={700}>
-                Some sources could not be loaded.
-              </Text>
-              {sourceErrors.map((error) => (
-                <Text key={`${error.source}:${error.message}`} size="sm">
-                  {error.source}: {error.message}
-                </Text>
-              ))}
-            </Stack>
-          </Alert>
-        ) : (
-          <Text size="sm" c="dimmed">
-            No source loading errors were reported in the latest snapshot.
-          </Text>
-        )}
-      </Stack>
-    </Paper>
-  );
 }
 
 function getFieldError(
@@ -316,8 +263,6 @@ function ManualDayRow({ manualDay }: { manualDay: ManualDayRecord }) {
 
 export function ManualDaysPage({
   manualDays,
-  sourceErrors,
-  refreshedAt,
   circuitOptions,
   providerOptions,
   seriesOptions,
@@ -355,8 +300,6 @@ export function ManualDaysPage({
           </Button>
         }
       />
-
-      <FeedSourceStatus sourceErrors={sourceErrors} refreshedAt={refreshedAt} />
 
       <ManualDayForm
         circuitOptions={circuitOptions}

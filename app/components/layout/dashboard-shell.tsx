@@ -18,6 +18,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconActivityHeartbeat,
   IconBell,
   IconCalendarMonth,
   IconHome2,
@@ -220,6 +221,12 @@ export function DashboardShell({
       to: '/dashboard/manual-days',
       icon: IconLock,
       active: location.pathname.startsWith('/dashboard/manual-days'),
+    },
+    {
+      label: 'Feed Status',
+      to: '/dashboard/admin/feed',
+      icon: IconActivityHeartbeat,
+      active: location.pathname.startsWith('/dashboard/admin/feed'),
     },
     {
       label: 'Member Management',

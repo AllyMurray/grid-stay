@@ -11,12 +11,6 @@ import {
 } from '~/pages/dashboard/manual-days';
 import type { Route } from './+types/manual-days';
 
-const MISSING_SNAPSHOT_ERROR = {
-  source: 'cache',
-  message:
-    'Available days have not been refreshed yet. Please try again after the next scheduled sync.',
-};
-
 function isNonEmptyString(value: string | null | undefined): value is string {
   return Boolean(value);
 }
@@ -53,8 +47,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   return Response.json(
     {
       manualDays,
-      sourceErrors: snapshot?.errors ?? [MISSING_SNAPSHOT_ERROR],
-      refreshedAt: snapshot?.refreshedAt ?? '',
       circuitOptions,
       providerOptions,
       seriesOptions,
