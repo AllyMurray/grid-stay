@@ -104,4 +104,73 @@ describe('days dashboard feed', () => {
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);
     expect(data.providerOptions).toEqual(['Caterham Motorsport']);
   });
+
+  it('filters the member feed by multiple circuit query values', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'brands',
+          date: '2026-05-10',
+          type: 'track_day',
+          circuit: 'Brands Hatch Indy',
+          provider: 'MSV Trackdays',
+          description: 'Evening session',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'msv-trackday',
+          },
+        },
+        {
+          dayId: 'snetterton',
+          date: '2026-05-11',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Round 1',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+          },
+        },
+        {
+          dayId: 'silverstone',
+          date: '2026-05-12',
+          type: 'test_day',
+          circuit: 'Silverstone',
+          provider: 'Silverstone',
+          description: 'Test day',
+          source: {
+            sourceType: 'testing',
+            sourceName: 'silverstone',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL(
+        'https://gridstay.app/dashboard/days?circuit=Silverstone&circuit=Brands%20Hatch',
+      ),
+    );
+
+    expect(data.filters.circuits).toEqual(['Brands Hatch', 'Silverstone']);
+    expect(data.filterKey).toBe('circuit=Brands+Hatch&circuit=Silverstone');
+    expect(data.totalCount).toBe(2);
+    expect(data.days.map((day) => day.dayId)).toEqual([
+      'brands',
+      'silverstone',
+    ]);
+  });
 });

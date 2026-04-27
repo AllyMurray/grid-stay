@@ -344,6 +344,7 @@ export async function listAvailableDays(
 export interface AvailableDayFilters {
   month?: string;
   circuit?: string;
+  circuits?: string[];
   provider?: string;
   type?: AvailableDayType;
 }
@@ -367,14 +368,20 @@ export function filterAvailableDays(
   days: AvailableDay[],
   filters: AvailableDayFilters,
 ): AvailableDay[] {
+  const circuitFilters =
+    filters.circuits && filters.circuits.length > 0
+      ? filters.circuits.map(normalizeCircuitName)
+      : filters.circuit
+        ? [normalizeCircuitName(filters.circuit)]
+        : [];
+
   return days.filter((day) => {
     if (filters.month && !day.date.startsWith(filters.month)) {
       return false;
     }
     if (
-      filters.circuit &&
-      normalizeCircuitName(day.circuit) !==
-        normalizeCircuitName(filters.circuit)
+      circuitFilters.length > 0 &&
+      !circuitFilters.includes(normalizeCircuitName(day.circuit))
     ) {
       return false;
     }

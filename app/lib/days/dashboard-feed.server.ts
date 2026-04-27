@@ -46,7 +46,7 @@ export interface DayRow {
 
 export interface DaysFilters {
   month: string;
-  circuit: string;
+  circuits: string[];
   provider: string;
   type: string;
 }
@@ -154,12 +154,19 @@ function getSelectedDayId(url: URL): string | null {
   return selectedDayId || null;
 }
 
+function getCircuitFilters(url: URL): string[] {
+  const circuits = url.searchParams
+    .getAll('circuit')
+    .map((value) => normalizeCircuitName(value.trim()))
+    .filter(Boolean);
+
+  return [...new Set(circuits)].sort();
+}
+
 function getFilters(url: URL): DaysFilters {
   return {
     month: url.searchParams.get('month')?.trim() ?? '',
-    circuit: normalizeCircuitName(
-      url.searchParams.get('circuit')?.trim() ?? '',
-    ),
+    circuits: getCircuitFilters(url),
     provider: url.searchParams.get('provider')?.trim() ?? '',
     type: url.searchParams.get('type')?.trim() ?? '',
   };
@@ -170,8 +177,8 @@ export function createDaysFilterKey(filters: DaysFilters): string {
   if (filters.month) {
     params.set('month', filters.month);
   }
-  if (filters.circuit) {
-    params.set('circuit', filters.circuit);
+  for (const circuit of filters.circuits) {
+    params.append('circuit', circuit);
   }
   if (filters.provider) {
     params.set('provider', filters.provider);
@@ -196,7 +203,7 @@ async function loadFilteredDays(url: URL) {
   const allDays = [...raw.days, ...manualDays].sort(compareAvailableDays);
   const filteredDays = filterAvailableDays(allDays, {
     month: filters.month || undefined,
-    circuit: filters.circuit || undefined,
+    circuits: filters.circuits,
     provider: filters.provider || undefined,
     type: parseType(filters.type),
   }).sort(compareAvailableDays);

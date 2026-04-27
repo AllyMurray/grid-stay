@@ -72,7 +72,7 @@ const defaultData: DaysIndexData = {
   canCreateManualDays: false,
   filters: {
     month: '',
-    circuit: '',
+    circuits: [],
     provider: '',
     type: '',
   },
@@ -244,6 +244,31 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByRole('combobox', { name: 'Month' })).toHaveDisplayValue(
       'May 2026',
     );
+  });
+
+  it('renders selected circuit filters as repeatable form values', () => {
+    const view = renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          filters: {
+            ...defaultData.filters,
+            circuits: ['Brands Hatch', 'Silverstone'],
+          },
+          circuitOptions: ['Brands Hatch', 'Donington Park', 'Silverstone'],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
+    expect(
+      Array.from(
+        view.container.querySelectorAll<HTMLInputElement>(
+          'input[name="circuit"]',
+        ),
+      ).map((input) => input.value),
+    ).toEqual(['Brands Hatch', 'Silverstone']);
   });
 
   it('shows the manual-day management link only for allowed admins', () => {

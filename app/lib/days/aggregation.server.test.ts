@@ -358,6 +358,44 @@ describe('filterAvailableDays', () => {
       }).map((day) => day.dayId),
     ).toEqual(['1', '2']);
   });
+
+  it('filters by multiple circuit names', () => {
+    const days = [
+      {
+        dayId: '1',
+        date: '2026-04-14',
+        type: 'track_day',
+        circuit: 'Brands Hatch Indy',
+        provider: 'MSV Trackdays',
+        description: '',
+        source: { sourceType: 'trackdays', sourceName: 'msv-trackday' },
+      },
+      {
+        dayId: '2',
+        date: '2026-04-21',
+        type: 'track_day',
+        circuit: 'Silverstone',
+        provider: 'Silverstone',
+        description: '',
+        source: { sourceType: 'testing', sourceName: 'silverstone' },
+      },
+      {
+        dayId: '3',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: '',
+        source: { sourceType: 'caterham', sourceName: 'caterham' },
+      },
+    ] as const;
+
+    expect(
+      filterAvailableDays([...days], {
+        circuits: ['Brands Hatch', 'Silverstone'],
+      }).map((day) => day.dayId),
+    ).toEqual(['1', '2']);
+  });
 });
 
 describe('listCircuitOptions', () => {

@@ -6,6 +6,7 @@ import {
   Divider,
   Group,
   Loader,
+  MultiSelect,
   Paper,
   Select,
   SimpleGrid,
@@ -89,8 +90,8 @@ function createDaysFeedHref(
   if (filters.month) {
     params.set('month', filters.month);
   }
-  if (filters.circuit) {
-    params.set('circuit', filters.circuit);
+  for (const circuit of filters.circuits) {
+    params.append('circuit', circuit);
   }
   if (filters.provider) {
     params.set('provider', filters.provider);
@@ -112,8 +113,8 @@ function createDaysIndexHref(
   if (filters.month) {
     params.set('month', filters.month);
   }
-  if (filters.circuit) {
-    params.set('circuit', filters.circuit);
+  for (const circuit of filters.circuits) {
+    params.append('circuit', circuit);
   }
   if (filters.provider) {
     params.set('provider', filters.provider);
@@ -133,7 +134,12 @@ function createDaysIndexHref(
 }
 
 function countActiveFilters(filters: DaysIndexData['filters']) {
-  return Object.values(filters).filter(Boolean).length;
+  return (
+    (filters.month ? 1 : 0) +
+    (filters.circuits.length > 0 ? 1 : 0) +
+    (filters.provider ? 1 : 0) +
+    (filters.type ? 1 : 0)
+  );
 }
 
 function typeColor(type: DayRow['type']) {
@@ -1332,6 +1338,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
   const selectedDayId = searchParams.get('day')?.trim() || null;
+  const [selectedCircuits, setSelectedCircuits] = useState(
+    data.filters.circuits,
+  );
   const orderedLoadedDays = useMemo(
     () => [...loadedDays.days].sort(compareDayRows),
     [loadedDays.days],
@@ -1343,6 +1352,10 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         : createDaysFeedHref(data.filters, loadedDays.nextOffset),
     [data.filters, loadedDays.nextOffset],
   );
+
+  useEffect(() => {
+    setSelectedCircuits(data.filters.circuits);
+  }, [data.filters.circuits]);
 
   useEffect(() => {
     const filtersChanged = previousFilterKeyRef.current !== data.filterKey;
@@ -1676,14 +1689,26 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                   defaultValue={data.filters.month}
                   clearable
                 />
-                <Select
-                  name="circuit"
+                <MultiSelect
                   label="Circuit"
-                  placeholder="Any circuit"
+                  placeholder={
+                    selectedCircuits.length > 0 ? undefined : 'Any circuit'
+                  }
                   data={data.circuitOptions}
-                  defaultValue={data.filters.circuit}
+                  value={selectedCircuits}
+                  onChange={setSelectedCircuits}
+                  searchable
                   clearable
+                  nothingFoundMessage="No circuits found"
                 />
+                {selectedCircuits.map((circuit) => (
+                  <input
+                    key={circuit}
+                    type="hidden"
+                    name="circuit"
+                    value={circuit}
+                  />
+                ))}
                 <Select
                   name="provider"
                   label="Provider"
