@@ -63,16 +63,19 @@ describe('manual race series helpers', () => {
     ]);
 
     expect(summaries['race:academy-1']).toEqual({
+      key: 'caterham-academy',
       name: 'Caterham Academy',
       totalCount: 3,
       existingBookingCount: 1,
     });
     expect(summaries['race:academy-2']).toEqual({
+      key: 'caterham-academy',
       name: 'Caterham Academy',
       totalCount: 3,
       existingBookingCount: 1,
     });
     expect(summaries['manual:test-day']).toEqual({
+      key: 'caterham-academy',
       name: 'Caterham Academy',
       totalCount: 3,
       existingBookingCount: 1,

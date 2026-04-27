@@ -570,6 +570,15 @@ function SeriesBookingAction({
       <Text size="xs" c="dimmed">
         Existing event bookings keep their status and notes.
       </Text>
+      <Button
+        component={Link}
+        to={`/dashboard/series/${series.key}`}
+        size="sm"
+        variant="subtle"
+        w="fit-content"
+      >
+        Open series page
+      </Button>
 
       {missingCount > 0 ? (
         <fetcher.Form method="post" className="day-booking-form">

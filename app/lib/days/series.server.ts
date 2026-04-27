@@ -1,6 +1,7 @@
 import type { AvailableDay } from './types';
 
 export interface RaceSeriesSummary {
+  key: string;
   name: string;
   totalCount: number;
   existingBookingCount: number;
@@ -98,6 +99,7 @@ export function buildRaceSeriesSummaryByDayId(
 
   for (const [seriesKey, seriesDays] of groupedBySeries.entries()) {
     const summary = {
+      key: seriesKey,
       name: getLinkedSeriesName(seriesDays[0]!)!,
       totalCount: seriesDays.length,
       existingBookingCount: seriesDays.filter((day) =>

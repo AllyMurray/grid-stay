@@ -457,6 +457,7 @@ describe('AvailableDaysPage', () => {
           selectedDayAttendance: defaultAttendanceByDay['day-1'],
           raceSeriesByDayId: {
             'day-1': {
+              key: 'caterham-academy',
               name: 'Caterham Academy',
               totalCount: 7,
               existingBookingCount: 2,
@@ -471,6 +472,9 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByText('7 events in the series • 2 already in My Bookings'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open series page' }),
+    ).toHaveAttribute('href', '/dashboard/series/caterham-academy');
     expect(
       screen.getByRole('button', { name: /add missing as maybe/i }),
     ).toBeVisible();
@@ -507,6 +511,7 @@ describe('AvailableDaysPage', () => {
           },
           raceSeriesByDayId: {
             'manual:drift-day': {
+              key: 'caterham-academy',
               name: 'Caterham Academy',
               totalCount: 5,
               existingBookingCount: 5,
