@@ -7,6 +7,11 @@ import {
 import { Resource } from 'sst';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
+import {
+  isAdminUser,
+  isBootstrapMemberEmail,
+  normalizeEmail,
+} from './authorization';
 import type { User } from './schemas';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -53,6 +58,13 @@ type LoadMemberProfiles = () => Promise<MemberProfileSummary[]>;
 type LoadMemberProfile = (
   userId: string,
 ) => Promise<MemberProfileSummary | null>;
+
+type MemberInviteAccessRecord = {
+  inviteEmail: string;
+  status: 'pending' | 'accepted';
+};
+
+type LoadMemberInvites = () => Promise<MemberInviteAccessRecord[]>;
 
 async function scanAuthUsers(): Promise<AuthUserRecord[]> {
   const users: AuthUserRecord[] = [];
@@ -104,6 +116,11 @@ async function loadMemberProfileDefault(
     '~/lib/db/services/member-profile.server'
   );
   return getMemberProfile(userId);
+}
+
+async function loadMemberInvitesDefault(): Promise<MemberInviteAccessRecord[]> {
+  const { listMemberInvites } = await import('./member-invites.server');
+  return listMemberInvites();
 }
 
 function withMemberProfile(
@@ -207,6 +224,24 @@ function compareMembers(
   return left.name.localeCompare(right.name);
 }
 
+function filterInvitedUsers(
+  users: AuthUserRecord[],
+  invites: MemberInviteAccessRecord[],
+) {
+  const acceptedInviteEmails = new Set(
+    invites
+      .filter((invite) => invite.status === 'accepted')
+      .map((invite) => normalizeEmail(invite.inviteEmail)),
+  );
+
+  return users.filter(
+    (user) =>
+      isAdminUser({ email: user.email, role: user.role ?? 'member' }) ||
+      isBootstrapMemberEmail(user.email) ||
+      acceptedInviteEmails.has(normalizeEmail(user.email)),
+  );
+}
+
 export async function listSiteMembers(
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
   loadBookings: (userId: string) => Promise<BookingRecord[]> = async (
@@ -217,9 +252,17 @@ export async function listSiteMembers(
   },
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
+  loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
 ): Promise<MemberDirectoryEntry[]> {
-  const [users, profiles] = await Promise.all([loadUsers(), loadProfiles()]);
-  const usersWithProfiles = applyMemberProfiles(users, profiles);
+  const [users, profiles, invites] = await Promise.all([
+    loadUsers(),
+    loadProfiles(),
+    loadInvites(),
+  ]);
+  const usersWithProfiles = applyMemberProfiles(
+    filterInvitedUsers(users, invites),
+    profiles,
+  );
   const members = await Promise.all(
     usersWithProfiles.map(async (user) =>
       summarizeMember(user, await loadBookings(user.id), today),
@@ -239,9 +282,17 @@ export async function listAdminSiteMembers(
   },
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
+  loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
 ): Promise<AdminMemberDirectoryEntry[]> {
-  const [users, profiles] = await Promise.all([loadUsers(), loadProfiles()]);
-  const usersWithProfiles = applyMemberProfiles(users, profiles);
+  const [users, profiles, invites] = await Promise.all([
+    loadUsers(),
+    loadProfiles(),
+    loadInvites(),
+  ]);
+  const usersWithProfiles = applyMemberProfiles(
+    filterInvitedUsers(users, invites),
+    profiles,
+  );
   const members = await Promise.all(
     usersWithProfiles.map(async (user) =>
       summarizeAdminMember(user, await loadBookings(user.id), today),
@@ -255,11 +306,15 @@ export async function getSiteMemberById(
   memberId: string,
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
   loadProfile: LoadMemberProfile = loadMemberProfileDefault,
+  loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
 ): Promise<AuthUserRecord | null> {
-  const [users, profile] = await Promise.all([
+  const [users, profile, invites] = await Promise.all([
     loadUsers(),
     loadProfile(memberId),
+    loadInvites(),
   ]);
-  const user = users.find((candidate) => candidate.id === memberId);
+  const user = filterInvitedUsers(users, invites).find(
+    (candidate) => candidate.id === memberId,
+  );
   return user ? withMemberProfile(user, profile) : null;
 }

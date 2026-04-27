@@ -14,6 +14,8 @@ export const site = new sst.aws.React('Site', {
     BETTER_AUTH_URL: appDomainConfig
       ? `https://${appDomainConfig.name}`
       : 'http://localhost:5173',
+    GRID_STAY_BOOTSTRAP_MEMBER_EMAILS:
+      process.env.GRID_STAY_BOOTSTRAP_MEMBER_EMAILS ?? '',
   },
   transform: {
     server(args) {

@@ -1,5 +1,7 @@
 import {
+  Alert,
   Avatar,
+  Button,
   Divider,
   Group,
   Paper,
@@ -7,15 +9,21 @@ import {
   Text,
   TextInput,
 } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { IconMail, IconSearch } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
+import { useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import type {
+  MemberInviteActionResult,
+  MemberInviteSummary,
+} from '~/lib/auth/member-invites.server';
 import type { MemberDirectoryEntry } from '~/lib/auth/members.server';
 
 export interface MembersPageProps {
   members: MemberDirectoryEntry[];
+  pendingInvites: MemberInviteSummary[];
 }
 
 function formatMemberDate(value: string) {
@@ -89,7 +97,85 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
   );
 }
 
-export function MembersPage({ members }: MembersPageProps) {
+function MemberInvitePanel({
+  pendingInvites,
+}: {
+  pendingInvites: MemberInviteSummary[];
+}) {
+  const fetcher = useFetcher<MemberInviteActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const success = fetcher.data?.ok ? fetcher.data : null;
+
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Stack gap={2}>
+          <Text fw={700}>Invite a member</Text>
+          <Text size="sm" c="dimmed">
+            Add their Google email, then they can sign in and join the shared
+            planner.
+          </Text>
+        </Stack>
+
+        <fetcher.Form method="post">
+          <Group align="flex-start" gap="sm">
+            <TextInput
+              name="email"
+              type="email"
+              label="Google email"
+              placeholder="driver@example.com"
+              leftSection={<IconMail size={16} />}
+              error={fieldErrors?.email?.[0]}
+              style={{ flex: 1, minWidth: 220 }}
+            />
+            <Button type="submit" loading={isSubmitting} mt={24}>
+              Invite
+            </Button>
+          </Group>
+        </fetcher.Form>
+
+        {success ? (
+          <Alert color="green" variant="light">
+            {success.message}
+          </Alert>
+        ) : formError ? (
+          <Alert color="red" variant="light">
+            {formError}
+          </Alert>
+        ) : null}
+
+        {pendingInvites.length > 0 ? (
+          <Stack gap="xs">
+            <Text size="sm" fw={700} c="dimmed">
+              Pending invites
+            </Text>
+            <Stack gap={0}>
+              {pendingInvites.map((invite, index) => (
+                <Stack key={invite.inviteEmail} gap="xs">
+                  <Group justify="space-between" gap="md" wrap="wrap">
+                    <Text size="sm" fw={700}>
+                      {invite.inviteEmail}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      Invited by {invite.invitedByName}
+                    </Text>
+                  </Group>
+                  {index < pendingInvites.length - 1 ? <Divider /> : null}
+                </Stack>
+              ))}
+            </Stack>
+          </Stack>
+        ) : null}
+      </Stack>
+    </Paper>
+  );
+}
+
+export function MembersPage({ members, pendingInvites }: MembersPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const filteredMembers = useMemo(
     () =>
@@ -111,7 +197,7 @@ export function MembersPage({ members }: MembersPageProps) {
       <PageHeader
         eyebrow="Members"
         title="Site members"
-        description="See who is on the site, who has upcoming plans, and who already has stays in play."
+        description="See who is on the site, invite new members, and check who already has stays in play."
         meta={
           <HeaderStatGrid
             items={[
@@ -122,6 +208,8 @@ export function MembersPage({ members }: MembersPageProps) {
           />
         }
       />
+
+      <MemberInvitePanel pendingInvites={pendingInvites} />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">

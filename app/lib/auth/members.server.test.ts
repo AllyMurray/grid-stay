@@ -96,6 +96,17 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
   'user-3': [],
 };
 
+const acceptedInvites = [
+  {
+    inviteEmail: 'driver@example.com',
+    status: 'accepted' as const,
+  },
+  {
+    inviteEmail: 'new@example.com',
+    status: 'accepted' as const,
+  },
+];
+
 describe('listSiteMembers', () => {
   it('returns members sorted by next trip and summarizes active plans', async () => {
     const members = await listSiteMembers(
@@ -103,6 +114,7 @@ describe('listSiteMembers', () => {
       async (userId) => bookingsByUser[userId] ?? [],
       '2026-04-16',
       async () => [],
+      async () => acceptedInvites,
     );
 
     expect(members).toHaveLength(3);
@@ -143,6 +155,7 @@ describe('listSiteMembers', () => {
       async (userId) => bookingsByUser[userId] ?? [],
       '2026-04-16',
       async () => [],
+      async () => acceptedInvites,
     );
 
     expect(members[0]).toMatchObject({
@@ -162,6 +175,7 @@ describe('listSiteMembers', () => {
           displayName: 'Adam Mann',
         },
       ],
+      async () => acceptedInvites,
     );
 
     expect(members[1]).toMatchObject({
@@ -179,6 +193,7 @@ describe('listSiteMembers', () => {
         userId: 'user-2',
         displayName: 'Adam Mann',
       }),
+      async () => acceptedInvites,
     );
 
     expect(member).toMatchObject({
@@ -187,5 +202,17 @@ describe('listSiteMembers', () => {
       displayName: 'Adam Mann',
       name: 'Adam Mann',
     });
+  });
+
+  it('does not include signed-in users who have not accepted an invite', async () => {
+    const members = await listSiteMembers(
+      async () => userRecords,
+      async (userId) => bookingsByUser[userId] ?? [],
+      '2026-04-16',
+      async () => [],
+      async () => [acceptedInvites[0]!],
+    );
+
+    expect(members.map((member) => member.id)).toEqual(['user-1', 'user-2']);
   });
 });

@@ -1,6 +1,7 @@
 import { redirect } from 'react-router';
 import { auth } from './auth.server';
 import { isAdminUser } from './authorization';
+import { ensureUserMemberAccess } from './member-invites.server';
 import type { User } from './schemas';
 
 interface AuthResult {
@@ -56,6 +57,14 @@ export async function requireUser(request: Request): Promise<AuthResult> {
     const url = new URL(request.url);
     const redirectTo = url.pathname + url.search;
     throw redirect(`/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`, {
+      headers,
+    });
+  }
+
+  if (!(await ensureUserMemberAccess(result.user))) {
+    throw new Response('Invite required', {
+      status: 403,
+      statusText: 'Invite required',
       headers,
     });
   }

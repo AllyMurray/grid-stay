@@ -31,7 +31,9 @@ group is staying.
 
 1. Install dependencies with `pnpm install`
 2. Configure SST secrets for `GoogleClientId`, `GoogleClientSecret`, and `BetterAuthSecret`
-3. Run `pnpm dev`
+3. Set `GRID_STAY_BOOTSTRAP_MEMBER_EMAILS` to the comma-separated current
+   member emails that should keep access before invites are accepted
+4. Run `pnpm dev`
 
 ## Deployment
 

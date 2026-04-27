@@ -1,6 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { theme } from '~/theme';
 import { MembersPage } from './members';
@@ -31,12 +32,20 @@ const members = [
 ];
 
 function renderWithProviders(ui: React.ReactElement) {
-  return render(<MantineProvider theme={theme}>{ui}</MantineProvider>);
+  const Stub = createRoutesStub([
+    {
+      path: '/',
+      action: async () => null,
+      Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
+    },
+  ]);
+
+  return render(<Stub initialEntries={['/']} />);
 }
 
 describe('MembersPage', () => {
   it('renders the member directory from props', () => {
-    renderWithProviders(<MembersPage members={members} />);
+    renderWithProviders(<MembersPage members={members} pendingInvites={[]} />);
 
     expect(
       screen.getByRole('heading', { name: 'Site members' }),
@@ -52,7 +61,7 @@ describe('MembersPage', () => {
 
   it('filters the directory by search query', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<MembersPage members={members} />);
+    renderWithProviders(<MembersPage members={members} pendingInvites={[]} />);
 
     await user.type(screen.getByLabelText(/search members/i), 'silverstone');
 
