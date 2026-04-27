@@ -52,7 +52,39 @@ function renderDashboard() {
   return render(<Stub initialEntries={['/dashboard']} />);
 }
 
+function getAppShellStyles() {
+  return Array.from(
+    document.querySelectorAll('style[data-mantine-styles="inline"]'),
+  )
+    .map((styleElement) => styleElement.textContent ?? '')
+    .filter((styleText) => styleText.includes('--app-shell-navbar'))
+    .join('\n');
+}
+
 describe('DashboardLayoutRoute', () => {
+  it('updates Mantine AppShell mobile navbar styles when the menu opens', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    const menuButton = await screen.findByRole('button', {
+      name: 'Open menu',
+    });
+
+    expect(getAppShellStyles()).toContain(
+      '--app-shell-navbar-transform:translateX(calc(var(--app-shell-navbar-width) * -1))',
+    );
+
+    await user.click(menuButton);
+
+    await waitFor(() => {
+      expect(getAppShellStyles()).not.toContain(
+        '--app-shell-navbar-transform:translateX(calc(var(--app-shell-navbar-width) * -1))',
+      );
+    });
+    expect(getAppShellStyles()).toContain('--app-shell-navbar-width:100%');
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('resets the mobile menu when Safari restores the page from back-forward cache', async () => {
     const user = userEvent.setup();
     renderDashboard();

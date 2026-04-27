@@ -141,7 +141,7 @@ export default function DashboardLayoutRoute() {
       navbar={{
         width: 248,
         breakpoint: 'sm',
-        collapsed: { mobile: !opened, desktop: false },
+        collapsed: { mobile: !opened },
       }}
       padding={{ base: 'xs', sm: 'md' }}
     >
