@@ -1,5 +1,5 @@
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import type {
@@ -72,11 +72,13 @@ const defaultData: DaysIndexData = {
   canCreateManualDays: false,
   filters: {
     month: '',
+    series: '',
     circuits: [],
     provider: '',
     type: '',
   },
   monthOptions: ['2026-05'],
+  seriesOptions: [],
   circuitOptions: ['Silverstone'],
   providerOptions: ['MSV'],
   raceSeriesByDayId: {},
@@ -269,6 +271,47 @@ describe('AvailableDaysPage', () => {
         ),
       ).map((input) => input.value),
     ).toEqual(['Brands Hatch', 'Silverstone']);
+  });
+
+  it('limits selected circuit filter values to the selected race series options', async () => {
+    const view = renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          filters: {
+            ...defaultData.filters,
+            series: 'caterham-academy',
+            circuits: ['Snetterton', 'Silverstone'],
+          },
+          seriesOptions: [
+            {
+              value: 'caterham-academy',
+              label: 'Caterham Academy',
+              circuitOptions: ['Brands Hatch', 'Snetterton'],
+            },
+            {
+              value: 'caterham-roadsport',
+              label: 'Caterham Roadsport',
+              circuitOptions: ['Silverstone'],
+            },
+          ],
+          circuitOptions: ['Brands Hatch', 'Silverstone', 'Snetterton'],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('combobox', { name: 'Race series' }),
+    ).toHaveDisplayValue('Caterham Academy');
+    await waitFor(() => {
+      expect(
+        Array.from(
+          view.container.querySelectorAll<HTMLInputElement>(
+            'input[name="circuit"]',
+          ),
+        ).map((input) => input.value),
+      ).toEqual(['Snetterton']);
+    });
   });
 
   it('shows the manual-day management link only for allowed admins', () => {

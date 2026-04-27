@@ -2,6 +2,7 @@ import {
   normalizeCircuitName,
   normalizeCircuitText,
 } from '~/lib/circuit-sources/shared.server';
+import { getLinkedSeriesKey } from '~/lib/days/series.server';
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
 import type { DiscoveryResult } from '~/lib/discovery/types';
 import {
@@ -353,6 +354,7 @@ export async function listAvailableDays(
 
 export interface AvailableDayFilters {
   month?: string;
+  series?: string;
   circuit?: string;
   circuits?: string[];
   provider?: string;
@@ -397,6 +399,9 @@ export function filterAvailableDays(
 
   return days.filter((day) => {
     if (filters.month && !day.date.startsWith(filters.month)) {
+      return false;
+    }
+    if (filters.series && getLinkedSeriesKey(day) !== filters.series) {
       return false;
     }
     if (

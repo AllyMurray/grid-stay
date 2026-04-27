@@ -18,6 +18,8 @@ import {
 import { canCreateManualDays } from './manual-days.server';
 import {
   buildRaceSeriesSummaryByDayId,
+  getLinkedSeriesKey,
+  getLinkedSeriesName,
   type RaceSeriesSummary,
 } from './series.server';
 import type {
@@ -47,9 +49,16 @@ export interface DayRow {
 
 export interface DaysFilters {
   month: string;
+  series: string;
   circuits: string[];
   provider: string;
   type: string;
+}
+
+export interface RaceSeriesFilterOption {
+  value: string;
+  label: string;
+  circuitOptions: string[];
 }
 
 export interface DaysFeedData {
@@ -66,6 +75,7 @@ export interface DaysIndexData extends DaysFeedData {
   refreshedAt: string;
   canCreateManualDays: boolean;
   monthOptions: string[];
+  seriesOptions: RaceSeriesFilterOption[];
   circuitOptions: string[];
   providerOptions: string[];
   raceSeriesByDayId: Record<string, RaceSeriesSummary>;
@@ -167,6 +177,7 @@ function getCircuitFilters(url: URL): string[] {
 function getFilters(url: URL): DaysFilters {
   return {
     month: url.searchParams.get('month')?.trim() ?? '',
+    series: url.searchParams.get('series')?.trim() ?? '',
     circuits: getCircuitFilters(url),
     provider: url.searchParams.get('provider')?.trim() ?? '',
     type: url.searchParams.get('type')?.trim() ?? '',
@@ -177,6 +188,9 @@ export function createDaysFilterKey(filters: DaysFilters): string {
   const params = new URLSearchParams();
   if (filters.month) {
     params.set('month', filters.month);
+  }
+  if (filters.series) {
+    params.set('series', filters.series);
   }
   for (const circuit of filters.circuits) {
     params.append('circuit', circuit);
@@ -189,6 +203,52 @@ export function createDaysFilterKey(filters: DaysFilters): string {
   }
 
   return params.toString();
+}
+
+function getCurrentSeriesYear(days: AvailableDay[]): string {
+  return days.map((day) => day.date.slice(0, 4)).sort()[0] ?? '';
+}
+
+function listRaceSeriesOptions(days: AvailableDay[]): RaceSeriesFilterOption[] {
+  const currentYear = getCurrentSeriesYear(days);
+  const optionsByKey = new Map<
+    string,
+    { label: string; circuitOptions: Set<string> }
+  >();
+
+  for (const day of days) {
+    if (currentYear && day.date.slice(0, 4) !== currentYear) {
+      continue;
+    }
+
+    const seriesKey = getLinkedSeriesKey(day);
+    const seriesName = getLinkedSeriesName(day);
+    if (!seriesKey || !seriesName) {
+      continue;
+    }
+
+    const current = optionsByKey.get(seriesKey);
+    const circuit = normalizeCircuitName(day.circuit);
+    if (current) {
+      if (circuit) {
+        current.circuitOptions.add(circuit);
+      }
+      continue;
+    }
+
+    optionsByKey.set(seriesKey, {
+      label: seriesName,
+      circuitOptions: circuit ? new Set([circuit]) : new Set(),
+    });
+  }
+
+  return [...optionsByKey.entries()]
+    .map(([value, option]) => ({
+      value,
+      label: option.label,
+      circuitOptions: [...option.circuitOptions].sort(),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
 }
 
 async function loadFilteredDays(url: URL) {
@@ -206,6 +266,7 @@ async function loadFilteredDays(url: URL) {
     .sort(compareAvailableDays);
   const filteredDays = filterAvailableDays(allDays, {
     month: filters.month || undefined,
+    series: filters.series || undefined,
     circuits: filters.circuits,
     provider: filters.provider || undefined,
     type: parseType(filters.type),
@@ -220,6 +281,7 @@ async function loadFilteredDays(url: URL) {
     monthOptions: [
       ...new Set(allDays.map((day) => day.date.slice(0, 7))),
     ].sort(),
+    seriesOptions: listRaceSeriesOptions(allDays),
     circuitOptions: listCircuitOptions(allDays),
     providerOptions: [...new Set(allDays.map((day) => day.provider))].sort(),
   };
@@ -264,6 +326,7 @@ export async function loadDaysIndex(
       refreshedAt,
       filteredDays,
       monthOptions,
+      seriesOptions,
       circuitOptions,
       providerOptions,
     },
@@ -298,6 +361,7 @@ export async function loadDaysIndex(
     refreshedAt,
     canCreateManualDays: canCreateManualDays(user),
     monthOptions,
+    seriesOptions,
     circuitOptions,
     providerOptions,
     raceSeriesByDayId,

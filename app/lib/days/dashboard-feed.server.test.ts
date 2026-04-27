@@ -174,6 +174,101 @@ describe('days dashboard feed', () => {
     ]);
   });
 
+  it('builds current-year circuit options for the selected race series', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'academy-snetterton',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Caterham Academy • Round 1',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+            metadata: { series: 'Caterham Academy' },
+          },
+        },
+        {
+          dayId: 'academy-brands',
+          date: '2026-06-14',
+          type: 'race_day',
+          circuit: 'Brands Hatch Indy',
+          provider: 'Caterham Motorsport',
+          description: 'Caterham Academy • Round 2',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+            metadata: { series: 'Caterham Academy' },
+          },
+        },
+        {
+          dayId: 'roadsport-silverstone',
+          date: '2026-05-24',
+          type: 'race_day',
+          circuit: 'Silverstone',
+          provider: 'Caterham Motorsport',
+          description: 'Caterham Roadsport • Round 1',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+            metadata: { series: 'Caterham Roadsport' },
+          },
+        },
+        {
+          dayId: 'academy-next-year',
+          date: '2027-05-10',
+          type: 'race_day',
+          circuit: 'Oulton Park',
+          provider: 'Caterham Motorsport',
+          description: 'Caterham Academy • Round 1',
+          source: {
+            sourceType: 'caterham',
+            sourceName: 'caterham',
+            metadata: { series: 'Caterham Academy' },
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days?series=caterham-academy'),
+    );
+
+    expect(data.filters.series).toBe('caterham-academy');
+    expect(data.filterKey).toBe('series=caterham-academy');
+    expect(data.seriesOptions).toEqual([
+      {
+        value: 'caterham-academy',
+        label: 'Caterham Academy',
+        circuitOptions: ['Brands Hatch', 'Snetterton'],
+      },
+      {
+        value: 'caterham-roadsport',
+        label: 'Caterham Roadsport',
+        circuitOptions: ['Silverstone'],
+      },
+    ]);
+    expect(data.days.map((day) => day.dayId)).toEqual([
+      'academy-snetterton',
+      'academy-brands',
+      'academy-next-year',
+    ]);
+  });
+
   it('consolidates cached Snetterton layout variants in options and rows', async () => {
     vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
       refreshedAt: '2026-04-17T09:30:00.000Z',

@@ -396,6 +396,52 @@ describe('filterAvailableDays', () => {
       }).map((day) => day.dayId),
     ).toEqual(['1', '2']);
   });
+
+  it('filters by linked race series', () => {
+    const days = [
+      {
+        dayId: 'academy',
+        date: '2026-04-14',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        source: {
+          sourceType: 'caterham',
+          sourceName: 'caterham',
+          metadata: { series: 'Caterham Academy' },
+        },
+      },
+      {
+        dayId: 'roadsport',
+        date: '2026-04-21',
+        type: 'race_day',
+        circuit: 'Silverstone',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        source: {
+          sourceType: 'caterham',
+          sourceName: 'caterham',
+          metadata: { series: 'Caterham Roadsport' },
+        },
+      },
+      {
+        dayId: 'trackday',
+        date: '2026-05-10',
+        type: 'track_day',
+        circuit: 'Snetterton',
+        provider: 'MSV Trackdays',
+        description: '',
+        source: { sourceType: 'trackdays', sourceName: 'msv-trackday' },
+      },
+    ] as const;
+
+    expect(
+      filterAvailableDays([...days], {
+        series: 'caterham-academy',
+      }).map((day) => day.dayId),
+    ).toEqual(['academy']);
+  });
 });
 
 describe('listCircuitOptions', () => {

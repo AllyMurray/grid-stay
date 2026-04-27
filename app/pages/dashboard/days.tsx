@@ -90,6 +90,9 @@ function createDaysFeedHref(
   if (filters.month) {
     params.set('month', filters.month);
   }
+  if (filters.series) {
+    params.set('series', filters.series);
+  }
   for (const circuit of filters.circuits) {
     params.append('circuit', circuit);
   }
@@ -112,6 +115,9 @@ function createDaysIndexHref(
   const params = new URLSearchParams();
   if (filters.month) {
     params.set('month', filters.month);
+  }
+  if (filters.series) {
+    params.set('series', filters.series);
   }
   for (const circuit of filters.circuits) {
     params.append('circuit', circuit);
@@ -136,6 +142,7 @@ function createDaysIndexHref(
 function countActiveFilters(filters: DaysIndexData['filters']) {
   return (
     (filters.month ? 1 : 0) +
+    (filters.series ? 1 : 0) +
     (filters.circuits.length > 0 ? 1 : 0) +
     (filters.provider ? 1 : 0) +
     (filters.type ? 1 : 0)
@@ -1338,6 +1345,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
   const selectedDayId = searchParams.get('day')?.trim() || null;
+  const [selectedSeries, setSelectedSeries] = useState(data.filters.series);
   const [selectedCircuits, setSelectedCircuits] = useState(
     data.filters.circuits,
   );
@@ -1352,10 +1360,32 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         : createDaysFeedHref(data.filters, loadedDays.nextOffset),
     [data.filters, loadedDays.nextOffset],
   );
+  const circuitOptionsForSelectedSeries = useMemo(() => {
+    if (!selectedSeries) {
+      return data.circuitOptions;
+    }
+
+    return (
+      data.seriesOptions.find((option) => option.value === selectedSeries)
+        ?.circuitOptions ?? []
+    );
+  }, [data.circuitOptions, data.seriesOptions, selectedSeries]);
+  const circuitOptionSet = useMemo(
+    () => new Set(circuitOptionsForSelectedSeries),
+    [circuitOptionsForSelectedSeries],
+  );
 
   useEffect(() => {
+    setSelectedSeries(data.filters.series);
     setSelectedCircuits(data.filters.circuits);
-  }, [data.filters.circuits]);
+  }, [data.filters.circuits, data.filters.series]);
+
+  useEffect(() => {
+    setSelectedCircuits((current) => {
+      const next = current.filter((circuit) => circuitOptionSet.has(circuit));
+      return next.length === current.length ? current : next;
+    });
+  }, [circuitOptionSet]);
 
   useEffect(() => {
     const filtersChanged = previousFilterKeyRef.current !== data.filterKey;
@@ -1665,7 +1695,8 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             <Stack gap={2}>
               <Title order={3}>Refine the feed</Title>
               <Text size="sm" c="dimmed">
-                Narrow the calendar by month, circuit, provider, or day type.
+                Narrow the calendar by month, race series, circuit, provider, or
+                day type.
               </Text>
             </Stack>
             {activeFilterCount > 0 ? (
@@ -1677,7 +1708,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
           <Form method="get">
             <Stack gap="md">
-              <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
+              <SimpleGrid cols={{ base: 1, sm: 2, xl: 5 }} spacing="md">
                 <Select
                   name="month"
                   label="Month"
@@ -1689,12 +1720,26 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                   defaultValue={data.filters.month}
                   clearable
                 />
+                <Select
+                  name="series"
+                  label="Race series"
+                  placeholder="Any series"
+                  data={data.seriesOptions.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
+                  value={selectedSeries}
+                  onChange={(value) => setSelectedSeries(value ?? '')}
+                  clearable
+                  searchable
+                  nothingFoundMessage="No series found"
+                />
                 <MultiSelect
                   label="Circuit"
                   placeholder={
                     selectedCircuits.length > 0 ? undefined : 'Any circuit'
                   }
-                  data={data.circuitOptions}
+                  data={circuitOptionsForSelectedSeries}
                   value={selectedCircuits}
                   onChange={setSelectedCircuits}
                   searchable
