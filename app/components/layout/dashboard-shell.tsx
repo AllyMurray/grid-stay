@@ -22,6 +22,7 @@ import {
   IconAlertTriangle,
   IconBell,
   IconCalendarMonth,
+  IconClipboardList,
   IconHome2,
   IconHotelService,
   IconLock,
@@ -234,6 +235,12 @@ export function DashboardShell({
       to: '/dashboard/admin/data-quality',
       icon: IconAlertTriangle,
       active: location.pathname.startsWith('/dashboard/admin/data-quality'),
+    },
+    {
+      label: 'Operations',
+      to: '/dashboard/admin/operations',
+      icon: IconClipboardList,
+      active: location.pathname.startsWith('/dashboard/admin/operations'),
     },
     {
       label: 'Member Management',

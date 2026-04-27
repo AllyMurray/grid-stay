@@ -29,6 +29,10 @@ export default [
       'dashboard/admin/data-quality',
       'routes/dashboard/admin.data-quality.tsx',
     ),
+    route(
+      'dashboard/admin/operations',
+      'routes/dashboard/admin.operations.tsx',
+    ),
     route('dashboard/admin/members', 'routes/dashboard/admin.members.tsx'),
     route(
       'dashboard/admin/members/:memberId',
