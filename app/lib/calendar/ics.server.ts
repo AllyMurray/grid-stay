@@ -68,8 +68,13 @@ function eventStatus(status: BookingRecord['status']) {
   return status === 'maybe' ? 'TENTATIVE' : 'CONFIRMED';
 }
 
+function eventSummary(booking: BookingRecord) {
+  return booking.status === 'maybe'
+    ? `${booking.circuit} (${titleCase(booking.status)})`
+    : booking.circuit;
+}
+
 function buildEventLines(booking: BookingRecord, generatedAt: Date) {
-  const summaryStatus = titleCase(booking.status);
   const lines = [
     'BEGIN:VEVENT',
     `UID:${escapeIcsText(`${booking.bookingId}@gridstay.app`)}`,
@@ -77,7 +82,7 @@ function buildEventLines(booking: BookingRecord, generatedAt: Date) {
     `LAST-MODIFIED:${formatIcsTimestamp(booking.updatedAt)}`,
     `DTSTART;VALUE=DATE:${formatIcsDate(booking.date)}`,
     `DTEND;VALUE=DATE:${formatIcsDate(addDays(booking.date, 1))}`,
-    `SUMMARY:${escapeIcsText(`${booking.circuit} (${summaryStatus})`)}`,
+    `SUMMARY:${escapeIcsText(eventSummary(booking))}`,
     `LOCATION:${escapeIcsText(booking.circuit)}`,
     `DESCRIPTION:${escapeIcsText(buildDescription(booking))}`,
     `STATUS:${eventStatus(booking.status)}`,

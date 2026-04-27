@@ -32,10 +32,24 @@ describe('buildCalendarIcs', () => {
     expect(calendar).toContain('BEGIN:VEVENT\r\n');
     expect(calendar).toContain('DTSTART;VALUE=DATE:20260503\r\n');
     expect(calendar).toContain('DTEND;VALUE=DATE:20260504\r\n');
-    expect(calendar).toContain('SUMMARY:Silverstone (Booked)\r\n');
+    expect(calendar).toContain('SUMMARY:Silverstone\r\n');
+    expect(calendar).not.toContain('(Booked)');
     expect(calendar).toContain('STATUS:CONFIRMED\r\n');
     expect(unfoldedCalendar).toContain('Provider: MSV');
     expect(unfoldedCalendar).toContain('Stay: Trackside Hotel');
+  });
+
+  it('marks maybe bookings in the event summary', () => {
+    const calendar = buildCalendarIcs([
+      {
+        ...booking,
+        status: 'maybe',
+        circuit: 'Donington Park',
+      },
+    ]);
+
+    expect(calendar).toContain('SUMMARY:Donington Park (Maybe)\r\n');
+    expect(calendar).toContain('STATUS:TENTATIVE\r\n');
   });
 
   it('excludes cancelled bookings and private references', () => {
@@ -66,7 +80,7 @@ describe('buildCalendarIcs', () => {
       },
     ]);
 
-    expect(calendar).toContain('SUMMARY:Brands Hatch\\, Indy (Booked)');
+    expect(calendar).toContain('SUMMARY:Brands Hatch\\, Indy');
     expect(calendar).toContain('DESCRIPTION:Line one\\; line two\\\\final');
   });
 });
