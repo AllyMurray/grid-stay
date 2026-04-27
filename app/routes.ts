@@ -25,6 +25,7 @@ export default [
     ),
     route('dashboard/manual-days', 'routes/dashboard/manual-days.tsx'),
     route('dashboard/admin/feed', 'routes/dashboard/admin.feed.tsx'),
+    route('dashboard/admin/export', 'routes/dashboard/admin.export.tsx'),
     route(
       'dashboard/admin/data-quality',
       'routes/dashboard/admin.data-quality.tsx',

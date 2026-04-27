@@ -23,6 +23,7 @@ import {
   IconBell,
   IconCalendarMonth,
   IconClipboardList,
+  IconDownload,
   IconHome2,
   IconHotelService,
   IconLock,
@@ -235,6 +236,12 @@ export function DashboardShell({
       to: '/dashboard/admin/data-quality',
       icon: IconAlertTriangle,
       active: location.pathname.startsWith('/dashboard/admin/data-quality'),
+    },
+    {
+      label: 'Data Export',
+      to: '/dashboard/admin/export',
+      icon: IconDownload,
+      active: location.pathname.startsWith('/dashboard/admin/export'),
     },
     {
       label: 'Operations',

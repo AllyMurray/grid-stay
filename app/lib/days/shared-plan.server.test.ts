@@ -28,6 +28,7 @@ function createStore(
     })),
     delete: vi.fn(async () => undefined),
     get: vi.fn(async () => existing),
+    listAll: vi.fn(async () => (existing ? [existing] : [])),
   };
 }
 
