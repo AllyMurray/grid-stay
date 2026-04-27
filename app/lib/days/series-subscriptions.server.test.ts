@@ -176,6 +176,7 @@ describe('series subscription reconciliation', () => {
         expect.objectContaining({
           userId: 'user-1',
           dayId: 'manual:drift',
+          type: 'track_day',
           status: 'booked',
         }),
       ]),

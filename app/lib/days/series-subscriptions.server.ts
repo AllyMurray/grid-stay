@@ -52,6 +52,7 @@ async function ensureLinkedSeriesBookingsForUser(
       userImage: user.picture,
       dayId: day.dayId,
       date: day.date,
+      type: day.type,
       status,
       circuit: day.circuit,
       provider: day.provider,
