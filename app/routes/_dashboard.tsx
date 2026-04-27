@@ -25,7 +25,14 @@ import {
   IconSun,
   IconUsersGroup,
 } from '@tabler/icons-react';
-import { Link, Outlet, useLoaderData, useLocation } from 'react-router';
+import { useEffect } from 'react';
+import {
+  Link,
+  Outlet,
+  useLoaderData,
+  useLocation,
+  useRevalidator,
+} from 'react-router';
 import { isAdminUser } from '~/lib/auth/authorization';
 import { requireUser } from '~/lib/auth/helpers.server';
 import type { User } from '~/lib/auth/schemas';
@@ -48,7 +55,25 @@ export default function DashboardLayoutRoute() {
     getInitialValueInEffect: false,
   });
   const [opened, { toggle, close }] = useDisclosure(false);
+  const revalidator = useRevalidator();
   const isAdmin = isAdminUser(user);
+
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (!event.persisted) {
+        return;
+      }
+
+      close();
+      revalidator.revalidate();
+    }
+
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [close, revalidator]);
 
   const navItems = [
     {
@@ -113,6 +138,8 @@ export default function DashboardLayoutRoute() {
             <Burger
               opened={opened}
               onClick={toggle}
+              aria-expanded={opened}
+              aria-label={opened ? 'Close menu' : 'Open menu'}
               hiddenFrom="sm"
               size="sm"
             />

@@ -8,38 +8,56 @@ interface AuthResult {
   headers?: HeadersInit;
 }
 
+async function readAuthSession(request: Request): Promise<{
+  result: AuthResult | null;
+  headers?: Headers;
+}> {
+  const sessionResult = await auth.api.getSession({
+    headers: request.headers,
+    returnHeaders: true,
+  });
+  const session = sessionResult.response;
+
+  if (!session) {
+    return { result: null, headers: sessionResult.headers };
+  }
+
+  return {
+    result: {
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        picture: session.user.image ?? undefined,
+        role: (session.user as any).role ?? 'member',
+      },
+      headers: sessionResult.headers,
+    },
+    headers: sessionResult.headers,
+  };
+}
+
 /**
  * Get the current user from session, returning null if not authenticated.
  * Uses Better Auth's session API — no manual token handling needed.
  */
 export async function getUser(request: Request): Promise<AuthResult | null> {
-  const session = await auth.api.getSession({ headers: request.headers });
-
-  if (!session) {
-    return null;
-  }
-
-  return {
-    user: {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      picture: session.user.image ?? undefined,
-      role: (session.user as any).role ?? 'member',
-    },
-  };
+  const { result } = await readAuthSession(request);
+  return result;
 }
 
 /**
  * Require authentication - redirect to login if not authenticated
  */
 export async function requireUser(request: Request): Promise<AuthResult> {
-  const result = await getUser(request);
+  const { result, headers } = await readAuthSession(request);
 
   if (!result) {
     const url = new URL(request.url);
     const redirectTo = url.pathname + url.search;
-    throw redirect(`/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+    throw redirect(`/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`, {
+      headers,
+    });
   }
 
   return result;
@@ -75,9 +93,9 @@ export async function requireOwner(request: Request): Promise<AuthResult> {
  * Require anonymous - redirect to dashboard if already authenticated
  */
 export async function requireAnonymous(request: Request): Promise<void> {
-  const result = await getUser(request);
+  const { result, headers } = await readAuthSession(request);
 
   if (result) {
-    throw redirect('/dashboard/days');
+    throw redirect('/dashboard/days', { headers });
   }
 }

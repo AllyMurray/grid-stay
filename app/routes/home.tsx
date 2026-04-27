@@ -1,11 +1,23 @@
+import { useLoaderData } from 'react-router';
 import { getUser } from '~/lib/auth/helpers.server';
 import { HomePage } from '~/pages/home';
 import type { Route } from './+types/home';
 
-export async function loader({ request }: Route.LoaderArgs) {
-  return { session: await getUser(request) };
+interface LoaderData {
+  hasSession: boolean;
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
-  return <HomePage hasSession={Boolean(loaderData.session)} />;
+export async function loader({ request }: Route.LoaderArgs) {
+  const session = await getUser(request);
+
+  return Response.json(
+    { hasSession: Boolean(session) },
+    { headers: session?.headers },
+  );
+}
+
+export default function Home() {
+  const loaderData = useLoaderData<typeof loader>() as LoaderData;
+
+  return <HomePage hasSession={loaderData.hasSession} />;
 }
