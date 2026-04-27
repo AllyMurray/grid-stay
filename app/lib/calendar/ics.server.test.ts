@@ -9,6 +9,7 @@ const booking: BookingRecord = {
   userImage: '',
   dayId: 'day-1',
   date: '2026-05-03',
+  type: 'race_day',
   status: 'booked',
   circuit: 'Silverstone',
   provider: 'MSV',
@@ -32,9 +33,11 @@ describe('buildCalendarIcs', () => {
     expect(calendar).toContain('BEGIN:VEVENT\r\n');
     expect(calendar).toContain('DTSTART;VALUE=DATE:20260503\r\n');
     expect(calendar).toContain('DTEND;VALUE=DATE:20260504\r\n');
-    expect(calendar).toContain('SUMMARY:Silverstone\r\n');
+    expect(calendar).toContain('SUMMARY:Silverstone - Race day\r\n');
     expect(calendar).not.toContain('(Booked)');
+    expect(calendar).toContain('CATEGORIES:Race day\r\n');
     expect(calendar).toContain('STATUS:CONFIRMED\r\n');
+    expect(unfoldedCalendar).toContain('Type: Race day');
     expect(unfoldedCalendar).toContain('Provider: MSV');
     expect(unfoldedCalendar).toContain('Stay: Trackside Hotel');
   });
@@ -44,12 +47,30 @@ describe('buildCalendarIcs', () => {
       {
         ...booking,
         status: 'maybe',
+        type: 'track_day',
         circuit: 'Donington Park',
       },
     ]);
 
-    expect(calendar).toContain('SUMMARY:Donington Park (Maybe)\r\n');
+    expect(calendar).toContain(
+      'SUMMARY:Donington Park - Track day (Maybe)\r\n',
+    );
     expect(calendar).toContain('STATUS:TENTATIVE\r\n');
+  });
+
+  it('infers the day type from existing booking ids', () => {
+    const calendar = buildCalendarIcs([
+      {
+        ...booking,
+        dayId: 'test_day:manual:v2:dated-2026-05-03:base',
+        bookingId: 'test_day:manual:v2:dated-2026-05-03:base',
+        type: undefined,
+        circuit: 'Brands Hatch',
+      },
+    ]);
+
+    expect(calendar).toContain('SUMMARY:Brands Hatch - Test day\r\n');
+    expect(calendar).toContain('CATEGORIES:Test day\r\n');
   });
 
   it('excludes cancelled bookings and private references', () => {
@@ -80,7 +101,7 @@ describe('buildCalendarIcs', () => {
       },
     ]);
 
-    expect(calendar).toContain('SUMMARY:Brands Hatch\\, Indy');
+    expect(calendar).toContain('SUMMARY:Brands Hatch\\, Indy - Race day');
     expect(calendar).toContain('DESCRIPTION:Line one\\; line two\\\\final');
   });
 });

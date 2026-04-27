@@ -187,6 +187,7 @@ describe('booking service', () => {
 
     expect(created.dayId).toBe('day-1');
     expect(created.bookingId).toBe('day-1');
+    expect(created.type).toBe('race_day');
     expect(memory.items).toHaveLength(1);
     expect(memory.summaries.get('day-1')).toMatchObject({
       attendeeCount: 1,
@@ -210,6 +211,7 @@ describe('booking service', () => {
 
     expect(memory.items).toHaveLength(1);
     expect(updated.status).toBe('maybe');
+    expect(updated.type).toBe('race_day');
     expect(memory.summaries.get('day-1')).toMatchObject({
       attendeeCount: 1,
       accommodationNames: [],
@@ -479,6 +481,7 @@ describe('booking service', () => {
     expect(memory.items).toHaveLength(2);
     expect(memory.items[0]).toMatchObject({
       dayId: 'day-1',
+      type: 'race_day',
       status: 'maybe',
       bookingReference: 'REF-1',
       notes: 'Keep this',
@@ -486,6 +489,7 @@ describe('booking service', () => {
     });
     expect(memory.items[1]).toMatchObject({
       dayId: 'day-2',
+      type: 'race_day',
       status: 'booked',
       circuit: 'Brands Hatch',
     });

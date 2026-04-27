@@ -1,6 +1,12 @@
+import type { AvailableDayType } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 const calendarProductId = '-//Grid Stay//Schedule//EN';
+const dayTypeLabels: Record<AvailableDayType, string> = {
+  race_day: 'Race day',
+  test_day: 'Test day',
+  track_day: 'Track day',
+};
 
 function titleCase(value: string) {
   return value
@@ -51,9 +57,27 @@ function addDays(date: string, days: number) {
   return value.toISOString().slice(0, 10);
 }
 
+function getDayType(booking: BookingRecord): AvailableDayType | null {
+  const value = booking.type ?? booking.dayId.split(':')[0];
+
+  if (value === 'race_day' || value === 'test_day' || value === 'track_day') {
+    return value;
+  }
+
+  return null;
+}
+
+function getDayTypeLabel(booking: BookingRecord) {
+  const type = getDayType(booking);
+  return type ? dayTypeLabels[type] : null;
+}
+
 function buildDescription(booking: BookingRecord) {
+  const dayTypeLabel = getDayTypeLabel(booking);
+
   return [
     booking.description,
+    dayTypeLabel ? `Type: ${dayTypeLabel}` : null,
     `Provider: ${booking.provider}`,
     `Status: ${titleCase(booking.status)}`,
     booking.accommodationName?.trim()
@@ -69,12 +93,18 @@ function eventStatus(status: BookingRecord['status']) {
 }
 
 function eventSummary(booking: BookingRecord) {
-  return booking.status === 'maybe'
-    ? `${booking.circuit} (${titleCase(booking.status)})`
+  const dayTypeLabel = getDayTypeLabel(booking);
+  const title = dayTypeLabel
+    ? `${booking.circuit} - ${dayTypeLabel}`
     : booking.circuit;
+
+  return booking.status === 'maybe'
+    ? `${title} (${titleCase(booking.status)})`
+    : title;
 }
 
 function buildEventLines(booking: BookingRecord, generatedAt: Date) {
+  const dayTypeLabel = getDayTypeLabel(booking);
   const lines = [
     'BEGIN:VEVENT',
     `UID:${escapeIcsText(`${booking.bookingId}@gridstay.app`)}`,
@@ -84,6 +114,7 @@ function buildEventLines(booking: BookingRecord, generatedAt: Date) {
     `DTEND;VALUE=DATE:${formatIcsDate(addDays(booking.date, 1))}`,
     `SUMMARY:${escapeIcsText(eventSummary(booking))}`,
     `LOCATION:${escapeIcsText(booking.circuit)}`,
+    dayTypeLabel ? `CATEGORIES:${escapeIcsText(dayTypeLabel)}` : null,
     `DESCRIPTION:${escapeIcsText(buildDescription(booking))}`,
     `STATUS:${eventStatus(booking.status)}`,
     'TRANSP:TRANSPARENT',
@@ -91,7 +122,7 @@ function buildEventLines(booking: BookingRecord, generatedAt: Date) {
     'END:VEVENT',
   ];
 
-  return lines;
+  return lines.filter((line): line is string => Boolean(line));
 }
 
 export function buildCalendarIcs(

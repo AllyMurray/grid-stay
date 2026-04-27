@@ -89,6 +89,9 @@ function getBookingRefreshChanges(
   if (existing.date !== input.date) {
     changes.date = input.date;
   }
+  if (existing.type !== input.type) {
+    changes.type = input.type;
+  }
   if (existing.circuit !== input.circuit) {
     changes.circuit = input.circuit;
   }
@@ -142,6 +145,7 @@ export async function createBooking(
   if (existing) {
     const updated = await store.update(user.id, existing.bookingId, {
       date: input.date,
+      type: input.type,
       status: input.status,
       circuit: input.circuit,
       provider: input.provider,
@@ -165,6 +169,7 @@ export async function createBooking(
     userImage: user.picture,
     dayId: input.dayId,
     date: input.date,
+    type: input.type,
     status: input.status,
     circuit: input.circuit,
     provider: input.provider,
@@ -219,6 +224,7 @@ export async function ensureBookingsForDays(
       userImage: user.picture,
       dayId: input.dayId,
       date: input.date,
+      type: input.type,
       status: defaultStatus,
       circuit: input.circuit,
       provider: input.provider,
@@ -296,6 +302,7 @@ export async function applySharedStaySelection(
   if (existing) {
     const updated = await store.update(user.id, existing.bookingId, {
       date: input.date,
+      type: input.type,
       status: existing.status === 'cancelled' ? input.status : existing.status,
       circuit: input.circuit,
       provider: input.provider,
@@ -320,6 +327,7 @@ export async function applySharedStaySelection(
     userImage: user.picture,
     dayId: input.dayId,
     date: input.date,
+    type: input.type,
     status: input.status,
     circuit: input.circuit,
     provider: input.provider,

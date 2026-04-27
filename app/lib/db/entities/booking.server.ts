@@ -15,6 +15,9 @@ export const BookingEntity = new Entity(
       userImage: { type: 'string' },
       dayId: { type: 'string', required: true },
       date: { type: 'string', required: true },
+      type: {
+        type: ['race_day', 'test_day', 'track_day'] as const,
+      },
       status: {
         type: ['booked', 'cancelled', 'maybe'] as const,
         required: true,
