@@ -1,5 +1,6 @@
 import type { User } from '~/lib/auth/schemas';
 import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
+import type { AvailableDay } from '~/lib/days/types';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import {
   applySharedStaySelection,
@@ -13,15 +14,16 @@ import { upsertSeriesSubscription } from '~/lib/db/services/series-subscription.
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
+  CreateBookingRequestInput,
   DeleteBookingInput,
-  SharedStaySelectionInput,
+  SharedStaySelectionRequestInput,
   UpdateBookingInput,
 } from '~/lib/schemas/booking';
 import {
   BulkRaceSeriesBookingSchema,
-  CreateBookingSchema,
+  CreateBookingRequestSchema,
   DeleteBookingSchema,
-  SharedStaySelectionSchema,
+  SharedStaySelectionRequestSchema,
   UpdateBookingSchema,
 } from '~/lib/schemas/booking';
 
@@ -34,7 +36,7 @@ export type CreateBookingActionResult =
   | {
       ok: false;
       formError: string;
-      fieldErrors: FieldErrors<keyof CreateBookingInput>;
+      fieldErrors: FieldErrors<keyof CreateBookingRequestInput>;
     };
 
 type BookingEditorFieldName =
@@ -61,7 +63,7 @@ export type SharedStaySelectionActionResult =
   | {
       ok: false;
       formError: string;
-      fieldErrors: FieldErrors<keyof SharedStaySelectionInput>;
+      fieldErrors: FieldErrors<keyof SharedStaySelectionRequestInput>;
     };
 
 export type BulkRaceSeriesBookingActionResult =
@@ -78,12 +80,44 @@ export type BulkRaceSeriesBookingActionResult =
       fieldErrors: FieldErrors<keyof BulkRaceSeriesBookingInput>;
     };
 
+async function resolveBookableDay(
+  dayId: string,
+  loadSnapshot: typeof getAvailableDaysSnapshot,
+  loadManualDays: typeof listManualDays,
+): Promise<AvailableDay | null> {
+  const [snapshot, manualDays] = await Promise.all([
+    loadSnapshot(),
+    loadManualDays(),
+  ]);
+  const days = [...(snapshot?.days ?? []), ...manualDays];
+  return days.find((day) => day.dayId === dayId) ?? null;
+}
+
+function toCreateBookingInput(
+  day: AvailableDay,
+  status: CreateBookingInput['status'],
+): CreateBookingInput {
+  return {
+    dayId: day.dayId,
+    date: day.date,
+    type: day.type,
+    circuit: day.circuit,
+    provider: day.provider,
+    description: day.description,
+    status,
+  };
+}
+
 export async function submitCreateBooking(
   formData: FormData,
   user: User,
   saveBooking: typeof createBooking = createBooking,
+  loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
+  loadManualDays: typeof listManualDays = listManualDays,
 ): Promise<CreateBookingActionResult> {
-  const parsed = CreateBookingSchema.safeParse(Object.fromEntries(formData));
+  const parsed = CreateBookingRequestSchema.safeParse(
+    Object.fromEntries(formData),
+  );
 
   if (!parsed.success) {
     return {
@@ -93,7 +127,23 @@ export async function submitCreateBooking(
     };
   }
 
-  await saveBooking(parsed.data, user);
+  const day = await resolveBookableDay(
+    parsed.data.dayId,
+    loadSnapshot,
+    loadManualDays,
+  );
+
+  if (!day) {
+    return {
+      ok: false,
+      formError: 'This day is no longer available to add.',
+      fieldErrors: {
+        dayId: ['This day is no longer available to add.'],
+      },
+    };
+  }
+
+  await saveBooking(toCreateBookingInput(day, parsed.data.status), user);
   return { ok: true };
 }
 
@@ -101,8 +151,10 @@ export async function submitSharedStaySelection(
   formData: FormData,
   user: User,
   saveSelection: typeof applySharedStaySelection = applySharedStaySelection,
+  loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
+  loadManualDays: typeof listManualDays = listManualDays,
 ): Promise<SharedStaySelectionActionResult> {
-  const parsed = SharedStaySelectionSchema.safeParse(
+  const parsed = SharedStaySelectionRequestSchema.safeParse(
     Object.fromEntries(formData),
   );
 
@@ -114,7 +166,29 @@ export async function submitSharedStaySelection(
     };
   }
 
-  await saveSelection(parsed.data, user);
+  const day = await resolveBookableDay(
+    parsed.data.dayId,
+    loadSnapshot,
+    loadManualDays,
+  );
+
+  if (!day) {
+    return {
+      ok: false,
+      formError: 'This day is no longer available to update.',
+      fieldErrors: {
+        dayId: ['This day is no longer available to update.'],
+      },
+    };
+  }
+
+  await saveSelection(
+    {
+      ...toCreateBookingInput(day, parsed.data.status),
+      accommodationName: parsed.data.accommodationName,
+    },
+    user,
+  );
   return { ok: true };
 }
 

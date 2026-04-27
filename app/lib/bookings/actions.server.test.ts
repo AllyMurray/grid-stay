@@ -43,6 +43,27 @@ const user: User = {
   role: 'member',
 };
 
+const canonicalDay: AvailableDay = {
+  dayId: 'day-1',
+  date: '2026-05-10',
+  type: 'race_day',
+  circuit: 'Snetterton',
+  provider: 'Caterham Motorsport',
+  description: 'Round 1',
+  source: {
+    sourceType: 'caterham',
+    sourceName: 'caterham',
+  },
+};
+
+const loadCanonicalSnapshot = vi.fn(async () => ({
+  days: [canonicalDay],
+  errors: [],
+  refreshedAt: '2026-04-27T12:00:00.000Z',
+}));
+
+const loadNoManualDays = vi.fn(async () => []);
+
 describe('booking action helpers', () => {
   it('accepts an empty description when creating a booking', async () => {
     const formData = new FormData();
@@ -62,13 +83,15 @@ describe('booking action helpers', () => {
       formData,
       user,
       saveBooking as never,
+      loadCanonicalSnapshot,
+      loadNoManualDays,
     );
 
     expect(result).toEqual({ ok: true });
     expect(saveBooking).toHaveBeenCalledWith(
       expect.objectContaining({
         dayId: 'day-1',
-        description: '',
+        description: 'Round 1',
         status: 'booked',
       }),
       user,
@@ -93,6 +116,8 @@ describe('booking action helpers', () => {
       formData,
       user,
       saveBooking as never,
+      loadCanonicalSnapshot,
+      loadNoManualDays,
     );
 
     expect(result).toEqual({ ok: true });
@@ -101,6 +126,43 @@ describe('booking action helpers', () => {
         dayId: 'day-1',
         status: 'maybe',
       }),
+      user,
+    );
+  });
+
+  it('ignores forged day metadata when creating a booking', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'day-1');
+    formData.set('date', '2030-01-01');
+    formData.set('type', 'track_day');
+    formData.set('circuit', 'Forged Circuit');
+    formData.set('provider', 'Forged Provider');
+    formData.set('description', 'Forged description');
+    formData.set('status', 'booked');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+
+    const result = await submitCreateBooking(
+      formData,
+      user,
+      saveBooking as never,
+      loadCanonicalSnapshot,
+      loadNoManualDays,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveBooking).toHaveBeenCalledWith(
+      {
+        dayId: 'day-1',
+        date: '2026-05-10',
+        type: 'race_day',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        status: 'booked',
+      },
       user,
     );
   });
@@ -122,7 +184,6 @@ describe('booking action helpers', () => {
     }
     expect(result.formError).toBe('This day could not be added right now.');
     expect(result.fieldErrors.dayId?.[0]).toBeDefined();
-    expect(result.fieldErrors.date?.[0]).toBeDefined();
   });
 
   it('returns field errors instead of throwing for an invalid update payload', async () => {
@@ -189,6 +250,8 @@ describe('booking action helpers', () => {
       formData,
       user,
       saveSelection as never,
+      loadCanonicalSnapshot,
+      loadNoManualDays,
     );
 
     expect(result).toEqual({ ok: true });

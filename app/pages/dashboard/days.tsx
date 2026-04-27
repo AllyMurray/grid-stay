@@ -423,11 +423,6 @@ function DayBookingAction({
     <Stack gap={4} className="day-booking-action">
       <fetcher.Form method="post" className="day-booking-form">
         <input type="hidden" name="dayId" value={day.dayId} />
-        <input type="hidden" name="date" value={day.date} />
-        <input type="hidden" name="type" value={day.type} />
-        <input type="hidden" name="circuit" value={day.circuit} />
-        <input type="hidden" name="provider" value={day.provider} />
-        <input type="hidden" name="description" value={day.description} />
         <Group gap="xs" wrap="wrap" className="day-booking-button-row">
           <Button
             type="submit"
@@ -852,11 +847,6 @@ function SharedStayAction({
       <fetcher.Form method="post">
         <input type="hidden" name="intent" value="useSharedStay" />
         <input type="hidden" name="dayId" value={day.dayId} />
-        <input type="hidden" name="date" value={day.date} />
-        <input type="hidden" name="type" value={day.type} />
-        <input type="hidden" name="circuit" value={day.circuit} />
-        <input type="hidden" name="provider" value={day.provider} />
-        <input type="hidden" name="description" value={day.description} />
         <input type="hidden" name="status" value="booked" />
         <input
           type="hidden"

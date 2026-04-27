@@ -19,9 +19,19 @@ export const CreateBookingSchema = z.object({
   status: BookingStatusSchema.default('booked'),
 });
 
+export const CreateBookingRequestSchema = z.object({
+  dayId: z.string().min(1),
+  status: BookingStatusSchema.default('booked'),
+});
+
 export const SharedStaySelectionSchema = CreateBookingSchema.extend({
   accommodationName: z.string().trim().min(1).max(120),
 });
+
+export const SharedStaySelectionRequestSchema =
+  CreateBookingRequestSchema.extend({
+    accommodationName: z.string().trim().min(1).max(120),
+  });
 
 export const BulkRaceSeriesBookingSchema = z.object({
   dayId: z.string().min(1),
@@ -42,8 +52,14 @@ export const DeleteBookingSchema = z.object({
 });
 
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
+export type CreateBookingRequestInput = z.infer<
+  typeof CreateBookingRequestSchema
+>;
 export type SharedStaySelectionInput = z.infer<
   typeof SharedStaySelectionSchema
+>;
+export type SharedStaySelectionRequestInput = z.infer<
+  typeof SharedStaySelectionRequestSchema
 >;
 export type BulkRaceSeriesBookingInput = z.infer<
   typeof BulkRaceSeriesBookingSchema
