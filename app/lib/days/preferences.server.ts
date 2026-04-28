@@ -48,12 +48,6 @@ export function hasSavedDaysFilters(filters: SavedDaysFilters | null): boolean {
   );
 }
 
-function parseExternalChannel(
-  value: string,
-): SavedDaysFilters['externalChannel'] {
-  return value === 'email' || value === 'whatsapp' ? value : '';
-}
-
 export function sanitizeSavedDaysFilters(input: {
   month?: string | null;
   series?: string | null;
@@ -63,12 +57,7 @@ export function sanitizeSavedDaysFilters(input: {
   notifyOnNewMatches?: boolean | null;
   externalChannel?: string | null;
 }): SavedDaysFilters {
-  const externalChannel = parseExternalChannel(
-    normalizeText(input.externalChannel ?? ''),
-  );
-  const notifyOnNewMatches = Boolean(
-    input.notifyOnNewMatches && externalChannel,
-  );
+  const notifyOnNewMatches = Boolean(input.notifyOnNewMatches);
 
   return {
     month: normalizeText(input.month ?? ''),
@@ -83,7 +72,7 @@ export function sanitizeSavedDaysFilters(input: {
     provider: normalizeText(input.provider ?? ''),
     type: parseSavedType(normalizeText(input.type ?? '')),
     notifyOnNewMatches,
-    externalChannel: notifyOnNewMatches ? externalChannel : '',
+    externalChannel: '',
   };
 }
 
@@ -102,9 +91,6 @@ export function getSavedDaysFiltersFromFormData(
     provider: normalizeText(formData.get('provider')),
     type: normalizeText(formData.get('type')),
     notifyOnNewMatches: notifyValue === 'on' || notifyValue === 'true',
-    externalChannel: parseExternalChannel(
-      normalizeText(formData.get('externalChannel')),
-    ),
   });
 }
 
@@ -170,9 +156,7 @@ export async function saveSavedDaysFilters(
     provider: sanitized.provider,
     dayType: sanitized.type || undefined,
     notifyOnNewMatches: sanitized.notifyOnNewMatches,
-    externalChannel: sanitized.notifyOnNewMatches
-      ? sanitized.externalChannel || 'email'
-      : undefined,
+    externalChannel: undefined,
     updatedAt: now,
   };
 

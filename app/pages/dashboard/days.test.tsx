@@ -337,7 +337,7 @@ describe('AvailableDaysPage', () => {
             provider: '',
             type: '',
             notifyOnNewMatches: true,
-            externalChannel: 'email',
+            externalChannel: '',
           },
           seriesOptions: [
             {
@@ -371,6 +371,13 @@ describe('AvailableDaysPage', () => {
         saveForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]'),
       ).map((input) => input.value),
     ).toEqual(['Brands Hatch', 'Snetterton']);
+    expect(screen.getByLabelText('Use for notifications')).toBeChecked();
+    expect(
+      screen.getByText('Notifications limited to this saved view'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('External alert channel'),
+    ).not.toBeInTheDocument();
     expect(
       view.container.querySelector<HTMLInputElement>(
         'input[name="intent"][value="clearSavedDaysFilters"]',

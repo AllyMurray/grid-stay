@@ -49,11 +49,10 @@ describe('available-days preferences', () => {
     });
   });
 
-  it('normalizes external alert settings from form data', () => {
+  it('normalizes notification filter settings from form data', () => {
     const formData = new FormData();
     formData.set('month', '2026-05');
     formData.set('notifyOnNewMatches', 'on');
-    formData.set('externalChannel', 'email');
 
     expect(getSavedDaysFiltersFromFormData(formData)).toEqual({
       month: '2026-05',
@@ -62,7 +61,7 @@ describe('available-days preferences', () => {
       provider: '',
       type: '',
       notifyOnNewMatches: true,
-      externalChannel: 'email',
+      externalChannel: '',
     });
   });
 
@@ -78,7 +77,7 @@ describe('available-days preferences', () => {
         provider: 'Caterham Motorsport',
         type: 'race_day',
         notifyOnNewMatches: true,
-        externalChannel: 'whatsapp',
+        externalChannel: '',
       },
       store,
     );
@@ -90,7 +89,7 @@ describe('available-days preferences', () => {
       provider: 'Caterham Motorsport',
       type: 'race_day',
       notifyOnNewMatches: true,
-      externalChannel: 'whatsapp',
+      externalChannel: '',
     });
     expect(store.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -102,7 +101,7 @@ describe('available-days preferences', () => {
         provider: 'Caterham Motorsport',
         dayType: 'race_day',
         notifyOnNewMatches: true,
-        externalChannel: 'whatsapp',
+        externalChannel: undefined,
       }),
     );
     expect(store.delete).not.toHaveBeenCalled();
@@ -120,7 +119,7 @@ describe('available-days preferences', () => {
         provider: '',
         type: '',
         notifyOnNewMatches: true,
-        externalChannel: 'email',
+        externalChannel: '',
       },
       store,
     );
@@ -142,7 +141,7 @@ describe('available-days preferences', () => {
     await expect(getSavedDaysFilters('user-1', store)).resolves.toBeNull();
   });
 
-  it('returns stored external alert settings with saved filters', async () => {
+  it('returns stored notification settings with saved filters', async () => {
     const store = createStore({
       userId: 'user-1',
       preferenceScope: 'available-days-filters',
@@ -161,7 +160,7 @@ describe('available-days preferences', () => {
       provider: '',
       type: '',
       notifyOnNewMatches: true,
-      externalChannel: 'email',
+      externalChannel: '',
     });
   });
 });

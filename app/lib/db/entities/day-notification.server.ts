@@ -24,6 +24,8 @@ export const DayNotificationEntity = new Entity(
       circuit: { type: 'string', required: true },
       provider: { type: 'string', required: true },
       description: { type: 'string', required: true },
+      seriesKey: { type: 'string' },
+      seriesName: { type: 'string' },
       bookingUrl: { type: 'string' },
       createdAt: { type: 'string', required: true },
     },

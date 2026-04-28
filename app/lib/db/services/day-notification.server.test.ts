@@ -16,7 +16,12 @@ vi.mock('../entities/day-notification.server', () => ({
   },
 }));
 
+vi.mock('~/lib/days/preferences.server', () => ({
+  getSavedDaysFilters: vi.fn(),
+}));
+
 import {
+  countUnreadDayNotifications,
   createAvailableDayNotifications,
   findNewAvailableDays,
   listUserDayNotifications,
@@ -134,10 +139,114 @@ describe('day notification service', () => {
     });
   });
 
+  it('filters user notifications by their saved notification view', async () => {
+    const notifications = await listUserDayNotifications('user-1', {
+      notificationStore: {
+        putMany: vi.fn(),
+        listAll: vi.fn(async () => [
+          {
+            scope: 'available-days',
+            notificationId: 'new-day#matching',
+            type: 'new_available_day',
+            dayId: 'matching',
+            date: '2026-05-01',
+            dayType: 'race_day',
+            circuit: 'Silverstone',
+            provider: 'Caterham Motorsport',
+            description: 'Caterham Academy',
+            seriesKey: 'caterham-academy',
+            createdAt: '2026-03-01T09:00:00.000Z',
+          },
+          {
+            scope: 'available-days',
+            notificationId: 'new-day#ignored',
+            type: 'new_available_day',
+            dayId: 'ignored',
+            date: '2026-05-01',
+            dayType: 'race_day',
+            circuit: 'Brands Hatch',
+            provider: 'Caterham Motorsport',
+            description: 'Caterham Academy',
+            seriesKey: 'caterham-academy',
+            createdAt: '2026-03-01T09:00:00.000Z',
+          },
+        ]),
+      } as never,
+      readStore: {
+        putMany: vi.fn(),
+        listByUser: vi.fn(async () => []),
+      } as never,
+      loadSavedFilters: vi.fn(async () => ({
+        month: '2026-05',
+        series: 'caterham-academy',
+        circuits: ['Silverstone'],
+        provider: '',
+        type: '' as const,
+        notifyOnNewMatches: true,
+        externalChannel: '' as const,
+      })),
+    });
+
+    expect(
+      notifications.map((notification) => notification.notificationId),
+    ).toEqual(['new-day#matching']);
+  });
+
+  it('counts unread notifications after saved-view filtering', async () => {
+    await expect(
+      countUnreadDayNotifications('user-1', {
+        notificationStore: {
+          putMany: vi.fn(),
+          listAll: vi.fn(async () => [
+            {
+              scope: 'available-days',
+              notificationId: 'new-day#matching',
+              type: 'new_available_day',
+              dayId: 'matching',
+              date: '2026-05-01',
+              dayType: 'race_day',
+              circuit: 'Silverstone',
+              provider: 'Caterham Motorsport',
+              description: 'Caterham Academy',
+              seriesKey: 'caterham-academy',
+              createdAt: '2026-03-01T09:00:00.000Z',
+            },
+            {
+              scope: 'available-days',
+              notificationId: 'new-day#ignored',
+              type: 'new_available_day',
+              dayId: 'ignored',
+              date: '2026-06-01',
+              dayType: 'race_day',
+              circuit: 'Brands Hatch',
+              provider: 'Caterham Motorsport',
+              description: 'Caterham Academy',
+              seriesKey: 'caterham-academy',
+              createdAt: '2026-03-01T09:00:00.000Z',
+            },
+          ]),
+        } as never,
+        readStore: {
+          putMany: vi.fn(),
+          listByUser: vi.fn(async () => []),
+        } as never,
+        loadSavedFilters: vi.fn(async () => ({
+          month: '2026-05',
+          series: '',
+          circuits: [],
+          provider: '',
+          type: '' as const,
+          notifyOnNewMatches: true,
+          externalChannel: '' as const,
+        })),
+      }),
+    ).resolves.toBe(1);
+  });
+
   it('marks every notification read for a user', async () => {
     const readStore = {
       putMany: vi.fn(async () => undefined),
-      listByUser: vi.fn(),
+      listByUser: vi.fn(async () => []),
     };
 
     await markAllDayNotificationsRead('user-1', {
@@ -155,17 +264,19 @@ describe('day notification service', () => {
       readStore: readStore as never,
     });
 
-    expect(readStore.putMany).toHaveBeenCalledWith([
-      expect.objectContaining({
-        userId: 'user-1',
-        notificationId: 'new-day#day-1',
-        readAt: expect.any(String),
-      }),
-      expect.objectContaining({
-        userId: 'user-1',
-        notificationId: 'new-day#day-2',
-        readAt: expect.any(String),
-      }),
-    ]);
+    expect(readStore.putMany).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 'user-1',
+          notificationId: 'new-day#day-1',
+          readAt: expect.any(String),
+        }),
+        expect.objectContaining({
+          userId: 'user-1',
+          notificationId: 'new-day#day-2',
+          readAt: expect.any(String),
+        }),
+      ]),
+    );
   });
 });

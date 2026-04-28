@@ -1909,24 +1909,11 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                     <DaysFilterHiddenInputs filters={data.filters} />
                     <Checkbox
                       name="notifyOnNewMatches"
-                      label="External alerts"
+                      label="Use for notifications"
                       defaultChecked={
                         data.savedFilters?.notifyOnNewMatches ?? false
                       }
                       pb={8}
-                    />
-                    <Select
-                      name="externalChannel"
-                      aria-label="External alert channel"
-                      data={[
-                        { value: 'email', label: 'Email' },
-                        { value: 'whatsapp', label: 'WhatsApp' },
-                      ]}
-                      defaultValue={
-                        data.savedFilters?.externalChannel || 'email'
-                      }
-                      allowDeselect={false}
-                      w={130}
                     />
                     <Button
                       type="submit"
@@ -1964,9 +1951,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                     )}
                   </Text>
                   <Text size="sm" c="dimmed">
-                    External alerts{' '}
+                    Notifications{' '}
                     {data.savedFilters.notifyOnNewMatches
-                      ? `enabled by ${data.savedFilters.externalChannel}`
+                      ? 'limited to this saved view'
                       : 'off'}
                   </Text>
                 </Stack>

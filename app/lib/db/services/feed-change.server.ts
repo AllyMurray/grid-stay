@@ -1,4 +1,8 @@
 import { ulid } from 'ulid';
+import {
+  getLinkedSeriesKey,
+  getLinkedSeriesName,
+} from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
 import {
   FeedChangeEntity,
@@ -97,6 +101,8 @@ function createChangeRecord(input: {
     circuit: input.day.circuit,
     provider: input.day.provider,
     description: input.day.description,
+    seriesKey: getLinkedSeriesKey(input.day) ?? undefined,
+    seriesName: getLinkedSeriesName(input.day) ?? undefined,
     changedFields: input.changedFields,
     previousJson: input.previous
       ? JSON.stringify(toSnapshot(input.previous))

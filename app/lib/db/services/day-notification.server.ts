@@ -1,3 +1,12 @@
+import { normalizeCircuitName } from '~/lib/circuit-sources/shared.server';
+import {
+  getSavedDaysFilters,
+  type SavedDaysFilters,
+} from '~/lib/days/preferences.server';
+import {
+  getLinkedSeriesKey,
+  getLinkedSeriesName,
+} from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
 import {
   DayNotificationEntity,
@@ -89,6 +98,8 @@ function toNotificationRecord(
     circuit: day.circuit,
     provider: day.provider,
     description: day.description,
+    seriesKey: getLinkedSeriesKey(day) ?? undefined,
+    seriesName: getLinkedSeriesName(day) ?? undefined,
     bookingUrl: day.bookingUrl,
     createdAt,
   } as DayNotificationRecord;
@@ -107,8 +118,46 @@ function toChangedNotificationRecord(
     circuit: change.circuit,
     provider: change.provider,
     description: `Updated fields: ${(change.changedFields ?? []).join(', ')}`,
+    seriesKey: change.seriesKey,
+    seriesName: change.seriesName,
     createdAt: change.createdAt,
   } as DayNotificationRecord;
+}
+
+function notificationMatchesSavedFilters(
+  notification: DayNotificationRecord,
+  filters: SavedDaysFilters,
+) {
+  if (filters.month && !notification.date.startsWith(filters.month)) {
+    return false;
+  }
+  if (filters.series && notification.seriesKey !== filters.series) {
+    return false;
+  }
+  if (
+    filters.circuits.length > 0 &&
+    !filters.circuits
+      .map(normalizeCircuitName)
+      .includes(normalizeCircuitName(notification.circuit))
+  ) {
+    return false;
+  }
+  if (filters.provider && notification.provider !== filters.provider) {
+    return false;
+  }
+  if (filters.type && notification.dayType !== filters.type) {
+    return false;
+  }
+
+  return true;
+}
+
+async function getUserNotificationFilter(
+  userId: string,
+  loadSavedFilters: (userId: string) => Promise<SavedDaysFilters | null>,
+): Promise<SavedDaysFilters | null> {
+  const filters = await loadSavedFilters(userId);
+  return filters?.notifyOnNewMatches ? filters : null;
 }
 
 export function findNewAvailableDays(
@@ -218,20 +267,28 @@ export async function listUserDayNotifications(
   dependencies: {
     notificationStore?: DayNotificationPersistence;
     readStore?: DayNotificationReadPersistence;
+    loadSavedFilters?: (userId: string) => Promise<SavedDaysFilters | null>;
     limit?: number;
   } = {},
 ): Promise<UserDayNotification[]> {
   const notificationStore =
     dependencies.notificationStore ?? dayNotificationStore;
   const readStore = dependencies.readStore ?? dayNotificationReadStore;
-  const [notifications, readRecords] = await Promise.all([
+  const loadSavedFilters = dependencies.loadSavedFilters ?? getSavedDaysFilters;
+  const [notifications, readRecords, filters] = await Promise.all([
     notificationStore.listAll(),
     readStore.listByUser(userId),
+    getUserNotificationFilter(userId, loadSavedFilters),
   ]);
   const readByNotificationId = new Map(
     readRecords.map((record) => [record.notificationId, record.readAt]),
   );
-  const sorted = [...notifications].sort(compareNotificationNewestFirst);
+  const visibleNotifications = filters
+    ? notifications.filter((notification) =>
+        notificationMatchesSavedFilters(notification, filters),
+      )
+    : notifications;
+  const sorted = [...visibleNotifications].sort(compareNotificationNewestFirst);
   const limited =
     dependencies.limit && dependencies.limit > 0
       ? sorted.slice(0, dependencies.limit)
@@ -253,6 +310,7 @@ export async function countUnreadDayNotifications(
   dependencies: {
     notificationStore?: DayNotificationPersistence;
     readStore?: DayNotificationReadPersistence;
+    loadSavedFilters?: (userId: string) => Promise<SavedDaysFilters | null>;
   } = {},
 ): Promise<number> {
   const notifications = await listUserDayNotifications(userId, dependencies);
@@ -287,12 +345,17 @@ export async function markAllDayNotificationsRead(
   dependencies: {
     notificationStore?: DayNotificationPersistence;
     readStore?: DayNotificationReadPersistence;
+    loadSavedFilters?: (userId: string) => Promise<SavedDaysFilters | null>;
   } = {},
 ): Promise<void> {
   const notificationStore =
     dependencies.notificationStore ?? dayNotificationStore;
   const readStore = dependencies.readStore ?? dayNotificationReadStore;
-  const notifications = await notificationStore.listAll();
+  const notifications = await listUserDayNotifications(userId, {
+    notificationStore,
+    readStore,
+    loadSavedFilters: dependencies.loadSavedFilters,
+  });
 
   await markDayNotificationsRead(
     userId,

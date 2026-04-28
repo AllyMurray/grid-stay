@@ -146,7 +146,7 @@ describe('days dashboard feed', () => {
       provider: 'Caterham Motorsport',
       type: 'race_day',
       notifyOnNewMatches: true,
-      externalChannel: 'email',
+      externalChannel: '',
     });
 
     const data = await loadDaysIndex(
@@ -166,7 +166,7 @@ describe('days dashboard feed', () => {
       provider: 'Caterham Motorsport',
       type: 'race_day',
       notifyOnNewMatches: true,
-      externalChannel: 'email',
+      externalChannel: '',
     });
   });
 
