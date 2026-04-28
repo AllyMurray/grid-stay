@@ -145,6 +145,8 @@ describe('days dashboard feed', () => {
       circuits: ['Snetterton'],
       provider: 'Caterham Motorsport',
       type: 'race_day',
+      notifyOnNewMatches: true,
+      externalChannel: 'email',
     });
 
     const data = await loadDaysIndex(
@@ -163,6 +165,8 @@ describe('days dashboard feed', () => {
       circuits: ['Snetterton'],
       provider: 'Caterham Motorsport',
       type: 'race_day',
+      notifyOnNewMatches: true,
+      externalChannel: 'email',
     });
   });
 

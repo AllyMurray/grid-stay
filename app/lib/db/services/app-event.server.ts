@@ -116,6 +116,19 @@ export async function recordAppEventSafely(
 ): Promise<void> {
   try {
     await recordAppEvent(input, store);
+    if (input.category === 'error') {
+      try {
+        const { queueAdminExternalAlertSafely } = await import(
+          './external-notification.server'
+        );
+        await queueAdminExternalAlertSafely(input);
+      } catch (error) {
+        console.error('Failed to queue admin external alert', {
+          action: input.action,
+          error,
+        });
+      }
+    }
   } catch (error) {
     console.error('Failed to record app event', {
       action: input.action,

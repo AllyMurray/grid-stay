@@ -3,6 +3,7 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Divider,
   Group,
   Loader,
@@ -158,7 +159,11 @@ function countActiveFilters(filters: DaysIndexData['filters']) {
   );
 }
 
-function DaysFilterHiddenInputs({ filters }: { filters: SavedDaysFilters }) {
+function DaysFilterHiddenInputs({
+  filters,
+}: {
+  filters: DaysIndexData['filters'];
+}) {
   return (
     <>
       <input type="hidden" name="month" value={filters.month} />
@@ -1841,15 +1846,42 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                   method="post"
                   aria-label="Save applied filters"
                 >
-                  <input type="hidden" name="intent" value="saveDaysFilters" />
-                  <DaysFilterHiddenInputs filters={data.filters} />
-                  <Button
-                    type="submit"
-                    variant="default"
-                    loading={preferenceSubmitting}
-                  >
-                    Save applied filters
-                  </Button>
+                  <Group gap="xs" align="flex-end" wrap="wrap">
+                    <input
+                      type="hidden"
+                      name="intent"
+                      value="saveDaysFilters"
+                    />
+                    <DaysFilterHiddenInputs filters={data.filters} />
+                    <Checkbox
+                      name="notifyOnNewMatches"
+                      label="External alerts"
+                      defaultChecked={
+                        data.savedFilters?.notifyOnNewMatches ?? false
+                      }
+                      pb={8}
+                    />
+                    <Select
+                      name="externalChannel"
+                      aria-label="External alert channel"
+                      data={[
+                        { value: 'email', label: 'Email' },
+                        { value: 'whatsapp', label: 'WhatsApp' },
+                      ]}
+                      defaultValue={
+                        data.savedFilters?.externalChannel || 'email'
+                      }
+                      allowDeselect={false}
+                      w={130}
+                    />
+                    <Button
+                      type="submit"
+                      variant="default"
+                      loading={preferenceSubmitting}
+                    >
+                      Save applied filters
+                    </Button>
+                  </Group>
                 </preferenceFetcher.Form>
               ) : null}
               {activeFilterCount > 0 ? (
@@ -1876,6 +1908,12 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                       data.savedFilters,
                       data.seriesOptions,
                     )}
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    External alerts{' '}
+                    {data.savedFilters.notifyOnNewMatches
+                      ? `enabled by ${data.savedFilters.externalChannel}`
+                      : 'off'}
                   </Text>
                 </Stack>
                 <Group gap="xs" justify="flex-end">

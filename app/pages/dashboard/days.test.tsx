@@ -336,6 +336,8 @@ describe('AvailableDaysPage', () => {
             circuits: ['Snetterton'],
             provider: '',
             type: '',
+            notifyOnNewMatches: true,
+            externalChannel: 'email',
           },
           seriesOptions: [
             {

@@ -11,6 +11,7 @@ import {
   createChangedDayNotificationsSafely,
   findNewAvailableDays,
 } from '../app/lib/db/services/day-notification.server';
+import { queueExternalAlertsForNewDays } from '../app/lib/db/services/external-notification.server';
 import {
   diffAvailableDays,
   recordFeedChangesSafely,
@@ -33,6 +34,7 @@ export async function handler() {
     const snapshot = await refreshAvailableDaysSnapshot(result);
     const recordedFeedChanges = await recordFeedChangesSafely(feedChanges);
     const notifications = await createAvailableDayNotificationsSafely(newDays);
+    const externalNotifications = await queueExternalAlertsForNewDays(newDays);
     const changedNotifications =
       await createChangedDayNotificationsSafely(recordedFeedChanges);
     const manualDays = await listManualDays();
@@ -59,6 +61,7 @@ export async function handler() {
         errorCount: snapshot.errors.length,
         newDayCount: notifications.length,
         changedDayCount: changedNotifications.length,
+        externalNotificationCount: externalNotifications.length,
         feedChangeCount: recordedFeedChanges.length,
         linkedSeriesCount: linkedSeriesResults.length,
         linkedSeriesSubscriptions,
@@ -84,6 +87,7 @@ export async function handler() {
         errorCount: snapshot.errors.length,
         newDayCount: notifications.length,
         changedDayCount: changedNotifications.length,
+        externalNotificationCount: externalNotifications.length,
         feedChangeCount: recordedFeedChanges.length,
         linkedSeriesCount: linkedSeriesResults.length,
         linkedSeriesSubscriptions,
@@ -97,6 +101,7 @@ export async function handler() {
       errorCount: snapshot.errors.length,
       newDayCount: notifications.length,
       changedDayCount: changedNotifications.length,
+      externalNotificationCount: externalNotifications.length,
       linkedSeriesCount: linkedSeriesResults.length,
     };
   } catch (error) {

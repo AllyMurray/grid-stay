@@ -22,7 +22,24 @@ describe('AdminOperationsPage', () => {
       <AdminOperationsPage
         errorCount={1}
         warningCount={0}
+        pendingExternalNotificationCount={1}
         lastErrorAt="2026-04-27T10:30:00.000Z"
+        externalNotifications={[
+          {
+            notificationId: 'notification-1',
+            notificationScope: 'external',
+            channel: 'email',
+            category: 'admin_alert',
+            status: 'pending',
+            recipientUserId: 'admin-1',
+            recipientName: 'Admin One',
+            recipientAddress: 'admin@example.com',
+            subject: 'Grid Stay error: availableDays.refresh.failed',
+            body: 'Available days refresh failed.',
+            createdAt: '2026-04-27T10:31:00.000Z',
+            updatedAt: '2026-04-27T10:31:00.000Z',
+          },
+        ]}
         events={[
           {
             eventId: 'event-1',
@@ -61,6 +78,12 @@ describe('AdminOperationsPage', () => {
       screen.getByText('Failed to create available day notifications.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Member invite created.')).toBeInTheDocument();
-    expect(screen.getByText('Admin One')).toBeInTheDocument();
+    expect(screen.getAllByText('Admin One')).toHaveLength(2);
+    expect(
+      screen.getByRole('heading', { name: 'External notification outbox' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Grid Stay error: availableDays.refresh.failed'),
+    ).toBeInTheDocument();
   });
 });

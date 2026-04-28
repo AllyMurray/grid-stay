@@ -6,7 +6,10 @@ import {
 import { normalizeCircuitName } from './aggregation.server';
 import type { DaysFilters } from './dashboard-feed.server';
 
-export type SavedDaysFilters = DaysFilters;
+export interface SavedDaysFilters extends DaysFilters {
+  notifyOnNewMatches: boolean;
+  externalChannel: '' | 'email' | 'whatsapp';
+}
 
 export type DaysPreferenceActionResult =
   | {
@@ -45,13 +48,28 @@ export function hasSavedDaysFilters(filters: SavedDaysFilters | null): boolean {
   );
 }
 
+function parseExternalChannel(
+  value: string,
+): SavedDaysFilters['externalChannel'] {
+  return value === 'email' || value === 'whatsapp' ? value : '';
+}
+
 export function sanitizeSavedDaysFilters(input: {
   month?: string | null;
   series?: string | null;
   circuits?: readonly string[] | null;
   provider?: string | null;
   type?: string | null;
+  notifyOnNewMatches?: boolean | null;
+  externalChannel?: string | null;
 }): SavedDaysFilters {
+  const externalChannel = parseExternalChannel(
+    normalizeText(input.externalChannel ?? ''),
+  );
+  const notifyOnNewMatches = Boolean(
+    input.notifyOnNewMatches && externalChannel,
+  );
+
   return {
     month: normalizeText(input.month ?? ''),
     series: normalizeText(input.series ?? ''),
@@ -64,12 +82,16 @@ export function sanitizeSavedDaysFilters(input: {
     ].sort(),
     provider: normalizeText(input.provider ?? ''),
     type: parseSavedType(normalizeText(input.type ?? '')),
+    notifyOnNewMatches,
+    externalChannel: notifyOnNewMatches ? externalChannel : '',
   };
 }
 
 export function getSavedDaysFiltersFromFormData(
   formData: FormData,
 ): SavedDaysFilters {
+  const notifyValue = normalizeText(formData.get('notifyOnNewMatches'));
+
   return sanitizeSavedDaysFilters({
     month: normalizeText(formData.get('month')),
     series: normalizeText(formData.get('series')),
@@ -79,6 +101,30 @@ export function getSavedDaysFiltersFromFormData(
       .filter(Boolean),
     provider: normalizeText(formData.get('provider')),
     type: normalizeText(formData.get('type')),
+    notifyOnNewMatches: notifyValue === 'on' || notifyValue === 'true',
+    externalChannel: parseExternalChannel(
+      normalizeText(formData.get('externalChannel')),
+    ),
+  });
+}
+
+export function getSavedDaysFiltersFromRecord(input: {
+  month?: string | null;
+  series?: string | null;
+  circuits?: readonly string[] | null;
+  provider?: string | null;
+  type?: string | null;
+  notifyOnNewMatches?: boolean;
+  externalChannel?: string;
+}): SavedDaysFilters {
+  return sanitizeSavedDaysFilters({
+    month: input.month,
+    series: input.series,
+    circuits: input.circuits,
+    provider: input.provider,
+    type: input.type,
+    notifyOnNewMatches: input.notifyOnNewMatches,
+    externalChannel: input.externalChannel,
   });
 }
 
@@ -91,12 +137,14 @@ export async function getSavedDaysFilters(
     return null;
   }
 
-  const filters = sanitizeSavedDaysFilters({
+  const filters = getSavedDaysFiltersFromRecord({
     month: record.month,
     series: record.series,
     circuits: record.circuits,
     provider: record.provider,
     type: record.dayType,
+    notifyOnNewMatches: record.notifyOnNewMatches,
+    externalChannel: record.externalChannel,
   });
 
   return hasSavedDaysFilters(filters) ? filters : null;
@@ -121,6 +169,10 @@ export async function saveSavedDaysFilters(
     circuits: sanitized.circuits,
     provider: sanitized.provider,
     dayType: sanitized.type || undefined,
+    notifyOnNewMatches: sanitized.notifyOnNewMatches,
+    externalChannel: sanitized.notifyOnNewMatches
+      ? sanitized.externalChannel || 'email'
+      : undefined,
     updatedAt: now,
   };
 

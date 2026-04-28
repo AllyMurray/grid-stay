@@ -13,6 +13,7 @@ export interface MemberDaysPreferencePersistence {
   ): Promise<MemberDaysPreferenceRecord>;
   delete(userId: string): Promise<void>;
   getByUser(userId: string): Promise<MemberDaysPreferenceRecord | null>;
+  listAll(): Promise<MemberDaysPreferenceRecord[]>;
 }
 
 export const memberDaysPreferenceStore: MemberDaysPreferencePersistence = {
@@ -46,5 +47,11 @@ export const memberDaysPreferenceStore: MemberDaysPreferencePersistence = {
       preferenceScope: AVAILABLE_DAYS_PREFERENCE_SCOPE,
     }).go();
     return response.data ?? null;
+  },
+  async listAll() {
+    const response = await MemberDaysPreferenceEntity.scan.go();
+    return response.data.filter(
+      (record) => record.preferenceScope === AVAILABLE_DAYS_PREFERENCE_SCOPE,
+    );
   },
 };

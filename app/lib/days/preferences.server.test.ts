@@ -24,6 +24,7 @@ function createStore(
     })),
     delete: vi.fn(async () => undefined),
     getByUser: vi.fn(async () => existing),
+    listAll: vi.fn(async () => (existing ? [existing] : [])),
   };
 }
 
@@ -43,6 +44,25 @@ describe('available-days preferences', () => {
       circuits: ['Snetterton'],
       provider: 'Caterham Motorsport',
       type: '',
+      notifyOnNewMatches: false,
+      externalChannel: '',
+    });
+  });
+
+  it('normalizes external alert settings from form data', () => {
+    const formData = new FormData();
+    formData.set('month', '2026-05');
+    formData.set('notifyOnNewMatches', 'on');
+    formData.set('externalChannel', 'email');
+
+    expect(getSavedDaysFiltersFromFormData(formData)).toEqual({
+      month: '2026-05',
+      series: '',
+      circuits: [],
+      provider: '',
+      type: '',
+      notifyOnNewMatches: true,
+      externalChannel: 'email',
     });
   });
 
@@ -57,6 +77,8 @@ describe('available-days preferences', () => {
         circuits: ['Sntterton 300', 'Brands Hatch Indy'],
         provider: 'Caterham Motorsport',
         type: 'race_day',
+        notifyOnNewMatches: true,
+        externalChannel: 'whatsapp',
       },
       store,
     );
@@ -67,6 +89,8 @@ describe('available-days preferences', () => {
       circuits: ['Brands Hatch', 'Snetterton'],
       provider: 'Caterham Motorsport',
       type: 'race_day',
+      notifyOnNewMatches: true,
+      externalChannel: 'whatsapp',
     });
     expect(store.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -77,6 +101,8 @@ describe('available-days preferences', () => {
         circuits: ['Brands Hatch', 'Snetterton'],
         provider: 'Caterham Motorsport',
         dayType: 'race_day',
+        notifyOnNewMatches: true,
+        externalChannel: 'whatsapp',
       }),
     );
     expect(store.delete).not.toHaveBeenCalled();
@@ -93,6 +119,8 @@ describe('available-days preferences', () => {
         circuits: [],
         provider: '',
         type: '',
+        notifyOnNewMatches: true,
+        externalChannel: 'email',
       },
       store,
     );
@@ -112,5 +140,28 @@ describe('available-days preferences', () => {
     } as MemberDaysPreferenceRecord);
 
     await expect(getSavedDaysFilters('user-1', store)).resolves.toBeNull();
+  });
+
+  it('returns stored external alert settings with saved filters', async () => {
+    const store = createStore({
+      userId: 'user-1',
+      preferenceScope: 'available-days-filters',
+      month: '2026-05',
+      circuits: [],
+      notifyOnNewMatches: true,
+      externalChannel: 'email',
+      createdAt: '2026-04-27T10:00:00.000Z',
+      updatedAt: '2026-04-27T10:00:00.000Z',
+    } as MemberDaysPreferenceRecord);
+
+    await expect(getSavedDaysFilters('user-1', store)).resolves.toEqual({
+      month: '2026-05',
+      series: '',
+      circuits: [],
+      provider: '',
+      type: '',
+      notifyOnNewMatches: true,
+      externalChannel: 'email',
+    });
   });
 });
