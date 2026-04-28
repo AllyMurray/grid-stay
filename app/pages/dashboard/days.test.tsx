@@ -501,6 +501,10 @@ describe('AvailableDaysPage', () => {
           selectedDayPlan: {
             dayId: 'day-1',
             notes: 'Meet by garage 4.',
+            dinnerPlan: 'Dinner at 19:30.',
+            carShare: 'Two spaces from hotel.',
+            checklist: 'Tickets and wristbands.',
+            costSplit: 'Settle fuel after the weekend.',
             updatedByName: 'Driver One',
             updatedAt: '2026-04-27T10:00:00.000Z',
           },
@@ -522,18 +526,28 @@ describe('AvailableDaysPage', () => {
       name: 'Shared planning note',
     });
     expect(note).toHaveDisplayValue('Meet by garage 4.');
+    expect(screen.getByLabelText('Dinner')).toHaveDisplayValue(
+      'Dinner at 19:30.',
+    );
+    expect(screen.getByLabelText('Car share')).toHaveDisplayValue(
+      'Two spaces from hotel.',
+    );
     expect(screen.getByText('Updated by Driver One')).toBeInTheDocument();
 
     fireEvent.change(note, {
       target: { value: 'Meet by garage 6.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save shared note' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save shared plan' }));
 
     await waitFor(() =>
       expect(submitted).toEqual({
         intent: 'saveSharedDayPlan',
         dayId: 'day-1',
         notes: 'Meet by garage 6.',
+        dinnerPlan: 'Dinner at 19:30.',
+        carShare: 'Two spaces from hotel.',
+        checklist: 'Tickets and wristbands.',
+        costSplit: 'Settle fuel after the weekend.',
       }),
     );
   });

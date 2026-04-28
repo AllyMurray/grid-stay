@@ -48,6 +48,8 @@ describe('shared day plan notes', () => {
       {
         dayId: 'day-1',
         notes: '  Book dinner near the circuit. ',
+        dinnerPlan: '  19:30 at pub ',
+        carShare: ' Meet at services ',
         user,
       },
       store,
@@ -56,6 +58,10 @@ describe('shared day plan notes', () => {
     expect(plan).toMatchObject({
       dayId: 'day-1',
       notes: 'Book dinner near the circuit.',
+      dinnerPlan: '19:30 at pub',
+      carShare: 'Meet at services',
+      checklist: '',
+      costSplit: '',
       updatedByName: 'Driver One',
     });
     expect(store.create).toHaveBeenCalledWith(
@@ -63,12 +69,36 @@ describe('shared day plan notes', () => {
         dayId: 'day-1',
         planScope: 'shared',
         notes: 'Book dinner near the circuit.',
+        dinnerPlan: '19:30 at pub',
+        carShare: 'Meet at services',
         updatedByUserId: 'user-1',
       }),
     );
   });
 
-  it('deletes the shared plan when notes are blank', async () => {
+  it('keeps a shared plan when any planning field is present', async () => {
+    const store = createStore();
+
+    await expect(
+      setSharedDayPlan(
+        {
+          dayId: 'day-1',
+          notes: '   ',
+          checklist: 'Bring awning',
+          user,
+        },
+        store,
+      ),
+    ).resolves.toMatchObject({
+      dayId: 'day-1',
+      notes: '',
+      checklist: 'Bring awning',
+    });
+    expect(store.create).toHaveBeenCalled();
+    expect(store.delete).not.toHaveBeenCalled();
+  });
+
+  it('deletes the shared plan when all fields are blank', async () => {
     const store = createStore();
 
     await expect(
@@ -89,6 +119,7 @@ describe('shared day plan notes', () => {
     const formData = new FormData();
     formData.set('dayId', 'day-1');
     formData.set('notes', 'Meet at 08:30');
+    formData.set('dinnerPlan', 'Pub at 19:30');
     const store = createStore();
 
     const result = await submitSharedDayPlan(
@@ -117,7 +148,12 @@ describe('shared day plan notes', () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(store.create).toHaveBeenCalled();
+    expect(store.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notes: 'Meet at 08:30',
+        dinnerPlan: 'Pub at 19:30',
+      }),
+    );
   });
 
   it('rejects notes for days that are no longer available', async () => {

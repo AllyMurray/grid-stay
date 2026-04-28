@@ -1148,6 +1148,22 @@ function SharedPlanNoteEditor({
     fetcher.data && !fetcher.data.ok
       ? fetcher.data.fieldErrors.notes?.[0]
       : null;
+  const dinnerPlanError =
+    fetcher.data && !fetcher.data.ok
+      ? fetcher.data.fieldErrors.dinnerPlan?.[0]
+      : null;
+  const carShareError =
+    fetcher.data && !fetcher.data.ok
+      ? fetcher.data.fieldErrors.carShare?.[0]
+      : null;
+  const checklistError =
+    fetcher.data && !fetcher.data.ok
+      ? fetcher.data.fieldErrors.checklist?.[0]
+      : null;
+  const costSplitError =
+    fetcher.data && !fetcher.data.ok
+      ? fetcher.data.fieldErrors.costSplit?.[0]
+      : null;
 
   return (
     <Stack gap="sm">
@@ -1179,12 +1195,50 @@ function SharedPlanNoteEditor({
             defaultValue={plan?.notes ?? ''}
             error={noteError}
           />
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+            <Textarea
+              name="dinnerPlan"
+              label="Dinner"
+              placeholder="Restaurant, booking time, headcount..."
+              rows={3}
+              maxLength={1000}
+              defaultValue={plan?.dinnerPlan ?? ''}
+              error={dinnerPlanError}
+            />
+            <Textarea
+              name="carShare"
+              label="Car share"
+              placeholder="Passenger spaces, convoy timings, lifts..."
+              rows={3}
+              maxLength={1000}
+              defaultValue={plan?.carShare ?? ''}
+              error={carShareError}
+            />
+            <Textarea
+              name="checklist"
+              label="Checklist"
+              placeholder="Tickets, fuel, kit, tools..."
+              rows={3}
+              maxLength={1000}
+              defaultValue={plan?.checklist ?? ''}
+              error={checklistError}
+            />
+            <Textarea
+              name="costSplit"
+              label="Cost split"
+              placeholder="Shared costs, who paid, settlement notes..."
+              rows={3}
+              maxLength={1000}
+              defaultValue={plan?.costSplit ?? ''}
+              error={costSplitError}
+            />
+          </SimpleGrid>
           <Group justify="space-between" align="center" gap="md">
             <Text size="xs" c={formError ? 'red' : 'dimmed'}>
-              {formError ?? 'Leave blank and save to clear the shared note.'}
+              {formError ?? 'Leave every field blank and save to clear it.'}
             </Text>
             <Button type="submit" size="sm" loading={isSubmitting}>
-              Save shared note
+              Save shared plan
             </Button>
           </Group>
         </Stack>

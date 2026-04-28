@@ -197,6 +197,10 @@ describe('days dashboard feed', () => {
     vi.mocked(getSharedDayPlan).mockResolvedValue({
       dayId: 'race:1',
       notes: 'Meet in paddock bay 12.',
+      dinnerPlan: '',
+      carShare: '',
+      checklist: '',
+      costSplit: '',
       updatedByName: 'Driver One',
       updatedAt: '2026-04-27T10:00:00.000Z',
     });
@@ -214,6 +218,10 @@ describe('days dashboard feed', () => {
     expect(data.selectedDayPlan).toEqual({
       dayId: 'race:1',
       notes: 'Meet in paddock bay 12.',
+      dinnerPlan: '',
+      carShare: '',
+      checklist: '',
+      costSplit: '',
       updatedByName: 'Driver One',
       updatedAt: '2026-04-27T10:00:00.000Z',
     });
