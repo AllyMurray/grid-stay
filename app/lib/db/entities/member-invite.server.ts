@@ -14,11 +14,12 @@ export const MemberInviteEntity = new Entity(
       invitedByUserId: { type: 'string', required: true },
       invitedByName: { type: 'string', required: true },
       status: {
-        type: ['pending', 'accepted'] as const,
+        type: ['pending', 'accepted', 'revoked'] as const,
         required: true,
       },
       acceptedByUserId: { type: 'string' },
       acceptedAt: { type: 'string' },
+      expiresAt: { type: 'string' },
       createdAt: { type: 'string', required: true },
       updatedAt: { type: 'string', required: true },
     },

@@ -2,8 +2,10 @@ import { z } from 'zod';
 import {
   type AuthUserRecord,
   getSiteMemberById,
+  setAuthUserRole,
 } from '~/lib/auth/members.server';
 import type { User } from '~/lib/auth/schemas';
+import { USER_ROLE_VALUES } from '~/lib/constants/enums';
 import {
   getLinkedSeriesKey,
   getLinkedSeriesName,
@@ -42,6 +44,10 @@ const AdminMemberSeriesKeySchema = z.object({
   seriesKey: z.string().trim().min(1),
 });
 
+const AdminMemberRoleSchema = z.object({
+  role: z.enum(USER_ROLE_VALUES),
+});
+
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
 export interface AdminSeriesOption {
@@ -73,7 +79,7 @@ export interface AdminMemberProfile {
   subscriptions: SeriesSubscriptionRecord[];
 }
 
-type AdminMemberActionField = 'displayName' | 'seriesKey' | 'status';
+type AdminMemberActionField = 'displayName' | 'seriesKey' | 'status' | 'role';
 
 export type AdminMemberActionResult =
   | {
@@ -103,6 +109,7 @@ export interface AdminMemberActionDependencies {
   loadManualDays?: typeof listManualDays;
   saveBookings?: typeof ensureBookingsForDays;
   saveDisplayName?: typeof setMemberDisplayName;
+  saveRole?: typeof setAuthUserRole;
   saveSubscription?: typeof upsertSeriesSubscription;
   updateSubscription?: (
     userId: string,
@@ -295,6 +302,35 @@ export async function submitAdminMemberAction(
       message: parsed.data.displayName
         ? 'Display name updated.'
         : 'Display name reset to Google name.',
+    };
+  }
+
+  if (intent === 'updateRole') {
+    const parsed = AdminMemberRoleSchema.safeParse(
+      Object.fromEntries(formData),
+    );
+
+    if (!parsed.success) {
+      return formError(
+        'Could not update this member role.',
+        parsed.error.flatten().fieldErrors,
+      );
+    }
+
+    if (member.id === adminUser.id && parsed.data.role !== member.role) {
+      return formError('You cannot change your own role from this screen.', {
+        role: ['Ask another owner or admin to change your role.'],
+      });
+    }
+
+    await (dependencies.saveRole ?? setAuthUserRole)(
+      member.id,
+      parsed.data.role,
+    );
+
+    return {
+      ok: true,
+      message: 'Member role updated.',
     };
   }
 

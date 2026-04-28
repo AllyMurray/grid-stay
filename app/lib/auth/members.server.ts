@@ -3,6 +3,7 @@ import {
   DynamoDBDocumentClient,
   ScanCommand,
   type ScanCommandInput,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -61,7 +62,7 @@ type LoadMemberProfile = (
 
 type MemberInviteAccessRecord = {
   inviteEmail: string;
-  status: 'pending' | 'accepted';
+  status: 'pending' | 'accepted' | 'revoked';
 };
 
 type LoadMemberInvites = () => Promise<MemberInviteAccessRecord[]>;
@@ -317,4 +318,26 @@ export async function getSiteMemberById(
     (candidate) => candidate.id === memberId,
   );
   return user ? withMemberProfile(user, profile) : null;
+}
+
+export async function setAuthUserRole(
+  userId: string,
+  role: User['role'],
+): Promise<void> {
+  await docClient.send(
+    new UpdateCommand({
+      TableName: SSTResource.AuthTable.name,
+      Key: {
+        pk: `USER#${userId}`,
+        sk: 'USER',
+      },
+      UpdateExpression: 'SET #role = :role',
+      ExpressionAttributeNames: {
+        '#role': 'role',
+      },
+      ExpressionAttributeValues: {
+        ':role': role,
+      },
+    }),
+  );
 }

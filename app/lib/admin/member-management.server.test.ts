@@ -169,6 +169,52 @@ describe('admin member management helpers', () => {
     });
   });
 
+  it('updates a member role', async () => {
+    const formData = new FormData();
+    formData.set('intent', 'updateRole');
+    formData.set('role', 'admin');
+    const saveRole = vi.fn(async () => undefined);
+
+    const result = await submitAdminMemberAction(
+      formData,
+      'user-1',
+      { id: 'admin-1' },
+      {
+        loadMember: async () => member,
+        saveRole,
+      },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      message: 'Member role updated.',
+    });
+    expect(saveRole).toHaveBeenCalledWith('user-1', 'admin');
+  });
+
+  it('does not let admins change their own role from member management', async () => {
+    const formData = new FormData();
+    formData.set('intent', 'updateRole');
+    formData.set('role', 'admin');
+    const saveRole = vi.fn();
+
+    const result = await submitAdminMemberAction(
+      formData,
+      'user-1',
+      { id: 'user-1' },
+      {
+        loadMember: async () => member,
+        saveRole: saveRole as never,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      formError: 'You cannot change your own role from this screen.',
+    });
+    expect(saveRole).not.toHaveBeenCalled();
+  });
+
   it('adds a series to a member and backfills missing bookings', async () => {
     const formData = new FormData();
     formData.set('intent', 'addSeries');

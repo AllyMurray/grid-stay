@@ -149,7 +149,12 @@ function MemberProfileCard({ profile }: { profile: AdminMemberProfile }) {
             {profile.name.charAt(0).toUpperCase()}
           </Avatar>
           <Stack gap={2} style={{ minWidth: 0 }}>
-            <Text fw={700}>{profile.name}</Text>
+            <Group gap="xs">
+              <Text fw={700}>{profile.name}</Text>
+              <Badge variant="light" color="brand">
+                {titleCase(profile.role)}
+              </Badge>
+            </Group>
             <Text size="sm" c="dimmed" lineClamp={1}>
               {profile.email}
             </Text>
@@ -190,6 +195,36 @@ function MemberProfileCard({ profile }: { profile: AdminMemberProfile }) {
                 loading={isSubmitting}
               >
                 Save display name
+              </Button>
+            </Group>
+          </Stack>
+        </fetcher.Form>
+
+        <Divider />
+
+        <fetcher.Form method="post" key={`${success?.message ?? ''}-role`}>
+          <Stack gap="sm">
+            <input type="hidden" name="intent" value="updateRole" />
+            <Select
+              label="Role"
+              name="role"
+              data={[
+                { value: 'member', label: 'Member' },
+                { value: 'admin', label: 'Admin' },
+                { value: 'owner', label: 'Owner' },
+              ]}
+              defaultValue={profile.role}
+              allowDeselect={false}
+              error={getFieldError(fieldErrors, 'role')}
+            />
+            <Group justify="flex-start">
+              <Button
+                type="submit"
+                variant="default"
+                leftSection={<IconDeviceFloppy size={16} />}
+                loading={isSubmitting}
+              >
+                Save role
               </Button>
             </Group>
           </Stack>

@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Badge,
   Divider,
   Group,
   Paper,
@@ -72,6 +73,9 @@ function MemberManagementRow({
           <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
             <Group gap="xs" wrap="wrap">
               <Text fw={700}>{member.name}</Text>
+              <Badge size="sm" variant="light" color="brand">
+                {member.role}
+              </Badge>
               <Text size="sm" c="dimmed">
                 {member.email}
               </Text>

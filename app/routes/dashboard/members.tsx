@@ -2,7 +2,7 @@ import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
 import {
   listPendingMemberInvites,
-  submitMemberInvite,
+  submitMemberInviteAction,
 } from '~/lib/auth/member-invites.server';
 import { listSiteMembers } from '~/lib/auth/members.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
@@ -22,12 +22,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
   const formData = await request.formData();
-  const result = await submitMemberInvite(formData, user);
+  const result = await submitMemberInviteAction(formData, user);
 
   if (result.ok) {
+    const intent = formData.get('intent')?.toString() ?? 'createInvite';
     await recordAppEventSafely({
       category: 'audit',
-      action: 'member.invite.submitted',
+      action: `member.invite.${intent}`,
       message: result.message,
       actor: { userId: user.id, name: user.name },
       subject: {

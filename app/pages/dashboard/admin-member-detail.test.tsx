@@ -83,6 +83,8 @@ describe('AdminMemberDetailPage', () => {
     expect(
       screen.getByRole('button', { name: 'Save display name' }),
     ).toBeVisible();
+    expect(screen.getAllByLabelText('Role')[0]).toHaveDisplayValue('Member');
+    expect(screen.getByRole('button', { name: 'Save role' })).toBeVisible();
     expect(
       screen.getByRole('heading', { name: 'Upcoming bookings' }),
     ).toBeInTheDocument();

@@ -68,4 +68,26 @@ describe('MembersPage', () => {
     expect(screen.getByText('Ally Murray')).toBeInTheDocument();
     expect(screen.queryByText('Driver Two')).not.toBeInTheDocument();
   });
+
+  it('shows pending invite expiry and controls', () => {
+    renderWithProviders(
+      <MembersPage
+        members={members}
+        pendingInvites={[
+          {
+            inviteEmail: 'new.driver@example.com',
+            invitedByName: 'Ally Murray',
+            status: 'pending',
+            expiresAt: '2026-05-28T10:00:00.000Z',
+            createdAt: '2026-04-28T10:00:00.000Z',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('new.driver@example.com')).toBeInTheDocument();
+    expect(screen.getByText(/Expires 28 May/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Renew' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
+  });
 });

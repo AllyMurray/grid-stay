@@ -34,6 +34,15 @@ function formatMemberDate(value: string) {
   });
 }
 
+function formatInviteDate(value: string | undefined) {
+  return value
+    ? formatDateOnly(value.slice(0, 10), {
+        day: 'numeric',
+        month: 'short',
+      })
+    : 'No expiry';
+}
+
 function getNextTripSummary(member: MemberDirectoryEntry) {
   if (!member.nextTrip) {
     return 'No upcoming trips yet';
@@ -158,12 +167,52 @@ function MemberInvitePanel({
               {pendingInvites.map((invite, index) => (
                 <Stack key={invite.inviteEmail} gap="xs">
                   <Group justify="space-between" gap="md" wrap="wrap">
-                    <Text size="sm" fw={700}>
-                      {invite.inviteEmail}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      Invited by {invite.invitedByName}
-                    </Text>
+                    <Stack gap={2}>
+                      <Text size="sm" fw={700}>
+                        {invite.inviteEmail}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Invited by {invite.invitedByName} • Expires{' '}
+                        {formatInviteDate(invite.expiresAt)}
+                      </Text>
+                    </Stack>
+                    <Group gap="xs">
+                      <fetcher.Form method="post">
+                        <input
+                          type="hidden"
+                          name="email"
+                          value={invite.inviteEmail}
+                        />
+                        <Button
+                          type="submit"
+                          name="intent"
+                          value="createInvite"
+                          variant="default"
+                          size="xs"
+                          loading={isSubmitting}
+                        >
+                          Renew
+                        </Button>
+                      </fetcher.Form>
+                      <fetcher.Form method="post">
+                        <input
+                          type="hidden"
+                          name="email"
+                          value={invite.inviteEmail}
+                        />
+                        <Button
+                          type="submit"
+                          name="intent"
+                          value="revokeInvite"
+                          variant="subtle"
+                          color="red"
+                          size="xs"
+                          loading={isSubmitting}
+                        >
+                          Revoke
+                        </Button>
+                      </fetcher.Form>
+                    </Group>
                   </Group>
                   {index < pendingInvites.length - 1 ? <Divider /> : null}
                 </Stack>

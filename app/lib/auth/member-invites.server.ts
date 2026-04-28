@@ -11,12 +11,14 @@ import {
 import type { User } from './schemas';
 
 const MEMBER_INVITE_SCOPE = 'member';
+const MEMBER_INVITE_TTL_DAYS = 30;
 
 export interface MemberInviteSummary {
   inviteEmail: string;
   invitedByName: string;
   status: MemberInviteRecord['status'];
   acceptedAt?: string;
+  expiresAt?: string;
   createdAt: string;
 }
 
@@ -91,16 +93,35 @@ function toMemberInviteSummary(
     invitedByName: invite.invitedByName,
     status: invite.status,
     acceptedAt: invite.acceptedAt,
+    expiresAt: invite.expiresAt,
     createdAt: invite.createdAt,
   };
 }
 
 function compareInvites(left: MemberInviteRecord, right: MemberInviteRecord) {
   if (left.status !== right.status) {
-    return left.status === 'pending' ? -1 : 1;
+    if (left.status === 'pending') {
+      return -1;
+    }
+    if (right.status === 'pending') {
+      return 1;
+    }
   }
 
   return left.inviteEmail.localeCompare(right.inviteEmail);
+}
+
+function addDays(value: Date, days: number): string {
+  const next = new Date(value);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString();
+}
+
+function isInviteExpired(
+  invite: MemberInviteRecord,
+  now = new Date(),
+): boolean {
+  return Boolean(invite.expiresAt && invite.expiresAt <= now.toISOString());
 }
 
 export async function createMemberInvite(
@@ -113,7 +134,9 @@ export async function createMemberInvite(
 }> {
   const inviteEmail = normalizeEmail(email);
   const existing = await store.getByEmail(inviteEmail);
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const expiresAt = addDays(nowDate, MEMBER_INVITE_TTL_DAYS);
 
   if (existing?.status === 'accepted') {
     return {
@@ -127,6 +150,8 @@ export async function createMemberInvite(
       invite: await store.update(inviteEmail, {
         invitedByUserId: invitedBy.id,
         invitedByName: invitedBy.name,
+        status: 'pending',
+        expiresAt,
         updatedAt: now,
       }),
       created: false,
@@ -140,6 +165,7 @@ export async function createMemberInvite(
       invitedByUserId: invitedBy.id,
       invitedByName: invitedBy.name,
       status: 'pending',
+      expiresAt,
       createdAt: now,
       updatedAt: now,
     } as MemberInviteRecord),
@@ -150,6 +176,7 @@ export async function createMemberInvite(
 export async function acceptMemberInviteForUser(
   user: Pick<User, 'id' | 'email'>,
   store: MemberInvitePersistence = memberInviteStore,
+  now = new Date(),
 ): Promise<MemberInviteRecord | null> {
   const invite = await store.getByEmail(user.email);
   if (!invite) {
@@ -160,12 +187,16 @@ export async function acceptMemberInviteForUser(
     return invite;
   }
 
-  const now = new Date().toISOString();
+  if (invite.status === 'revoked' || isInviteExpired(invite, now)) {
+    return null;
+  }
+
+  const acceptedAt = now.toISOString();
   return store.update(invite.inviteEmail, {
     status: 'accepted',
     acceptedByUserId: user.id,
-    acceptedAt: now,
-    updatedAt: now,
+    acceptedAt,
+    updatedAt: acceptedAt,
   });
 }
 
@@ -194,6 +225,56 @@ export async function listPendingMemberInvites(
   return invites
     .filter((invite) => invite.status === 'pending')
     .map(toMemberInviteSummary);
+}
+
+export async function revokeMemberInvite(
+  inviteEmail: string,
+  store: MemberInvitePersistence = memberInviteStore,
+): Promise<MemberInviteRecord | null> {
+  const existing = await store.getByEmail(inviteEmail);
+  if (!existing || existing.status === 'accepted') {
+    return existing;
+  }
+
+  return store.update(inviteEmail, {
+    status: 'revoked',
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function submitRevokeMemberInvite(
+  formData: FormData,
+  store: MemberInvitePersistence = memberInviteStore,
+): Promise<MemberInviteActionResult> {
+  const parsed = MemberInviteInputSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not revoke this invite.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const invite = await revokeMemberInvite(parsed.data.email, store);
+  if (!invite) {
+    return {
+      ok: false,
+      formError: 'This invite could not be found.',
+      fieldErrors: {},
+    };
+  }
+
+  return {
+    ok: true,
+    message:
+      invite.status === 'accepted'
+        ? `${invite.inviteEmail} is already a member.`
+        : `${invite.inviteEmail} has been revoked.`,
+    invite: toMemberInviteSummary(invite),
+  };
 }
 
 export async function submitMemberInvite(
@@ -234,4 +315,18 @@ export async function submitMemberInvite(
           : `${invite.inviteEmail} already has a pending invite.`,
     invite,
   };
+}
+
+export async function submitMemberInviteAction(
+  formData: FormData,
+  invitedBy: User,
+  store: MemberInvitePersistence = memberInviteStore,
+): Promise<MemberInviteActionResult> {
+  const intent = formData.get('intent')?.toString() ?? 'createInvite';
+
+  if (intent === 'revokeInvite') {
+    return submitRevokeMemberInvite(formData, store);
+  }
+
+  return submitMemberInvite(formData, invitedBy, store);
 }
