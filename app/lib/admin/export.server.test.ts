@@ -17,8 +17,19 @@ vi.mock('~/lib/db/services/available-days-cache.server', () => ({
 vi.mock('~/lib/db/services/booking.server', () => ({
   listMyBookings: vi.fn(),
 }));
+vi.mock('~/lib/db/services/circuit-alias.server', () => ({
+  listCircuitAliases: vi.fn(),
+}));
 vi.mock('~/lib/db/services/day-plan.server', () => ({
   dayPlanStore: {
+    listAll: vi.fn(),
+  },
+}));
+vi.mock('~/lib/db/services/day-merge.server', () => ({
+  listDayMerges: vi.fn(),
+}));
+vi.mock('~/lib/db/services/external-notification.server', () => ({
+  externalNotificationStore: {
     listAll: vi.fn(),
   },
 }));
@@ -36,8 +47,17 @@ vi.mock('~/lib/db/entities/booking.server', () => ({
 vi.mock('~/lib/db/entities/calendar-feed.server', () => ({
   CalendarFeedEntity: {},
 }));
+vi.mock('~/lib/db/entities/circuit-alias.server', () => ({
+  CircuitAliasEntity: {},
+}));
+vi.mock('~/lib/db/entities/day-merge.server', () => ({
+  DayMergeEntity: {},
+}));
 vi.mock('~/lib/db/entities/day-plan.server', () => ({
   DayPlanEntity: {},
+}));
+vi.mock('~/lib/db/entities/external-notification.server', () => ({
+  ExternalNotificationEntity: {},
 }));
 vi.mock('~/lib/db/entities/manual-day.server', () => ({
   ManualDayEntity: {},
@@ -108,6 +128,42 @@ describe('admin data export', () => {
       loadSharedDayPlans: async () => [],
       loadSeriesSubscriptions: async () => [],
       loadCalendarFeeds: async () => [feed],
+      loadCircuitAliases: async () => [
+        {
+          aliasKey: 'snetterton-300',
+          aliasScope: 'circuit-alias',
+          rawCircuit: 'Sntterton 300',
+          canonicalCircuit: 'Snetterton',
+          createdByUserId: 'admin-1',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+      loadDayMerges: async () => [
+        {
+          sourceDayId: 'source-day',
+          targetDayId: 'target-day',
+          mergeScope: 'day-merge',
+          createdByUserId: 'admin-1',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+      loadExternalNotifications: async () => [
+        {
+          notificationId: 'notification-1',
+          notificationScope: 'external',
+          channel: 'email',
+          category: 'admin_alert',
+          status: 'pending',
+          recipientName: 'Admin One',
+          recipientAddress: 'admin@example.com',
+          subject: 'Error',
+          body: 'Error',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
     });
 
     expect(dataExport.exportedAt).toBe('2026-04-27T10:00:00.000Z');
@@ -126,6 +182,9 @@ describe('admin data export', () => {
       memberCount: 1,
       bookingCount: 1,
       calendarFeedCount: 1,
+      circuitAliasCount: 1,
+      dayMergeCount: 1,
+      externalNotificationCount: 1,
     });
   });
 });

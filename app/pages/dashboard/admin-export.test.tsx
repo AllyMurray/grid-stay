@@ -30,6 +30,9 @@ describe('AdminExportPage', () => {
           seriesSubscriptionCount: 5,
           calendarFeedCount: 2,
           availableDayCount: 24,
+          circuitAliasCount: 1,
+          dayMergeCount: 2,
+          externalNotificationCount: 3,
         }}
       />,
     );
@@ -39,6 +42,9 @@ describe('AdminExportPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getByText('Calendar feeds')).toBeInTheDocument();
+    expect(screen.getByText('Circuit aliases')).toBeInTheDocument();
+    expect(screen.getByText('Day merges')).toBeInTheDocument();
+    expect(screen.getByText('External notifications')).toBeInTheDocument();
     expect(
       screen.getByText(/Calendar feed tokens are redacted/i),
     ).toBeInTheDocument();

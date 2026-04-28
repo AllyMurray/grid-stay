@@ -72,6 +72,24 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
               </Text>
               <Text fw={800}>{summary.calendarFeedCount}</Text>
             </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                Circuit aliases
+              </Text>
+              <Text fw={800}>{summary.circuitAliasCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                Day merges
+              </Text>
+              <Text fw={800}>{summary.dayMergeCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                External notifications
+              </Text>
+              <Text fw={800}>{summary.externalNotificationCount}</Text>
+            </Stack>
           </Group>
 
           <Text size="sm" c="dimmed">
