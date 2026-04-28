@@ -86,6 +86,40 @@ describe('listAvailableDays', () => {
     expect(result.days[2]?.bookingUrl).toBeUndefined();
   });
 
+  it('applies admin circuit aliases during feed aggregation', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [
+        {
+          dayId: 'race:1',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Example Circuit',
+          provider: 'Caterham Motorsport',
+          description: 'Academy',
+          source: { sourceType: 'caterham', sourceName: 'caterham' },
+        },
+      ],
+      testingAdapters: [],
+      trackDayAdapters: [],
+      loadCircuitAliases: async () => [
+        {
+          aliasKey: 'example-circuit',
+          rawCircuit: 'Example Circuit',
+          canonicalCircuit: 'Snetterton',
+          canonicalLayout: '300',
+        },
+      ],
+    });
+
+    expect(result.days[0]).toMatchObject({
+      circuit: 'Snetterton',
+      circuitId: 'snetterton',
+      layout: '300',
+      circuitKnown: true,
+    });
+  });
+
   it('keeps distinct track day sessions on the same circuit and date', async () => {
     const result = await listAvailableDays({
       today: '2026-04-01',

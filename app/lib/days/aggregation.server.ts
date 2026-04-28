@@ -3,6 +3,10 @@ import {
   normalizeCircuitText,
 } from '~/lib/circuit-sources/shared.server';
 import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
+import {
+  applyCircuitAliases,
+  type CircuitAliasRule,
+} from '~/lib/circuits/circuit-aliases';
 import { getLinkedSeriesKey } from '~/lib/days/series.server';
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
 import type { DiscoveryResult } from '~/lib/discovery/types';
@@ -42,6 +46,7 @@ export interface DaySourceDependencies {
   fetchRaceDays?: () => Promise<AvailableDay[]>;
   testingAdapters?: TestingAdapter[];
   trackDayAdapters?: TrackDayAdapter[];
+  loadCircuitAliases?: () => Promise<CircuitAliasRule[]>;
   today?: string;
 }
 
@@ -327,20 +332,45 @@ function toError(source: string, error: unknown): DaySourceError {
   };
 }
 
+async function loadCircuitAliasesSafely(
+  loader?: () => Promise<CircuitAliasRule[]>,
+): Promise<CircuitAliasRule[]> {
+  try {
+    if (loader) {
+      return await loader();
+    }
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+      return [];
+    }
+
+    const { listCircuitAliasRules } = await import(
+      '~/lib/db/services/circuit-alias.server'
+    );
+    return listCircuitAliasRules();
+  } catch (error) {
+    console.error('Failed to load circuit aliases', { error });
+    return [];
+  }
+}
+
 export async function listAvailableDays(
   dependencies: DaySourceDependencies = {},
 ): Promise<AvailableDaysResult> {
   const today = dependencies.today ?? new Date().toISOString().slice(0, 10);
   const raceLoader = dependencies.fetchRaceDays ?? fetchRaceDaysFromCaterham;
-  const [raceResult, testingResult, trackDayResult] = await Promise.allSettled([
-    raceLoader(),
-    fetchFromTestingAdapters(
-      dependencies.testingAdapters ?? DEFAULT_TESTING_ADAPTERS,
-    ),
-    fetchFromTrackDayAdapters(
-      dependencies.trackDayAdapters ?? DEFAULT_TRACKDAY_ADAPTERS,
-    ),
+  const [sourceResults, circuitAliases] = await Promise.all([
+    Promise.allSettled([
+      raceLoader(),
+      fetchFromTestingAdapters(
+        dependencies.testingAdapters ?? DEFAULT_TESTING_ADAPTERS,
+      ),
+      fetchFromTrackDayAdapters(
+        dependencies.trackDayAdapters ?? DEFAULT_TRACKDAY_ADAPTERS,
+      ),
+    ]),
+    loadCircuitAliasesSafely(dependencies.loadCircuitAliases),
   ]);
+  const [raceResult, testingResult, trackDayResult] = sourceResults;
 
   const days: AvailableDay[] = [];
   const errors: DaySourceError[] = [];
@@ -367,7 +397,10 @@ export async function listAvailableDays(
 
   const deduped = new Map<string, AvailableDay>();
   for (const day of days) {
-    const normalizedDay = normalizeAvailableDayCircuit(day);
+    const normalizedDay = applyCircuitAliases(
+      [normalizeAvailableDayCircuit(day)],
+      circuitAliases,
+    )[0]!;
 
     if (normalizedDay.date < today) {
       continue;

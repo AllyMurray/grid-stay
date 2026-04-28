@@ -27,6 +27,7 @@ import {
   IconHome2,
   IconHotelService,
   IconLock,
+  IconMapPin,
   IconMoon,
   IconRoad,
   IconSun,
@@ -230,6 +231,12 @@ export function DashboardShell({
       to: '/dashboard/admin/feed',
       icon: IconActivityHeartbeat,
       active: location.pathname.startsWith('/dashboard/admin/feed'),
+    },
+    {
+      label: 'Circuit Tools',
+      to: '/dashboard/admin/circuits',
+      icon: IconMapPin,
+      active: location.pathname.startsWith('/dashboard/admin/circuits'),
     },
     {
       label: 'Data Quality',
