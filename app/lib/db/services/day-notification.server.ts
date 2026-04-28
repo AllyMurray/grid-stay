@@ -5,6 +5,7 @@ import {
   type DayNotificationReadRecord,
   type DayNotificationRecord,
 } from '../entities/day-notification.server';
+import type { FeedChangeRecord } from '../entities/feed-change.server';
 
 const DAY_NOTIFICATION_SCOPE = 'available-days';
 
@@ -57,6 +58,12 @@ function createNotificationId(dayId: string): string {
   return `new-day#${dayId}`;
 }
 
+function createChangedNotificationId(
+  change: Pick<FeedChangeRecord, 'changeId'>,
+): string {
+  return `changed-day#${change.changeId}`;
+}
+
 function compareNotificationNewestFirst(
   left: DayNotificationRecord,
   right: DayNotificationRecord,
@@ -84,6 +91,23 @@ function toNotificationRecord(
     description: day.description,
     bookingUrl: day.bookingUrl,
     createdAt,
+  } as DayNotificationRecord;
+}
+
+function toChangedNotificationRecord(
+  change: FeedChangeRecord,
+): DayNotificationRecord {
+  return {
+    scope: DAY_NOTIFICATION_SCOPE,
+    notificationId: createChangedNotificationId(change),
+    type: 'changed_available_day',
+    dayId: change.dayId,
+    date: change.date,
+    dayType: change.dayType,
+    circuit: change.circuit,
+    provider: change.provider,
+    description: `Updated fields: ${(change.changedFields ?? []).join(', ')}`,
+    createdAt: change.createdAt,
   } as DayNotificationRecord;
 }
 
@@ -137,6 +161,51 @@ export async function createAvailableDayNotificationsSafely(
       },
       metadata: {
         dayIds: days.map((day) => day.dayId),
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    return [];
+  }
+}
+
+export async function createChangedDayNotificationsSafely(
+  changes: FeedChangeRecord[],
+  store: DayNotificationPersistence = dayNotificationStore,
+): Promise<DayNotificationRecord[]> {
+  const actionableChanges = changes.filter(
+    (change) =>
+      change.changeType === 'changed' &&
+      (change.changedFields ?? []).some(
+        (field) => field === 'date' || field === 'circuit',
+      ),
+  );
+
+  if (actionableChanges.length === 0) {
+    return [];
+  }
+
+  try {
+    const records = actionableChanges.map(toChangedNotificationRecord);
+    await store.putMany(records);
+    return records;
+  } catch (error) {
+    console.error('Failed to create changed day notifications', {
+      changeIds: actionableChanges.map((change) => change.changeId),
+      error,
+    });
+    const { recordAppEventSafely } = await import(
+      '~/lib/db/services/app-event.server'
+    );
+    await recordAppEventSafely({
+      category: 'error',
+      action: 'availableDays.changeNotifications.failed',
+      message: 'Failed to create changed day notifications.',
+      subject: {
+        type: 'availableDays',
+        id: 'change-notifications',
+      },
+      metadata: {
+        changeIds: actionableChanges.map((change) => change.changeId),
         error: error instanceof Error ? error.message : String(error),
       },
     });

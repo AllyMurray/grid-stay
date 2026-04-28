@@ -4,6 +4,10 @@ vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
 }));
 
+vi.mock('~/lib/db/services/feed-change.server', () => ({
+  listRecentFeedChanges: vi.fn(async () => []),
+}));
+
 vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
@@ -92,6 +96,7 @@ describe('loadAdminFeedStatusReport', () => {
         dayCount: 1,
       },
     ]);
+    expect(report.recentChanges).toEqual([]);
   });
 
   it('marks old snapshots as stale', async () => {

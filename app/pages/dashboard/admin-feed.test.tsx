@@ -52,6 +52,23 @@ describe('AdminFeedPage', () => {
             dayCount: 2,
           },
         ]}
+        recentChanges={[
+          {
+            changeId: 'change-1',
+            changeScope: 'available-days',
+            refreshId: 'refresh-1',
+            changeType: 'changed',
+            severity: 'warning',
+            dayId: 'day-1',
+            date: '2026-05-10',
+            dayType: 'track_day',
+            circuit: 'Snetterton',
+            provider: 'MSV Trackdays',
+            description: 'Open pit lane',
+            changedFields: ['date'],
+            createdAt: '2026-04-15T10:30:00.000Z',
+          },
+        ]}
         health={{
           status: 'warning',
           message:
@@ -65,6 +82,8 @@ describe('AdminFeedPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('26')).toBeInTheDocument();
     expect(screen.getByText('Source coverage')).toBeInTheDocument();
+    expect(screen.getByText('Latest feed changes')).toBeInTheDocument();
+    expect(screen.getByText('date')).toBeInTheDocument();
     expect(screen.getByText('focused-events')).toBeInTheDocument();
     expect(screen.getAllByText('Manual days').length).toBeGreaterThan(0);
     expect(
@@ -98,6 +117,7 @@ describe('AdminFeedPage', () => {
             dayCount: 24,
           },
         ]}
+        recentChanges={[]}
         health={{
           status: 'healthy',
           message:

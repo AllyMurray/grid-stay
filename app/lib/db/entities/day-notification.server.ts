@@ -12,7 +12,7 @@ export const DayNotificationEntity = new Entity(
       scope: { type: 'string', required: true },
       notificationId: { type: 'string', required: true },
       type: {
-        type: ['new_available_day'] as const,
+        type: ['new_available_day', 'changed_available_day'] as const,
         required: true,
       },
       dayId: { type: 'string', required: true },

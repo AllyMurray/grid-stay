@@ -1,4 +1,6 @@
+import type { FeedChangeRecord } from '~/lib/db/entities/feed-change.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import { listRecentFeedChanges } from '~/lib/db/services/feed-change.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import type { AvailableDay, DaySourceError } from './types';
 
@@ -34,6 +36,7 @@ export interface AdminFeedStatusReport {
     lastDate: string;
   } | null;
   sourceSummaries: AdminFeedSourceSummary[];
+  recentChanges: FeedChangeRecord[];
   health: AdminFeedHealth;
 }
 
@@ -126,10 +129,12 @@ export async function loadAdminFeedStatusReport(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays = listManualDays,
   now: Date = new Date(),
+  loadFeedChanges: typeof listRecentFeedChanges = listRecentFeedChanges,
 ): Promise<AdminFeedStatusReport> {
-  const [snapshot, manualDays] = await Promise.all([
+  const [snapshot, manualDays, recentChanges] = await Promise.all([
     loadSnapshot(),
     loadManualDays(),
+    loadFeedChanges(25),
   ]);
   const snapshotDays = snapshot?.days ?? [];
   const days = [...snapshotDays, ...manualDays];
@@ -144,6 +149,7 @@ export async function loadAdminFeedStatusReport(
     manualDayCount: manualDays.length,
     dateRange: getDateRange(days),
     sourceSummaries: summarizeSources(days),
+    recentChanges,
     health: getHealth({
       refreshedAt,
       dayCount: days.length,

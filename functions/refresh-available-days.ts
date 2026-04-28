@@ -8,8 +8,13 @@ import {
 import { syncDayAttendanceSummaries } from '../app/lib/db/services/booking.server';
 import {
   createAvailableDayNotificationsSafely,
+  createChangedDayNotificationsSafely,
   findNewAvailableDays,
 } from '../app/lib/db/services/day-notification.server';
+import {
+  diffAvailableDays,
+  recordFeedChangesSafely,
+} from '../app/lib/db/services/feed-change.server';
 import { listManualDays } from '../app/lib/db/services/manual-day.server';
 
 export async function handler() {
@@ -20,8 +25,16 @@ export async function handler() {
       previousSnapshot ? previousSnapshot.days : null,
       result.days,
     );
+    const feedChanges = diffAvailableDays(
+      previousSnapshot ? previousSnapshot.days : null,
+      result.days,
+      new Date().toISOString(),
+    );
     const snapshot = await refreshAvailableDaysSnapshot(result);
+    const recordedFeedChanges = await recordFeedChangesSafely(feedChanges);
     const notifications = await createAvailableDayNotificationsSafely(newDays);
+    const changedNotifications =
+      await createChangedDayNotificationsSafely(recordedFeedChanges);
     const manualDays = await listManualDays();
     const linkedSeriesResults = await reconcileAllSeriesSubscriptions([
       ...snapshot.days,
@@ -45,6 +58,8 @@ export async function handler() {
         dayCount: snapshot.days.length,
         errorCount: snapshot.errors.length,
         newDayCount: notifications.length,
+        changedDayCount: changedNotifications.length,
+        feedChangeCount: recordedFeedChanges.length,
         linkedSeriesCount: linkedSeriesResults.length,
         linkedSeriesSubscriptions,
         linkedSeriesBookings,
@@ -68,6 +83,8 @@ export async function handler() {
         dayCount: snapshot.days.length,
         errorCount: snapshot.errors.length,
         newDayCount: notifications.length,
+        changedDayCount: changedNotifications.length,
+        feedChangeCount: recordedFeedChanges.length,
         linkedSeriesCount: linkedSeriesResults.length,
         linkedSeriesSubscriptions,
         linkedSeriesBookings,
@@ -79,6 +96,7 @@ export async function handler() {
       dayCount: snapshot.days.length,
       errorCount: snapshot.errors.length,
       newDayCount: notifications.length,
+      changedDayCount: changedNotifications.length,
       linkedSeriesCount: linkedSeriesResults.length,
     };
   } catch (error) {

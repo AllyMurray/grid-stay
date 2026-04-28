@@ -63,6 +63,7 @@ export function AdminFeedPage({
   manualDayCount,
   dateRange,
   sourceSummaries,
+  recentChanges,
   health,
 }: AdminFeedPageProps) {
   const hasErrors = sourceErrors.length > 0;
@@ -134,6 +135,68 @@ export function AdminFeedPage({
               No source loading errors were reported in the latest snapshot.
             </Alert>
           )}
+
+          <Divider />
+
+          <Stack gap="sm">
+            <Group justify="space-between" align="flex-end">
+              <Stack gap={2}>
+                <Title order={4}>Latest feed changes</Title>
+                <Text size="sm" c="dimmed">
+                  Diffs from recent source refreshes.
+                </Text>
+              </Stack>
+              <Badge variant="light" color="gray">
+                {recentChanges.length}{' '}
+                {recentChanges.length === 1 ? 'change' : 'changes'}
+              </Badge>
+            </Group>
+
+            {recentChanges.length > 0 ? (
+              <ScrollArea>
+                <Table striped highlightOnHover miw={860}>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Type</Table.Th>
+                      <Table.Th>Date</Table.Th>
+                      <Table.Th>Circuit</Table.Th>
+                      <Table.Th>Provider</Table.Th>
+                      <Table.Th>Fields</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {recentChanges.map((change) => (
+                      <Table.Tr key={change.changeId}>
+                        <Table.Td>
+                          <Badge
+                            color={
+                              change.severity === 'warning' ? 'yellow' : 'blue'
+                            }
+                            variant="light"
+                          >
+                            {titleCase(change.changeType)}
+                          </Badge>
+                        </Table.Td>
+                        <Table.Td>{change.date}</Table.Td>
+                        <Table.Td>{change.circuit}</Table.Td>
+                        <Table.Td>{change.provider}</Table.Td>
+                        <Table.Td>
+                          {change.changedFields &&
+                          change.changedFields.length > 0
+                            ? change.changedFields.join(', ')
+                            : 'Whole event'}
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </ScrollArea>
+            ) : (
+              <Text size="sm" c="dimmed">
+                No feed changes have been recorded yet.
+              </Text>
+            )}
+          </Stack>
 
           <Divider />
 

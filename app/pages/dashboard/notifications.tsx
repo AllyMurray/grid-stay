@@ -55,6 +55,10 @@ function dayHref(dayId: string) {
   return `/dashboard/days?day=${encodeURIComponent(dayId)}`;
 }
 
+function notificationTypeLabel(type: UserDayNotification['type']) {
+  return type === 'changed_available_day' ? 'Changed' : 'New';
+}
+
 function NotificationRow({
   notification,
   isLast,
@@ -92,7 +96,9 @@ function NotificationRow({
               {notification.isRead ? (
                 <Badge color="gray">Read</Badge>
               ) : (
-                <Badge color="brand">New</Badge>
+                <Badge color="brand">
+                  {notificationTypeLabel(notification.type)}
+                </Badge>
               )}
             </Group>
             <Text size="sm" c="dimmed">
