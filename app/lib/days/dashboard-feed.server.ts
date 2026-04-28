@@ -15,6 +15,7 @@ import {
   normalizeAvailableDayCircuit,
   normalizeCircuitName,
 } from './aggregation.server';
+import { applyDayMerges, type DayMergeRule } from './day-merges';
 import { canCreateManualDays } from './manual-days.server';
 import {
   getSavedDaysFilters,
@@ -259,16 +260,17 @@ function listRaceSeriesOptions(days: AvailableDay[]): RaceSeriesFilterOption[] {
 }
 
 async function loadFilteredDays(url: URL) {
-  const [snapshot, manualDays] = await Promise.all([
+  const [snapshot, manualDays, dayMerges] = await Promise.all([
     getAvailableDaysSnapshot(),
     listManualDays(),
+    loadDayMergesSafely(),
   ]);
   const filters = getFilters(url);
   const raw = snapshot ?? {
     days: [],
     errors: EMPTY_ERRORS,
   };
-  const allDays = [...raw.days, ...manualDays]
+  const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
     .map(normalizeAvailableDayCircuit)
     .sort(compareAvailableDays);
   const filteredDays = filterAvailableDays(allDays, {
@@ -292,6 +294,22 @@ async function loadFilteredDays(url: URL) {
     circuitOptions: listCircuitOptions(allDays),
     providerOptions: [...new Set(allDays.map((day) => day.provider))].sort(),
   };
+}
+
+async function loadDayMergesSafely(): Promise<DayMergeRule[]> {
+  try {
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+      return [];
+    }
+
+    const { listDayMergeRules } = await import(
+      '~/lib/db/services/day-merge.server'
+    );
+    return listDayMergeRules();
+  } catch (error) {
+    console.error('Failed to load day merge rules', { error });
+    return [];
+  }
 }
 
 async function loadDaysFeedPage(

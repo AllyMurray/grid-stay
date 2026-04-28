@@ -7,6 +7,7 @@ import {
   applyCircuitAliases,
   type CircuitAliasRule,
 } from '~/lib/circuits/circuit-aliases';
+import { applyDayMerges, type DayMergeRule } from '~/lib/days/day-merges';
 import { getLinkedSeriesKey } from '~/lib/days/series.server';
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
 import type { DiscoveryResult } from '~/lib/discovery/types';
@@ -47,6 +48,7 @@ export interface DaySourceDependencies {
   testingAdapters?: TestingAdapter[];
   trackDayAdapters?: TrackDayAdapter[];
   loadCircuitAliases?: () => Promise<CircuitAliasRule[]>;
+  loadDayMerges?: () => Promise<DayMergeRule[]>;
   today?: string;
 }
 
@@ -353,12 +355,33 @@ async function loadCircuitAliasesSafely(
   }
 }
 
+async function loadDayMergesSafely(
+  loader?: () => Promise<DayMergeRule[]>,
+): Promise<DayMergeRule[]> {
+  try {
+    if (loader) {
+      return await loader();
+    }
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+      return [];
+    }
+
+    const { listDayMergeRules } = await import(
+      '~/lib/db/services/day-merge.server'
+    );
+    return listDayMergeRules();
+  } catch (error) {
+    console.error('Failed to load day merge rules', { error });
+    return [];
+  }
+}
+
 export async function listAvailableDays(
   dependencies: DaySourceDependencies = {},
 ): Promise<AvailableDaysResult> {
   const today = dependencies.today ?? new Date().toISOString().slice(0, 10);
   const raceLoader = dependencies.fetchRaceDays ?? fetchRaceDaysFromCaterham;
-  const [sourceResults, circuitAliases] = await Promise.all([
+  const [sourceResults, circuitAliases, dayMerges] = await Promise.all([
     Promise.allSettled([
       raceLoader(),
       fetchFromTestingAdapters(
@@ -369,6 +392,7 @@ export async function listAvailableDays(
       ),
     ]),
     loadCircuitAliasesSafely(dependencies.loadCircuitAliases),
+    loadDayMergesSafely(dependencies.loadDayMerges),
   ]);
   const [raceResult, testingResult, trackDayResult] = sourceResults;
 
@@ -409,10 +433,11 @@ export async function listAvailableDays(
   }
 
   return {
-    days: [...deduped.values()].sort((left, right) =>
-      left.date === right.date
-        ? left.circuit.localeCompare(right.circuit)
-        : left.date.localeCompare(right.date),
+    days: applyDayMerges([...deduped.values()], dayMerges).sort(
+      (left, right) =>
+        left.date === right.date
+          ? left.circuit.localeCompare(right.circuit)
+          : left.date.localeCompare(right.date),
     ),
     errors,
   };

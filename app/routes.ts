@@ -25,6 +25,10 @@ export default [
     ),
     route('dashboard/manual-days', 'routes/dashboard/manual-days.tsx'),
     route('dashboard/admin/circuits', 'routes/dashboard/admin.circuits.tsx'),
+    route(
+      'dashboard/admin/day-merges',
+      'routes/dashboard/admin.day-merges.tsx',
+    ),
     route('dashboard/admin/feed', 'routes/dashboard/admin.feed.tsx'),
     route('dashboard/admin/export', 'routes/dashboard/admin.export.tsx'),
     route(

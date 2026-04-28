@@ -120,6 +120,39 @@ describe('listAvailableDays', () => {
     });
   });
 
+  it('applies admin day merge rules during feed aggregation', async () => {
+    const result = await listAvailableDays({
+      today: '2026-04-01',
+      fetchRaceDays: async () => [
+        {
+          dayId: 'source-day',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Duplicate',
+          source: { sourceType: 'caterham', sourceName: 'caterham' },
+        },
+        {
+          dayId: 'target-day',
+          date: '2026-05-10',
+          type: 'race_day',
+          circuit: 'Snetterton',
+          provider: 'Caterham Motorsport',
+          description: 'Canonical',
+          source: { sourceType: 'caterham', sourceName: 'caterham' },
+        },
+      ],
+      testingAdapters: [],
+      trackDayAdapters: [],
+      loadDayMerges: async () => [
+        { sourceDayId: 'source-day', targetDayId: 'target-day' },
+      ],
+    });
+
+    expect(result.days.map((day) => day.dayId)).toEqual(['target-day']);
+  });
+
   it('keeps distinct track day sessions on the same circuit and date', async () => {
     const result = await listAvailableDays({
       today: '2026-04-01',

@@ -30,6 +30,7 @@ import {
   IconMapPin,
   IconMoon,
   IconRoad,
+  IconRouteAltLeft,
   IconSun,
   IconUsersGroup,
 } from '@tabler/icons-react';
@@ -237,6 +238,12 @@ export function DashboardShell({
       to: '/dashboard/admin/circuits',
       icon: IconMapPin,
       active: location.pathname.startsWith('/dashboard/admin/circuits'),
+    },
+    {
+      label: 'Day Merges',
+      to: '/dashboard/admin/day-merges',
+      icon: IconRouteAltLeft,
+      active: location.pathname.startsWith('/dashboard/admin/day-merges'),
     },
     {
       label: 'Data Quality',
