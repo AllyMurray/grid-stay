@@ -18,6 +18,7 @@ export default [
   ),
   layout('routes/_dashboard.tsx', [
     route('dashboard', 'routes/dashboard/index.tsx'),
+    route('dashboard/account', 'routes/dashboard/account.tsx'),
     route('dashboard/days', 'routes/dashboard/days.tsx'),
     route(
       'dashboard/series/:seriesKey',

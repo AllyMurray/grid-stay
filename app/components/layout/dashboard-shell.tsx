@@ -32,6 +32,7 @@ import {
   IconRoad,
   IconRouteAltLeft,
   IconSun,
+  IconUserCircle,
   IconUsersGroup,
 } from '@tabler/icons-react';
 import type { ComponentType } from 'react';
@@ -212,6 +213,12 @@ export function DashboardShell({
       icon: IconBell,
       active: location.pathname.startsWith('/dashboard/notifications'),
       count: unreadNotificationCount,
+    },
+    {
+      label: 'Account',
+      to: '/dashboard/account',
+      icon: IconUserCircle,
+      active: location.pathname.startsWith('/dashboard/account'),
     },
     {
       label: 'Members',

@@ -144,6 +144,15 @@ html[data-mantine-color-scheme='dark'] .page-header-stat-value {
   padding: 1rem;
 }
 
+.auth-login-panel {
+  width: min(100%, 440px);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+html[data-mantine-color-scheme='dark'] .auth-login-panel {
+  background: rgba(25, 29, 32, 0.96);
+}
+
 .table-status {
   min-width: 116px;
 }

@@ -16,6 +16,7 @@ vi.mock('~/lib/db/entities/member-invite.server', () => ({
 }));
 
 import {
+  canCreateMemberAccountForEmail,
   createMemberInvite,
   ensureUserMemberAccess,
   type MemberInvitePersistence,
@@ -173,6 +174,52 @@ describe('member invite helpers', () => {
           role: 'member',
         },
         memory.store,
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it('allows password account creation for active invited emails only', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'new.driver@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-1',
+        invitedByName: 'Driver One',
+        status: 'pending',
+        expiresAt: '2026-06-01T10:00:00.000Z',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+      {
+        inviteEmail: 'revoked.driver@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-1',
+        invitedByName: 'Driver One',
+        status: 'revoked',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+
+    await expect(
+      canCreateMemberAccountForEmail(
+        ' New.Driver@Example.com ',
+        memory.store,
+        new Date('2026-05-01T10:00:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      canCreateMemberAccountForEmail(
+        'revoked.driver@example.com',
+        memory.store,
+        new Date('2026-05-01T10:00:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+    await expect(
+      canCreateMemberAccountForEmail(
+        'missing.driver@example.com',
+        memory.store,
+        new Date('2026-05-01T10:00:00.000Z'),
       ),
     ).resolves.toBe(false);
   });

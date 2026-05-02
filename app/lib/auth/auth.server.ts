@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { betterAuth } from 'better-auth';
 import { Resource } from 'sst';
 import { dynamoDBAdapter } from './dynamodb-adapter.server';
+import { canCreateMemberAccountForEmail } from './member-invites.server';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
@@ -28,6 +29,11 @@ export const auth = betterAuth({
       clientSecret: SSTResource.GoogleClientSecret.value,
     },
   },
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+  },
   user: {
     additionalFields: {
       role: {
@@ -44,5 +50,14 @@ export const auth = betterAuth({
   },
   onAPIError: {
     errorURL: '/',
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        async before(user) {
+          return canCreateMemberAccountForEmail(String(user.email));
+        },
+      },
+    },
   },
 });

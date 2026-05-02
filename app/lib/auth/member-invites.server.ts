@@ -211,6 +211,28 @@ export async function ensureUserMemberAccess(
   return Boolean(await acceptMemberInviteForUser(user, store));
 }
 
+export async function canCreateMemberAccountForEmail(
+  email: string,
+  store: MemberInvitePersistence = memberInviteStore,
+  now = new Date(),
+): Promise<boolean> {
+  const normalizedEmail = normalizeEmail(email);
+
+  if (
+    isAdminUser({ email: normalizedEmail, role: 'member' }) ||
+    isBootstrapMemberEmail(normalizedEmail)
+  ) {
+    return true;
+  }
+
+  const invite = await store.getByEmail(normalizedEmail);
+  if (!invite || invite.status === 'revoked' || isInviteExpired(invite, now)) {
+    return false;
+  }
+
+  return invite.status === 'pending' || invite.status === 'accepted';
+}
+
 export async function listMemberInvites(
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteRecord[]> {
