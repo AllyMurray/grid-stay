@@ -79,7 +79,7 @@ export async function requireAdmin(request: Request): Promise<AuthResult> {
   const result = await requireUser(request);
 
   if (!isAdminUser(result.user)) {
-    throw new Response('Forbidden', { status: 403 });
+    throw new Response('Forbidden', { status: 403, headers: result.headers });
   }
 
   return result;
@@ -92,7 +92,7 @@ export async function requireOwner(request: Request): Promise<AuthResult> {
   const result = await requireUser(request);
 
   if (result.user.role !== 'owner') {
-    throw new Response('Forbidden', { status: 403 });
+    throw new Response('Forbidden', { status: 403, headers: result.headers });
   }
 
   return result;
@@ -101,10 +101,14 @@ export async function requireOwner(request: Request): Promise<AuthResult> {
 /**
  * Require anonymous - redirect to dashboard if already authenticated
  */
-export async function requireAnonymous(request: Request): Promise<void> {
+export async function requireAnonymous(
+  request: Request,
+): Promise<Headers | undefined> {
   const { result, headers } = await readAuthSession(request);
 
   if (result) {
     throw redirect('/dashboard/days', { headers });
   }
+
+  return headers;
 }
