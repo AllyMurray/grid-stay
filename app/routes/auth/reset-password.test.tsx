@@ -1,14 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { isPasswordAuthEnabled, requireAnonymous, submitPasswordReset } =
-  vi.hoisted(() => ({
-    isPasswordAuthEnabled: vi.fn(),
-    requireAnonymous: vi.fn(),
-    submitPasswordReset: vi.fn(),
-  }));
-
-vi.mock('~/lib/auth/password-auth-availability.server', () => ({
-  isPasswordAuthEnabled,
+const { requireAnonymous, submitPasswordReset } = vi.hoisted(() => ({
+  requireAnonymous: vi.fn(),
+  submitPasswordReset: vi.fn(),
 }));
 
 vi.mock('~/lib/auth/helpers.server', () => ({
@@ -21,21 +15,8 @@ vi.mock('~/lib/auth/password-auth.server', () => ({
 
 import { action, loader } from './reset-password';
 
-async function expectRedirect(promise: Promise<unknown>) {
-  try {
-    await promise;
-  } catch (error) {
-    expect(error).toBeInstanceOf(Response);
-    return error as Response;
-  }
-
-  throw new Error('Expected redirect response to be thrown');
-}
-
 describe('reset password route', () => {
   beforeEach(() => {
-    isPasswordAuthEnabled.mockReset();
-    isPasswordAuthEnabled.mockReturnValue(true);
     requireAnonymous.mockReset();
     requireAnonymous.mockResolvedValue(undefined);
     submitPasswordReset.mockReset();
@@ -78,21 +59,16 @@ describe('reset password route', () => {
     );
   });
 
-  it('redirects to login when password auth is unavailable', async () => {
-    isPasswordAuthEnabled.mockReturnValue(false);
+  it('loads without a password-auth feature flag', async () => {
+    const response = (await loader({
+      request: new Request(
+        'https://gridstay.app/auth/reset-password?token=reset-token',
+      ),
+      params: {},
+      context: {},
+    } as never)) as Response;
 
-    const response = await expectRedirect(
-      loader({
-        request: new Request(
-          'https://gridstay.app/auth/reset-password?token=reset-token',
-        ),
-        params: {},
-        context: {},
-      } as never),
-    );
-
-    expect(response.status).toBe(302);
-    expect(response.headers.get('location')).toBe('/auth/login');
-    expect(requireAnonymous).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(requireAnonymous).toHaveBeenCalledOnce();
   });
 });

@@ -21,7 +21,6 @@ import { LoginPage } from './login';
 
 function renderLoginPage(
   props: React.ComponentProps<typeof LoginPage> = {
-    passwordAuthAvailable: true,
     redirectTo: '/dashboard/bookings',
   },
 ) {
@@ -94,7 +93,6 @@ describe('LoginPage', () => {
 
   it('opens the create account tab when sign-up has an error', () => {
     renderLoginPage({
-      passwordAuthAvailable: true,
       redirectTo: '/dashboard',
       actionData: {
         intent: 'passwordSignUp',
@@ -113,7 +111,6 @@ describe('LoginPage', () => {
 
   it('shows a password-reset success notice', () => {
     renderLoginPage({
-      passwordAuthAvailable: true,
       redirectTo: '/dashboard',
       notice: 'Password reset. You can sign in with your new password.',
     });
@@ -125,20 +122,13 @@ describe('LoginPage', () => {
     ).toBeVisible();
   });
 
-  it('hides password auth controls when password auth is unavailable', () => {
-    renderLoginPage({
-      passwordAuthAvailable: false,
-      redirectTo: '/dashboard',
-    });
+  it('always renders password auth controls', () => {
+    renderLoginPage({ redirectTo: '/dashboard' });
 
+    expect(screen.getByRole('tab', { name: 'Sign in' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Create account' })).toBeVisible();
     expect(
-      screen.getByRole('button', { name: /continue with google/i }),
+      screen.getByRole('link', { name: 'Forgot password?' }),
     ).toBeVisible();
-    expect(
-      screen.queryByRole('tab', { name: 'Sign in' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Forgot password?' }),
-    ).not.toBeInTheDocument();
   });
 });

@@ -4,7 +4,6 @@ import { betterAuth } from 'better-auth';
 import { Resource } from 'sst';
 import { dynamoDBAdapter } from './dynamodb-adapter.server';
 import { canCreateMemberAccountForEmail } from './member-invites.server';
-import { isPasswordAuthEnabled } from './password-auth-availability.server';
 import { sendPasswordResetEmail } from './password-reset-email.server';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -16,7 +15,6 @@ const SSTResource = Resource as unknown as {
   GoogleClientId: { value: string };
   GoogleClientSecret: { value: string };
 };
-const passwordAuthEnabled = isPasswordAuthEnabled();
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -33,7 +31,7 @@ export const auth = betterAuth({
     },
   },
   emailAndPassword: {
-    enabled: passwordAuthEnabled,
+    enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
     resetPasswordTokenExpiresIn: 60 * 60,

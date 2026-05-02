@@ -3,21 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { requireAnonymous } = vi.hoisted(() => ({
   requireAnonymous: vi.fn(),
 }));
-const {
-  isPasswordAuthEnabled,
-  sanitizeRedirectTo,
-  submitPasswordSignIn,
-  submitPasswordSignUp,
-} = vi.hoisted(() => ({
-  isPasswordAuthEnabled: vi.fn(),
-  sanitizeRedirectTo: vi.fn(),
-  submitPasswordSignIn: vi.fn(),
-  submitPasswordSignUp: vi.fn(),
-}));
-
-vi.mock('~/lib/auth/password-auth-availability.server', () => ({
-  isPasswordAuthEnabled,
-}));
+const { sanitizeRedirectTo, submitPasswordSignIn, submitPasswordSignUp } =
+  vi.hoisted(() => ({
+    sanitizeRedirectTo: vi.fn(),
+    submitPasswordSignIn: vi.fn(),
+    submitPasswordSignUp: vi.fn(),
+  }));
 
 vi.mock('~/lib/auth/helpers.server', () => ({
   requireAnonymous,
@@ -35,8 +26,6 @@ describe('auth login route', () => {
   beforeEach(() => {
     requireAnonymous.mockReset();
     requireAnonymous.mockResolvedValue(undefined);
-    isPasswordAuthEnabled.mockReset();
-    isPasswordAuthEnabled.mockReturnValue(true);
     sanitizeRedirectTo.mockReset();
     sanitizeRedirectTo.mockImplementation((value) => {
       const raw = value?.toString() || '/dashboard';
@@ -58,7 +47,6 @@ describe('auth login route', () => {
     } as never)) as Response;
 
     expect(await response.json()).toEqual({
-      passwordAuthAvailable: true,
       redirectTo: '/dashboard/days',
     });
 
@@ -109,14 +97,11 @@ describe('auth login route', () => {
 
     expect(await response.json()).toEqual({
       notice: 'Password reset. You can sign in with your new password.',
-      passwordAuthAvailable: true,
       redirectTo: '/dashboard',
     });
   });
 
-  it('does not advertise password auth or reset notices when disabled', async () => {
-    isPasswordAuthEnabled.mockReturnValue(false);
-
+  it('advertises reset notices without a password-auth feature flag', async () => {
     const response = (await loader({
       request: new Request(
         'https://gridstay.app/auth/login?passwordReset=success',
@@ -126,7 +111,7 @@ describe('auth login route', () => {
     } as never)) as Response;
 
     expect(await response.json()).toEqual({
-      passwordAuthAvailable: false,
+      notice: 'Password reset. You can sign in with your new password.',
       redirectTo: '/dashboard',
     });
   });

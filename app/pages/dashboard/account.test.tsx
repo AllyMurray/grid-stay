@@ -15,10 +15,8 @@ const user: User = {
 
 function renderAccountPage({
   hasPassword = false,
-  passwordAuthAvailable = true,
 }: {
   hasPassword?: boolean;
-  passwordAuthAvailable?: boolean;
 } = {}) {
   const Stub = createRoutesStub([
     {
@@ -26,11 +24,7 @@ function renderAccountPage({
       action: async () => null,
       Component: () => (
         <MantineProvider theme={theme}>
-          <AccountPage
-            hasPassword={hasPassword}
-            passwordAuthAvailable={passwordAuthAvailable}
-            user={user}
-          />
+          <AccountPage hasPassword={hasPassword} user={user} />
         </MantineProvider>
       ),
     },
@@ -63,8 +57,8 @@ describe('AccountPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not advertise password availability when password auth is unavailable', () => {
-    renderAccountPage({ hasPassword: true, passwordAuthAvailable: false });
+  it('shows reset-required status for accounts without password credentials', () => {
+    renderAccountPage({ hasPassword: false });
 
     expect(screen.getByText('Email reset required')).toBeVisible();
     expect(screen.queryByText('Password enabled')).not.toBeInTheDocument();

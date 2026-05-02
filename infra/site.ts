@@ -23,8 +23,6 @@ export const site = new sst.aws.React('Site', {
       ? `https://${appDomainConfig.name}`
       : 'http://localhost:5173',
     GRID_STAY_EMAIL_FROM: 'Grid Stay <noreply@gridstay.app>',
-    GRID_STAY_PASSWORD_AUTH_ENABLED:
-      process.env.GRID_STAY_PASSWORD_AUTH_ENABLED ?? 'false',
     GRID_STAY_BOOTSTRAP_MEMBER_EMAILS:
       process.env.GRID_STAY_BOOTSTRAP_MEMBER_EMAILS ?? '',
   },

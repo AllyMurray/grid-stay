@@ -5,16 +5,11 @@ import type { User } from '~/lib/auth/schemas';
 
 interface AccountPageProps {
   hasPassword: boolean;
-  passwordAuthAvailable: boolean;
   user: User;
 }
 
-export function AccountPage({
-  hasPassword,
-  passwordAuthAvailable,
-  user,
-}: AccountPageProps) {
-  const passwordEnabled = passwordAuthAvailable && hasPassword;
+export function AccountPage({ hasPassword, user }: AccountPageProps) {
+  const passwordEnabled = hasPassword;
 
   return (
     <Stack gap="xl">
