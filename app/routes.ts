@@ -7,8 +7,10 @@ import {
 
 export default [
   index('routes/home.tsx'),
+  route('auth/forgot-password', 'routes/auth/forgot-password.tsx'),
   route('auth/login', 'routes/auth/login.tsx'),
   route('auth/logout', 'routes/auth/logout.tsx'),
+  route('auth/reset-password', 'routes/auth/reset-password.tsx'),
   route('api/auth/*', 'routes/api.auth.$.tsx'),
   route('api/dashboard/days-feed', 'routes/api.dashboard.days-feed.tsx'),
   route('calendar/:token', 'routes/calendar.$token.tsx'),

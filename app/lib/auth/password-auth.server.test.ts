@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { authApi, canCreateMemberAccountForEmail } = vi.hoisted(() => ({
   authApi: {
     listUserAccounts: vi.fn(),
+    requestPasswordReset: vi.fn(),
+    resetPassword: vi.fn(),
     setPassword: vi.fn(),
     signInEmail: vi.fn(),
     signUpEmail: vi.fn(),
@@ -22,6 +24,8 @@ vi.mock('./member-invites.server', () => ({
 
 import {
   getPasswordAccountStatus,
+  submitPasswordReset,
+  submitPasswordResetRequest,
   submitPasswordSignIn,
   submitPasswordSignUp,
   submitSetPassword,
@@ -233,5 +237,89 @@ describe('password auth helpers', () => {
         expect.stringMatching(/^__Secure-better-auth\.session_token=updated/),
       ]),
     );
+  });
+
+  it('requests a password reset link without exposing whether the user exists', async () => {
+    authApi.requestPasswordReset.mockResolvedValue(
+      jsonResponse({
+        status: true,
+        message:
+          'If this email exists in our system, check your email for the reset link',
+      }),
+    );
+    const request = new Request('https://gridstay.app/auth/forgot-password');
+
+    const response = await submitPasswordResetRequest(
+      request,
+      createFormData({ email: ' Driver@Example.com ' }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      message:
+        'If there is an account for that email, we sent a password reset link.',
+    });
+    expect(authApi.requestPasswordReset).toHaveBeenCalledWith({
+      body: {
+        email: 'driver@example.com',
+        redirectTo: 'https://gridstay.app/auth/reset-password',
+      },
+      headers: request.headers,
+      asResponse: true,
+    });
+  });
+
+  it('resets a password with a valid reset token', async () => {
+    authApi.resetPassword.mockResolvedValue(jsonResponse({ status: true }));
+
+    const response = await expectRedirect(
+      submitPasswordReset(
+        new Request('https://gridstay.app/auth/reset-password'),
+        createFormData({
+          token: 'reset-token',
+          password: 'password123',
+        }),
+      ),
+    );
+
+    expect(authApi.resetPassword).toHaveBeenCalledWith({
+      body: {
+        token: 'reset-token',
+        newPassword: 'password123',
+      },
+      headers: expect.any(Headers),
+      asResponse: true,
+    });
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe(
+      '/auth/login?passwordReset=success',
+    );
+  });
+
+  it('returns reset token errors without changing the password', async () => {
+    authApi.resetPassword.mockResolvedValue(
+      jsonResponse(
+        {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid token',
+        },
+        { status: 400 },
+      ),
+    );
+
+    const response = await submitPasswordReset(
+      new Request('https://gridstay.app/auth/reset-password'),
+      createFormData({
+        token: 'expired-token',
+        password: 'password123',
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      formError: 'This reset link is invalid or has expired.',
+    });
   });
 });

@@ -11,6 +11,7 @@ import { LoginPage } from '~/pages/auth/login';
 import type { Route } from './+types/login';
 
 interface LoaderData {
+  notice?: string;
   redirectTo: string;
 }
 
@@ -19,8 +20,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const url = new URL(request.url);
   const redirectTo = sanitizeRedirectTo(url.searchParams.get('redirectTo'));
+  const notice =
+    url.searchParams.get('passwordReset') === 'success'
+      ? 'Password reset. You can sign in with your new password.'
+      : undefined;
 
-  return Response.json({ redirectTo } satisfies LoaderData, {
+  return Response.json({ notice, redirectTo } satisfies LoaderData, {
     headers: appendClearDontRememberCookieHeaders(authHeaders),
   });
 }
@@ -54,6 +59,10 @@ export default function Login() {
     | undefined;
 
   return (
-    <LoginPage actionData={actionData} redirectTo={loaderData.redirectTo} />
+    <LoginPage
+      actionData={actionData}
+      notice={loaderData.notice}
+      redirectTo={loaderData.redirectTo}
+    />
   );
 }

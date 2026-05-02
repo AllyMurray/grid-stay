@@ -15,7 +15,7 @@ import {
   Title,
 } from '@mantine/core';
 import { IconBrandGoogle, IconLock, IconRoad } from '@tabler/icons-react';
-import { Form, useNavigation } from 'react-router';
+import { Form, Link, useNavigation } from 'react-router';
 import { authClient } from '~/lib/auth/auth-client';
 import {
   PASSWORD_MIN_LENGTH,
@@ -23,8 +23,9 @@ import {
 } from '~/lib/auth/password-auth.shared';
 
 interface LoginPageProps {
-  redirectTo: string;
   actionData?: PasswordAuthActionData;
+  notice?: string;
+  redirectTo: string;
 }
 
 const LOGIN_BACKGROUND_IMAGE =
@@ -40,7 +41,7 @@ function getFirstFieldError(
     : undefined;
 }
 
-export function LoginPage({ actionData, redirectTo }: LoginPageProps) {
+export function LoginPage({ actionData, notice, redirectTo }: LoginPageProps) {
   const navigation = useNavigation();
   const pendingIntent = navigation.formData?.get('intent')?.toString();
 
@@ -82,6 +83,12 @@ export function LoginPage({ actionData, redirectTo }: LoginPageProps) {
               >
                 Continue with Google
               </Button>
+
+              {notice ? (
+                <Alert color="green" icon={<IconLock size={16} />}>
+                  {notice}
+                </Alert>
+              ) : null}
 
               <Divider label="or" labelPosition="center" />
 
@@ -145,6 +152,14 @@ export function LoginPage({ actionData, redirectTo }: LoginPageProps) {
                         fullWidth
                       >
                         Sign in
+                      </Button>
+                      <Button
+                        component={Link}
+                        to="/auth/forgot-password"
+                        variant="subtle"
+                        fullWidth
+                      >
+                        Forgot password?
                       </Button>
                     </Stack>
                   </Form>

@@ -25,3 +25,29 @@ export type AccountPasswordActionData =
       formError: string;
       fieldErrors: Partial<Record<'password', string[] | undefined>>;
     };
+
+export type PasswordResetRequestActionData =
+  | {
+      ok: true;
+      message: string;
+      fieldErrors: Partial<Record<'email', string[] | undefined>>;
+      formError?: string;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: Partial<Record<'email', string[] | undefined>>;
+    };
+
+export type PasswordResetActionData =
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: Partial<Record<'password' | 'token', string[] | undefined>>;
+    }
+  | {
+      ok: true;
+      message: string;
+      fieldErrors: Partial<Record<'password' | 'token', string[] | undefined>>;
+      formError?: string;
+    };

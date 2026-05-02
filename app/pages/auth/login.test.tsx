@@ -34,6 +34,10 @@ function renderLoginPage(
         </MantineProvider>
       ),
     },
+    {
+      path: '/auth/forgot-password',
+      Component: () => null,
+    },
   ]);
 
   return render(<Stub initialEntries={['/auth/login']} />);
@@ -67,6 +71,9 @@ describe('LoginPage', () => {
       'autocomplete',
       'current-password',
     );
+    expect(
+      screen.getByRole('link', { name: 'Forgot password?' }),
+    ).toHaveAttribute('href', '/auth/forgot-password');
   });
 
   it('collects first and last name when creating a password account', async () => {
@@ -100,5 +107,18 @@ describe('LoginPage', () => {
       screen.getByText('Ask an existing member to invite this email.'),
     ).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'First name' })).toBeVisible();
+  });
+
+  it('shows a password-reset success notice', () => {
+    renderLoginPage({
+      redirectTo: '/dashboard',
+      notice: 'Password reset. You can sign in with your new password.',
+    });
+
+    expect(
+      screen.getByText(
+        'Password reset. You can sign in with your new password.',
+      ),
+    ).toBeVisible();
   });
 });

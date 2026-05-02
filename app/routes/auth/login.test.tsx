@@ -84,6 +84,21 @@ describe('auth login route', () => {
     );
   });
 
+  it('returns a success notice after password reset', async () => {
+    const response = (await loader({
+      request: new Request(
+        'https://gridstay.app/auth/login?passwordReset=success',
+      ),
+      params: {},
+      context: {},
+    } as never)) as Response;
+
+    expect(await response.json()).toEqual({
+      notice: 'Password reset. You can sign in with your new password.',
+      redirectTo: '/dashboard',
+    });
+  });
+
   it('routes password sign-in submissions to the password sign-in helper', async () => {
     const formData = new FormData();
     formData.set('intent', 'passwordSignIn');
