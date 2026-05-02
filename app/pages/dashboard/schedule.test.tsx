@@ -116,6 +116,10 @@ describe('BookingSchedulePage', () => {
     expect(
       screen.getByRole('heading', { name: 'Schedule' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
+    expect(screen.getByText('1 confirmed')).toBeInTheDocument();
+    expect(screen.getByText('1 still deciding')).toBeInTheDocument();
+    expect(screen.getByText('1 shared stay')).toBeInTheDocument();
     expect(screen.getByTestId('schedule')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Silverstone' })).toHaveAttribute(
       'data-end',

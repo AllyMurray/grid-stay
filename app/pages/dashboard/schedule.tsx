@@ -23,7 +23,6 @@ import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
-import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
@@ -216,6 +215,43 @@ function ScheduleLegend() {
           {titleCase(status)}
         </Badge>
       ))}
+    </Group>
+  );
+}
+
+function formatTripsTracked(value: number) {
+  return `${value} ${value === 1 ? 'trip' : 'trips'} tracked`;
+}
+
+function formatSharedStayCount(value: number) {
+  return `${value} ${value === 1 ? 'shared stay' : 'shared stays'}`;
+}
+
+function ScheduleHeaderMeta({
+  totalCount,
+  confirmedCount,
+  maybeCount,
+  sharedStayCount,
+}: {
+  totalCount: number;
+  confirmedCount: number;
+  maybeCount: number;
+  sharedStayCount: number;
+}) {
+  return (
+    <Group gap="xs" wrap="wrap">
+      <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
+        {formatTripsTracked(totalCount)}
+      </Badge>
+      <Badge color="green" variant="light" size="lg" radius="sm" tt="none">
+        {confirmedCount} confirmed
+      </Badge>
+      <Badge color="yellow" variant="light" size="lg" radius="sm" tt="none">
+        {maybeCount} still deciding
+      </Badge>
+      <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
+        {formatSharedStayCount(sharedStayCount)}
+      </Badge>
     </Group>
   );
 }
@@ -473,8 +509,12 @@ export function BookingSchedulePage({
     () => [...bookings].sort(sortBookings),
     [bookings],
   );
-  const bookedCount = bookings.filter((booking) => booking.status === 'booked');
-  const maybeCount = bookings.filter((booking) => booking.status === 'maybe');
+  const confirmedCount = bookings.filter(
+    (booking) => booking.status === 'booked',
+  ).length;
+  const maybeCount = bookings.filter(
+    (booking) => booking.status === 'maybe',
+  ).length;
   const sharedStayCount = bookings.filter((booking) =>
     Boolean(booking.accommodationName?.trim()),
   ).length;
@@ -535,13 +575,11 @@ export function BookingSchedulePage({
         title="Schedule"
         description="See the season at a glance here, then jump into My Bookings whenever you need to edit the private details."
         meta={
-          <HeaderStatGrid
-            items={[
-              { label: 'Trips tracked', value: bookings.length },
-              { label: 'Confirmed', value: bookedCount.length },
-              { label: 'Still deciding', value: maybeCount.length },
-              { label: 'Shared stays', value: sharedStayCount },
-            ]}
+          <ScheduleHeaderMeta
+            totalCount={bookings.length}
+            confirmedCount={confirmedCount}
+            maybeCount={maybeCount}
+            sharedStayCount={sharedStayCount}
           />
         }
         actions={
