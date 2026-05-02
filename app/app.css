@@ -64,9 +64,9 @@ html[data-mantine-color-scheme='dark'] .dashboard-sidebar-profile {
 }
 
 .page-header-stat {
-  flex: 1 1 calc(50% - 0.25rem);
-  max-width: none;
-  min-width: min(10rem, 100%);
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
   padding: 0.5rem 0.625rem;
   border-radius: 999px;
   background: rgba(16, 20, 24, 0.035);
@@ -558,9 +558,6 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
   }
 
   .page-header-stat {
-    flex: 0 0 auto;
-    max-width: 100%;
-    min-width: 0;
     padding: 0.55rem 0.75rem;
   }
 
