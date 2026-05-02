@@ -79,6 +79,7 @@ const booking: BookingRecord = {
   userImage: 'https://example.com/driver.png',
   dayId: 'day-1',
   date: '2026-05-10',
+  type: 'race_day',
   status: 'booked',
   circuit: 'Snetterton',
   provider: 'Caterham Motorsport',

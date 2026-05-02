@@ -58,21 +58,6 @@ describe('buildCalendarIcs', () => {
     expect(calendar).toContain('STATUS:TENTATIVE\r\n');
   });
 
-  it('infers the day type from existing booking ids', () => {
-    const calendar = buildCalendarIcs([
-      {
-        ...booking,
-        dayId: 'test_day:manual:v2:dated-2026-05-03:base',
-        bookingId: 'test_day:manual:v2:dated-2026-05-03:base',
-        type: undefined,
-        circuit: 'Brands Hatch',
-      },
-    ]);
-
-    expect(calendar).toContain('SUMMARY:Brands Hatch - Test day\r\n');
-    expect(calendar).toContain('CATEGORIES:Test day\r\n');
-  });
-
   it('excludes cancelled bookings and private references', () => {
     const calendar = buildCalendarIcs([
       booking,

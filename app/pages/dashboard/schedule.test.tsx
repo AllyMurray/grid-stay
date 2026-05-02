@@ -74,6 +74,7 @@ const bookingOne: BookingRecord = {
   userImage: '',
   dayId: 'day-1',
   date: '2026-05-03',
+  type: 'race_day',
   status: 'booked',
   circuit: 'Silverstone',
   provider: 'MSV',

@@ -54,12 +54,10 @@ export interface AdminMemberDirectoryEntry extends MemberDirectoryEntry {
   email: string;
 }
 
-type MemberBookedDayType = NonNullable<BookingRecord['type']>;
-
 export interface MemberBookedDay {
   dayId: string;
   date: string;
-  type?: MemberBookedDayType;
+  type: BookingRecord['type'];
   status: 'booked' | 'maybe';
   circuit: string;
   circuitId?: string;
@@ -190,7 +188,7 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
   return {
     dayId: booking.dayId,
     date: booking.date,
-    ...(booking.type ? { type: booking.type } : {}),
+    type: booking.type,
     status: booking.status,
     circuit: booking.circuit,
     ...(booking.circuitId ? { circuitId: booking.circuitId } : {}),
@@ -207,25 +205,6 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
   };
 }
 
-function inferMemberBookedDayType(
-  day: Pick<MemberBookedDay, 'dayId' | 'type'>,
-): CreateBookingInput['type'] {
-  if (day.type) {
-    return day.type;
-  }
-
-  const dayIdType = day.dayId.split(':')[0];
-  if (
-    dayIdType === 'race_day' ||
-    dayIdType === 'test_day' ||
-    dayIdType === 'track_day'
-  ) {
-    return dayIdType;
-  }
-
-  return 'track_day';
-}
-
 function toCreateBookingInput(
   day: MemberBookedDay,
   status: CreateBookingInput['status'],
@@ -233,7 +212,7 @@ function toCreateBookingInput(
   return {
     dayId: day.dayId,
     date: day.date,
-    type: inferMemberBookedDayType(day),
+    type: day.type,
     status,
     circuit: day.circuit,
     ...(day.circuitId ? { circuitId: day.circuitId } : {}),

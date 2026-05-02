@@ -57,19 +57,8 @@ function addDays(date: string, days: number) {
   return value.toISOString().slice(0, 10);
 }
 
-function getDayType(booking: BookingRecord): AvailableDayType | null {
-  const value = booking.type ?? booking.dayId.split(':')[0];
-
-  if (value === 'race_day' || value === 'test_day' || value === 'track_day') {
-    return value;
-  }
-
-  return null;
-}
-
 function getDayTypeLabel(booking: BookingRecord) {
-  const type = getDayType(booking);
-  return type ? dayTypeLabels[type] : null;
+  return dayTypeLabels[booking.type];
 }
 
 function buildDescription(
