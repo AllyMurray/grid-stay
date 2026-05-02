@@ -134,7 +134,7 @@ function MemberInvitePanel({
         <Stack gap={2}>
           <Text fw={700}>Invite a member</Text>
           <Text size="sm" c="dimmed">
-            Add their Google email, then they can sign in and join the shared
+            Add their email address, then they can sign in and join the shared
             planner.
           </Text>
         </Stack>
@@ -144,7 +144,7 @@ function MemberInvitePanel({
             <TextInput
               name="email"
               type="email"
-              label="Google email"
+              label="Email address"
               placeholder="driver@example.com"
               leftSection={<IconMail size={16} />}
               error={fieldErrors?.email?.[0]}

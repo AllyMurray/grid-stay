@@ -45,7 +45,7 @@ export type MemberInviteActionResult =
     };
 
 const MemberInviteInputSchema = z.object({
-  email: z.email().transform(normalizeEmail),
+  email: z.string().trim().pipe(z.email()).transform(normalizeEmail),
 });
 
 export const memberInviteStore: MemberInvitePersistence = {
@@ -333,7 +333,7 @@ export async function submitMemberInvite(
       invite.status === 'accepted'
         ? `${invite.inviteEmail} is already a member.`
         : result.created
-          ? `${invite.inviteEmail} can now sign in with Google.`
+          ? `${invite.inviteEmail} can now sign in.`
           : `${invite.inviteEmail} already has a pending invite.`,
     invite,
   };

@@ -95,6 +95,26 @@ describe('member invite helpers', () => {
     });
   });
 
+  it('accepts generic email addresses in invite actions', async () => {
+    const formData = new FormData();
+    formData.set('email', ' Driver@Team.co.uk ');
+
+    const result = await submitMemberInvite(
+      formData,
+      inviter,
+      createMemoryStore().store,
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      message: 'driver@team.co.uk can now sign in.',
+      invite: {
+        inviteEmail: 'driver@team.co.uk',
+        status: 'pending',
+      },
+    });
+  });
+
   it('accepts a pending invite when that user signs in', async () => {
     const memory = createMemoryStore([
       {

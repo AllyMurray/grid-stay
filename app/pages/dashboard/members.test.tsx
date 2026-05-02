@@ -60,6 +60,8 @@ describe('MembersPage', () => {
     ).toHaveAttribute('href', '/dashboard/members/user-1');
     expect(screen.queryByText('owner')).not.toBeInTheDocument();
     expect(screen.queryByText('member')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Email address')).toBeInTheDocument();
+    expect(screen.queryByText(/Google email/i)).not.toBeInTheDocument();
   });
 
   it('filters the directory by search query', async () => {
