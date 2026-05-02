@@ -63,7 +63,7 @@ export function HomePage({ hasSession }: HomePageProps) {
               </Text>
               <Group>
                 <Button component={Link} to={cta} size="lg" color="brand">
-                  {hasSession ? 'Open dashboard' : 'Sign in with Google'}
+                  {hasSession ? 'Open dashboard' : 'Sign in'}
                 </Button>
                 <Button
                   component="a"
