@@ -33,6 +33,14 @@ const baseProps: MemberDaysPageProps = {
       provider: 'MSV Car Trackdays',
       description: 'Track evening',
     },
+    {
+      dayId: 'legacy-day',
+      date: '2026-05-06',
+      status: 'booked',
+      circuit: 'Brands Hatch',
+      provider: 'Caterham',
+      description: 'Legacy booking',
+    },
   ],
   myBookingsByDay: {
     'day-2': {
@@ -78,13 +86,20 @@ describe('MemberDaysPage', () => {
       screen.getByRole('heading', { name: "Ally Murray's days" }),
     ).toBeInTheDocument();
     expect(screen.getByText('Silverstone GP')).toBeInTheDocument();
+    expect(screen.getByText('Brands Hatch')).toBeInTheDocument();
     expect(screen.getByText(/Sun, 3 May 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Race day/)).toBeInTheDocument();
+    expect(screen.getByText(/Wed, 6 May 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Day/)).toBeInTheDocument();
     expect(
       screen.getByText('Shared stay: Trackside Hotel'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add as maybe' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Add as booked' })).toBeVisible();
+    expect(
+      screen.getAllByRole('button', { name: 'Add as maybe' }),
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByRole('button', { name: 'Add as booked' }),
+    ).toHaveLength(2);
     expect(
       screen.getByRole('link', { name: 'Open my booking' }),
     ).toHaveAttribute('href', '/dashboard/bookings');

@@ -54,10 +54,12 @@ export interface AdminMemberDirectoryEntry extends MemberDirectoryEntry {
   email: string;
 }
 
+type MemberBookedDayType = NonNullable<BookingRecord['type']>;
+
 export interface MemberBookedDay {
   dayId: string;
   date: string;
-  type: NonNullable<BookingRecord['type']>;
+  type?: MemberBookedDayType;
   status: 'booked' | 'maybe';
   circuit: string;
   circuitId?: string;
@@ -181,24 +183,47 @@ async function loadMemberInvitesDefault(): Promise<MemberInviteAccessRecord[]> {
 }
 
 function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
-  if (booking.status === 'cancelled' || !booking.type) {
+  if (booking.status === 'cancelled') {
     return null;
   }
 
   return {
     dayId: booking.dayId,
     date: booking.date,
-    type: booking.type,
+    ...(booking.type ? { type: booking.type } : {}),
     status: booking.status,
     circuit: booking.circuit,
-    circuitId: booking.circuitId,
-    circuitName: booking.circuitName,
-    layout: booking.layout,
-    circuitKnown: booking.circuitKnown,
+    ...(booking.circuitId ? { circuitId: booking.circuitId } : {}),
+    ...(booking.circuitName ? { circuitName: booking.circuitName } : {}),
+    ...(booking.layout ? { layout: booking.layout } : {}),
+    ...(booking.circuitKnown !== undefined
+      ? { circuitKnown: booking.circuitKnown }
+      : {}),
     provider: booking.provider,
     description: booking.description,
-    accommodationName: booking.accommodationName,
+    ...(booking.accommodationName
+      ? { accommodationName: booking.accommodationName }
+      : {}),
   };
+}
+
+function inferMemberBookedDayType(
+  day: Pick<MemberBookedDay, 'dayId' | 'type'>,
+): CreateBookingInput['type'] {
+  if (day.type) {
+    return day.type;
+  }
+
+  const dayIdType = day.dayId.split(':')[0];
+  if (
+    dayIdType === 'race_day' ||
+    dayIdType === 'test_day' ||
+    dayIdType === 'track_day'
+  ) {
+    return dayIdType;
+  }
+
+  return 'track_day';
 }
 
 function toCreateBookingInput(
@@ -208,7 +233,7 @@ function toCreateBookingInput(
   return {
     dayId: day.dayId,
     date: day.date,
-    type: day.type,
+    type: inferMemberBookedDayType(day),
     status,
     circuit: day.circuit,
     ...(day.circuitId ? { circuitId: day.circuitId } : {}),

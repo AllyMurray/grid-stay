@@ -116,6 +116,25 @@ const acceptedInvites = [
   },
 ];
 
+const legacyBookingWithoutType: BookingRecord = {
+  bookingId: 'booking-legacy',
+  userId: 'user-1',
+  userName: 'Ally Murray',
+  userImage: 'https://example.com/ally.png',
+  dayId: 'race_day:caterham:v2:legacy:base',
+  date: '2026-05-04',
+  status: 'booked',
+  circuit: 'Brands Hatch',
+  circuitId: 'brands-hatch',
+  circuitName: 'Brands Hatch',
+  provider: 'Caterham',
+  bookingReference: 'LEGACY-REF',
+  description: 'Academy round',
+  notes: 'Do not expose',
+  createdAt: '2026-04-01T10:00:00.000Z',
+  updatedAt: '2026-04-01T10:00:00.000Z',
+};
+
 describe('listSiteMembers', () => {
   it('returns members sorted by next trip and summarizes active plans', async () => {
     const members = await listSiteMembers(
@@ -229,7 +248,10 @@ describe('listSiteMembers', () => {
     const result = await getSiteMemberBookedDays(
       'user-1',
       async () => userRecords,
-      async (userId) => bookingsByUser[userId] ?? [],
+      async (userId) =>
+        userId === 'user-1'
+          ? [...(bookingsByUser[userId] ?? []), legacyBookingWithoutType]
+          : (bookingsByUser[userId] ?? []),
       '2026-04-16',
       async () => null,
       async () => acceptedInvites,
@@ -253,10 +275,22 @@ describe('listSiteMembers', () => {
         description: 'GT weekend',
         accommodationName: 'Trackside Hotel',
       },
+      {
+        dayId: 'race_day:caterham:v2:legacy:base',
+        date: '2026-05-04',
+        status: 'booked',
+        circuit: 'Brands Hatch',
+        circuitId: 'brands-hatch',
+        circuitName: 'Brands Hatch',
+        provider: 'Caterham',
+        description: 'Academy round',
+      },
     ]);
     expect(result?.days[0]).not.toHaveProperty('bookingReference');
     expect(result?.days[0]).not.toHaveProperty('accommodationReference');
     expect(result?.days[0]).not.toHaveProperty('notes');
+    expect(result?.days[1]).not.toHaveProperty('bookingReference');
+    expect(result?.days[1]).not.toHaveProperty('notes');
   });
 
   it('creates my booking from another member day without private fields', async () => {
@@ -314,6 +348,62 @@ describe('listSiteMembers', () => {
         layout: 'GP',
         provider: 'MSV',
         description: 'GT weekend',
+      },
+      expect.objectContaining({ id: 'current-user' }),
+    );
+  });
+
+  it('creates my booking from a legacy member day by inferring its type', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'race_day:caterham:v2:legacy:base');
+    formData.set('status', 'maybe');
+    const saveBooking = vi.fn().mockResolvedValue({});
+
+    await expect(
+      submitMemberDayBooking(
+        formData,
+        {
+          id: 'current-user',
+          email: 'me@example.com',
+          name: 'Current User',
+          role: 'member',
+        },
+        'user-1',
+        async () => ({
+          member: {
+            id: 'user-1',
+            name: 'Ally Murray',
+            image: 'https://example.com/ally.png',
+            role: 'member',
+          },
+          days: [
+            {
+              dayId: 'race_day:caterham:v2:legacy:base',
+              date: '2026-05-04',
+              status: 'booked',
+              circuit: 'Brands Hatch',
+              circuitId: 'brands-hatch',
+              circuitName: 'Brands Hatch',
+              provider: 'Caterham',
+              description: 'Academy round',
+            },
+          ],
+        }),
+        saveBooking,
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(saveBooking).toHaveBeenCalledWith(
+      {
+        dayId: 'race_day:caterham:v2:legacy:base',
+        date: '2026-05-04',
+        type: 'race_day',
+        status: 'maybe',
+        circuit: 'Brands Hatch',
+        circuitId: 'brands-hatch',
+        circuitName: 'Brands Hatch',
+        provider: 'Caterham',
+        description: 'Academy round',
       },
       expect.objectContaining({ id: 'current-user' }),
     );
