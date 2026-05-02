@@ -4,6 +4,7 @@ import { betterAuth } from 'better-auth';
 import { Resource } from 'sst';
 import { dynamoDBAdapter } from './dynamodb-adapter.server';
 import { canCreateMemberAccountForEmail } from './member-invites.server';
+import { sendPasswordResetEmail } from './password-reset-email.server';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
@@ -33,6 +34,15 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    revokeSessionsOnPasswordReset: true,
+    async sendResetPassword({ user, token }, request) {
+      await sendPasswordResetEmail({
+        request,
+        to: user.email,
+        token,
+      });
+    },
   },
   user: {
     additionalFields: {
