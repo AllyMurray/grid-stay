@@ -2,7 +2,6 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import type { AccountPasswordActionData } from '~/lib/auth/password-auth.shared';
 import type { User } from '~/lib/auth/schemas';
 import { theme } from '~/theme';
 import { AccountPage } from './account';
@@ -15,11 +14,9 @@ const user: User = {
 };
 
 function renderAccountPage({
-  actionData,
   hasPassword = false,
   passwordAuthAvailable = true,
 }: {
-  actionData?: AccountPasswordActionData;
   hasPassword?: boolean;
   passwordAuthAvailable?: boolean;
 } = {}) {
@@ -30,7 +27,6 @@ function renderAccountPage({
       Component: () => (
         <MantineProvider theme={theme}>
           <AccountPage
-            actionData={actionData}
             hasPassword={hasPassword}
             passwordAuthAvailable={passwordAuthAvailable}
             user={user}
@@ -44,44 +40,33 @@ function renderAccountPage({
 }
 
 describe('AccountPage', () => {
-  it('lets a Google-only user set a password', () => {
+  it('shows sign-in methods without set-password controls', () => {
     const { container } = renderAccountPage();
 
     expect(screen.getByRole('heading', { name: 'Security' })).toBeVisible();
-    expect(screen.getByText('Google sign-in')).toBeVisible();
-    expect(container.querySelector('input[name="password"]')).toHaveAttribute(
-      'autocomplete',
-      'new-password',
-    );
-    expect(screen.getByRole('button', { name: 'Set password' })).toBeVisible();
-  });
-
-  it('hides set-password controls when password auth is unavailable', () => {
-    const { container } = renderAccountPage({ passwordAuthAvailable: false });
-
-    expect(screen.getByText('Google sign-in')).toBeVisible();
-    expect(screen.getByText('Your account uses Google sign-in.')).toBeVisible();
+    expect(screen.getAllByText('Google sign-in')).not.toHaveLength(0);
+    expect(screen.getByText('Password sign-in')).toBeVisible();
+    expect(screen.getByText('Email reset required')).toBeVisible();
     expect(container.querySelector('input[name="password"]')).toBeNull();
     expect(
       screen.queryByRole('button', { name: 'Set password' }),
     ).not.toBeInTheDocument();
   });
 
-  it('shows password sign-in as enabled after a successful action', () => {
-    renderAccountPage({
-      actionData: {
-        ok: true,
-        message: 'Password sign-in is enabled for this account.',
-        fieldErrors: {},
-      },
-    });
+  it('shows password sign-in as enabled when the account has credentials', () => {
+    renderAccountPage({ hasPassword: true });
 
-    expect(
-      screen.getByText('Password sign-in is enabled for this account.'),
-    ).toBeVisible();
     expect(screen.getByText('Password enabled')).toBeVisible();
+    expect(screen.getAllByText('Available')).toHaveLength(2);
     expect(
       screen.queryByRole('button', { name: 'Set password' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('does not advertise password availability when password auth is unavailable', () => {
+    renderAccountPage({ hasPassword: true, passwordAuthAvailable: false });
+
+    expect(screen.getByText('Email reset required')).toBeVisible();
+    expect(screen.queryByText('Password enabled')).not.toBeInTheDocument();
   });
 });

@@ -8,7 +8,6 @@ import {
 } from './cookies.server';
 import { canCreateMemberAccountForEmail } from './member-invites.server';
 import {
-  type AccountPasswordActionData,
   PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
   PASSWORD_MIN_LENGTH,
   type PasswordAuthActionData,
@@ -36,15 +35,6 @@ const PasswordSignUpSchema = z.object({
     ),
 });
 
-const SetPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(
-      PASSWORD_MIN_LENGTH,
-      `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-    ),
-});
-
 const PasswordResetRequestSchema = z.object({
   email: EmailSchema,
 });
@@ -61,13 +51,6 @@ const PasswordResetSchema = z.object({
 
 function errorResponse(
   data: PasswordAuthActionData,
-  headers?: HeadersInit,
-): Response {
-  return Response.json(data, { status: 400, headers });
-}
-
-function accountErrorResponse(
-  data: AccountPasswordActionData,
   headers?: HeadersInit,
 ): Response {
   return Response.json(data, { status: 400, headers });
@@ -276,68 +259,6 @@ export async function getPasswordAccountStatus(
     ),
     headers,
   };
-}
-
-export async function submitSetPassword(
-  request: Request,
-  formData: FormData,
-  authHeaders?: HeadersInit,
-): Promise<Response> {
-  const headers = cloneHeadersPreservingSetCookie(authHeaders);
-
-  if (isUnavailable()) {
-    return accountErrorResponse(
-      {
-        ok: false,
-        formError: PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
-        fieldErrors: {},
-      },
-      headers,
-    );
-  }
-
-  const parsed = SetPasswordSchema.safeParse(Object.fromEntries(formData));
-
-  if (!parsed.success) {
-    return accountErrorResponse(
-      {
-        ok: false,
-        formError: 'Check the password and try again.',
-        fieldErrors: parsed.error.flatten().fieldErrors,
-      },
-      headers,
-    );
-  }
-
-  const response = await auth.api.setPassword({
-    body: { newPassword: parsed.data.password },
-    headers: request.headers,
-    asResponse: true,
-  });
-
-  for (const cookie of response.headers.getSetCookie()) {
-    headers.append('set-cookie', cookie);
-  }
-
-  if (!response.ok) {
-    return accountErrorResponse(
-      {
-        ok: false,
-        formError: await readAuthError(response, 'Unable to set password.'),
-        fieldErrors: {},
-      },
-      headers,
-    );
-  }
-
-  return Response.json(
-    {
-      ok: true,
-      message: 'Password sign-in is enabled for this account.',
-      fieldErrors: {},
-    } satisfies AccountPasswordActionData,
-    { headers },
-  );
 }
 
 export async function submitPasswordResetRequest(

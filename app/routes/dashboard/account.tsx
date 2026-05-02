@@ -1,11 +1,7 @@
-import { useActionData, useLoaderData } from 'react-router';
+import { useLoaderData } from 'react-router';
 import { cloneHeadersPreservingSetCookie } from '~/lib/auth/cookies.server';
 import { requireUser } from '~/lib/auth/helpers.server';
-import {
-  getPasswordAccountStatus,
-  submitSetPassword,
-} from '~/lib/auth/password-auth.server';
-import type { AccountPasswordActionData } from '~/lib/auth/password-auth.shared';
+import { getPasswordAccountStatus } from '~/lib/auth/password-auth.server';
 import { isPasswordAuthEnabled } from '~/lib/auth/password-auth-availability.server';
 import type { User } from '~/lib/auth/schemas';
 import { AccountPage } from '~/pages/dashboard/account';
@@ -37,18 +33,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   );
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { headers } = await requireUser(request);
-  const formData = await request.formData();
-
-  return submitSetPassword(request, formData, headers);
-}
-
 export default function AccountRoute() {
   const data = useLoaderData<typeof loader>() as LoaderData;
-  const actionData = useActionData<typeof action>() as
-    | AccountPasswordActionData
-    | undefined;
 
-  return <AccountPage {...data} actionData={actionData} />;
+  return <AccountPage {...data} />;
 }

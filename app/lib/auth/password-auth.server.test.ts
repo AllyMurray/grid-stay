@@ -5,7 +5,6 @@ const { authApi, canCreateMemberAccountForEmail } = vi.hoisted(() => ({
     listUserAccounts: vi.fn(),
     requestPasswordReset: vi.fn(),
     resetPassword: vi.fn(),
-    setPassword: vi.fn(),
     signInEmail: vi.fn(),
     signUpEmail: vi.fn(),
   },
@@ -28,7 +27,6 @@ import {
   submitPasswordResetRequest,
   submitPasswordSignIn,
   submitPasswordSignUp,
-  submitSetPassword,
 } from './password-auth.server';
 
 function createFormData(values: Record<string, string>) {
@@ -227,46 +225,6 @@ describe('password auth helpers', () => {
       getPasswordAccountStatus(new Request('https://gridstay.app/dashboard')),
     ).resolves.toMatchObject({ hasPassword: false });
     expect(authApi.listUserAccounts).not.toHaveBeenCalled();
-  });
-
-  it('sets a password for an existing signed-in user', async () => {
-    authApi.setPassword.mockResolvedValue(
-      jsonResponse(
-        { ok: true },
-        {
-          setCookie:
-            '__Secure-better-auth.session_token=updated; Path=/; HttpOnly; Secure; SameSite=Lax',
-        },
-      ),
-    );
-    const authHeaders = new Headers();
-    authHeaders.append(
-      'set-cookie',
-      '__Secure-better-auth.session_token=existing; Path=/; HttpOnly; Secure; SameSite=Lax',
-    );
-
-    const response = await submitSetPassword(
-      new Request('https://gridstay.app/dashboard/account'),
-      createFormData({ password: 'password123' }),
-      authHeaders,
-    );
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      ok: true,
-      message: 'Password sign-in is enabled for this account.',
-    });
-    expect(authApi.setPassword).toHaveBeenCalledWith({
-      body: { newPassword: 'password123' },
-      headers: expect.any(Headers),
-      asResponse: true,
-    });
-    expect(response.headers.getSetCookie()).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^__Secure-better-auth\.session_token=existing/),
-        expect.stringMatching(/^__Secure-better-auth\.session_token=updated/),
-      ]),
-    );
   });
 
   it('requests a password reset link without exposing whether the user exists', async () => {

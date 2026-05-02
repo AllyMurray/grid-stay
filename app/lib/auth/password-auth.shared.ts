@@ -15,19 +15,6 @@ export interface PasswordAuthActionData {
   >;
 }
 
-export type AccountPasswordActionData =
-  | {
-      ok: true;
-      message: string;
-      fieldErrors: Partial<Record<'password', string[] | undefined>>;
-      formError?: string;
-    }
-  | {
-      ok: false;
-      formError: string;
-      fieldErrors: Partial<Record<'password', string[] | undefined>>;
-    };
-
 export type PasswordResetRequestActionData =
   | {
       ok: true;
