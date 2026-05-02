@@ -13,7 +13,6 @@ import {
 import { IconChecklist, IconLock, IconUsersGroup } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { AvailableDay } from '~/lib/days/types';
@@ -80,6 +79,42 @@ function bookingReferenceLabel(type?: AvailableDay['type']) {
     default:
       return 'Event booking reference';
   }
+}
+
+function formatCount(value: number, singular: string, plural = `${singular}s`) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function OverviewHeaderSummary({
+  availableDaysCount,
+  daysThisMonth,
+  activeBookingsCount,
+  sharedStayCount,
+}: Pick<
+  DashboardIndexPageProps,
+  | 'availableDaysCount'
+  | 'daysThisMonth'
+  | 'activeBookingsCount'
+  | 'sharedStayCount'
+>) {
+  return (
+    <Stack gap={6} className="overview-header-summary">
+      <Text fw={800} c="brand.4" size="md">
+        {formatCount(availableDaysCount, 'upcoming day')}
+      </Text>
+      <Group gap="sm" wrap="wrap">
+        <Text size="xs" c="dimmed" fw={700}>
+          {daysThisMonth} this month
+        </Text>
+        <Text size="xs" c="dimmed" fw={700}>
+          {formatCount(activeBookingsCount, 'active booking')}
+        </Text>
+        <Text size="xs" c="dimmed" fw={700}>
+          {formatCount(sharedStayCount, 'shared stay')}
+        </Text>
+      </Group>
+    </Stack>
+  );
 }
 
 function nextTripTasks(booking: BookingRecord, type?: AvailableDay['type']) {
@@ -311,25 +346,11 @@ export function DashboardIndexPage({
         title={`Welcome back, ${firstName}`}
         description="Start with the next trip, check the references you will actually need, then clear the gaps still open."
         meta={
-          <HeaderStatGrid
-            items={[
-              {
-                label: 'Upcoming days',
-                value: availableDaysCount,
-              },
-              {
-                label: 'This month',
-                value: daysThisMonth,
-              },
-              {
-                label: 'Active bookings',
-                value: activeBookingsCount,
-              },
-              {
-                label: 'Shared stays',
-                value: sharedStayCount,
-              },
-            ]}
+          <OverviewHeaderSummary
+            availableDaysCount={availableDaysCount}
+            daysThisMonth={daysThisMonth}
+            activeBookingsCount={activeBookingsCount}
+            sharedStayCount={sharedStayCount}
           />
         }
         actions={

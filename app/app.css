@@ -450,6 +450,10 @@ html[data-mantine-color-scheme='dark'] .day-card {
   display: none;
 }
 
+.overview-header-summary {
+  width: min(100%, 30rem);
+}
+
 .trip-status-summary {
   width: min(100%, 28rem);
 }

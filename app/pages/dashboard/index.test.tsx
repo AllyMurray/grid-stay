@@ -69,7 +69,10 @@ describe('DashboardIndexPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Welcome back, Ally' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.getByText('42 upcoming days')).toBeInTheDocument();
+    expect(screen.getByText('8 this month')).toBeInTheDocument();
+    expect(screen.getByText('3 active bookings')).toBeInTheDocument();
+    expect(screen.getByText('2 shared stays')).toBeInTheDocument();
     expect(screen.getByText('Next trip')).toBeInTheDocument();
     expect(screen.getByText('Trip details')).toBeInTheDocument();
     expect(screen.getAllByText('Race day reference').length).toBeGreaterThan(0);
