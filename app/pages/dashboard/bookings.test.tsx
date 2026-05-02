@@ -61,6 +61,13 @@ describe('MyBookingsPage', () => {
     expect(
       screen.getByRole('heading', { name: 'My Bookings' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
+    expect(screen.getByText('1 confirmed')).toBeInTheDocument();
+    expect(screen.getByText('1 maybe')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '1 confirmed, 1 maybe' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2 shared stays')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /donington park/i }),

@@ -29,8 +29,8 @@ import {
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
-import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import { TripStatusSummary } from '~/components/layout/trip-status-summary';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -602,25 +602,11 @@ export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
         title="My Bookings"
         description="Keep shared stay names aligned with the group while references and notes stay on your side."
         meta={
-          <HeaderStatGrid
-            items={[
-              {
-                label: 'Trips tracked',
-                value: bookings.length,
-              },
-              {
-                label: 'Confirmed',
-                value: bookedCount,
-              },
-              {
-                label: 'Still deciding',
-                value: maybeCount,
-              },
-              {
-                label: 'Shared stays',
-                value: sharedStayCount,
-              },
-            ]}
+          <TripStatusSummary
+            totalCount={bookings.length}
+            confirmedCount={bookedCount}
+            maybeCount={maybeCount}
+            sharedStayCount={sharedStayCount}
           />
         }
         actions={

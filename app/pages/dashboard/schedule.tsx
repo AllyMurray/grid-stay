@@ -1,7 +1,6 @@
 import {
   Alert,
   Badge,
-  Box,
   Button,
   Checkbox,
   Divider,
@@ -25,6 +24,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
+import { TripStatusSummary } from '~/components/layout/trip-status-summary';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -217,69 +217,6 @@ function ScheduleLegend() {
         </Badge>
       ))}
     </Group>
-  );
-}
-
-function formatTripsTracked(value: number) {
-  return `${value} ${value === 1 ? 'trip' : 'trips'} tracked`;
-}
-
-function formatSharedStayCount(value: number) {
-  return `${value} ${value === 1 ? 'shared stay' : 'shared stays'}`;
-}
-
-function ScheduleHeaderMeta({
-  totalCount,
-  confirmedCount,
-  maybeCount,
-  sharedStayCount,
-}: {
-  totalCount: number;
-  confirmedCount: number;
-  maybeCount: number;
-  sharedStayCount: number;
-}) {
-  const statusTotal = confirmedCount + maybeCount;
-  const confirmedWidth =
-    statusTotal > 0 ? `${(confirmedCount / statusTotal) * 100}%` : '0%';
-  const maybeWidth =
-    statusTotal > 0 ? `${(maybeCount / statusTotal) * 100}%` : '0%';
-
-  return (
-    <Stack gap={6} className="schedule-header-trip-summary">
-      <Text fw={800} c="brand.4" size="md">
-        {formatTripsTracked(totalCount)}
-      </Text>
-      <Box
-        className="schedule-header-status-bar"
-        role="img"
-        aria-label={`${confirmedCount} confirmed, ${maybeCount} maybe`}
-      >
-        {confirmedCount > 0 ? (
-          <Box
-            className="schedule-header-status-segment schedule-header-status-confirmed"
-            style={{ width: confirmedWidth }}
-          />
-        ) : null}
-        {maybeCount > 0 ? (
-          <Box
-            className="schedule-header-status-segment schedule-header-status-maybe"
-            style={{ width: maybeWidth }}
-          />
-        ) : null}
-      </Box>
-      <Group gap="sm" wrap="wrap">
-        <Text size="xs" c="green.4" fw={800}>
-          {confirmedCount} confirmed
-        </Text>
-        <Text size="xs" c="yellow.4" fw={800}>
-          {maybeCount} maybe
-        </Text>
-        <Text size="xs" c="dimmed">
-          {formatSharedStayCount(sharedStayCount)}
-        </Text>
-      </Group>
-    </Stack>
   );
 }
 
@@ -602,7 +539,7 @@ export function BookingSchedulePage({
         title="Schedule"
         description="See the season at a glance here, then jump into My Bookings whenever you need to edit the private details."
         meta={
-          <ScheduleHeaderMeta
+          <TripStatusSummary
             totalCount={bookings.length}
             confirmedCount={confirmedCount}
             maybeCount={maybeCount}
