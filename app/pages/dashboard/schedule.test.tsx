@@ -119,6 +119,9 @@ describe('BookingSchedulePage', () => {
     expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
     expect(screen.getByText('1 confirmed')).toBeInTheDocument();
     expect(screen.getByText('1 maybe')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '1 confirmed, 1 maybe' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('1 shared stay')).toBeInTheDocument();
     expect(screen.getByTestId('schedule')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Silverstone' })).toHaveAttribute(

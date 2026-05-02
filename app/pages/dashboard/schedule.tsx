@@ -239,32 +239,47 @@ function ScheduleHeaderMeta({
   maybeCount: number;
   sharedStayCount: number;
 }) {
+  const statusTotal = confirmedCount + maybeCount;
+  const confirmedWidth =
+    statusTotal > 0 ? `${(confirmedCount / statusTotal) * 100}%` : '0%';
+  const maybeWidth =
+    statusTotal > 0 ? `${(maybeCount / statusTotal) * 100}%` : '0%';
+
   return (
-    <Group gap="xs" wrap="wrap" align="stretch">
+    <Stack gap={6} className="schedule-header-trip-summary">
+      <Text fw={800} c="brand.4" size="md">
+        {formatTripsTracked(totalCount)}
+      </Text>
       <Box
-        className="schedule-header-trip-summary"
-        px="md"
-        py={6}
-        style={{ display: 'inline-flex', alignItems: 'center' }}
+        className="schedule-header-status-bar"
+        role="img"
+        aria-label={`${confirmedCount} confirmed, ${maybeCount} maybe`}
       >
-        <Group gap="sm" wrap="wrap">
-          <Text span fw={800} c="brand.4" size="sm">
-            {formatTripsTracked(totalCount)}
-          </Text>
-          <Group gap="xs" wrap="wrap">
-            <Text span size="xs" c="green.4" fw={800}>
-              {confirmedCount} confirmed
-            </Text>
-            <Text span size="xs" c="yellow.4" fw={800}>
-              {maybeCount} maybe
-            </Text>
-          </Group>
-        </Group>
+        {confirmedCount > 0 ? (
+          <Box
+            className="schedule-header-status-segment schedule-header-status-confirmed"
+            style={{ width: confirmedWidth }}
+          />
+        ) : null}
+        {maybeCount > 0 ? (
+          <Box
+            className="schedule-header-status-segment schedule-header-status-maybe"
+            style={{ width: maybeWidth }}
+          />
+        ) : null}
       </Box>
-      <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
-        {formatSharedStayCount(sharedStayCount)}
-      </Badge>
-    </Group>
+      <Group gap="sm" wrap="wrap">
+        <Text size="xs" c="green.4" fw={800}>
+          {confirmedCount} confirmed
+        </Text>
+        <Text size="xs" c="yellow.4" fw={800}>
+          {maybeCount} maybe
+        </Text>
+        <Text size="xs" c="dimmed">
+          {formatSharedStayCount(sharedStayCount)}
+        </Text>
+      </Group>
+    </Stack>
   );
 }
 

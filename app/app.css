@@ -451,9 +451,28 @@ html[data-mantine-color-scheme='dark'] .day-card {
 }
 
 .schedule-header-trip-summary {
-  border: 1px solid rgba(16, 20, 24, 0.06);
-  border-radius: 6px;
-  background: rgba(16, 20, 24, 0.035);
+  width: min(100%, 28rem);
+}
+
+.schedule-header-status-bar {
+  display: flex;
+  width: min(100%, 18rem);
+  height: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(16, 20, 24, 0.08);
+}
+
+.schedule-header-status-segment {
+  min-width: 0;
+}
+
+.schedule-header-status-confirmed {
+  background: #2f6f4f;
+}
+
+.schedule-header-status-maybe {
+  background: #8a5b1c;
 }
 
 .schedule-mobile-row {
@@ -492,8 +511,11 @@ html[data-mantine-color-scheme='dark'] .attendee-roster-row:hover {
 }
 
 html[data-mantine-color-scheme='dark'] .schedule-header-trip-summary {
-  border-color: rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.04);
+  color: #f3f4f6;
+}
+
+html[data-mantine-color-scheme='dark'] .schedule-header-status-bar {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 html[data-mantine-color-scheme='dark'] .schedule-mobile-row:hover {
