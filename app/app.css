@@ -450,6 +450,12 @@ html[data-mantine-color-scheme='dark'] .day-card {
   display: none;
 }
 
+.schedule-header-trip-summary {
+  border: 1px solid rgba(16, 20, 24, 0.06);
+  border-radius: 6px;
+  background: rgba(16, 20, 24, 0.035);
+}
+
 .schedule-mobile-row {
   padding: 0.85rem 0.75rem;
   border-radius: 8px;
@@ -482,6 +488,11 @@ html[data-mantine-color-scheme='dark'] .day-list-item:hover {
 }
 
 html[data-mantine-color-scheme='dark'] .attendee-roster-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-mantine-color-scheme='dark'] .schedule-header-trip-summary {
+  border-color: rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.04);
 }
 

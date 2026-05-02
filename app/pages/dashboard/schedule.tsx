@@ -1,6 +1,7 @@
 import {
   Alert,
   Badge,
+  Box,
   Button,
   Checkbox,
   Divider,
@@ -239,16 +240,27 @@ function ScheduleHeaderMeta({
   sharedStayCount: number;
 }) {
   return (
-    <Group gap="xs" wrap="wrap">
-      <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
-        {formatTripsTracked(totalCount)}
-      </Badge>
-      <Badge color="green" variant="light" size="lg" radius="sm" tt="none">
-        {confirmedCount} confirmed
-      </Badge>
-      <Badge color="yellow" variant="light" size="lg" radius="sm" tt="none">
-        {maybeCount} still deciding
-      </Badge>
+    <Group gap="xs" wrap="wrap" align="stretch">
+      <Box
+        className="schedule-header-trip-summary"
+        px="md"
+        py={6}
+        style={{ display: 'inline-flex', alignItems: 'center' }}
+      >
+        <Group gap="sm" wrap="wrap">
+          <Text span fw={800} c="brand.4" size="sm">
+            {formatTripsTracked(totalCount)}
+          </Text>
+          <Group gap="xs" wrap="wrap">
+            <Text span size="xs" c="green.4" fw={800}>
+              {confirmedCount} confirmed
+            </Text>
+            <Text span size="xs" c="yellow.4" fw={800}>
+              {maybeCount} maybe
+            </Text>
+          </Group>
+        </Group>
+      </Box>
       <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
         {formatSharedStayCount(sharedStayCount)}
       </Badge>
