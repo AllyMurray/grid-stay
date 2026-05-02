@@ -55,8 +55,8 @@ describe('MembersPage', () => {
     expect(screen.getByText(/trackside hotel/i)).toBeInTheDocument();
     expect(screen.getByText('Driver Two')).toBeInTheDocument();
     expect(screen.getByText('No upcoming trips yet')).toBeInTheDocument();
-    expect(screen.getByText('2 members')).toBeInTheDocument();
-    expect(screen.getByText('1 with trip')).toBeInTheDocument();
+    expect(screen.queryByText('2 members')).not.toBeInTheDocument();
+    expect(screen.queryByText('1 with trip')).not.toBeInTheDocument();
     expect(screen.queryByText('Shared stays')).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('link', { name: 'View days' })[0],
