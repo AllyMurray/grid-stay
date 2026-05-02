@@ -105,6 +105,10 @@ If the domain changes:
 
 - Better Auth callbacks use `BETTER_AUTH_URL`; do not remove this unless auth is
   reworked.
+- Password auth fails closed unless `GRID_STAY_PASSWORD_AUTH_ENABLED=true` is
+  present at deploy time. Leave it unset or `false` until SES for
+  `gridstay.app` is verified and the `eu-west-1` account has production sending
+  access.
 - CloudFront custom domains require ACM certs in `us-east-1`, even though the
   rest of the app is in `eu-west-1`.
 - DNS propagation can lag behind a successful deploy. If the SST output shows

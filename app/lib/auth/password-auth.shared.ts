@@ -1,4 +1,6 @@
 export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_AUTH_UNAVAILABLE_MESSAGE =
+  'Password sign-in is not available yet.';
 
 export type PasswordAuthIntent = 'passwordSignIn' | 'passwordSignUp';
 

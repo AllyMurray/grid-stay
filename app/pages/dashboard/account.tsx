@@ -21,17 +21,20 @@ import type { User } from '~/lib/auth/schemas';
 interface AccountPageProps {
   actionData?: AccountPasswordActionData;
   hasPassword: boolean;
+  passwordAuthAvailable: boolean;
   user: User;
 }
 
 export function AccountPage({
   actionData,
   hasPassword,
+  passwordAuthAvailable,
   user,
 }: AccountPageProps) {
   const navigation = useNavigation();
   const isSubmitting = navigation.state !== 'idle';
-  const passwordEnabled = actionData?.ok ? true : hasPassword;
+  const passwordEnabled =
+    passwordAuthAvailable && (actionData?.ok ? true : hasPassword);
 
   return (
     <Stack gap="xl">
@@ -56,7 +59,7 @@ export function AccountPage({
               </Stack>
             </Group>
             <Badge color={passwordEnabled ? 'green' : 'gray'} variant="light">
-              {passwordEnabled ? 'Password enabled' : 'Google only'}
+              {passwordEnabled ? 'Password enabled' : 'Google sign-in'}
             </Badge>
           </Group>
 
@@ -71,7 +74,9 @@ export function AccountPage({
             </Alert>
           ) : null}
 
-          {passwordEnabled ? (
+          {!passwordAuthAvailable ? (
+            <Text c="dimmed">Your account uses Google sign-in.</Text>
+          ) : passwordEnabled ? (
             <Text c="dimmed">
               Password sign-in is available for this account.
             </Text>

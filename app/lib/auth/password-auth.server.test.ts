@@ -74,6 +74,8 @@ async function expectRedirect(promise: Promise<Response>) {
 describe('password auth helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv('GRID_STAY_PASSWORD_AUTH_ENABLED', 'true');
   });
 
   it('signs in with email and preserves Better Auth cookies on redirect', async () => {
@@ -118,6 +120,25 @@ describe('password auth helpers', () => {
         expect.stringMatching(/^better-auth\.dont_remember=/),
       ]),
     );
+  });
+
+  it('rejects password actions while password auth is unavailable', async () => {
+    vi.stubEnv('GRID_STAY_PASSWORD_AUTH_ENABLED', 'false');
+
+    const response = await submitPasswordSignIn(
+      new Request('https://gridstay.app/auth/login'),
+      createFormData({
+        email: 'driver@example.com',
+        password: 'password123',
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      intent: 'passwordSignIn',
+      formError: 'Password sign-in is not available yet.',
+    });
+    expect(authApi.signInEmail).not.toHaveBeenCalled();
   });
 
   it('rejects password sign-up when the email has not been invited', async () => {
@@ -197,6 +218,15 @@ describe('password auth helpers', () => {
     await expect(
       getPasswordAccountStatus(new Request('https://gridstay.app/dashboard')),
     ).resolves.toMatchObject({ hasPassword: true });
+  });
+
+  it('does not inspect accounts when password auth is unavailable', async () => {
+    vi.stubEnv('GRID_STAY_PASSWORD_AUTH_ENABLED', 'false');
+
+    await expect(
+      getPasswordAccountStatus(new Request('https://gridstay.app/dashboard')),
+    ).resolves.toMatchObject({ hasPassword: false });
+    expect(authApi.listUserAccounts).not.toHaveBeenCalled();
   });
 
   it('sets a password for an existing signed-in user', async () => {

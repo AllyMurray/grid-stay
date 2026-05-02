@@ -6,17 +6,20 @@ import {
   submitSetPassword,
 } from '~/lib/auth/password-auth.server';
 import type { AccountPasswordActionData } from '~/lib/auth/password-auth.shared';
+import { isPasswordAuthEnabled } from '~/lib/auth/password-auth-availability.server';
 import type { User } from '~/lib/auth/schemas';
 import { AccountPage } from '~/pages/dashboard/account';
 import type { Route } from './+types/account';
 
 interface LoaderData {
   hasPassword: boolean;
+  passwordAuthAvailable: boolean;
   user: User;
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
+  const passwordAuthAvailable = isPasswordAuthEnabled();
   const passwordStatus = await getPasswordAccountStatus(request);
   const responseHeaders = cloneHeadersPreservingSetCookie(headers);
 
@@ -27,6 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return Response.json(
     {
       hasPassword: passwordStatus.hasPassword,
+      passwordAuthAvailable,
       user,
     } satisfies LoaderData,
     { headers: responseHeaders },

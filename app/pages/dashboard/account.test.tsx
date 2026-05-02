@@ -17,9 +17,11 @@ const user: User = {
 function renderAccountPage({
   actionData,
   hasPassword = false,
+  passwordAuthAvailable = true,
 }: {
   actionData?: AccountPasswordActionData;
   hasPassword?: boolean;
+  passwordAuthAvailable?: boolean;
 } = {}) {
   const Stub = createRoutesStub([
     {
@@ -30,6 +32,7 @@ function renderAccountPage({
           <AccountPage
             actionData={actionData}
             hasPassword={hasPassword}
+            passwordAuthAvailable={passwordAuthAvailable}
             user={user}
           />
         </MantineProvider>
@@ -45,12 +48,23 @@ describe('AccountPage', () => {
     const { container } = renderAccountPage();
 
     expect(screen.getByRole('heading', { name: 'Security' })).toBeVisible();
-    expect(screen.getByText('Google only')).toBeVisible();
+    expect(screen.getByText('Google sign-in')).toBeVisible();
     expect(container.querySelector('input[name="password"]')).toHaveAttribute(
       'autocomplete',
       'new-password',
     );
     expect(screen.getByRole('button', { name: 'Set password' })).toBeVisible();
+  });
+
+  it('hides set-password controls when password auth is unavailable', () => {
+    const { container } = renderAccountPage({ passwordAuthAvailable: false });
+
+    expect(screen.getByText('Google sign-in')).toBeVisible();
+    expect(screen.getByText('Your account uses Google sign-in.')).toBeVisible();
+    expect(container.querySelector('input[name="password"]')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Set password' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows password sign-in as enabled after a successful action', () => {

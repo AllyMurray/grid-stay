@@ -25,6 +25,7 @@ import {
 interface LoginPageProps {
   actionData?: PasswordAuthActionData;
   notice?: string;
+  passwordAuthAvailable: boolean;
   redirectTo: string;
 }
 
@@ -41,7 +42,12 @@ function getFirstFieldError(
     : undefined;
 }
 
-export function LoginPage({ actionData, notice, redirectTo }: LoginPageProps) {
+export function LoginPage({
+  actionData,
+  notice,
+  passwordAuthAvailable,
+  redirectTo,
+}: LoginPageProps) {
   const navigation = useNavigation();
   const pendingIntent = navigation.formData?.get('intent')?.toString();
 
@@ -84,166 +90,172 @@ export function LoginPage({ actionData, notice, redirectTo }: LoginPageProps) {
                 Continue with Google
               </Button>
 
-              {notice ? (
+              {passwordAuthAvailable && notice ? (
                 <Alert color="green" icon={<IconLock size={16} />}>
                   {notice}
                 </Alert>
               ) : null}
 
-              <Divider label="or" labelPosition="center" />
+              {passwordAuthAvailable ? (
+                <>
+                  <Divider label="or" labelPosition="center" />
 
-              <Tabs
-                defaultValue={
-                  actionData?.intent === 'passwordSignUp' ? 'signup' : 'signin'
-                }
-                keepMounted={false}
-              >
-                <Tabs.List grow>
-                  <Tabs.Tab value="signin">Sign in</Tabs.Tab>
-                  <Tabs.Tab value="signup">Create account</Tabs.Tab>
-                </Tabs.List>
+                  <Tabs
+                    defaultValue={
+                      actionData?.intent === 'passwordSignUp'
+                        ? 'signup'
+                        : 'signin'
+                    }
+                    keepMounted={false}
+                  >
+                    <Tabs.List grow>
+                      <Tabs.Tab value="signin">Sign in</Tabs.Tab>
+                      <Tabs.Tab value="signup">Create account</Tabs.Tab>
+                    </Tabs.List>
 
-                <Tabs.Panel value="signin" pt="lg">
-                  <Form method="post">
-                    <Stack gap="md">
-                      <input
-                        type="hidden"
-                        name="intent"
-                        value="passwordSignIn"
-                      />
-                      <input
-                        type="hidden"
-                        name="redirectTo"
-                        value={redirectTo}
-                      />
-                      {actionData?.intent === 'passwordSignIn' &&
-                      actionData.formError ? (
-                        <Alert color="red" icon={<IconLock size={16} />}>
-                          {actionData.formError}
-                        </Alert>
-                      ) : null}
-                      <TextInput
-                        name="email"
-                        label="Email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignIn',
-                          'email',
-                        )}
-                      />
-                      <PasswordInput
-                        name="password"
-                        label="Password"
-                        autoComplete="current-password"
-                        required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignIn',
-                          'password',
-                        )}
-                      />
-                      <Button
-                        type="submit"
-                        leftSection={<IconLock size={18} />}
-                        loading={pendingIntent === 'passwordSignIn'}
-                        fullWidth
-                      >
-                        Sign in
-                      </Button>
-                      <Button
-                        component={Link}
-                        to="/auth/forgot-password"
-                        variant="subtle"
-                        fullWidth
-                      >
-                        Forgot password?
-                      </Button>
-                    </Stack>
-                  </Form>
-                </Tabs.Panel>
+                    <Tabs.Panel value="signin" pt="lg">
+                      <Form method="post">
+                        <Stack gap="md">
+                          <input
+                            type="hidden"
+                            name="intent"
+                            value="passwordSignIn"
+                          />
+                          <input
+                            type="hidden"
+                            name="redirectTo"
+                            value={redirectTo}
+                          />
+                          {actionData?.intent === 'passwordSignIn' &&
+                          actionData.formError ? (
+                            <Alert color="red" icon={<IconLock size={16} />}>
+                              {actionData.formError}
+                            </Alert>
+                          ) : null}
+                          <TextInput
+                            name="email"
+                            label="Email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            error={getFirstFieldError(
+                              actionData,
+                              'passwordSignIn',
+                              'email',
+                            )}
+                          />
+                          <PasswordInput
+                            name="password"
+                            label="Password"
+                            autoComplete="current-password"
+                            required
+                            error={getFirstFieldError(
+                              actionData,
+                              'passwordSignIn',
+                              'password',
+                            )}
+                          />
+                          <Button
+                            type="submit"
+                            leftSection={<IconLock size={18} />}
+                            loading={pendingIntent === 'passwordSignIn'}
+                            fullWidth
+                          >
+                            Sign in
+                          </Button>
+                          <Button
+                            component={Link}
+                            to="/auth/forgot-password"
+                            variant="subtle"
+                            fullWidth
+                          >
+                            Forgot password?
+                          </Button>
+                        </Stack>
+                      </Form>
+                    </Tabs.Panel>
 
-                <Tabs.Panel value="signup" pt="lg">
-                  <Form method="post">
-                    <Stack gap="md">
-                      <input
-                        type="hidden"
-                        name="intent"
-                        value="passwordSignUp"
-                      />
-                      <input
-                        type="hidden"
-                        name="redirectTo"
-                        value={redirectTo}
-                      />
-                      {actionData?.intent === 'passwordSignUp' &&
-                      actionData.formError ? (
-                        <Alert color="red" icon={<IconLock size={16} />}>
-                          {actionData.formError}
-                        </Alert>
-                      ) : null}
-                      <Group grow align="flex-start">
-                        <TextInput
-                          name="firstName"
-                          label="First name"
-                          autoComplete="given-name"
-                          required
-                          error={getFirstFieldError(
-                            actionData,
-                            'passwordSignUp',
-                            'firstName',
-                          )}
-                        />
-                        <TextInput
-                          name="lastName"
-                          label="Last name"
-                          autoComplete="family-name"
-                          required
-                          error={getFirstFieldError(
-                            actionData,
-                            'passwordSignUp',
-                            'lastName',
-                          )}
-                        />
-                      </Group>
-                      <TextInput
-                        name="email"
-                        label="Email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignUp',
-                          'email',
-                        )}
-                      />
-                      <PasswordInput
-                        name="password"
-                        label="Password"
-                        autoComplete="new-password"
-                        minLength={PASSWORD_MIN_LENGTH}
-                        required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignUp',
-                          'password',
-                        )}
-                      />
-                      <Button
-                        type="submit"
-                        leftSection={<IconLock size={18} />}
-                        loading={pendingIntent === 'passwordSignUp'}
-                        fullWidth
-                      >
-                        Create account
-                      </Button>
-                    </Stack>
-                  </Form>
-                </Tabs.Panel>
-              </Tabs>
+                    <Tabs.Panel value="signup" pt="lg">
+                      <Form method="post">
+                        <Stack gap="md">
+                          <input
+                            type="hidden"
+                            name="intent"
+                            value="passwordSignUp"
+                          />
+                          <input
+                            type="hidden"
+                            name="redirectTo"
+                            value={redirectTo}
+                          />
+                          {actionData?.intent === 'passwordSignUp' &&
+                          actionData.formError ? (
+                            <Alert color="red" icon={<IconLock size={16} />}>
+                              {actionData.formError}
+                            </Alert>
+                          ) : null}
+                          <Group grow align="flex-start">
+                            <TextInput
+                              name="firstName"
+                              label="First name"
+                              autoComplete="given-name"
+                              required
+                              error={getFirstFieldError(
+                                actionData,
+                                'passwordSignUp',
+                                'firstName',
+                              )}
+                            />
+                            <TextInput
+                              name="lastName"
+                              label="Last name"
+                              autoComplete="family-name"
+                              required
+                              error={getFirstFieldError(
+                                actionData,
+                                'passwordSignUp',
+                                'lastName',
+                              )}
+                            />
+                          </Group>
+                          <TextInput
+                            name="email"
+                            label="Email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            error={getFirstFieldError(
+                              actionData,
+                              'passwordSignUp',
+                              'email',
+                            )}
+                          />
+                          <PasswordInput
+                            name="password"
+                            label="Password"
+                            autoComplete="new-password"
+                            minLength={PASSWORD_MIN_LENGTH}
+                            required
+                            error={getFirstFieldError(
+                              actionData,
+                              'passwordSignUp',
+                              'password',
+                            )}
+                          />
+                          <Button
+                            type="submit"
+                            leftSection={<IconLock size={18} />}
+                            loading={pendingIntent === 'passwordSignUp'}
+                            fullWidth
+                          >
+                            Create account
+                          </Button>
+                        </Stack>
+                      </Form>
+                    </Tabs.Panel>
+                  </Tabs>
+                </>
+              ) : null}
             </Stack>
           </Paper>
         </Stack>

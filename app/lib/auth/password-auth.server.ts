@@ -9,11 +9,13 @@ import {
 import { canCreateMemberAccountForEmail } from './member-invites.server';
 import {
   type AccountPasswordActionData,
+  PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
   PASSWORD_MIN_LENGTH,
   type PasswordAuthActionData,
   type PasswordResetActionData,
   type PasswordResetRequestActionData,
 } from './password-auth.shared';
+import { isPasswordAuthEnabled } from './password-auth-availability.server';
 
 const EmailSchema = z.string().transform(normalizeEmail).pipe(z.email());
 
@@ -85,6 +87,10 @@ function passwordResetErrorResponse(
   return Response.json(data, { status: 400, headers });
 }
 
+function isUnavailable() {
+  return !isPasswordAuthEnabled();
+}
+
 async function readAuthError(response: Response, fallback: string) {
   try {
     const body = (await response.clone().json()) as {
@@ -142,6 +148,14 @@ export async function submitPasswordSignIn(
   request: Request,
   formData: FormData,
 ): Promise<Response> {
+  if (isUnavailable()) {
+    return errorResponse({
+      intent: 'passwordSignIn',
+      formError: PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
+      fieldErrors: {},
+    });
+  }
+
   const parsed = PasswordSignInSchema.safeParse(Object.fromEntries(formData));
   const redirectTo = sanitizeRedirectTo(formData.get('redirectTo'));
 
@@ -183,6 +197,14 @@ export async function submitPasswordSignUp(
   request: Request,
   formData: FormData,
 ): Promise<Response> {
+  if (isUnavailable()) {
+    return errorResponse({
+      intent: 'passwordSignUp',
+      formError: PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
+      fieldErrors: {},
+    });
+  }
+
   const parsed = PasswordSignUpSchema.safeParse(Object.fromEntries(formData));
   const redirectTo = sanitizeRedirectTo(formData.get('redirectTo'));
 
@@ -233,6 +255,10 @@ export async function submitPasswordSignUp(
 export async function getPasswordAccountStatus(
   request: Request,
 ): Promise<{ hasPassword: boolean; headers: Headers }> {
+  if (isUnavailable()) {
+    return { hasPassword: false, headers: new Headers() };
+  }
+
   const response = await auth.api.listUserAccounts({
     headers: request.headers,
     asResponse: true,
@@ -257,8 +283,20 @@ export async function submitSetPassword(
   formData: FormData,
   authHeaders?: HeadersInit,
 ): Promise<Response> {
-  const parsed = SetPasswordSchema.safeParse(Object.fromEntries(formData));
   const headers = cloneHeadersPreservingSetCookie(authHeaders);
+
+  if (isUnavailable()) {
+    return accountErrorResponse(
+      {
+        ok: false,
+        formError: PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
+        fieldErrors: {},
+      },
+      headers,
+    );
+  }
+
+  const parsed = SetPasswordSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return accountErrorResponse(
@@ -306,6 +344,14 @@ export async function submitPasswordResetRequest(
   request: Request,
   formData: FormData,
 ): Promise<Response> {
+  if (isUnavailable()) {
+    return passwordResetRequestErrorResponse({
+      ok: false,
+      formError: PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
+      fieldErrors: {},
+    });
+  }
+
   const parsed = PasswordResetRequestSchema.safeParse(
     Object.fromEntries(formData),
   );
@@ -357,6 +403,14 @@ export async function submitPasswordReset(
   request: Request,
   formData: FormData,
 ): Promise<Response> {
+  if (isUnavailable()) {
+    return passwordResetErrorResponse({
+      ok: false,
+      formError: PASSWORD_AUTH_UNAVAILABLE_MESSAGE,
+      fieldErrors: {},
+    });
+  }
+
   const parsed = PasswordResetSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
