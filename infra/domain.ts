@@ -1,6 +1,7 @@
 export const appName = 'grid-stay';
 
-const domain = 'gridstay.app';
+export const domain = 'gridstay.app';
+export const mailFromDomain = `mail.${domain}`;
 
 const usEast1Provider = new aws.Provider('grid-stay-us-east-1', {
   region: 'us-east-1',
@@ -32,7 +33,7 @@ const getCertArn = (stageDomain: string) =>
 
 const stageDomain = getStageDomain($app.stage);
 
-const hostedZoneId = stageDomain
+export const hostedZoneId = stageDomain
   ? await aws.route53.getZone({ name: `${domain}.` }).then((zone) => zone.zoneId)
   : undefined;
 

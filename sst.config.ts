@@ -26,6 +26,7 @@ export default $config({
     await import("./infra/secrets");
     await import("./infra/database");
     await import("./infra/auth-database");
+    await import("./infra/email");
     await import("./infra/available-days-cache");
     await import("./infra/site");
   },
