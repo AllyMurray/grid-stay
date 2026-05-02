@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import {
+  getSiteMemberBookedDays,
   getSiteMemberById,
   listAdminSiteMembers,
   listSiteMembers,
+  submitMemberDayBooking,
 } from './members.server';
 
 const userRecords = [
@@ -37,8 +39,12 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
       userImage: 'https://example.com/ally.png',
       dayId: 'day-1',
       date: '2026-05-03',
+      type: 'race_day',
       status: 'booked',
       circuit: 'Silverstone',
+      circuitId: 'silverstone',
+      circuitName: 'Silverstone',
+      layout: 'GP',
       provider: 'MSV',
       bookingReference: 'REF-123',
       description: 'GT weekend',
@@ -57,6 +63,7 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
       userImage: '',
       dayId: 'day-2',
       date: '2026-05-05',
+      type: 'track_day',
       status: 'maybe',
       circuit: 'Donington Park',
       provider: 'MSV Car Trackdays',
@@ -71,6 +78,7 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
       userImage: '',
       dayId: 'day-3',
       date: '2026-04-01',
+      type: 'race_day',
       status: 'booked',
       circuit: 'Brands Hatch',
       provider: 'MSV',
@@ -85,6 +93,7 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
       userImage: '',
       dayId: 'day-4',
       date: '2026-06-01',
+      type: 'test_day',
       status: 'cancelled',
       circuit: 'Snetterton',
       provider: 'MSV',
@@ -214,5 +223,99 @@ describe('listSiteMembers', () => {
     );
 
     expect(members.map((member) => member.id)).toEqual(['user-1', 'user-2']);
+  });
+
+  it('returns public booked days for a member without private booking fields', async () => {
+    const result = await getSiteMemberBookedDays(
+      'user-1',
+      async () => userRecords,
+      async (userId) => bookingsByUser[userId] ?? [],
+      '2026-04-16',
+      async () => null,
+      async () => acceptedInvites,
+    );
+
+    expect(result?.member).toMatchObject({
+      id: 'user-1',
+      name: 'Ally Murray',
+    });
+    expect(result?.days).toEqual([
+      {
+        dayId: 'day-1',
+        date: '2026-05-03',
+        type: 'race_day',
+        status: 'booked',
+        circuit: 'Silverstone',
+        circuitId: 'silverstone',
+        circuitName: 'Silverstone',
+        layout: 'GP',
+        provider: 'MSV',
+        description: 'GT weekend',
+        accommodationName: 'Trackside Hotel',
+      },
+    ]);
+    expect(result?.days[0]).not.toHaveProperty('bookingReference');
+    expect(result?.days[0]).not.toHaveProperty('accommodationReference');
+    expect(result?.days[0]).not.toHaveProperty('notes');
+  });
+
+  it('creates my booking from another member day without private fields', async () => {
+    const formData = new FormData();
+    formData.set('dayId', 'day-1');
+    formData.set('status', 'booked');
+    const saveBooking = vi.fn().mockResolvedValue({});
+
+    await expect(
+      submitMemberDayBooking(
+        formData,
+        {
+          id: 'current-user',
+          email: 'me@example.com',
+          name: 'Current User',
+          role: 'member',
+        },
+        'user-1',
+        async () => ({
+          member: {
+            id: 'user-1',
+            name: 'Ally Murray',
+            image: 'https://example.com/ally.png',
+            role: 'member',
+          },
+          days: [
+            {
+              dayId: 'day-1',
+              date: '2026-05-03',
+              type: 'race_day',
+              status: 'booked',
+              circuit: 'Silverstone',
+              circuitId: 'silverstone',
+              circuitName: 'Silverstone',
+              layout: 'GP',
+              provider: 'MSV',
+              description: 'GT weekend',
+              accommodationName: 'Trackside Hotel',
+            },
+          ],
+        }),
+        saveBooking,
+      ),
+    ).resolves.toEqual({ ok: true });
+
+    expect(saveBooking).toHaveBeenCalledWith(
+      {
+        dayId: 'day-1',
+        date: '2026-05-03',
+        type: 'race_day',
+        status: 'booked',
+        circuit: 'Silverstone',
+        circuitId: 'silverstone',
+        circuitName: 'Silverstone',
+        layout: 'GP',
+        provider: 'MSV',
+        description: 'GT weekend',
+      },
+      expect.objectContaining({ id: 'current-user' }),
+    );
   });
 });

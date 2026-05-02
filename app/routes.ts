@@ -51,5 +51,9 @@ export default [
     route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
     route('dashboard/members', 'routes/dashboard/members.tsx'),
+    route(
+      'dashboard/members/:memberId',
+      'routes/dashboard/members.$memberId.tsx',
+    ),
   ]),
 ] satisfies RouteConfig;

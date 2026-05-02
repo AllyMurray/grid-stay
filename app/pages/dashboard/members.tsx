@@ -11,7 +11,7 @@ import {
 } from '@mantine/core';
 import { IconMail, IconSearch } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
-import { useFetcher } from 'react-router';
+import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
@@ -102,6 +102,14 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
         <Text size="xs" c="dimmed">
           Stay • {getStaySummary(member)}
         </Text>
+        <Button
+          component={Link}
+          to={`/dashboard/members/${member.id}`}
+          size="xs"
+          variant="default"
+        >
+          View days
+        </Button>
       </Group>
     </Stack>
   );

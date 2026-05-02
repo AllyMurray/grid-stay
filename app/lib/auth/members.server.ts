@@ -6,8 +6,10 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
+import { z } from 'zod';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
+import type { CreateBookingInput } from '~/lib/schemas/booking';
 import {
   isAdminUser,
   isBootstrapMemberEmail,
@@ -52,6 +54,26 @@ export interface AdminMemberDirectoryEntry extends MemberDirectoryEntry {
   email: string;
 }
 
+export interface MemberBookedDay {
+  dayId: string;
+  date: string;
+  type: NonNullable<BookingRecord['type']>;
+  status: 'booked' | 'maybe';
+  circuit: string;
+  circuitId?: string;
+  circuitName?: string;
+  layout?: string;
+  circuitKnown?: boolean;
+  provider: string;
+  description: string;
+  accommodationName?: string;
+}
+
+export interface MemberBookedDaysData {
+  member: Pick<AuthUserRecord, 'id' | 'name' | 'image' | 'role'>;
+  days: MemberBookedDay[];
+}
+
 type MemberProfileSummary = Pick<MemberProfileRecord, 'userId' | 'displayName'>;
 
 type LoadMemberProfiles = () => Promise<MemberProfileSummary[]>;
@@ -66,6 +88,27 @@ type MemberInviteAccessRecord = {
 };
 
 type LoadMemberInvites = () => Promise<MemberInviteAccessRecord[]>;
+
+type LoadBookings = (userId: string) => Promise<BookingRecord[]>;
+
+type SaveBooking = (input: CreateBookingInput, user: User) => Promise<unknown>;
+
+type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
+
+export type MemberDayBookingActionResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<'dayId' | 'status'>;
+    };
+
+const MemberDayBookingSchema = z.object({
+  dayId: z.string().min(1),
+  status: z.enum(['booked', 'maybe']),
+});
 
 async function scanAuthUsers(): Promise<AuthUserRecord[]> {
   const users: AuthUserRecord[] = [];
@@ -103,6 +146,19 @@ function getActiveBookings(bookings: BookingRecord[], today: string) {
     .sort((left, right) => left.date.localeCompare(right.date));
 }
 
+async function loadBookingsDefault(userId: string): Promise<BookingRecord[]> {
+  const { listMyBookings } = await import('~/lib/db/services/booking.server');
+  return listMyBookings(userId);
+}
+
+async function saveBookingDefault(
+  input: CreateBookingInput,
+  user: User,
+): Promise<unknown> {
+  const { createBooking } = await import('~/lib/db/services/booking.server');
+  return createBooking(input, user);
+}
+
 async function loadMemberProfilesDefault(): Promise<MemberProfileSummary[]> {
   const { listMemberProfiles } = await import(
     '~/lib/db/services/member-profile.server'
@@ -122,6 +178,48 @@ async function loadMemberProfileDefault(
 async function loadMemberInvitesDefault(): Promise<MemberInviteAccessRecord[]> {
   const { listMemberInvites } = await import('./member-invites.server');
   return listMemberInvites();
+}
+
+function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
+  if (booking.status === 'cancelled' || !booking.type) {
+    return null;
+  }
+
+  return {
+    dayId: booking.dayId,
+    date: booking.date,
+    type: booking.type,
+    status: booking.status,
+    circuit: booking.circuit,
+    circuitId: booking.circuitId,
+    circuitName: booking.circuitName,
+    layout: booking.layout,
+    circuitKnown: booking.circuitKnown,
+    provider: booking.provider,
+    description: booking.description,
+    accommodationName: booking.accommodationName,
+  };
+}
+
+function toCreateBookingInput(
+  day: MemberBookedDay,
+  status: CreateBookingInput['status'],
+): CreateBookingInput {
+  return {
+    dayId: day.dayId,
+    date: day.date,
+    type: day.type,
+    status,
+    circuit: day.circuit,
+    ...(day.circuitId ? { circuitId: day.circuitId } : {}),
+    ...(day.circuitName ? { circuitName: day.circuitName } : {}),
+    ...(day.layout ? { layout: day.layout } : {}),
+    ...(day.circuitKnown !== undefined
+      ? { circuitKnown: day.circuitKnown }
+      : {}),
+    provider: day.provider,
+    description: day.description,
+  };
 }
 
 function withMemberProfile(
@@ -245,12 +343,7 @@ function filterInvitedUsers(
 
 export async function listSiteMembers(
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
-  loadBookings: (userId: string) => Promise<BookingRecord[]> = async (
-    userId,
-  ) => {
-    const { listMyBookings } = await import('~/lib/db/services/booking.server');
-    return listMyBookings(userId);
-  },
+  loadBookings: LoadBookings = loadBookingsDefault,
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
   loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
@@ -275,12 +368,7 @@ export async function listSiteMembers(
 
 export async function listAdminSiteMembers(
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
-  loadBookings: (userId: string) => Promise<BookingRecord[]> = async (
-    userId,
-  ) => {
-    const { listMyBookings } = await import('~/lib/db/services/booking.server');
-    return listMyBookings(userId);
-  },
+  loadBookings: LoadBookings = loadBookingsDefault,
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
   loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
@@ -318,6 +406,78 @@ export async function getSiteMemberById(
     (candidate) => candidate.id === memberId,
   );
   return user ? withMemberProfile(user, profile) : null;
+}
+
+export async function getSiteMemberBookedDays(
+  memberId: string,
+  loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
+  loadBookings: LoadBookings = loadBookingsDefault,
+  today = new Date().toISOString().slice(0, 10),
+  loadProfile: LoadMemberProfile = loadMemberProfileDefault,
+  loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
+): Promise<MemberBookedDaysData | null> {
+  const member = await getSiteMemberById(
+    memberId,
+    loadUsers,
+    loadProfile,
+    loadInvites,
+  );
+
+  if (!member) {
+    return null;
+  }
+
+  const days = getActiveBookings(await loadBookings(member.id), today)
+    .map(toMemberBookedDay)
+    .filter((day): day is MemberBookedDay => Boolean(day));
+
+  return {
+    member: {
+      id: member.id,
+      name: member.name,
+      image: member.image,
+      role: member.role ?? 'member',
+    },
+    days,
+  };
+}
+
+export async function submitMemberDayBooking(
+  formData: FormData,
+  user: User,
+  memberId: string,
+  loadMemberDays: (
+    memberId: string,
+  ) => Promise<MemberBookedDaysData | null> = getSiteMemberBookedDays,
+  saveBooking: SaveBooking = saveBookingDefault,
+): Promise<MemberDayBookingActionResult> {
+  const parsed = MemberDayBookingSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'This day could not be added right now.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const memberDays = await loadMemberDays(memberId);
+  const day = memberDays?.days.find(
+    (candidate) => candidate.dayId === parsed.data.dayId,
+  );
+
+  if (!memberDays || !day) {
+    return {
+      ok: false,
+      formError: 'This member day is no longer available to add.',
+      fieldErrors: {
+        dayId: ['This member day is no longer available to add.'],
+      },
+    };
+  }
+
+  await saveBooking(toCreateBookingInput(day, parsed.data.status), user);
+  return { ok: true };
 }
 
 export async function setAuthUserRole(
