@@ -40,12 +40,18 @@ describe('password reset email', () => {
     expect(sendTransactionalEmail).toHaveBeenCalledWith({
       to: 'driver@example.com',
       subject: 'Reset your Grid Stay password',
-      text: expect.stringContaining(
-        'https://gridstay.app/auth/reset-password?token=reset-token',
-      ),
-      html: expect.stringContaining(
-        'https://gridstay.app/auth/reset-password?token=reset-token',
-      ),
+      text: expect.stringContaining('Grid Stay\n\nReset your password'),
+      html: expect.stringContaining('background-color:#111827'),
     });
+    expect(sendTransactionalEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining(
+          'https://gridstay.app/auth/reset-password?token=reset-token',
+        ),
+        html: expect.stringContaining(
+          'href="https://gridstay.app/auth/reset-password?token=reset-token"',
+        ),
+      }),
+    );
   });
 });
