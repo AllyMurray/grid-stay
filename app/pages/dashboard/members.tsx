@@ -1,6 +1,7 @@
 import {
   Alert,
   Avatar,
+  Badge,
   Button,
   Divider,
   Group,
@@ -13,7 +14,6 @@ import { IconMail, IconSearch } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
-import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type {
   MemberInviteActionResult,
@@ -71,6 +71,33 @@ function matchesMemberQuery(member: MemberDirectoryEntry, query: string) {
     member.nextTrip?.provider,
     member.nextTrip?.accommodationName,
   ].some((field) => field?.toLowerCase().includes(value));
+}
+
+function formatMemberCount(value: number) {
+  return `${value} ${value === 1 ? 'member' : 'members'}`;
+}
+
+function formatMembersWithTripsCount(value: number) {
+  return `${value} ${value === 1 ? 'with trip' : 'with trips'}`;
+}
+
+function MembersHeaderMeta({
+  memberCount,
+  membersWithTripsCount,
+}: {
+  memberCount: number;
+  membersWithTripsCount: number;
+}) {
+  return (
+    <Group gap="xs" wrap="wrap">
+      <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
+        {formatMemberCount(memberCount)}
+      </Badge>
+      <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
+        {formatMembersWithTripsCount(membersWithTripsCount)}
+      </Badge>
+    </Group>
+  );
 }
 
 function MemberRow({ member }: { member: MemberDirectoryEntry }) {
@@ -245,10 +272,6 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
   const membersWithTrips = members.filter(
     (member) => member.activeTripsCount > 0,
   );
-  const totalSharedStays = members.reduce(
-    (count, member) => count + member.sharedStayCount,
-    0,
-  );
 
   return (
     <Stack gap="xl">
@@ -257,12 +280,9 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
         title="Site members"
         description="See who is on the site, invite new members, and check who already has stays in play."
         meta={
-          <HeaderStatGrid
-            items={[
-              { label: 'Members', value: members.length },
-              { label: 'With trips', value: membersWithTrips.length },
-              { label: 'Shared stays', value: totalSharedStays },
-            ]}
+          <MembersHeaderMeta
+            memberCount={members.length}
+            membersWithTripsCount={membersWithTrips.length}
           />
         }
       />
