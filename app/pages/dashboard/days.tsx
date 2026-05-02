@@ -20,7 +20,6 @@ import {
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Form, Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
-import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type {
   BulkRaceSeriesBookingActionResult,
@@ -156,6 +155,46 @@ function countActiveFilters(filters: DaysIndexData['filters']) {
     (filters.circuits.length > 0 ? 1 : 0) +
     (filters.provider ? 1 : 0) +
     (filters.type ? 1 : 0)
+  );
+}
+
+function formatActiveFilterCount(value: number) {
+  if (value === 0) {
+    return 'No filters';
+  }
+
+  return `${value} ${value === 1 ? 'filter' : 'filters'} applied`;
+}
+
+function AvailableDaysHeaderMeta({
+  totalCount,
+  activeFilterCount,
+  refreshedAt,
+}: {
+  totalCount: number;
+  activeFilterCount: number;
+  refreshedAt: string;
+}) {
+  return (
+    <Stack gap="xs">
+      <Group gap="xs" wrap="wrap">
+        <Badge color="brand" variant="light" size="lg" radius="sm" tt="none">
+          {totalCount} matching days
+        </Badge>
+        <Badge
+          color={activeFilterCount > 0 ? 'brand' : 'gray'}
+          variant="light"
+          size="lg"
+          radius="sm"
+          tt="none"
+        >
+          {formatActiveFilterCount(activeFilterCount)}
+        </Badge>
+      </Group>
+      <Text size="sm" c="dimmed">
+        Last refresh {formatRefreshedAt(refreshedAt)}
+      </Text>
+    </Stack>
   );
 }
 
@@ -1840,31 +1879,11 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         title="Available Days"
         description="Open one live date at a time to review the group plan, shared stay, and your next trip action."
         meta={
-          <Stack gap={8}>
-            <HeaderStatGrid
-              items={[
-                {
-                  label: 'Matching days',
-                  value: loadedDays.totalCount,
-                },
-                {
-                  label: 'Circuits tracked',
-                  value: data.circuitOptions.length,
-                },
-                {
-                  label: 'Providers tracked',
-                  value: data.providerOptions.length,
-                },
-                {
-                  label: 'Filters applied',
-                  value: activeFilterCount,
-                },
-              ]}
-            />
-            <Text size="sm" c="dimmed">
-              Last refresh {formatRefreshedAt(data.refreshedAt)}
-            </Text>
-          </Stack>
+          <AvailableDaysHeaderMeta
+            totalCount={loadedDays.totalCount}
+            activeFilterCount={activeFilterCount}
+            refreshedAt={data.refreshedAt}
+          />
         }
         actions={
           <>

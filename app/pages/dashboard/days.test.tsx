@@ -172,6 +172,10 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Available Days' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('2 matching days')).toBeInTheDocument();
+    expect(screen.getByText('No filters')).toBeInTheDocument();
+    expect(screen.queryByText(/Circuits tracked/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Providers tracked/i)).not.toBeInTheDocument();
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/2 attending/i).length).toBeGreaterThan(0);
     expect(
