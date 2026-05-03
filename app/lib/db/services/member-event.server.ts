@@ -1,26 +1,16 @@
 import type { User } from '~/lib/auth/schemas';
 import { createAvailableDayNotificationsSafely } from '~/lib/db/services/day-notification.server';
-import {
-  type CreateEventRequestInput,
-  CreateEventRequestSchema,
-} from '~/lib/schemas/event-request';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
 import {
-  EventRequestEntity,
-  type EventRequestRecord,
-} from '../entities/event-request.server';
+  type CreateMemberEventInput,
+  CreateMemberEventSchema,
+} from '~/lib/schemas/member-event';
 import type { ManualDayRecord } from '../entities/manual-day.server';
 import { createManualDay, toAvailableManualDay } from './manual-day.server';
 
-export const EVENT_REQUEST_SCOPE = 'event-request';
-
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
-export interface EventRequestPersistence {
-  listAll(): Promise<EventRequestRecord[]>;
-}
-
-export type EventRequestActionResult =
+export type MemberEventActionResult =
   | {
       ok: true;
       message: string;
@@ -29,42 +19,22 @@ export type EventRequestActionResult =
   | {
       ok: false;
       formError: string;
-      fieldErrors: FieldErrors<keyof CreateEventRequestInput>;
+      fieldErrors: FieldErrors<keyof CreateMemberEventInput>;
     };
-
-export const eventRequestStore: EventRequestPersistence = {
-  async listAll() {
-    const response = await EventRequestEntity.query
-      .byScope({ requestScope: EVENT_REQUEST_SCOPE })
-      .go();
-    return response.data;
-  },
-};
 
 function sanitizeOptional(value?: string): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
 }
 
-function compareEventRequestsNewestFirst(
-  left: EventRequestRecord,
-  right: EventRequestRecord,
-) {
-  if (left.createdAt !== right.createdAt) {
-    return right.createdAt.localeCompare(left.createdAt);
-  }
-
-  return right.requestId.localeCompare(left.requestId);
-}
-
-function buildManualDayDescription(input: CreateEventRequestInput) {
+function buildManualDayDescription(input: CreateMemberEventInput) {
   const details = sanitizeOptional(input.description);
   const description = details ? `${input.title}. ${details}` : input.title;
   return description.slice(0, 200);
 }
 
 function createManualDayInput(
-  input: CreateEventRequestInput,
+  input: CreateMemberEventInput,
 ): CreateManualDayInput {
   return {
     date: input.date,
@@ -77,15 +47,15 @@ function createManualDayInput(
   };
 }
 
-export async function submitEventRequestAction(
+export async function submitMemberEventAction(
   formData: FormData,
   user: User,
   dependencies: {
     saveManualDay?: typeof createManualDay;
     notifyAvailableDays?: typeof createAvailableDayNotificationsSafely;
   } = {},
-): Promise<EventRequestActionResult> {
-  const parsed = CreateEventRequestSchema.safeParse(
+): Promise<MemberEventActionResult> {
+  const parsed = CreateMemberEventSchema.safeParse(
     Object.fromEntries(formData),
   );
 
@@ -109,12 +79,4 @@ export async function submitEventRequestAction(
     message: 'Event added to Available Days.',
     day,
   };
-}
-
-export async function listRecentEventRequests(
-  limit = 100,
-  store: EventRequestPersistence = eventRequestStore,
-): Promise<EventRequestRecord[]> {
-  const requests = await store.listAll();
-  return requests.sort(compareEventRequestsNewestFirst).slice(0, limit);
 }

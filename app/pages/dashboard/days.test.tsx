@@ -525,14 +525,14 @@ describe('AvailableDaysPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
 
     await screen.findByRole('dialog', { name: 'Add an event' });
-    const eventRequestForm = document.querySelector<HTMLInputElement>(
+    const memberEventForm = document.querySelector<HTMLInputElement>(
       'input[name="intent"][value="createMemberEvent"]',
     )?.form;
 
-    expect(eventRequestForm).toBeTruthy();
+    expect(memberEventForm).toBeTruthy();
     const field = (name: string) =>
-      eventRequestForm!.elements.namedItem(name) as HTMLElement;
-    const dateField = eventRequestForm!.querySelector(
+      memberEventForm!.elements.namedItem(name) as HTMLElement;
+    const dateField = memberEventForm!.querySelector(
       'input[name="date"]',
     ) as HTMLInputElement;
 

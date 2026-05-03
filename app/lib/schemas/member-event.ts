@@ -20,7 +20,7 @@ const OptionalUrlSchema = z
     message: 'Enter a full http:// or https:// URL',
   });
 
-export const CreateEventRequestSchema = z.object({
+export const CreateMemberEventSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   type: AvailableDayTypeSchema.default('track_day'),
   title: z.string().trim().min(3).max(120),
@@ -30,4 +30,4 @@ export const CreateEventRequestSchema = z.object({
   bookingUrl: OptionalUrlSchema,
 });
 
-export type CreateEventRequestInput = z.infer<typeof CreateEventRequestSchema>;
+export type CreateMemberEventInput = z.infer<typeof CreateMemberEventSchema>;

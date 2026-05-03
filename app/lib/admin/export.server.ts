@@ -12,7 +12,6 @@ import type { CostGroupRecord } from '~/lib/db/entities/cost-group.server';
 import type { CostSettlementRecord } from '~/lib/db/entities/cost-settlement.server';
 import type { DayMergeRecord } from '~/lib/db/entities/day-merge.server';
 import type { DayPlanRecord } from '~/lib/db/entities/day-plan.server';
-import type { EventRequestRecord } from '~/lib/db/entities/event-request.server';
 import type { ExternalNotificationRecord } from '~/lib/db/entities/external-notification.server';
 import type { FeedbackRecord } from '~/lib/db/entities/feedback.server';
 import type { GarageShareRequestRecord } from '~/lib/db/entities/garage-share-request.server';
@@ -33,7 +32,6 @@ import {
 } from '~/lib/db/services/cost-splitting.server';
 import { listDayMerges } from '~/lib/db/services/day-merge.server';
 import { dayPlanStore } from '~/lib/db/services/day-plan.server';
-import { eventRequestStore } from '~/lib/db/services/event-request.server';
 import { externalNotificationStore } from '~/lib/db/services/external-notification.server';
 import { feedbackStore } from '~/lib/db/services/feedback.server';
 import { garageShareRequestStore } from '~/lib/db/services/garage-share-request.server';
@@ -49,7 +47,6 @@ export interface AdminExportDependencies {
   loadAvailableDaysSnapshot?: typeof getAvailableDaysSnapshot;
   loadManualDays?: typeof listManagedManualDays;
   loadSharedDayPlans?: typeof dayPlanStore.listAll;
-  loadEventRequests?: typeof eventRequestStore.listAll;
   loadSeriesSubscriptions?: typeof seriesSubscriptionStore.listByUser;
   loadCalendarFeeds?: typeof calendarFeedStore.listByUser;
   loadCircuitAliases?: typeof listCircuitAliases;
@@ -71,13 +68,12 @@ export interface AdminCalendarFeedExport
 }
 
 export interface AdminDataExport {
-  exportVersion: 6;
+  exportVersion: 7;
   exportedAt: string;
   members: AdminMemberDirectoryEntry[];
   memberInvites: Awaited<ReturnType<typeof listMemberInvites>>;
   bookings: BookingRecord[];
   manualDays: ManualDayRecord[];
-  eventRequests: EventRequestRecord[];
   sharedDayPlans: DayPlanRecord[];
   seriesSubscriptions: SeriesSubscriptionRecord[];
   calendarFeeds: AdminCalendarFeedExport[];
@@ -100,7 +96,6 @@ export interface AdminDataExportSummary {
   inviteCount: number;
   bookingCount: number;
   manualDayCount: number;
-  eventRequestCount: number;
   sharedPlanCount: number;
   seriesSubscriptionCount: number;
   calendarFeedCount: number;
@@ -138,8 +133,6 @@ export async function createAdminDataExport(
   const loadManualDays = dependencies.loadManualDays ?? listManagedManualDays;
   const loadSharedDayPlans =
     dependencies.loadSharedDayPlans ?? dayPlanStore.listAll;
-  const loadEventRequestRecords =
-    dependencies.loadEventRequests ?? eventRequestStore.listAll;
   const loadSeriesSubscriptions =
     dependencies.loadSeriesSubscriptions ?? seriesSubscriptionStore.listByUser;
   const loadCalendarFeeds =
@@ -170,7 +163,6 @@ export async function createAdminDataExport(
     memberInvites,
     availableDaysSnapshot,
     manualDays,
-    eventRequests,
     dayPlans,
     circuitAliases,
     dayMerges,
@@ -187,7 +179,6 @@ export async function createAdminDataExport(
     loadMemberInvites(),
     loadAvailableDaysSnapshot(),
     loadManualDays(),
-    loadEventRequestRecords(),
     loadSharedDayPlans(),
     loadCircuitAliasRecords(),
     loadDayMergeRecords(),
@@ -208,13 +199,12 @@ export async function createAdminDataExport(
     ]);
 
   return {
-    exportVersion: 6,
+    exportVersion: 7,
     exportedAt,
     members,
     memberInvites,
     bookings: bookingsByMember.flat(),
     manualDays,
-    eventRequests,
     sharedDayPlans: dayPlans,
     seriesSubscriptions: subscriptionsByMember.flat(),
     calendarFeeds: feedsByMember.flat().map(redactCalendarFeedToken),
@@ -241,7 +231,6 @@ export function summarizeAdminDataExport(
     inviteCount: dataExport.memberInvites.length,
     bookingCount: dataExport.bookings.length,
     manualDayCount: dataExport.manualDays.length,
-    eventRequestCount: dataExport.eventRequests.length,
     sharedPlanCount: dataExport.sharedDayPlans.length,
     seriesSubscriptionCount: dataExport.seriesSubscriptions.length,
     calendarFeedCount: dataExport.calendarFeeds.length,

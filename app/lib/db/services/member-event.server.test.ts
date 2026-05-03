@@ -2,9 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { User } from '~/lib/auth/schemas';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
 
-vi.mock('../entities/event-request.server', () => ({
-  EventRequestEntity: {},
-}));
 vi.mock('~/lib/db/services/day-notification.server', () => ({
   createAvailableDayNotificationsSafely: vi.fn(),
 }));
@@ -26,14 +23,8 @@ vi.mock('./manual-day.server', () => ({
   }),
 }));
 
-import type { EventRequestRecord } from '../entities/event-request.server';
 import type { ManualDayRecord } from '../entities/manual-day.server';
-import {
-  EVENT_REQUEST_SCOPE,
-  type EventRequestPersistence,
-  listRecentEventRequests,
-  submitEventRequestAction,
-} from './event-request.server';
+import { submitMemberEventAction } from './member-event.server';
 
 const user: User = {
   id: 'user-1',
@@ -80,39 +71,6 @@ function createManualDayRecord(
   } as ManualDayRecord;
 }
 
-function createRequest(
-  overrides: Partial<EventRequestRecord> = {},
-): EventRequestRecord {
-  return {
-    requestId: 'request-1',
-    requestScope: EVENT_REQUEST_SCOPE,
-    status: 'pending',
-    date: '2026-05-10',
-    type: 'road_drive',
-    title: 'Sunday road drive',
-    location: 'North Coast 500',
-    provider: 'Grid Stay',
-    description: 'A group drive.',
-    submittedByUserId: user.id,
-    submittedByName: user.name,
-    submittedByEmail: user.email,
-    createdAt: '2026-05-03T10:00:00.000Z',
-    updatedAt: '2026-05-03T10:00:00.000Z',
-    ...overrides,
-  } as EventRequestRecord;
-}
-
-function createMemoryStore(initialItems: EventRequestRecord[] = []) {
-  const items = [...initialItems];
-  const store: EventRequestPersistence = {
-    async listAll() {
-      return [...items];
-    },
-  };
-
-  return { store };
-}
-
 describe('member-added event service', () => {
   it('adds member-submitted events directly as manual days', async () => {
     const saveManualDay = vi.fn(
@@ -121,7 +79,7 @@ describe('member-added event service', () => {
     );
     const notifyAvailableDays = vi.fn(async () => []);
 
-    const result = await submitEventRequestAction(createFormData(), user, {
+    const result = await submitMemberEventAction(createFormData(), user, {
       saveManualDay,
       notifyAvailableDays,
     });
@@ -162,7 +120,7 @@ describe('member-added event service', () => {
         createManualDayRecord(input, owner),
     );
     const notifyAvailableDays = vi.fn(async () => []);
-    const result = await submitEventRequestAction(
+    const result = await submitMemberEventAction(
       createFormData({
         date: 'not-a-date',
         title: '',
@@ -195,7 +153,7 @@ describe('member-added event service', () => {
     );
     const longDescription = 'Details '.repeat(60);
 
-    await submitEventRequestAction(
+    await submitMemberEventAction(
       createFormData({
         description: longDescription,
       }),
@@ -209,20 +167,5 @@ describe('member-added event service', () => {
     const input = saveManualDay.mock.calls[0]?.[0];
     expect(input?.description).toHaveLength(200);
     expect(input?.description).toMatch(/^Sunday road drive\. Details/);
-  });
-
-  it('still lists older request records newest first for exports', async () => {
-    const memory = createMemoryStore([
-      createRequest(),
-      createRequest({
-        requestId: 'request-2',
-        createdAt: '2026-05-04T10:00:00.000Z',
-        updatedAt: '2026-05-04T10:00:00.000Z',
-      }),
-    ]);
-
-    await expect(listRecentEventRequests(1, memory.store)).resolves.toEqual([
-      expect.objectContaining({ requestId: 'request-2' }),
-    ]);
   });
 });

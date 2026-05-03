@@ -22,7 +22,7 @@ import {
 } from '~/lib/days/preferences.server';
 import { submitSharedDayPlan } from '~/lib/days/shared-plan.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import { submitEventRequestAction } from '~/lib/db/services/event-request.server';
+import { submitMemberEventAction } from '~/lib/db/services/member-event.server';
 import { submitGarageShareRequest } from '~/lib/garage-sharing/actions.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
 import type { Route } from './+types/days';
@@ -42,7 +42,7 @@ type AvailableDaysActionResult =
   | Awaited<ReturnType<typeof submitUpdateCostExpense>>
   | Awaited<ReturnType<typeof submitDeleteCostExpense>>
   | Awaited<ReturnType<typeof submitUpdateCostSettlement>>
-  | Awaited<ReturnType<typeof submitEventRequestAction>>;
+  | Awaited<ReturnType<typeof submitMemberEventAction>>;
 
 function revalidationFilterKey(url: URL) {
   const params = new URLSearchParams(url.searchParams);
@@ -88,7 +88,7 @@ export async function action({ request }: Route.ActionArgs) {
   } else if (intent === 'requestGarageShare') {
     result = await submitGarageShareRequest(formData, user);
   } else if (intent === 'createMemberEvent') {
-    result = await submitEventRequestAction(formData, user);
+    result = await submitMemberEventAction(formData, user);
   } else if (intent === 'addRaceSeries') {
     result = await submitBulkRaceSeriesBooking(formData, user);
   } else {

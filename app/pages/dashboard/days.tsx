@@ -57,7 +57,7 @@ import type {
   EventCostSummary,
   NetCostSettlement,
 } from '~/lib/db/services/cost-splitting.server';
-import type { EventRequestActionResult } from '~/lib/db/services/event-request.server';
+import type { MemberEventActionResult } from '~/lib/db/services/member-event.server';
 import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface AvailableDaysPageProps {
@@ -253,10 +253,10 @@ function formatSavedFilterSummary(
 
 function getMemberEventFieldError(
   fieldErrors:
-    | Extract<EventRequestActionResult, { ok: false }>['fieldErrors']
+    | Extract<MemberEventActionResult, { ok: false }>['fieldErrors']
     | undefined,
   fieldName: keyof Extract<
-    EventRequestActionResult,
+    MemberEventActionResult,
     { ok: false }
   >['fieldErrors'],
 ) {
@@ -264,7 +264,7 @@ function getMemberEventFieldError(
 }
 
 function MemberEventForm({ onClose }: { onClose: () => void }) {
-  const fetcher = useFetcher<EventRequestActionResult>();
+  const fetcher = useFetcher<MemberEventActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const success = fetcher.data?.ok ? fetcher.data : null;
   const fieldErrors =
@@ -2651,7 +2651,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       ? { [data.selectedDay.dayId]: data.selectedDayCostSummary }
       : {},
   );
-  const [eventRequestModalOpened, setEventRequestModalOpened] = useState(false);
+  const [memberEventModalOpened, setMemberEventModalOpened] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const previousFilterKeyRef = useRef(data.filterKey);
   const pendingOffsetRef = useRef<number | null>(null);
@@ -3028,13 +3028,13 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   return (
     <Stack gap="xl">
       <Modal
-        opened={eventRequestModalOpened}
-        onClose={() => setEventRequestModalOpened(false)}
+        opened={memberEventModalOpened}
+        onClose={() => setMemberEventModalOpened(false)}
         title="Add an event"
         size="lg"
         centered
       >
-        <MemberEventForm onClose={() => setEventRequestModalOpened(false)} />
+        <MemberEventForm onClose={() => setMemberEventModalOpened(false)} />
       </Modal>
 
       <PageHeader
@@ -3065,7 +3065,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             <Button
               type="button"
               variant="light"
-              onClick={() => setEventRequestModalOpened(true)}
+              onClick={() => setMemberEventModalOpened(true)}
             >
               Add event
             </Button>
