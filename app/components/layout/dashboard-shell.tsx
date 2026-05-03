@@ -33,7 +33,7 @@ import {
   IconUsersGroup,
 } from '@tabler/icons-react';
 import type { ComponentType } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useRevalidator } from 'react-router';
 import { isAdminUser } from '~/lib/auth/authorization';
 import type { User } from '~/lib/auth/schemas';
@@ -169,9 +169,20 @@ export function DashboardShell({
   const revalidator = useRevalidator();
   const isAdmin = isAdminUser(user);
   const mobileMenuId = 'dashboard-mobile-menu';
-  const whatsNewCount = location.pathname.startsWith('/dashboard/whats-new')
-    ? 0
-    : newWhatsNewCount;
+  const [visibleWhatsNewCount, setVisibleWhatsNewCount] =
+    useState(newWhatsNewCount);
+  const isWhatsNewPage = location.pathname.startsWith('/dashboard/whats-new');
+  const whatsNewCount = isWhatsNewPage ? 0 : visibleWhatsNewCount;
+
+  useEffect(() => {
+    setVisibleWhatsNewCount(newWhatsNewCount);
+  }, [newWhatsNewCount]);
+
+  useEffect(() => {
+    if (isWhatsNewPage) {
+      setVisibleWhatsNewCount(0);
+    }
+  }, [isWhatsNewPage]);
 
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {

@@ -181,6 +181,40 @@ describe('DashboardLayoutRoute', () => {
     expect(within(whatsNewLink).queryByText('2')).not.toBeInTheDocument();
   });
 
+  it("keeps the what's new badge cleared after visiting the page", async () => {
+    const user = userEvent.setup();
+    renderDashboard(dashboardUser, { newWhatsNewCount: 2 });
+
+    await user.click(await screen.findByRole('button', { name: 'Open menu' }));
+
+    let drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+    await user.click(
+      within(drawer).getByRole('link', {
+        name: "What's New, 2 new updates",
+      }),
+    );
+
+    expect(await screen.findByText("What's new content")).toBeInTheDocument();
+
+    await user.click(await screen.findByRole('button', { name: 'Open menu' }));
+    drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+    expect(
+      within(drawer).getByRole('link', { name: "What's New" }),
+    ).toBeInTheDocument();
+    await user.click(within(drawer).getByRole('link', { name: 'Overview' }));
+
+    expect(await screen.findByText('Dashboard content')).toBeInTheDocument();
+
+    await user.click(await screen.findByRole('button', { name: 'Open menu' }));
+    drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+
+    const whatsNewLink = within(drawer).getByRole('link', {
+      name: "What's New",
+    });
+
+    expect(within(whatsNewLink).queryByText('2')).not.toBeInTheDocument();
+  });
+
   it('resets the mobile menu when Safari restores the page from back-forward cache', async () => {
     const user = userEvent.setup();
     renderDashboard();
