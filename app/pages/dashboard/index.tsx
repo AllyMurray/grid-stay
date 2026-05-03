@@ -282,8 +282,9 @@ export function DashboardIndexPage({
   const nextBookingDay = nextBooking
     ? (nextDays.find((day) => day.dayId === nextBooking.dayId) ?? null)
     : null;
-  const focusDay = nextBooking ? (nextBookingDay ?? nextLiveDay) : nextLiveDay;
-  const nextTripReferenceLabel = bookingReferenceLabel(nextBookingDay?.type);
+  const focusDay = nextBooking ? nextBookingDay : nextLiveDay;
+  const nextTripType = nextBooking?.type ?? focusDay?.type;
+  const nextTripReferenceLabel = bookingReferenceLabel(nextTripType);
   const nextTripItems = nextBooking
     ? [
         {
@@ -336,7 +337,7 @@ export function DashboardIndexPage({
         },
       ];
   const nextTripTaskItems = nextBooking
-    ? nextTripTasks(nextBooking, nextBookingDay?.type)
+    ? nextTripTasks(nextBooking, nextBooking.type)
     : ['Review the live calendar and add the next date worth locking in.'];
 
   return (
@@ -392,9 +393,9 @@ export function DashboardIndexPage({
                 </Text>
               </Stack>
               <Group gap="xs" align="flex-start">
-                {focusDay ? (
-                  <Badge color={typeColor(focusDay.type)}>
-                    {titleCase(focusDay.type)}
+                {nextTripType ? (
+                  <Badge color={typeColor(nextTripType)}>
+                    {titleCase(nextTripType)}
                   </Badge>
                 ) : null}
                 {nextBooking ? (

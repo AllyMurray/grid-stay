@@ -1,5 +1,5 @@
 import { MantineProvider } from '@mantine/core';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import type { AvailableDay } from '~/lib/days/types';
@@ -119,5 +119,58 @@ describe('DashboardIndexPage', () => {
         (link) => link.getAttribute('href') === '/dashboard/days',
       ),
     ).toBe(true);
+  });
+
+  it('uses the booking type for the next trip when its live day is outside the loaded preview', () => {
+    const unrelatedRaceDay: AvailableDay = {
+      ...nextDay,
+      dayId: 'race-day-1',
+      date: '2026-05-04',
+      type: 'race_day',
+      circuit: 'Cadwell Park',
+      provider: 'Caterham Motorsport',
+      description: 'Race weekend',
+    };
+    const trackBooking: BookingRecord = {
+      ...upcomingBooking,
+      bookingId:
+        'track_day:knockhill-trackday:v2:dated-2026-05-22-e2167e1a85c4726e:base',
+      dayId:
+        'track_day:knockhill-trackday:v2:dated-2026-05-22-e2167e1a85c4726e:base',
+      date: '2026-05-22',
+      type: 'track_day',
+      circuit: 'Knockhill',
+      provider: 'Knockhill',
+      description: 'Car Trackday Open Session • Full Day',
+    };
+
+    renderWithProviders(
+      <DashboardIndexPage
+        firstName="Ally"
+        availableDaysCount={42}
+        daysThisMonth={8}
+        activeBookingsCount={3}
+        sharedStayCount={2}
+        maybeBookingsCount={1}
+        tripsMissingStayCount={1}
+        tripsWithSharedStayCount={2}
+        privateRefsOpenCount={0}
+        nextDays={[unrelatedRaceDay]}
+        upcomingBookings={[trackBooking]}
+      />,
+    );
+
+    const nextTripPanel = screen
+      .getByText('Next trip')
+      .closest('.overview-focus-panel');
+
+    expect(nextTripPanel).not.toBeNull();
+    const nextTrip = within(nextTripPanel as HTMLElement);
+
+    expect(
+      nextTrip.getByRole('heading', { name: 'Knockhill' }),
+    ).toBeInTheDocument();
+    expect(nextTrip.getByText('Track Day')).toBeInTheDocument();
+    expect(nextTrip.getByText('Track day reference')).toBeInTheDocument();
   });
 });
