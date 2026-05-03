@@ -1,4 +1,5 @@
 import {
+  Alert,
   Anchor,
   Badge,
   Box,
@@ -8,12 +9,14 @@ import {
   Group,
   Loader,
   MultiSelect,
+  NumberInput,
   Paper,
   Select,
   SimpleGrid,
   Stack,
   Text,
   Textarea,
+  TextInput,
   Title,
   UnstyledButton,
 } from '@mantine/core';
@@ -27,6 +30,7 @@ import type {
   SharedStaySelectionActionResult,
 } from '~/lib/bookings/actions.server';
 import type { BookingStatus } from '~/lib/constants/enums';
+import type { CostSplittingActionResult } from '~/lib/cost-splitting/actions.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type {
   DayBookingSnapshot,
@@ -47,6 +51,11 @@ import type {
   GarageShareOption,
   SharedAttendee,
 } from '~/lib/days/types';
+import type {
+  CostGroupSummary,
+  EventCostSummary,
+  NetCostSettlement,
+} from '~/lib/db/services/cost-splitting.server';
 import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface AvailableDaysPageProps {
@@ -1393,6 +1402,635 @@ function GarageShareAssignments({
   );
 }
 
+const costCategoryOptions = [
+  { value: 'track_day', label: 'Track day' },
+  { value: 'hotel', label: 'Hotel' },
+  { value: 'garage', label: 'Garage' },
+  { value: 'food', label: 'Food' },
+  { value: 'fuel', label: 'Fuel' },
+  { value: 'other', label: 'Other' },
+];
+
+function formatMoneyPence(value: number) {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+  }).format(value / 100);
+}
+
+function formatMoneyInput(value: number) {
+  return (value / 100).toFixed(2);
+}
+
+function ParticipantMultiSelect({
+  options,
+  defaultValue,
+  error,
+}: {
+  options: EventCostSummary['availableParticipants'];
+  defaultValue: string[];
+  error?: string;
+}) {
+  const [selected, setSelected] = useState(defaultValue);
+
+  return (
+    <>
+      <MultiSelect
+        label="People"
+        data={options.map((participant) => ({
+          value: participant.userId,
+          label: participant.userName,
+        }))}
+        value={selected}
+        onChange={setSelected}
+        searchable
+        error={error}
+      />
+      {selected.map((userId) => (
+        <input
+          key={userId}
+          type="hidden"
+          name="participantUserId"
+          value={userId}
+        />
+      ))}
+    </>
+  );
+}
+
+function CostActionMessage({ result }: { result?: CostSplittingActionResult }) {
+  if (!result || result.ok) {
+    return null;
+  }
+
+  return (
+    <Alert color="red" variant="light">
+      {result.formError}
+    </Alert>
+  );
+}
+
+function CostGroupForm({
+  day,
+  summary,
+  currentUser,
+}: {
+  day: DayRow;
+  summary: EventCostSummary;
+  currentUser: DaysIndexData['currentUser'];
+}) {
+  const fetcher = useFetcher<CostSplittingActionResult>();
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const defaultParticipants = summary.availableParticipants.some(
+    (participant) => participant.userId === currentUser.id,
+  )
+    ? [currentUser.id]
+    : [];
+
+  return (
+    <Paper withBorder p="md" radius="sm">
+      <fetcher.Form method="post">
+        <Stack gap="sm">
+          <input type="hidden" name="intent" value="createCostGroup" />
+          <input type="hidden" name="dayId" value={day.dayId} />
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="sm">
+            <TextInput
+              name="name"
+              label="Group"
+              placeholder="Garage 4, Friday dinner..."
+              error={fieldErrors?.name?.[0]}
+            />
+            <Select
+              name="category"
+              label="Category"
+              defaultValue="food"
+              data={costCategoryOptions}
+              error={fieldErrors?.category?.[0]}
+            />
+            <ParticipantMultiSelect
+              options={summary.availableParticipants}
+              defaultValue={defaultParticipants}
+              error={fieldErrors?.participantUserIds?.[0]}
+            />
+          </SimpleGrid>
+          <Group justify="space-between" align="center">
+            <CostActionMessage result={fetcher.data} />
+            <Button type="submit" loading={fetcher.state !== 'idle'}>
+              Add cost group
+            </Button>
+          </Group>
+        </Stack>
+      </fetcher.Form>
+    </Paper>
+  );
+}
+
+function CostGroupSettingsForm({
+  group,
+  summary,
+}: {
+  group: CostGroupSummary;
+  summary: EventCostSummary;
+}) {
+  const updateFetcher = useFetcher<CostSplittingActionResult>();
+  const deleteFetcher = useFetcher<CostSplittingActionResult>();
+  const fieldErrors =
+    updateFetcher.data && !updateFetcher.data.ok
+      ? updateFetcher.data.fieldErrors
+      : undefined;
+
+  if (!group.canEdit) {
+    return null;
+  }
+
+  return (
+    <Paper withBorder p="sm" radius="sm">
+      <Stack gap="sm">
+        <updateFetcher.Form method="post">
+          <Stack gap="sm">
+            <input type="hidden" name="intent" value="updateCostGroup" />
+            <input type="hidden" name="dayId" value={group.dayId} />
+            <input type="hidden" name="groupId" value={group.groupId} />
+            <SimpleGrid cols={{ base: 1, md: 3 }} spacing="sm">
+              <TextInput
+                name="name"
+                label="Group"
+                defaultValue={group.name}
+                error={fieldErrors?.name?.[0]}
+              />
+              <Select
+                name="category"
+                label="Category"
+                defaultValue={group.category}
+                data={costCategoryOptions}
+                error={fieldErrors?.category?.[0]}
+              />
+              <ParticipantMultiSelect
+                options={[
+                  ...summary.availableParticipants,
+                  ...group.participants.filter(
+                    (participant) =>
+                      !summary.availableParticipants.some(
+                        (available) => available.userId === participant.userId,
+                      ),
+                  ),
+                ]}
+                defaultValue={group.participants.map(
+                  (participant) => participant.userId,
+                )}
+                error={fieldErrors?.participantUserIds?.[0]}
+              />
+            </SimpleGrid>
+            <Group justify="space-between">
+              <CostActionMessage result={updateFetcher.data} />
+              <Button
+                type="submit"
+                variant="default"
+                loading={updateFetcher.state !== 'idle'}
+              >
+                Save group
+              </Button>
+            </Group>
+          </Stack>
+        </updateFetcher.Form>
+
+        <deleteFetcher.Form method="post">
+          <input type="hidden" name="intent" value="deleteCostGroup" />
+          <input type="hidden" name="dayId" value={group.dayId} />
+          <input type="hidden" name="groupId" value={group.groupId} />
+          <Group justify="space-between">
+            <CostActionMessage result={deleteFetcher.data} />
+            <Button
+              type="submit"
+              color="red"
+              variant="subtle"
+              size="compact-sm"
+              loading={deleteFetcher.state !== 'idle'}
+            >
+              Delete group
+            </Button>
+          </Group>
+        </deleteFetcher.Form>
+      </Stack>
+    </Paper>
+  );
+}
+
+function CostExpenseForm({
+  group,
+  currentUser,
+}: {
+  group: CostGroupSummary;
+  currentUser: DaysIndexData['currentUser'];
+}) {
+  const fetcher = useFetcher<CostSplittingActionResult>();
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const defaultPayer =
+    group.participants.find(
+      (participant) => participant.userId === currentUser.id,
+    )?.userId ?? group.participants[0]?.userId;
+
+  return (
+    <fetcher.Form method="post">
+      <Stack gap="xs">
+        <input type="hidden" name="intent" value="createCostExpense" />
+        <input type="hidden" name="dayId" value={group.dayId} />
+        <input type="hidden" name="groupId" value={group.groupId} />
+        <SimpleGrid cols={{ base: 1, md: 4 }} spacing="xs">
+          <TextInput
+            name="title"
+            label="Expense"
+            placeholder="Dinner, garage booking..."
+            error={fieldErrors?.title?.[0]}
+          />
+          <NumberInput
+            name="amount"
+            label="Amount"
+            decimalScale={2}
+            fixedDecimalScale
+            min={0.01}
+            prefix="GBP "
+            error={fieldErrors?.amountPence?.[0]}
+          />
+          <Select
+            name="paidByUserId"
+            label="Paid by"
+            defaultValue={defaultPayer}
+            data={group.participants.map((participant) => ({
+              value: participant.userId,
+              label: participant.userName,
+            }))}
+            error={fieldErrors?.paidByUserId?.[0]}
+          />
+          <TextInput
+            name="notes"
+            label="Notes"
+            placeholder="Optional"
+            error={fieldErrors?.notes?.[0]}
+          />
+        </SimpleGrid>
+        <Group justify="space-between">
+          <CostActionMessage result={fetcher.data} />
+          <Button type="submit" size="sm" loading={fetcher.state !== 'idle'}>
+            Add expense
+          </Button>
+        </Group>
+      </Stack>
+    </fetcher.Form>
+  );
+}
+
+function CostExpenseRow({
+  expense,
+  group,
+}: {
+  expense: CostGroupSummary['expenses'][number];
+  group: CostGroupSummary;
+}) {
+  const updateFetcher = useFetcher<CostSplittingActionResult>();
+  const deleteFetcher = useFetcher<CostSplittingActionResult>();
+  const fieldErrors =
+    updateFetcher.data && !updateFetcher.data.ok
+      ? updateFetcher.data.fieldErrors
+      : undefined;
+
+  if (!expense.canEdit) {
+    return (
+      <Group justify="space-between" align="flex-start" gap="md">
+        <Stack gap={2}>
+          <Text fw={700} size="sm">
+            {expense.title}
+          </Text>
+          <Text size="xs" c="dimmed">
+            Paid by {expense.paidByName}
+            {expense.notes ? ` • ${expense.notes}` : ''}
+          </Text>
+        </Stack>
+        <Text fw={800}>{formatMoneyPence(expense.amountPence)}</Text>
+      </Group>
+    );
+  }
+
+  return (
+    <Stack gap="xs">
+      <updateFetcher.Form method="post">
+        <Stack gap="xs">
+          <input type="hidden" name="intent" value="updateCostExpense" />
+          <input type="hidden" name="dayId" value={expense.dayId} />
+          <input type="hidden" name="groupId" value={expense.groupId} />
+          <input type="hidden" name="expenseId" value={expense.expenseId} />
+          <SimpleGrid cols={{ base: 1, md: 4 }} spacing="xs">
+            <TextInput
+              name="title"
+              label="Expense"
+              defaultValue={expense.title}
+              error={fieldErrors?.title?.[0]}
+            />
+            <NumberInput
+              name="amount"
+              label="Amount"
+              defaultValue={formatMoneyInput(expense.amountPence)}
+              decimalScale={2}
+              fixedDecimalScale
+              min={0.01}
+              prefix="GBP "
+              error={fieldErrors?.amountPence?.[0]}
+            />
+            <Select
+              name="paidByUserId"
+              label="Paid by"
+              defaultValue={expense.paidByUserId}
+              data={group.participants.map((participant) => ({
+                value: participant.userId,
+                label: participant.userName,
+              }))}
+              error={fieldErrors?.paidByUserId?.[0]}
+            />
+            <TextInput
+              name="notes"
+              label="Notes"
+              defaultValue={expense.notes ?? ''}
+              error={fieldErrors?.notes?.[0]}
+            />
+          </SimpleGrid>
+          <Group justify="space-between">
+            <CostActionMessage result={updateFetcher.data} />
+            <Group gap="xs">
+              <Button
+                type="submit"
+                variant="default"
+                size="compact-sm"
+                loading={updateFetcher.state !== 'idle'}
+              >
+                Save expense
+              </Button>
+            </Group>
+          </Group>
+        </Stack>
+      </updateFetcher.Form>
+
+      <deleteFetcher.Form method="post">
+        <input type="hidden" name="intent" value="deleteCostExpense" />
+        <input type="hidden" name="dayId" value={expense.dayId} />
+        <input type="hidden" name="groupId" value={expense.groupId} />
+        <input type="hidden" name="expenseId" value={expense.expenseId} />
+        <Group justify="space-between">
+          <CostActionMessage result={deleteFetcher.data} />
+          <Button
+            type="submit"
+            color="red"
+            variant="subtle"
+            size="compact-sm"
+            loading={deleteFetcher.state !== 'idle'}
+          >
+            Delete expense
+          </Button>
+        </Group>
+      </deleteFetcher.Form>
+    </Stack>
+  );
+}
+
+function SettlementStatusBadge({ status }: { status: string }) {
+  const color =
+    status === 'received' ? 'green' : status === 'sent' ? 'yellow' : 'gray';
+  return (
+    <Badge color={color} variant="light">
+      {titleCase(status)}
+    </Badge>
+  );
+}
+
+function SettlementAction({ settlement }: { settlement: NetCostSettlement }) {
+  const fetcher = useFetcher<CostSplittingActionResult>();
+  const nextStatus = settlement.canConfirmReceived
+    ? 'received'
+    : settlement.canMarkSent
+      ? 'sent'
+      : null;
+
+  if (!nextStatus) {
+    return <CostActionMessage result={fetcher.data} />;
+  }
+
+  return (
+    <fetcher.Form method="post">
+      <input type="hidden" name="intent" value="updateCostSettlement" />
+      <input type="hidden" name="dayId" value={settlement.dayId} />
+      <input
+        type="hidden"
+        name="debtorUserId"
+        value={settlement.debtorUserId}
+      />
+      <input
+        type="hidden"
+        name="creditorUserId"
+        value={settlement.creditorUserId}
+      />
+      <input type="hidden" name="amountPence" value={settlement.amountPence} />
+      <input type="hidden" name="currency" value={settlement.currency} />
+      <input
+        type="hidden"
+        name="breakdownHash"
+        value={settlement.breakdownHash}
+      />
+      <Group gap="xs">
+        <CostActionMessage result={fetcher.data} />
+        <Button
+          type="submit"
+          name="status"
+          value={nextStatus}
+          size="compact-sm"
+          variant={nextStatus === 'received' ? 'filled' : 'default'}
+          loading={fetcher.state !== 'idle'}
+        >
+          {nextStatus === 'received' ? 'Confirm received' : 'Mark sent'}
+        </Button>
+      </Group>
+    </fetcher.Form>
+  );
+}
+
+function SettlementRow({ settlement }: { settlement: NetCostSettlement }) {
+  return (
+    <Paper withBorder p="sm" radius="sm">
+      <Stack gap="xs">
+        <Group justify="space-between" align="flex-start" gap="md">
+          <Stack gap={4}>
+            <Group gap="xs" wrap="wrap">
+              <Text size="sm" fw={800}>
+                {settlement.debtorName} pays {settlement.creditorName}
+              </Text>
+              <SettlementStatusBadge status={settlement.status} />
+            </Group>
+            <Text size="xs" c="dimmed">
+              {settlement.breakdown
+                .map((item) => item.groupName)
+                .filter((name, index, names) => names.indexOf(name) === index)
+                .join(', ') || 'Cost split'}
+            </Text>
+          </Stack>
+          <Text fw={900}>{formatMoneyPence(settlement.amountPence)}</Text>
+        </Group>
+
+        <Group justify="space-between" gap="sm">
+          {settlement.paymentPreference ? (
+            <Anchor
+              href={settlement.paymentPreference.url}
+              target="_blank"
+              rel="noreferrer"
+              size="sm"
+            >
+              Open {settlement.paymentPreference.label}
+            </Anchor>
+          ) : (
+            <Text size="sm" c="dimmed">
+              No payment link saved
+            </Text>
+          )}
+          <SettlementAction settlement={settlement} />
+        </Group>
+      </Stack>
+    </Paper>
+  );
+}
+
+function CostGroupPanel({
+  group,
+  summary,
+  currentUser,
+}: {
+  group: CostGroupSummary;
+  summary: EventCostSummary;
+  currentUser: DaysIndexData['currentUser'];
+}) {
+  return (
+    <Paper withBorder p="md" radius="sm">
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start" gap="md">
+          <Stack gap={4}>
+            <Group gap="xs" wrap="wrap">
+              <Text fw={800}>{group.name}</Text>
+              <Badge variant="light">{titleCase(group.category)}</Badge>
+            </Group>
+            <Text size="sm" c="dimmed">
+              {group.participants
+                .map((participant) => participant.userName)
+                .join(', ')}
+            </Text>
+          </Stack>
+          <Text fw={900}>{formatMoneyPence(group.totalPence)}</Text>
+        </Group>
+
+        <CostGroupSettingsForm group={group} summary={summary} />
+
+        <Stack gap="xs">
+          <Text size="sm" fw={700}>
+            Expenses
+          </Text>
+          {group.expenses.length > 0 ? (
+            <Stack gap="sm">
+              {group.expenses.map((expense, index) => (
+                <Stack key={expense.expenseId} gap="sm">
+                  <CostExpenseRow expense={expense} group={group} />
+                  {index < group.expenses.length - 1 ? <Divider /> : null}
+                </Stack>
+              ))}
+            </Stack>
+          ) : (
+            <Text size="sm" c="dimmed">
+              No expenses in this group yet.
+            </Text>
+          )}
+        </Stack>
+
+        <Divider />
+
+        <CostExpenseForm group={group} currentUser={currentUser} />
+      </Stack>
+    </Paper>
+  );
+}
+
+function EventCostsPanel({
+  day,
+  summary,
+  currentUser,
+}: {
+  day: DayRow;
+  summary?: EventCostSummary | null;
+  currentUser: DaysIndexData['currentUser'];
+}) {
+  if (!summary) {
+    return (
+      <Stack gap="sm">
+        <Text fw={700}>Cost splitting</Text>
+        <Text size="sm" c="dimmed">
+          Cost groups load when this day is opened directly from the dashboard.
+        </Text>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      <Group justify="space-between" align="flex-end" gap="md">
+        <Stack gap={2}>
+          <Text fw={700}>Cost splitting</Text>
+          <Text size="sm" c="dimmed">
+            Create participant-only groups for garages, hotels, meals, fuel, and
+            other shared costs.
+          </Text>
+        </Stack>
+        <Text size="sm" fw={800} c="dimmed">
+          {formatMoneyPence(summary.totalPence)} total
+        </Text>
+      </Group>
+
+      <Stack gap="xs">
+        <Text size="sm" fw={700}>
+          Event net
+        </Text>
+        {summary.netSettlements.length > 0 ? (
+          <Stack gap="xs">
+            {summary.netSettlements.map((settlement) => (
+              <SettlementRow
+                key={settlement.settlementId}
+                settlement={settlement}
+              />
+            ))}
+          </Stack>
+        ) : (
+          <Text size="sm" c="dimmed">
+            No one owes money on the visible groups yet.
+          </Text>
+        )}
+      </Stack>
+
+      <CostGroupForm day={day} summary={summary} currentUser={currentUser} />
+
+      {summary.groups.length > 0 ? (
+        <Stack gap="md">
+          {summary.groups.map((group) => (
+            <CostGroupPanel
+              key={group.groupId}
+              group={group}
+              summary={summary}
+              currentUser={currentUser}
+            />
+          ))}
+        </Stack>
+      ) : (
+        <Text size="sm" c="dimmed">
+          No cost groups are visible to you for this day yet.
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
 function SharedPlanNoteEditor({
   day,
   plan,
@@ -1513,6 +2151,8 @@ function DayDetailContent({
   booking,
   series,
   sharedPlan,
+  costSummary,
+  currentUser,
   attendanceDetails,
   attendanceLoading,
 }: {
@@ -1521,6 +2161,8 @@ function DayDetailContent({
   booking?: DayBookingSnapshot;
   series?: DaysIndexData['raceSeriesByDayId'][string];
   sharedPlan?: SharedDayPlan | null;
+  costSummary?: EventCostSummary | null;
+  currentUser: DaysIndexData['currentUser'];
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
@@ -1668,6 +2310,14 @@ function DayDetailContent({
 
       <Divider />
 
+      <EventCostsPanel
+        day={day}
+        summary={costSummary}
+        currentUser={currentUser}
+      />
+
+      <Divider />
+
       <Stack gap="sm">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
@@ -1794,6 +2444,8 @@ function DayDetailPanel({
   booking,
   series,
   sharedPlan,
+  costSummary,
+  currentUser,
   attendanceDetails,
   attendanceLoading,
 }: {
@@ -1802,6 +2454,8 @@ function DayDetailPanel({
   booking?: DayBookingSnapshot;
   series?: DaysIndexData['raceSeriesByDayId'][string];
   sharedPlan?: SharedDayPlan | null;
+  costSummary?: EventCostSummary | null;
+  currentUser: DaysIndexData['currentUser'];
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
 }) {
@@ -1813,6 +2467,8 @@ function DayDetailPanel({
         booking={booking}
         series={series}
         sharedPlan={sharedPlan}
+        costSummary={costSummary}
+        currentUser={currentUser}
         attendanceDetails={attendanceDetails}
         attendanceLoading={attendanceLoading}
       />
@@ -2454,6 +3110,10 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               sharedPlan={
                 selectedDayMatchesRouteData ? data.selectedDayPlan : null
               }
+              costSummary={
+                selectedDayMatchesRouteData ? data.selectedDayCostSummary : null
+              }
+              currentUser={data.currentUser}
               attendanceDetails={selectedDayAttendanceDetails}
               attendanceLoading={attendanceLoading}
             />

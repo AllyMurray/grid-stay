@@ -5,6 +5,10 @@ import {
   listMyBookings,
 } from '~/lib/db/services/booking.server';
 import {
+  type EventCostSummary,
+  loadEventCostSummary,
+} from '~/lib/db/services/cost-splitting.server';
+import {
   type DayAttendanceOverview,
   dayAttendanceSummaryStore,
 } from '~/lib/db/services/day-attendance-summary.server';
@@ -81,6 +85,10 @@ export interface DaysFeedData {
 }
 
 export interface DaysIndexData extends DaysFeedData {
+  currentUser: {
+    id: string;
+    name: string;
+  };
   filters: DaysFilters;
   refreshedAt: string;
   canCreateManualDays: boolean;
@@ -98,6 +106,7 @@ export interface DaysIndexData extends DaysFeedData {
   selectedDaySummary: DayAttendanceOverview | null;
   selectedDayAttendance: DayAttendanceSummary | null;
   selectedDayPlan: SharedDayPlan | null;
+  selectedDayCostSummary: EventCostSummary | null;
 }
 
 const EMPTY_ERRORS: DaySourceError[] = [
@@ -352,7 +361,7 @@ async function loadDaysFeedPage(
 }
 
 export async function loadDaysIndex(
-  user: Pick<User, 'id' | 'email' | 'role'>,
+  user: Pick<User, 'id' | 'email' | 'role'> & Partial<Pick<User, 'name'>>,
   url: URL,
 ): Promise<DaysIndexData> {
   const selectedDayId = getSelectedDayId(url);
@@ -389,6 +398,7 @@ export async function loadDaysIndex(
   let selectedDaySummary: DayAttendanceOverview | null = null;
   let selectedDayAttendance: DayAttendanceSummary | null = null;
   let selectedDayPlan: SharedDayPlan | null = null;
+  let selectedDayCostSummary: EventCostSummary | null = null;
 
   if (selectedDayRecord) {
     [selectedDayAttendance, selectedDayPlan] = await Promise.all([
@@ -400,6 +410,11 @@ export async function loadDaysIndex(
       ),
       getSharedDayPlan(selectedDayRecord.dayId),
     ]);
+    selectedDayCostSummary = await loadEventCostSummary(
+      selectedDayRecord.dayId,
+      user.id,
+      selectedDayAttendance,
+    );
     selectedDaySummary = {
       attendeeCount: selectedDayAttendance.attendeeCount,
       accommodationNames: selectedDayAttendance.accommodationNames,
@@ -410,6 +425,10 @@ export async function loadDaysIndex(
 
   return {
     ...page,
+    currentUser: {
+      id: user.id,
+      name: user.name ?? 'You',
+    },
     filters,
     refreshedAt,
     canCreateManualDays: canCreateManualDays(user),
@@ -454,6 +473,7 @@ export async function loadDaysIndex(
     selectedDaySummary,
     selectedDayAttendance,
     selectedDayPlan,
+    selectedDayCostSummary,
   };
 }
 
