@@ -8,6 +8,7 @@ import {
   Divider,
   Group,
   Loader,
+  Modal,
   MultiSelect,
   NumberInput,
   Paper,
@@ -262,7 +263,7 @@ function getEventRequestFieldError(
   return fieldErrors?.[fieldName]?.[0];
 }
 
-function EventRequestForm() {
+function EventRequestForm({ onClose }: { onClose: () => void }) {
   const fetcher = useFetcher<EventRequestActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const success = fetcher.data?.ok ? fetcher.data : null;
@@ -272,100 +273,102 @@ function EventRequestForm() {
     fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
-    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
-      <Stack gap="md">
-        <Stack gap={2}>
-          <Title order={3}>Suggest an event</Title>
-          <Text size="sm" c="dimmed">
-            Missing track days, club days, or group road drives can be sent for
-            admin review before they appear in the shared calendar.
-          </Text>
-        </Stack>
+    <Stack gap="md">
+      <Text size="sm" c="dimmed">
+        Missing track days, club days, or group road drives can be sent for
+        admin review before they appear in the shared calendar.
+      </Text>
 
-        <fetcher.Form
-          method="post"
-          key={success?.request.requestId ?? 'event-request-form'}
-        >
-          <Stack gap="md">
-            <input type="hidden" name="intent" value="createEventRequest" />
-            <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
-              <TextInput
-                name="date"
-                label="Date"
-                type="date"
-                required
-                error={getEventRequestFieldError(fieldErrors, 'date')}
-              />
-              <Select
-                name="type"
-                label="Type"
-                defaultValue="track_day"
-                allowDeselect={false}
-                data={[
-                  { value: 'track_day', label: 'Track day' },
-                  { value: 'test_day', label: 'Test day' },
-                  { value: 'race_day', label: 'Race day' },
-                  { value: 'road_drive', label: 'Road drive' },
-                ]}
-                error={getEventRequestFieldError(fieldErrors, 'type')}
-              />
-              <TextInput
-                name="location"
-                label="Location"
-                placeholder="Circuit, route, or meet point"
-                required
-                error={getEventRequestFieldError(fieldErrors, 'location')}
-              />
-              <TextInput
-                name="provider"
-                label="Organiser"
-                placeholder="Club, provider, or group"
-                required
-                error={getEventRequestFieldError(fieldErrors, 'provider')}
-              />
-            </SimpleGrid>
-
-            <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
-              <TextInput
-                name="title"
-                label="Title"
-                placeholder="Caterham and Lotus 7 Club track day"
-                required
-                error={getEventRequestFieldError(fieldErrors, 'title')}
-              />
-              <TextInput
-                name="bookingUrl"
-                label="Booking or info link"
-                placeholder="https://..."
-                error={getEventRequestFieldError(fieldErrors, 'bookingUrl')}
-              />
-            </SimpleGrid>
-
-            <Textarea
-              name="description"
-              label="Details"
-              placeholder="Any useful context for the admin team"
-              rows={3}
-              error={getEventRequestFieldError(fieldErrors, 'description')}
+      <fetcher.Form
+        method="post"
+        key={success?.request.requestId ?? 'event-request-form'}
+      >
+        <Stack gap="md">
+          <input type="hidden" name="intent" value="createEventRequest" />
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            <TextInput
+              name="date"
+              label="Date"
+              type="date"
+              required
+              error={getEventRequestFieldError(fieldErrors, 'date')}
             />
+            <Select
+              name="type"
+              label="Type"
+              defaultValue="track_day"
+              allowDeselect={false}
+              data={[
+                { value: 'track_day', label: 'Track day' },
+                { value: 'test_day', label: 'Test day' },
+                { value: 'race_day', label: 'Race day' },
+                { value: 'road_drive', label: 'Road drive' },
+              ]}
+              error={getEventRequestFieldError(fieldErrors, 'type')}
+            />
+            <TextInput
+              name="location"
+              label="Location"
+              placeholder="Circuit, route, or meet point"
+              required
+              error={getEventRequestFieldError(fieldErrors, 'location')}
+            />
+            <TextInput
+              name="provider"
+              label="Organiser"
+              placeholder="Club, provider, or group"
+              required
+              error={getEventRequestFieldError(fieldErrors, 'provider')}
+            />
+          </SimpleGrid>
 
-            <Group justify="space-between" gap="sm" align="center">
-              <Text
-                size="sm"
-                c={formError ? 'red' : success ? 'green' : 'dimmed'}
-              >
-                {formError ??
-                  success?.message ??
-                  'Approved requests are added to Available Days for everyone.'}
-              </Text>
-              <Button type="submit" loading={isSubmitting}>
-                Send for review
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            <TextInput
+              name="title"
+              label="Title"
+              placeholder="Caterham and Lotus 7 Club track day"
+              required
+              error={getEventRequestFieldError(fieldErrors, 'title')}
+            />
+            <TextInput
+              name="bookingUrl"
+              label="Booking or info link"
+              placeholder="https://..."
+              error={getEventRequestFieldError(fieldErrors, 'bookingUrl')}
+            />
+          </SimpleGrid>
+
+          <Textarea
+            name="description"
+            label="Details"
+            placeholder="Any useful context for the admin team"
+            rows={3}
+            error={getEventRequestFieldError(fieldErrors, 'description')}
+          />
+
+          <Group justify="space-between" gap="sm" align="center">
+            <Text
+              size="sm"
+              c={formError ? 'red' : success ? 'green' : 'dimmed'}
+            >
+              {formError ??
+                success?.message ??
+                'Approved requests are added to Available Days for everyone.'}
+            </Text>
+            <Group gap="sm" justify="flex-end">
+              <Button type="button" variant="default" onClick={onClose}>
+                {success ? 'Done' : 'Cancel'}
               </Button>
+              {success ? null : (
+                <Button type="submit" loading={isSubmitting}>
+                  Send for review
+                </Button>
+              )}
             </Group>
-          </Stack>
-        </fetcher.Form>
-      </Stack>
-    </Paper>
+          </Group>
+        </Stack>
+      </fetcher.Form>
+    </Stack>
   );
 }
 
@@ -2648,6 +2651,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       ? { [data.selectedDay.dayId]: data.selectedDayCostSummary }
       : {},
   );
+  const [eventRequestModalOpened, setEventRequestModalOpened] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const previousFilterKeyRef = useRef(data.filterKey);
   const pendingOffsetRef = useRef<number | null>(null);
@@ -3023,6 +3027,16 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
   return (
     <Stack gap="xl">
+      <Modal
+        opened={eventRequestModalOpened}
+        onClose={() => setEventRequestModalOpened(false)}
+        title="Suggest an event"
+        size="lg"
+        centered
+      >
+        <EventRequestForm onClose={() => setEventRequestModalOpened(false)} />
+      </Modal>
+
       <PageHeader
         eyebrow="Shared schedule"
         title="Available Days"
@@ -3047,6 +3061,13 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             ) : null}
             <Button component={Link} to="/dashboard/bookings" variant="default">
               Open my bookings
+            </Button>
+            <Button
+              type="button"
+              variant="light"
+              onClick={() => setEventRequestModalOpened(true)}
+            >
+              Suggest event
             </Button>
           </>
         }
@@ -3245,8 +3266,6 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           </Form>
         </Stack>
       </Paper>
-
-      <EventRequestForm />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">

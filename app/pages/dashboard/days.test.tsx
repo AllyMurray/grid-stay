@@ -502,7 +502,7 @@ describe('AvailableDaysPage', () => {
   it('submits missing event requests from the feed', async () => {
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
-    const view = renderWithProviders(
+    renderWithProviders(
       <AvailableDaysPage data={defaultData} />,
       '/dashboard/days',
       defaultAttendanceByDay,
@@ -518,7 +518,16 @@ describe('AvailableDaysPage', () => {
         };
       },
     );
-    const eventRequestForm = view.container.querySelector<HTMLFormElement>(
+    expect(
+      document.querySelector(
+        'input[name="intent"][value="createEventRequest"]',
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Suggest event' }));
+
+    await screen.findByRole('dialog', { name: 'Suggest an event' });
+    const eventRequestForm = document.querySelector<HTMLInputElement>(
       'input[name="intent"][value="createEventRequest"]',
     )?.form;
 
