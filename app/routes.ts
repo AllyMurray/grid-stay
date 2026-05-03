@@ -18,6 +18,7 @@ export default [
     'api/days/:dayId/attendees',
     'routes/dashboard/days.$dayId.attendees.tsx',
   ),
+  route('api/days/:dayId/costs', 'routes/dashboard/days.$dayId.costs.tsx'),
   layout('routes/_dashboard.tsx', [
     route('dashboard', 'routes/dashboard/index.tsx'),
     route('dashboard/account', 'routes/dashboard/account.tsx'),

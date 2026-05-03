@@ -118,6 +118,7 @@ export interface CostGroupPersistence {
   delete(groupId: string): Promise<void>;
   get(groupId: string): Promise<CostGroupRecord | null>;
   listByDay(dayId: string): Promise<CostGroupRecord[]>;
+  listAll(): Promise<CostGroupRecord[]>;
 }
 
 export interface CostExpensePersistence {
@@ -130,12 +131,14 @@ export interface CostExpensePersistence {
   get(expenseId: string): Promise<CostExpenseRecord | null>;
   listByDay(dayId: string): Promise<CostExpenseRecord[]>;
   listByGroup(groupId: string): Promise<CostExpenseRecord[]>;
+  listAll(): Promise<CostExpenseRecord[]>;
 }
 
 export interface CostSettlementPersistence {
   put(item: CostSettlementRecord): Promise<CostSettlementRecord>;
   get(settlementId: string): Promise<CostSettlementRecord | null>;
   listByDay(dayId: string): Promise<CostSettlementRecord[]>;
+  listAll(): Promise<CostSettlementRecord[]>;
 }
 
 export interface CostSplittingDependencies {
@@ -181,6 +184,12 @@ export const costGroupStore: CostGroupPersistence = {
     const response = await CostGroupEntity.query.byDay({ dayId }).go();
     return response.data.sort(compareCreatedAt);
   },
+  async listAll() {
+    const response = await CostGroupEntity.query
+      .group({ groupScope: COST_GROUP_SCOPE })
+      .go();
+    return response.data.sort(compareCreatedAt);
+  },
 };
 
 export const costExpenseStore: CostExpensePersistence = {
@@ -222,6 +231,12 @@ export const costExpenseStore: CostExpensePersistence = {
     const response = await CostExpenseEntity.query.byGroup({ groupId }).go();
     return response.data.sort(compareCreatedAt);
   },
+  async listAll() {
+    const response = await CostExpenseEntity.query
+      .expense({ expenseScope: COST_EXPENSE_SCOPE })
+      .go();
+    return response.data.sort(compareCreatedAt);
+  },
 };
 
 export const costSettlementStore: CostSettlementPersistence = {
@@ -242,6 +257,12 @@ export const costSettlementStore: CostSettlementPersistence = {
   },
   async listByDay(dayId) {
     const response = await CostSettlementEntity.query.byDay({ dayId }).go();
+    return response.data;
+  },
+  async listAll() {
+    const response = await CostSettlementEntity.query
+      .settlement({ settlementScope: COST_SETTLEMENT_SCOPE })
+      .go();
     return response.data;
   },
 };
@@ -1011,6 +1032,18 @@ export async function updateCostSettlementStatus(
     });
   }
 
+  if (input.status === 'sent' && currentSettlement.status === 'received') {
+    throw new Response('This payment has already been confirmed.', {
+      status: 409,
+    });
+  }
+
+  if (input.status === 'received' && currentSettlement.status === 'open') {
+    throw new Response('Mark this payment as sent before confirming receipt.', {
+      status: 409,
+    });
+  }
+
   const settlements = dependencies.settlementStore ?? costSettlementStore;
   const id = settlementId(input);
   const existing = await settlements.get(id);
@@ -1030,9 +1063,10 @@ export async function updateCostSettlementStatus(
     updatedByName: user.name,
     sentAt:
       input.status === 'sent'
-        ? now
+        ? (existing?.sentAt ?? now)
         : (existing?.sentAt ?? (input.status === 'received' ? now : undefined)),
-    receivedAt: input.status === 'received' ? now : undefined,
+    receivedAt:
+      input.status === 'received' ? (existing?.receivedAt ?? now) : undefined,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   } as CostSettlementRecord);

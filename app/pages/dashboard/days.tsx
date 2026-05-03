@@ -369,6 +369,10 @@ function createDayAttendeesHref(dayId: string) {
   return `/api/days/${dayId}/attendees`;
 }
 
+function createDayCostsHref(dayId: string) {
+  return `/api/days/${dayId}/costs`;
+}
+
 function getAttendanceSummary(
   summaries: DaysFeedData['attendanceSummaries'],
   dayId: string,
@@ -1957,18 +1961,34 @@ function CostGroupPanel({
 function EventCostsPanel({
   day,
   summary,
+  loading,
   currentUser,
 }: {
   day: DayRow;
   summary?: EventCostSummary | null;
+  loading?: boolean;
   currentUser: DaysIndexData['currentUser'];
 }) {
+  if (loading) {
+    return (
+      <Stack gap="sm">
+        <Text fw={700}>Cost splitting</Text>
+        <Group gap="sm">
+          <Loader size="sm" color="brand" />
+          <Text size="sm" c="dimmed">
+            Loading cost splitting
+          </Text>
+        </Group>
+      </Stack>
+    );
+  }
+
   if (!summary) {
     return (
       <Stack gap="sm">
         <Text fw={700}>Cost splitting</Text>
         <Text size="sm" c="dimmed">
-          Cost groups load when this day is opened directly from the dashboard.
+          Cost groups are not available for this day yet.
         </Text>
       </Stack>
     );
@@ -2152,6 +2172,7 @@ function DayDetailContent({
   series,
   sharedPlan,
   costSummary,
+  costLoading,
   currentUser,
   attendanceDetails,
   attendanceLoading,
@@ -2162,6 +2183,7 @@ function DayDetailContent({
   series?: DaysIndexData['raceSeriesByDayId'][string];
   sharedPlan?: SharedDayPlan | null;
   costSummary?: EventCostSummary | null;
+  costLoading?: boolean;
   currentUser: DaysIndexData['currentUser'];
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
@@ -2313,6 +2335,7 @@ function DayDetailContent({
       <EventCostsPanel
         day={day}
         summary={costSummary}
+        loading={costLoading}
         currentUser={currentUser}
       />
 
@@ -2445,6 +2468,7 @@ function DayDetailPanel({
   series,
   sharedPlan,
   costSummary,
+  costLoading,
   currentUser,
   attendanceDetails,
   attendanceLoading,
@@ -2455,6 +2479,7 @@ function DayDetailPanel({
   series?: DaysIndexData['raceSeriesByDayId'][string];
   sharedPlan?: SharedDayPlan | null;
   costSummary?: EventCostSummary | null;
+  costLoading?: boolean;
   currentUser: DaysIndexData['currentUser'];
   attendanceDetails?: DayAttendanceDetails | null;
   attendanceLoading?: boolean;
@@ -2468,6 +2493,7 @@ function DayDetailPanel({
         series={series}
         sharedPlan={sharedPlan}
         costSummary={costSummary}
+        costLoading={costLoading}
         currentUser={currentUser}
         attendanceDetails={attendanceDetails}
         attendanceLoading={attendanceLoading}
@@ -2481,6 +2507,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const feedFetcher = useFetcher<DaysFeedData>();
   const attendanceFetcher = useFetcher<DayAttendanceDetails>();
   const adjacentAttendanceFetcher = useFetcher<DayAttendanceDetails>();
+  const costFetcher = useFetcher<EventCostSummary | null>();
   const preferenceFetcher = useFetcher<DaysPreferenceActionResult>();
   const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() =>
     createLoadedDaysState(data),
@@ -2492,11 +2519,19 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       ? { [data.selectedDay.dayId]: data.selectedDayAttendance }
       : {},
   );
+  const [costSummariesByDay, setCostSummariesByDay] = useState<
+    Record<string, EventCostSummary | null>
+  >(() =>
+    data.selectedDay
+      ? { [data.selectedDay.dayId]: data.selectedDayCostSummary }
+      : {},
+  );
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const previousFilterKeyRef = useRef(data.filterKey);
   const pendingOffsetRef = useRef<number | null>(null);
   const pendingAttendanceDayIdRef = useRef<string | null>(null);
   const pendingAdjacentAttendanceDayIdRef = useRef<string | null>(null);
+  const pendingCostDayIdRef = useRef<string | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
   const savedFilterCount = data.savedFilters
@@ -2629,6 +2664,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   }, [data.selectedDay, data.selectedDayAttendance]);
 
   useEffect(() => {
+    if (!data.selectedDay) {
+      return;
+    }
+
+    const { dayId } = data.selectedDay;
+    setCostSummariesByDay((current) => ({
+      ...current,
+      [dayId]: data.selectedDayCostSummary,
+    }));
+  }, [data.selectedDay, data.selectedDayCostSummary]);
+
+  useEffect(() => {
     const sentinel = loadMoreRef.current;
     if (
       !sentinel ||
@@ -2702,6 +2749,13 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const selectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
     : null;
+  const hasSelectedDayCostSummary =
+    selectedDayFromUrl &&
+    Object.hasOwn(costSummariesByDay, selectedDayFromUrl.dayId);
+  const selectedDayCostSummary =
+    selectedDayFromUrl && hasSelectedDayCostSummary
+      ? (costSummariesByDay[selectedDayFromUrl.dayId] ?? null)
+      : null;
   const selectedDaySeries = selectedDayFromUrl
     ? data.raceSeriesByDayId[selectedDayFromUrl.dayId]
     : null;
@@ -2710,6 +2764,11 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     !selectedDayAttendanceDetails &&
     (attendanceFetcher.state !== 'idle' ||
       pendingAttendanceDayIdRef.current === selectedDayFromUrl?.dayId);
+  const costLoading =
+    Boolean(selectedDayFromUrl) &&
+    !hasSelectedDayCostSummary &&
+    (costFetcher.state !== 'idle' ||
+      pendingCostDayIdRef.current === selectedDayFromUrl?.dayId);
 
   useEffect(() => {
     if (!selectedDayFromUrl || selectedDayAttendanceDetails) {
@@ -2741,6 +2800,41 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       [dayId]: attendanceFetcher.data!,
     }));
   }, [attendanceFetcher.data]);
+
+  useEffect(() => {
+    if (!selectedDayFromUrl || hasSelectedDayCostSummary) {
+      return;
+    }
+
+    if (costFetcher.state !== 'idle') {
+      return;
+    }
+
+    pendingCostDayIdRef.current = selectedDayFromUrl.dayId;
+    costFetcher.load(createDayCostsHref(selectedDayFromUrl.dayId));
+  }, [
+    costFetcher,
+    costFetcher.state,
+    hasSelectedDayCostSummary,
+    selectedDayFromUrl,
+  ]);
+
+  useEffect(() => {
+    if (!pendingCostDayIdRef.current) {
+      return;
+    }
+
+    if (costFetcher.data === undefined) {
+      return;
+    }
+
+    const dayId = pendingCostDayIdRef.current;
+    pendingCostDayIdRef.current = null;
+    setCostSummariesByDay((current) => ({
+      ...current,
+      [dayId]: costFetcher.data ?? null,
+    }));
+  }, [costFetcher.data]);
 
   useEffect(() => {
     if (
@@ -3110,9 +3204,8 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               sharedPlan={
                 selectedDayMatchesRouteData ? data.selectedDayPlan : null
               }
-              costSummary={
-                selectedDayMatchesRouteData ? data.selectedDayCostSummary : null
-              }
+              costSummary={selectedDayCostSummary}
+              costLoading={costLoading}
               currentUser={data.currentUser}
               attendanceDetails={selectedDayAttendanceDetails}
               attendanceLoading={attendanceLoading}

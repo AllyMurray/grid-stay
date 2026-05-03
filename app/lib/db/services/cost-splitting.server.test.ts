@@ -195,6 +195,7 @@ function createMemory() {
     listByDay: vi.fn(async (dayId) =>
       groups.filter((group) => group.dayId === dayId),
     ),
+    listAll: vi.fn(async () => groups),
   };
   const expenseStore: CostExpensePersistence = {
     create: vi.fn(async (item) => {
@@ -224,6 +225,7 @@ function createMemory() {
     listByGroup: vi.fn(async (groupId) =>
       expenses.filter((expense) => expense.groupId === groupId),
     ),
+    listAll: vi.fn(async () => expenses),
   };
   const settlementStore: CostSettlementPersistence = {
     put: vi.fn(async (item) => {
@@ -236,6 +238,7 @@ function createMemory() {
         (settlement) => settlement.dayId === dayId,
       ),
     ),
+    listAll: vi.fn(async () => [...settlements.values()]),
   };
   const bookingStore: BookingPersistence = {
     create: vi.fn(async (item) => item),
@@ -263,6 +266,7 @@ function createMemory() {
           } as MemberPaymentPreferenceRecord)
         : null,
     ),
+    listAll: vi.fn(async () => []),
   };
 
   return {
@@ -383,6 +387,87 @@ describe('cost splitting service', () => {
       },
       memory.dependencies,
     );
+
+    const received = await loadEventCostSummary(
+      'day-1',
+      'user-1',
+      null,
+      memory.dependencies,
+    );
+    expect(
+      received.netSettlements.find(
+        (candidate) => candidate.debtorUserId === 'user-2',
+      )?.status,
+    ).toBe('received');
+  });
+
+  it('does not let a sent update downgrade a received settlement', async () => {
+    const memory = createMemory();
+    const initial = await loadEventCostSummary(
+      'day-1',
+      'user-2',
+      null,
+      memory.dependencies,
+    );
+    const settlement = initial.netSettlements.find(
+      (candidate) => candidate.creditorUserId === 'user-1',
+    );
+
+    expect(settlement).toBeDefined();
+    await updateCostSettlementStatus(
+      {
+        dayId: 'day-1',
+        debtorUserId: 'user-2',
+        creditorUserId: 'user-1',
+        amountPence: settlement!.amountPence,
+        currency: 'GBP',
+        breakdownHash: settlement!.breakdownHash,
+        status: 'sent',
+      },
+      { id: 'user-2', name: 'Driver Two' },
+      memory.dependencies,
+    );
+    const sent = await loadEventCostSummary(
+      'day-1',
+      'user-1',
+      null,
+      memory.dependencies,
+    );
+    const sentSettlement = sent.netSettlements.find(
+      (candidate) => candidate.debtorUserId === 'user-2',
+    );
+
+    await updateCostSettlementStatus(
+      {
+        dayId: 'day-1',
+        debtorUserId: 'user-2',
+        creditorUserId: 'user-1',
+        amountPence: sentSettlement!.amountPence,
+        currency: 'GBP',
+        breakdownHash: sentSettlement!.breakdownHash,
+        status: 'received',
+      },
+      { id: 'user-1', name: 'Driver One' },
+      memory.dependencies,
+    );
+
+    await expect(
+      updateCostSettlementStatus(
+        {
+          dayId: 'day-1',
+          debtorUserId: 'user-2',
+          creditorUserId: 'user-1',
+          amountPence: sentSettlement!.amountPence,
+          currency: 'GBP',
+          breakdownHash: sentSettlement!.breakdownHash,
+          status: 'sent',
+        },
+        { id: 'user-2', name: 'Driver Two' },
+        memory.dependencies,
+      ),
+    ).rejects.toMatchObject({
+      status: 409,
+    });
 
     const received = await loadEventCostSummary(
       'day-1',

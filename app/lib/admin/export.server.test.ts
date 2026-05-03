@@ -20,6 +20,17 @@ vi.mock('~/lib/db/services/booking.server', () => ({
 vi.mock('~/lib/db/services/circuit-alias.server', () => ({
   listCircuitAliases: vi.fn(),
 }));
+vi.mock('~/lib/db/services/cost-splitting.server', () => ({
+  costExpenseStore: {
+    listAll: vi.fn(),
+  },
+  costGroupStore: {
+    listAll: vi.fn(),
+  },
+  costSettlementStore: {
+    listAll: vi.fn(),
+  },
+}));
 vi.mock('~/lib/db/services/day-plan.server', () => ({
   dayPlanStore: {
     listAll: vi.fn(),
@@ -46,6 +57,11 @@ vi.mock('~/lib/db/services/garage-share-request.server', () => ({
 vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManagedManualDays: vi.fn(),
 }));
+vi.mock('~/lib/db/services/member-payment-preference.server', () => ({
+  memberPaymentPreferenceStore: {
+    listAll: vi.fn(),
+  },
+}));
 vi.mock('~/lib/db/services/series-subscription.server', () => ({
   seriesSubscriptionStore: {
     listByUser: vi.fn(),
@@ -64,6 +80,15 @@ vi.mock('~/lib/db/entities/calendar-feed.server', () => ({
 }));
 vi.mock('~/lib/db/entities/circuit-alias.server', () => ({
   CircuitAliasEntity: {},
+}));
+vi.mock('~/lib/db/entities/cost-expense.server', () => ({
+  CostExpenseEntity: {},
+}));
+vi.mock('~/lib/db/entities/cost-group.server', () => ({
+  CostGroupEntity: {},
+}));
+vi.mock('~/lib/db/entities/cost-settlement.server', () => ({
+  CostSettlementEntity: {},
 }));
 vi.mock('~/lib/db/entities/day-merge.server', () => ({
   DayMergeEntity: {},
@@ -85,6 +110,9 @@ vi.mock('~/lib/db/entities/manual-day.server', () => ({
 }));
 vi.mock('~/lib/db/entities/member-invite.server', () => ({
   MemberInviteEntity: {},
+}));
+vi.mock('~/lib/db/entities/member-payment-preference.server', () => ({
+  MemberPaymentPreferenceEntity: {},
 }));
 vi.mock('~/lib/db/entities/series-subscription.server', () => ({
   SeriesSubscriptionEntity: {},
@@ -223,6 +251,65 @@ describe('admin data export', () => {
           updatedAt: '2026-04-27T10:00:00.000Z',
         },
       ],
+      loadCostGroups: async () => [
+        {
+          groupScope: 'cost-group',
+          groupId: 'group-1',
+          dayId: 'day-1',
+          name: 'Garage',
+          category: 'garage',
+          participantUserIds: ['user-1', 'user-2'],
+          participantNamesJson: '{"user-1":"Driver One","user-2":"Driver Two"}',
+          createdByUserId: 'user-1',
+          createdByName: 'Driver One',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+      loadCostExpenses: async () => [
+        {
+          expenseScope: 'cost-expense',
+          expenseId: 'expense-1',
+          groupId: 'group-1',
+          dayId: 'day-1',
+          title: 'Garage booking',
+          amountPence: 12000,
+          currency: 'GBP',
+          paidByUserId: 'user-1',
+          paidByName: 'Driver One',
+          createdByUserId: 'user-1',
+          createdByName: 'Driver One',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+      loadCostSettlements: async () => [
+        {
+          settlementScope: 'cost-settlement',
+          settlementId: 'day-1#user-2#user-1#GBP',
+          dayId: 'day-1',
+          debtorUserId: 'user-2',
+          creditorUserId: 'user-1',
+          amountPence: 6000,
+          currency: 'GBP',
+          breakdownHash: 'hash-1',
+          status: 'sent',
+          updatedByUserId: 'user-2',
+          updatedByName: 'Driver Two',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+      loadMemberPaymentPreferences: async () => [
+        {
+          userId: 'user-1',
+          preferenceScope: 'payment-preference',
+          label: 'Monzo',
+          url: 'https://monzo.me/driver-one',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
       loadWhatsNewViews: async () => [
         {
           userId: 'user-1',
@@ -234,9 +321,21 @@ describe('admin data export', () => {
       ],
     });
 
-    expect(dataExport.exportVersion).toBe(4);
+    expect(dataExport.exportVersion).toBe(5);
     expect(dataExport.exportedAt).toBe('2026-04-27T10:00:00.000Z');
     expect(dataExport.bookings).toEqual([booking]);
+    expect(dataExport.costGroups).toEqual([
+      expect.objectContaining({ groupId: 'group-1' }),
+    ]);
+    expect(dataExport.costExpenses).toEqual([
+      expect.objectContaining({ expenseId: 'expense-1' }),
+    ]);
+    expect(dataExport.costSettlements).toEqual([
+      expect.objectContaining({ settlementId: 'day-1#user-2#user-1#GBP' }),
+    ]);
+    expect(dataExport.memberPaymentPreferences).toEqual([
+      expect.objectContaining({ userId: 'user-1', label: 'Monzo' }),
+    ]);
     expect(dataExport.whatsNewViews).toEqual([
       expect.objectContaining({
         userId: 'user-1',
@@ -262,6 +361,10 @@ describe('admin data export', () => {
       externalNotificationCount: 1,
       garageShareRequestCount: 1,
       feedbackCount: 1,
+      costGroupCount: 1,
+      costExpenseCount: 1,
+      costSettlementCount: 1,
+      memberPaymentPreferenceCount: 1,
       whatsNewViewCount: 1,
     });
   });

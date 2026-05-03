@@ -11,6 +11,7 @@ export interface MemberPaymentPreferencePersistence {
   ): Promise<MemberPaymentPreferenceRecord>;
   delete(userId: string): Promise<void>;
   get(userId: string): Promise<MemberPaymentPreferenceRecord | null>;
+  listAll(): Promise<MemberPaymentPreferenceRecord[]>;
 }
 
 export const memberPaymentPreferenceStore: MemberPaymentPreferencePersistence =
@@ -35,6 +36,12 @@ export const memberPaymentPreferenceStore: MemberPaymentPreferencePersistence =
         preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
       }).go();
       return response.data ?? null;
+    },
+    async listAll() {
+      const response = await MemberPaymentPreferenceEntity.scan.go();
+      return response.data.filter(
+        (record) => record.preferenceScope === MEMBER_PAYMENT_PREFERENCE_SCOPE,
+      );
     },
   };
 

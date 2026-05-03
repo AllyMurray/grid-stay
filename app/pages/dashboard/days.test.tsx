@@ -7,6 +7,7 @@ import type {
   DaysIndexData,
 } from '~/lib/days/dashboard-feed.server';
 import type { DayAttendanceSummary } from '~/lib/days/types';
+import type { EventCostSummary } from '~/lib/db/services/cost-splitting.server';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
 
@@ -19,6 +20,7 @@ function renderWithProviders(
   > = defaultAttendanceByDay,
   feedPagesByOffset: Record<number, DaysFeedData> = {},
   action: (args: ActionFunctionArgs) => Promise<unknown> = async () => null,
+  costSummaryByDay: Record<string, EventCostSummary | null> = {},
 ) {
   const Stub = createRoutesStub([
     {
@@ -36,6 +38,13 @@ function renderWithProviders(
             accommodationNames: [],
           }
         );
+      },
+      Component: () => null,
+    },
+    {
+      path: '/api/days/:dayId/costs',
+      loader({ params }) {
+        return costSummaryByDay[params.dayId ?? ''] ?? null;
       },
       Component: () => null,
     },
@@ -63,6 +72,80 @@ function renderWithProviders(
 
   return render(<Stub initialEntries={[initialEntry]} />);
 }
+
+const defaultCostSummary: EventCostSummary = {
+  dayId: 'day-1',
+  currency: 'GBP',
+  availableParticipants: [
+    { userId: 'user-1', userName: 'Driver One' },
+    { userId: 'user-2', userName: 'Driver Two' },
+  ],
+  totalPence: 10_000,
+  groups: [
+    {
+      groupId: 'garage',
+      dayId: 'day-1',
+      name: 'Garage 4',
+      category: 'garage',
+      participants: [
+        { userId: 'user-1', userName: 'Driver One' },
+        { userId: 'user-2', userName: 'Driver Two' },
+      ],
+      totalPence: 10_000,
+      currency: 'GBP',
+      expenses: [
+        {
+          expenseId: 'expense-1',
+          groupId: 'garage',
+          dayId: 'day-1',
+          title: 'Garage booking',
+          amountPence: 10_000,
+          currency: 'GBP',
+          paidByUserId: 'user-2',
+          paidByName: 'Driver Two',
+          createdByUserId: 'user-2',
+          createdByName: 'Driver Two',
+          createdAt: '2026-05-01T10:00:00.000Z',
+          updatedAt: '2026-05-01T10:00:00.000Z',
+          canEdit: false,
+        },
+      ],
+      createdByUserId: 'user-2',
+      createdByName: 'Driver Two',
+      createdAt: '2026-05-01T09:00:00.000Z',
+      updatedAt: '2026-05-01T09:00:00.000Z',
+      canEdit: false,
+    },
+  ],
+  netSettlements: [
+    {
+      settlementId: 'day-1#user-1#user-2#GBP',
+      dayId: 'day-1',
+      debtorUserId: 'user-1',
+      debtorName: 'Driver One',
+      creditorUserId: 'user-2',
+      creditorName: 'Driver Two',
+      amountPence: 5000,
+      currency: 'GBP',
+      status: 'open',
+      breakdownHash: 'hash-1',
+      breakdown: [
+        {
+          groupId: 'garage',
+          groupName: 'Garage 4',
+          debtorSharePence: 5000,
+          creditorSharePence: 5000,
+        },
+      ],
+      paymentPreference: {
+        label: 'Monzo',
+        url: 'https://monzo.me/driver-two',
+      },
+      canMarkSent: true,
+      canConfirmReceived: false,
+    },
+  ],
+};
 
 const defaultData: DaysIndexData = {
   currentUser: {
@@ -583,79 +666,7 @@ describe('AvailableDaysPage', () => {
           selectedDayPosition: 1,
           selectedDaySummary: defaultData.attendanceSummaries['day-1'],
           selectedDayAttendance: defaultAttendanceByDay['day-1'],
-          selectedDayCostSummary: {
-            dayId: 'day-1',
-            currency: 'GBP',
-            availableParticipants: [
-              { userId: 'user-1', userName: 'Driver One' },
-              { userId: 'user-2', userName: 'Driver Two' },
-            ],
-            totalPence: 10_000,
-            groups: [
-              {
-                groupId: 'garage',
-                dayId: 'day-1',
-                name: 'Garage 4',
-                category: 'garage',
-                participants: [
-                  { userId: 'user-1', userName: 'Driver One' },
-                  { userId: 'user-2', userName: 'Driver Two' },
-                ],
-                totalPence: 10_000,
-                currency: 'GBP',
-                expenses: [
-                  {
-                    expenseId: 'expense-1',
-                    groupId: 'garage',
-                    dayId: 'day-1',
-                    title: 'Garage booking',
-                    amountPence: 10_000,
-                    currency: 'GBP',
-                    paidByUserId: 'user-2',
-                    paidByName: 'Driver Two',
-                    createdByUserId: 'user-2',
-                    createdByName: 'Driver Two',
-                    createdAt: '2026-05-01T10:00:00.000Z',
-                    updatedAt: '2026-05-01T10:00:00.000Z',
-                    canEdit: false,
-                  },
-                ],
-                createdByUserId: 'user-2',
-                createdByName: 'Driver Two',
-                createdAt: '2026-05-01T09:00:00.000Z',
-                updatedAt: '2026-05-01T09:00:00.000Z',
-                canEdit: false,
-              },
-            ],
-            netSettlements: [
-              {
-                settlementId: 'day-1#user-1#user-2#GBP',
-                dayId: 'day-1',
-                debtorUserId: 'user-1',
-                debtorName: 'Driver One',
-                creditorUserId: 'user-2',
-                creditorName: 'Driver Two',
-                amountPence: 5000,
-                currency: 'GBP',
-                status: 'open',
-                breakdownHash: 'hash-1',
-                breakdown: [
-                  {
-                    groupId: 'garage',
-                    groupName: 'Garage 4',
-                    debtorSharePence: 5000,
-                    creditorSharePence: 5000,
-                  },
-                ],
-                paymentPreference: {
-                  label: 'Monzo',
-                  url: 'https://monzo.me/driver-two',
-                },
-                canMarkSent: true,
-                canConfirmReceived: false,
-              },
-            ],
-          },
+          selectedDayCostSummary: defaultCostSummary,
         }}
       />,
       '/dashboard/days?day=day-1',
@@ -691,6 +702,29 @@ describe('AvailableDaysPage', () => {
         }),
       ),
     );
+  });
+
+  it('loads event costs when a day is selected without route revalidation', async () => {
+    renderWithProviders(
+      <AvailableDaysPage data={defaultData} />,
+      '/dashboard/days?day=day-1',
+      defaultAttendanceByDay,
+      {},
+      async () => null,
+      {
+        'day-1': defaultCostSummary,
+      },
+    );
+
+    expect(screen.getByText('Loading cost splitting')).toBeInTheDocument();
+
+    expect(await screen.findByText('Driver One pays Driver Two')).toBeVisible();
+    expect(screen.getByText('Garage booking')).toBeVisible();
+    expect(
+      screen.queryByText(
+        'Cost groups load when this day is opened directly from the dashboard.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('uses non-actionable series copy when every linked race round is already booked', () => {

@@ -104,6 +104,30 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
             </Stack>
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700}>
+                Cost groups
+              </Text>
+              <Text fw={800}>{summary.costGroupCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                Cost expenses
+              </Text>
+              <Text fw={800}>{summary.costExpenseCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                Cost settlements
+              </Text>
+              <Text fw={800}>{summary.costSettlementCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                Payment preferences
+              </Text>
+              <Text fw={800}>{summary.memberPaymentPreferenceCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
                 What's new views
               </Text>
               <Text fw={800}>{summary.whatsNewViewCount}</Text>

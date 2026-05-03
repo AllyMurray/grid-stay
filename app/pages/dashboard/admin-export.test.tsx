@@ -35,6 +35,10 @@ describe('AdminExportPage', () => {
           externalNotificationCount: 3,
           garageShareRequestCount: 1,
           feedbackCount: 1,
+          costGroupCount: 2,
+          costExpenseCount: 3,
+          costSettlementCount: 4,
+          memberPaymentPreferenceCount: 5,
           whatsNewViewCount: 2,
         }}
       />,
@@ -49,6 +53,10 @@ describe('AdminExportPage', () => {
     expect(screen.getByText('Day merges')).toBeInTheDocument();
     expect(screen.getByText('External notifications')).toBeInTheDocument();
     expect(screen.getByText('Feedback')).toBeInTheDocument();
+    expect(screen.getByText('Cost groups')).toBeInTheDocument();
+    expect(screen.getByText('Cost expenses')).toBeInTheDocument();
+    expect(screen.getByText('Cost settlements')).toBeInTheDocument();
+    expect(screen.getByText('Payment preferences')).toBeInTheDocument();
     expect(screen.getByText("What's new views")).toBeInTheDocument();
     expect(
       screen.getByText(/Calendar feed tokens are redacted/i),
