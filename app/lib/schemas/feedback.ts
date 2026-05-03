@@ -30,9 +30,7 @@ export const FeedbackAdminUpdateSchema = z.object({
   authorName: z.string().trim().min(1).optional(),
 });
 
-export const FeedbackAdminUpdateListSchema = z.array(
-  FeedbackAdminUpdateSchema,
-);
+export const FeedbackAdminUpdateListSchema = z.array(FeedbackAdminUpdateSchema);
 
 export const SaveFeedbackStatusSchema = z.object({
   feedbackId: FeedbackIdSchema,
