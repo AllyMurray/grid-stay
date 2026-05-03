@@ -25,6 +25,7 @@ export const FeedbackEntity = new Entity(
       title: { type: 'string', required: true },
       message: { type: 'string', required: true },
       context: { type: 'string' },
+      adminUpdatesJson: { type: 'string' },
       createdAt: { type: 'string', required: true },
       updatedAt: { type: 'string', required: true },
     },
