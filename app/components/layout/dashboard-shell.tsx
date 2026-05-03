@@ -197,6 +197,12 @@ export function DashboardShell({
       active: location.pathname.startsWith('/dashboard/schedule'),
     },
     {
+      label: 'Members',
+      to: '/dashboard/members',
+      icon: IconUsersGroup,
+      active: location.pathname.startsWith('/dashboard/members'),
+    },
+    {
       label: 'My Bookings',
       to: '/dashboard/bookings',
       icon: IconHotelService,
@@ -220,12 +226,6 @@ export function DashboardShell({
       to: '/dashboard/account',
       icon: IconUserCircle,
       active: location.pathname.startsWith('/dashboard/account'),
-    },
-    {
-      label: 'Members',
-      to: '/dashboard/members',
-      icon: IconUsersGroup,
-      active: location.pathname.startsWith('/dashboard/members'),
     },
   ];
   const adminNavItems = [

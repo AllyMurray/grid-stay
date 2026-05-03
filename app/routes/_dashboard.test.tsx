@@ -75,6 +75,22 @@ describe('DashboardLayoutRoute', () => {
     expect(
       within(drawer).getByRole('link', { name: "What's New" }),
     ).toHaveAttribute('href', '/dashboard/whats-new');
+    expect(
+      within(drawer)
+        .getAllByRole('link')
+        .map((link) => link.textContent?.trim())
+        .filter(Boolean),
+    ).toEqual([
+      'Log out',
+      'Overview',
+      'Available Days',
+      'Schedule',
+      'Members',
+      'My Bookings',
+      'Notifications',
+      "What's New",
+      'Account',
+    ]);
     expect(menuButton).toHaveAttribute('aria-expanded', 'true');
   });
 
