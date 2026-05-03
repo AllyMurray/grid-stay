@@ -15,8 +15,10 @@ const user: User = {
 
 function renderAccountPage({
   hasPassword = false,
+  paymentPreference = null,
 }: {
   hasPassword?: boolean;
+  paymentPreference?: { label: string; url: string } | null;
 } = {}) {
   const Stub = createRoutesStub([
     {
@@ -24,7 +26,11 @@ function renderAccountPage({
       action: async () => null,
       Component: () => (
         <MantineProvider theme={theme}>
-          <AccountPage hasPassword={hasPassword} user={user} />
+          <AccountPage
+            hasPassword={hasPassword}
+            paymentPreference={paymentPreference}
+            user={user}
+          />
         </MantineProvider>
       ),
     },
@@ -45,6 +51,7 @@ describe('AccountPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Set password' }),
     ).not.toBeInTheDocument();
+    expect(screen.getAllByText('Payment link').length).toBeGreaterThan(0);
   });
 
   it('shows password sign-in as enabled when the account has credentials', () => {
@@ -62,5 +69,17 @@ describe('AccountPage', () => {
 
     expect(screen.getByText('Email reset required')).toBeVisible();
     expect(screen.queryByText('Password enabled')).not.toBeInTheDocument();
+  });
+
+  it('renders a saved payment preference', () => {
+    renderAccountPage({
+      paymentPreference: {
+        label: 'Monzo',
+        url: 'https://monzo.me/driver',
+      },
+    });
+
+    expect(screen.getByDisplayValue('Monzo')).toBeVisible();
+    expect(screen.getByDisplayValue('https://monzo.me/driver')).toBeVisible();
   });
 });

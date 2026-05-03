@@ -19,6 +19,17 @@ vi.mock('~/lib/db/services/day-attendance-summary.server', () => ({
   },
 }));
 
+vi.mock('~/lib/db/services/cost-splitting.server', () => ({
+  loadEventCostSummary: vi.fn(async (dayId: string) => ({
+    dayId,
+    currency: 'GBP',
+    availableParticipants: [],
+    groups: [],
+    netSettlements: [],
+    totalPence: 0,
+  })),
+}));
+
 vi.mock('~/lib/days/series.server', async () => {
   const actual =
     await vi.importActual<typeof import('./series.server')>('./series.server');

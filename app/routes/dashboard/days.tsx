@@ -5,6 +5,15 @@ import {
   submitCreateBooking,
   submitSharedStaySelection,
 } from '~/lib/bookings/actions.server';
+import {
+  submitCreateCostExpense,
+  submitCreateCostGroup,
+  submitDeleteCostExpense,
+  submitDeleteCostGroup,
+  submitUpdateCostExpense,
+  submitUpdateCostGroup,
+  submitUpdateCostSettlement,
+} from '~/lib/cost-splitting/actions.server';
 import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import { loadDaysIndex } from '~/lib/days/dashboard-feed.server';
 import {
@@ -24,7 +33,14 @@ type AvailableDaysActionResult =
   | Awaited<ReturnType<typeof submitBulkRaceSeriesBooking>>
   | Awaited<ReturnType<typeof submitCreateBooking>>
   | Awaited<ReturnType<typeof submitSharedDayPlan>>
-  | Awaited<ReturnType<typeof submitGarageShareRequest>>;
+  | Awaited<ReturnType<typeof submitGarageShareRequest>>
+  | Awaited<ReturnType<typeof submitCreateCostGroup>>
+  | Awaited<ReturnType<typeof submitUpdateCostGroup>>
+  | Awaited<ReturnType<typeof submitDeleteCostGroup>>
+  | Awaited<ReturnType<typeof submitCreateCostExpense>>
+  | Awaited<ReturnType<typeof submitUpdateCostExpense>>
+  | Awaited<ReturnType<typeof submitDeleteCostExpense>>
+  | Awaited<ReturnType<typeof submitUpdateCostSettlement>>;
 
 function revalidationFilterKey(url: URL) {
   const params = new URLSearchParams(url.searchParams);
@@ -53,6 +69,20 @@ export async function action({ request }: Route.ActionArgs) {
     result = await submitSharedStaySelection(formData, user);
   } else if (intent === 'saveSharedDayPlan') {
     result = await submitSharedDayPlan(formData, user);
+  } else if (intent === 'createCostGroup') {
+    result = await submitCreateCostGroup(formData, user);
+  } else if (intent === 'updateCostGroup') {
+    result = await submitUpdateCostGroup(formData, user);
+  } else if (intent === 'deleteCostGroup') {
+    result = await submitDeleteCostGroup(formData, user);
+  } else if (intent === 'createCostExpense') {
+    result = await submitCreateCostExpense(formData, user);
+  } else if (intent === 'updateCostExpense') {
+    result = await submitUpdateCostExpense(formData, user);
+  } else if (intent === 'deleteCostExpense') {
+    result = await submitDeleteCostExpense(formData, user);
+  } else if (intent === 'updateCostSettlement') {
+    result = await submitUpdateCostSettlement(formData, user);
   } else if (intent === 'requestGarageShare') {
     result = await submitGarageShareRequest(formData, user);
   } else if (intent === 'addRaceSeries') {
@@ -102,6 +132,53 @@ export async function action({ request }: Route.ActionArgs) {
         },
         metadata: {
           garageOwnerUserId: formData.get('garageOwnerUserId')?.toString(),
+        },
+      });
+    } else if (intent?.toString().startsWith('createCost')) {
+      await recordAppEventSafely({
+        category: 'audit',
+        action:
+          intent === 'createCostGroup'
+            ? 'costGroup.created'
+            : 'costExpense.created',
+        message:
+          intent === 'createCostGroup'
+            ? 'Cost group created.'
+            : 'Cost expense created.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+      });
+    } else if (intent?.toString().startsWith('updateCost')) {
+      await recordAppEventSafely({
+        category: 'audit',
+        action:
+          intent === 'updateCostSettlement'
+            ? 'costSettlement.updated'
+            : intent === 'updateCostGroup'
+              ? 'costGroup.updated'
+              : 'costExpense.updated',
+        message: 'Cost split updated.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+      });
+    } else if (intent?.toString().startsWith('deleteCost')) {
+      await recordAppEventSafely({
+        category: 'audit',
+        action:
+          intent === 'deleteCostGroup'
+            ? 'costGroup.deleted'
+            : 'costExpense.deleted',
+        message: 'Cost split item deleted.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
         },
       });
     } else if (intent === 'addRaceSeries') {

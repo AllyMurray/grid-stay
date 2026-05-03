@@ -65,6 +65,10 @@ function renderWithProviders(
 }
 
 const defaultData: DaysIndexData = {
+  currentUser: {
+    id: 'user-1',
+    name: 'Driver One',
+  },
   filterKey: '',
   offset: 0,
   totalCount: 2,
@@ -92,6 +96,7 @@ const defaultData: DaysIndexData = {
   selectedDaySummary: null,
   selectedDayAttendance: null,
   selectedDayPlan: null,
+  selectedDayCostSummary: null,
   attendanceSummaries: {
     'day-1': {
       attendeeCount: 2,
@@ -445,7 +450,11 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('Attendee roster')).toBeInTheDocument();
     expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
     fireEvent.click(
-      await screen.findByRole('button', { name: /view booked attendees/i }),
+      await screen.findByRole(
+        'button',
+        { name: /view booked attendees/i },
+        { timeout: 3000 },
+      ),
     );
     expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
       0,
@@ -560,6 +569,127 @@ describe('AvailableDaysPage', () => {
         checklist: 'Tickets and wristbands.',
         costSplit: 'Settle fuel after the weekend.',
       }),
+    );
+  });
+
+  it('renders event cost groups and submits settlement status updates', async () => {
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay: defaultData.days[0]!,
+          selectedDayPosition: 1,
+          selectedDaySummary: defaultData.attendanceSummaries['day-1'],
+          selectedDayAttendance: defaultAttendanceByDay['day-1'],
+          selectedDayCostSummary: {
+            dayId: 'day-1',
+            currency: 'GBP',
+            availableParticipants: [
+              { userId: 'user-1', userName: 'Driver One' },
+              { userId: 'user-2', userName: 'Driver Two' },
+            ],
+            totalPence: 10_000,
+            groups: [
+              {
+                groupId: 'garage',
+                dayId: 'day-1',
+                name: 'Garage 4',
+                category: 'garage',
+                participants: [
+                  { userId: 'user-1', userName: 'Driver One' },
+                  { userId: 'user-2', userName: 'Driver Two' },
+                ],
+                totalPence: 10_000,
+                currency: 'GBP',
+                expenses: [
+                  {
+                    expenseId: 'expense-1',
+                    groupId: 'garage',
+                    dayId: 'day-1',
+                    title: 'Garage booking',
+                    amountPence: 10_000,
+                    currency: 'GBP',
+                    paidByUserId: 'user-2',
+                    paidByName: 'Driver Two',
+                    createdByUserId: 'user-2',
+                    createdByName: 'Driver Two',
+                    createdAt: '2026-05-01T10:00:00.000Z',
+                    updatedAt: '2026-05-01T10:00:00.000Z',
+                    canEdit: false,
+                  },
+                ],
+                createdByUserId: 'user-2',
+                createdByName: 'Driver Two',
+                createdAt: '2026-05-01T09:00:00.000Z',
+                updatedAt: '2026-05-01T09:00:00.000Z',
+                canEdit: false,
+              },
+            ],
+            netSettlements: [
+              {
+                settlementId: 'day-1#user-1#user-2#GBP',
+                dayId: 'day-1',
+                debtorUserId: 'user-1',
+                debtorName: 'Driver One',
+                creditorUserId: 'user-2',
+                creditorName: 'Driver Two',
+                amountPence: 5000,
+                currency: 'GBP',
+                status: 'open',
+                breakdownHash: 'hash-1',
+                breakdown: [
+                  {
+                    groupId: 'garage',
+                    groupName: 'Garage 4',
+                    debtorSharePence: 5000,
+                    creditorSharePence: 5000,
+                  },
+                ],
+                paymentPreference: {
+                  label: 'Monzo',
+                  url: 'https://monzo.me/driver-two',
+                },
+                canMarkSent: true,
+                canConfirmReceived: false,
+              },
+            ],
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+      defaultAttendanceByDay,
+      {},
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return { ok: true };
+      },
+    );
+
+    expect(screen.getByText('Cost splitting')).toBeInTheDocument();
+    expect(screen.getByText('Driver One pays Driver Two')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Monzo' })).toHaveAttribute(
+      'href',
+      'https://monzo.me/driver-two',
+    );
+    expect(screen.getByText('Garage booking')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark sent' }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          intent: 'updateCostSettlement',
+          dayId: 'day-1',
+          debtorUserId: 'user-1',
+          creditorUserId: 'user-2',
+          amountPence: '5000',
+          currency: 'GBP',
+          breakdownHash: 'hash-1',
+          status: 'sent',
+        }),
+      ),
     );
   });
 
