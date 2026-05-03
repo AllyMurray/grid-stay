@@ -1,6 +1,7 @@
 import {
   IconCalendarMonth,
   IconCarGarage,
+  IconCreditCard,
   IconLock,
   IconMessageCircle,
   IconSparkles,
@@ -22,6 +23,23 @@ export interface WhatsNewEntry {
 }
 
 export const whatsNewEntries: WhatsNewEntry[] = [
+  {
+    id: 'cost-splitting',
+    title: 'Split shared event costs',
+    publishedAt: '2026-05-03T18:00:00.000Z',
+    dateLabel: '3 May 2026',
+    category: 'Cost splitting',
+    description:
+      'Available Days now includes participant-only cost groups, expenses, and net settlement tracking for each event.',
+    highlights: [
+      'Create cost groups for garages, hotels, meals, fuel, or other shared costs.',
+      'Add expenses and see who owes who across the groups visible to you.',
+      'Save a payment link in Account so other members can pay you more easily.',
+    ],
+    href: '/dashboard/days',
+    actionLabel: 'Open cost splitting',
+    icon: IconCreditCard,
+  },
   {
     id: 'garage-sharing',
     title: 'Garage sharing is now built in',
