@@ -71,6 +71,9 @@ describe('DashboardLayoutRoute', () => {
     expect(
       within(drawer).getByRole('link', { name: 'Account' }),
     ).toHaveAttribute('href', '/dashboard/account');
+    expect(
+      within(drawer).getByRole('link', { name: "What's New" }),
+    ).toHaveAttribute('href', '/dashboard/whats-new');
     expect(menuButton).toHaveAttribute('aria-expanded', 'true');
   });
 

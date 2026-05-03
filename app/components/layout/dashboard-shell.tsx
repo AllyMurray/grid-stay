@@ -31,6 +31,7 @@ import {
   IconMoon,
   IconRoad,
   IconRouteAltLeft,
+  IconSparkles,
   IconSun,
   IconUserCircle,
   IconUsersGroup,
@@ -213,6 +214,12 @@ export function DashboardShell({
       icon: IconBell,
       active: location.pathname.startsWith('/dashboard/notifications'),
       count: unreadNotificationCount,
+    },
+    {
+      label: "What's New",
+      to: '/dashboard/whats-new',
+      icon: IconSparkles,
+      active: location.pathname.startsWith('/dashboard/whats-new'),
     },
     {
       label: 'Account',
