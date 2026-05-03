@@ -145,6 +145,36 @@ describe('member invite helpers', () => {
     });
   });
 
+  it('accepts Gmail aliases when a Google sign-in returns the canonical address', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'new.driver@googlemail.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-1',
+        invitedByName: 'Driver One',
+        status: 'pending',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+
+    const allowed = await ensureUserMemberAccess(
+      {
+        id: 'user-2',
+        email: 'newdriver+trackday@gmail.com',
+        name: 'New Driver',
+        role: 'member',
+      },
+      memory.store,
+    );
+
+    expect(allowed).toBe(true);
+    expect(memory.records[0]).toMatchObject({
+      status: 'accepted',
+      acceptedByUserId: 'user-2',
+    });
+  });
+
   it('rejects revoked invites when a user signs in', async () => {
     const memory = createMemoryStore([
       {
@@ -242,6 +272,29 @@ describe('member invite helpers', () => {
         new Date('2026-05-01T10:00:00.000Z'),
       ),
     ).resolves.toBe(false);
+  });
+
+  it('allows account creation when a Gmail invite matches the Google account alias', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'new.driver@gmail.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-1',
+        invitedByName: 'Driver One',
+        status: 'pending',
+        expiresAt: '2026-06-01T10:00:00.000Z',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+
+    await expect(
+      canCreateMemberAccountForEmail(
+        'newdriver@gmail.com',
+        memory.store,
+        new Date('2026-05-01T10:00:00.000Z'),
+      ),
+    ).resolves.toBe(true);
   });
 
   it('revokes pending invites', async () => {

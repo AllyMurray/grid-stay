@@ -4,9 +4,11 @@ import {
   type MemberInviteRecord,
 } from '~/lib/db/entities/member-invite.server';
 import {
+  hasGmailAliasSemantics,
   isAdminUser,
   isBootstrapMemberEmail,
   normalizeEmail,
+  normalizeMemberAccessEmail,
 } from './authorization';
 import type { User } from './schemas';
 
@@ -124,6 +126,84 @@ function isInviteExpired(
   return Boolean(invite.expiresAt && invite.expiresAt <= now.toISOString());
 }
 
+function isInviteUsableForMemberAccess(
+  invite: MemberInviteRecord,
+  now: Date,
+): boolean {
+  if (invite.status === 'accepted') {
+    return true;
+  }
+
+  return invite.status === 'pending' && !isInviteExpired(invite, now);
+}
+
+function getMemberAccessInvitePriority(
+  invite: MemberInviteRecord,
+  now: Date,
+): number {
+  if (invite.status === 'pending' && !isInviteExpired(invite, now)) {
+    return 0;
+  }
+
+  if (invite.status === 'accepted') {
+    return 1;
+  }
+
+  if (invite.status === 'pending') {
+    return 2;
+  }
+
+  return 3;
+}
+
+function compareMemberAccessInviteCandidates(
+  left: MemberInviteRecord,
+  right: MemberInviteRecord,
+  now: Date,
+): number {
+  const priorityDifference =
+    getMemberAccessInvitePriority(left, now) -
+    getMemberAccessInvitePriority(right, now);
+
+  if (priorityDifference !== 0) {
+    return priorityDifference;
+  }
+
+  return right.updatedAt.localeCompare(left.updatedAt);
+}
+
+async function findMemberInviteForAccessEmail(
+  email: string,
+  store: MemberInvitePersistence,
+  now = new Date(),
+): Promise<MemberInviteRecord | null> {
+  const normalizedEmail = normalizeEmail(email);
+  const directInvite = await store.getByEmail(normalizedEmail);
+
+  if (directInvite && isInviteUsableForMemberAccess(directInvite, now)) {
+    return directInvite;
+  }
+
+  const memberAccessEmail = normalizeMemberAccessEmail(normalizedEmail);
+  if (
+    memberAccessEmail === normalizedEmail &&
+    !hasGmailAliasSemantics(normalizedEmail)
+  ) {
+    return directInvite;
+  }
+
+  const invite = (await store.listAll())
+    .filter(
+      (candidate) =>
+        normalizeMemberAccessEmail(candidate.inviteEmail) === memberAccessEmail,
+    )
+    .sort((left, right) =>
+      compareMemberAccessInviteCandidates(left, right, now),
+    )[0];
+
+  return invite ?? directInvite ?? null;
+}
+
 export async function createMemberInvite(
   email: string,
   invitedBy: Pick<User, 'id' | 'name'>,
@@ -133,7 +213,7 @@ export async function createMemberInvite(
   created: boolean;
 }> {
   const inviteEmail = normalizeEmail(email);
-  const existing = await store.getByEmail(inviteEmail);
+  const existing = await findMemberInviteForAccessEmail(inviteEmail, store);
   const nowDate = new Date();
   const now = nowDate.toISOString();
   const expiresAt = addDays(nowDate, MEMBER_INVITE_TTL_DAYS);
@@ -147,7 +227,7 @@ export async function createMemberInvite(
 
   if (existing) {
     return {
-      invite: await store.update(inviteEmail, {
+      invite: await store.update(existing.inviteEmail, {
         invitedByUserId: invitedBy.id,
         invitedByName: invitedBy.name,
         status: 'pending',
@@ -178,7 +258,7 @@ export async function acceptMemberInviteForUser(
   store: MemberInvitePersistence = memberInviteStore,
   now = new Date(),
 ): Promise<MemberInviteRecord | null> {
-  const invite = await store.getByEmail(user.email);
+  const invite = await findMemberInviteForAccessEmail(user.email, store, now);
   if (!invite) {
     return null;
   }
@@ -225,8 +305,12 @@ export async function canCreateMemberAccountForEmail(
     return true;
   }
 
-  const invite = await store.getByEmail(normalizedEmail);
-  if (!invite || invite.status === 'revoked' || isInviteExpired(invite, now)) {
+  const invite = await findMemberInviteForAccessEmail(
+    normalizedEmail,
+    store,
+    now,
+  );
+  if (!invite || !isInviteUsableForMemberAccess(invite, now)) {
     return false;
   }
 
@@ -253,7 +337,7 @@ export async function revokeMemberInvite(
   inviteEmail: string,
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteRecord | null> {
-  const existing = await store.getByEmail(inviteEmail);
+  const existing = await findMemberInviteForAccessEmail(inviteEmail, store);
   if (!existing || existing.status === 'accepted') {
     return existing;
   }
@@ -316,7 +400,10 @@ export async function submitMemberInvite(
     };
   }
 
-  if (normalizeEmail(invitedBy.email) === parsed.data.email) {
+  if (
+    normalizeMemberAccessEmail(invitedBy.email) ===
+    normalizeMemberAccessEmail(parsed.data.email)
+  ) {
     return {
       ok: false,
       formError: 'You already have access to Grid Stay.',

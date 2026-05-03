@@ -13,7 +13,7 @@ import type { CreateBookingInput } from '~/lib/schemas/booking';
 import {
   isAdminUser,
   isBootstrapMemberEmail,
-  normalizeEmail,
+  normalizeMemberAccessEmail,
 } from './authorization';
 import type { User } from './schemas';
 
@@ -334,14 +334,14 @@ function filterInvitedUsers(
   const acceptedInviteEmails = new Set(
     invites
       .filter((invite) => invite.status === 'accepted')
-      .map((invite) => normalizeEmail(invite.inviteEmail)),
+      .map((invite) => normalizeMemberAccessEmail(invite.inviteEmail)),
   );
 
   return users.filter(
     (user) =>
       isAdminUser({ email: user.email, role: user.role ?? 'member' }) ||
       isBootstrapMemberEmail(user.email) ||
-      acceptedInviteEmails.has(normalizeEmail(user.email)),
+      acceptedInviteEmails.has(normalizeMemberAccessEmail(user.email)),
   );
 }
 

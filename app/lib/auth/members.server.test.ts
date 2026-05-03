@@ -225,6 +225,30 @@ describe('listSiteMembers', () => {
     expect(members.map((member) => member.id)).toEqual(['user-1', 'user-2']);
   });
 
+  it('includes Google users whose Gmail address matches an accepted invite alias', async () => {
+    const members = await listSiteMembers(
+      async () => [
+        {
+          id: 'user-4',
+          email: 'newdriver@gmail.com',
+          name: 'New Driver',
+          role: 'member' as const,
+        },
+      ],
+      async () => [],
+      '2026-04-16',
+      async () => [],
+      async () => [
+        {
+          inviteEmail: 'new.driver@googlemail.com',
+          status: 'accepted' as const,
+        },
+      ],
+    );
+
+    expect(members.map((member) => member.id)).toEqual(['user-4']);
+  });
+
   it('returns public booked days for a member without private booking fields', async () => {
     const result = await getSiteMemberBookedDays(
       'user-1',
