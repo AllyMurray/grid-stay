@@ -1,12 +1,16 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import type { FeedbackRecord } from '~/lib/db/entities/feedback.server';
+import type { FeedbackThread } from '~/lib/db/services/feedback.server';
 import { theme } from '~/theme';
 import { AdminFeedbackPage } from './admin-feedback';
 
-const feedback: FeedbackRecord[] = [
-  {
+function createFeedback(
+  overrides: Partial<FeedbackThread> = {},
+): FeedbackThread {
+  return {
     feedbackId: 'feedback-1',
     feedbackScope: 'feedback',
     userId: 'user-1',
@@ -17,28 +21,66 @@ const feedback: FeedbackRecord[] = [
     title: 'Saved filter presets',
     message: 'Please let me save several available-day filters.',
     context: 'Available Days',
+    adminUpdates: [],
     createdAt: '2026-05-03T10:00:00.000Z',
     updatedAt: '2026-05-03T10:00:00.000Z',
-  },
-] as FeedbackRecord[];
+    ...overrides,
+  };
+}
 
-function renderAdminFeedbackPage(items = feedback) {
-  return render(
-    <MantineProvider theme={theme}>
-      <AdminFeedbackPage feedback={items} />
-    </MantineProvider>,
-  );
+function renderAdminFeedbackPage(items: FeedbackThread[] = [createFeedback()]) {
+  const Stub = createRoutesStub([
+    {
+      path: '/dashboard/admin/feedback',
+      action: async () => null,
+      Component: () => (
+        <MantineProvider theme={theme}>
+          <AdminFeedbackPage feedback={items} />
+        </MantineProvider>
+      ),
+    },
+  ]);
+
+  return render(<Stub initialEntries={['/dashboard/admin/feedback']} />);
 }
 
 describe('AdminFeedbackPage', () => {
-  it('renders member feedback for admin review', () => {
-    renderAdminFeedbackPage();
+  it('renders member feedback with inline admin controls', () => {
+    renderAdminFeedbackPage([
+      createFeedback({
+        adminUpdates: [
+          {
+            updateId: 'update-1',
+            status: 'planned',
+            message: 'We have added this to the next sprint.',
+            createdAt: '2026-05-04T10:00:00.000Z',
+            authorName: 'Admin One',
+          },
+        ],
+      }),
+    ]);
 
     expect(screen.getByRole('heading', { name: 'Feedback' })).toBeVisible();
     expect(screen.getByText('Saved filter presets')).toBeVisible();
     expect(screen.getByText(/Driver One · driver@example.com/)).toBeVisible();
     expect(screen.getByText('Context: Available Days')).toBeVisible();
-    expect(screen.getByText('Feature Request')).toBeVisible();
+    expect(
+      screen.getByText('We have added this to the next sprint.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save status' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Send update' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeVisible();
+  });
+
+  it('opens a delete confirmation modal', async () => {
+    const user = userEvent.setup();
+    renderAdminFeedbackPage();
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Delete feedback' }),
+    ).toBeInTheDocument();
   });
 
   it('renders an empty state when no feedback has been submitted', () => {

@@ -1,6 +1,7 @@
 import {
   IconCalendarMonth,
   IconLock,
+  IconMessageCircle,
   IconSparkles,
   IconUsersGroup,
 } from '@tabler/icons-react';
@@ -19,6 +20,22 @@ export interface WhatsNewEntry {
 }
 
 export const whatsNewEntries: WhatsNewEntry[] = [
+  {
+    id: 'feedback-updates',
+    title: 'Feedback updates are easier to track',
+    dateLabel: '3 May 2026',
+    category: 'Feedback',
+    description:
+      'When you send feedback, you can now receive updates and track the request from your Feedback page.',
+    highlights: [
+      'See your submitted feedback requests in one place.',
+      'Track the latest status and replies alongside the original request.',
+      'Email updates link back to the matching feedback request.',
+    ],
+    href: '/dashboard/feedback',
+    actionLabel: 'Open feedback',
+    icon: IconMessageCircle,
+  },
   {
     id: 'upcoming-schedule',
     title: 'Schedule starts with what is ahead',
