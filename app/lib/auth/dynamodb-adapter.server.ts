@@ -7,6 +7,10 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { type CleanedWhere, createAdapterFactory } from 'better-auth/adapters';
+import {
+  hasGmailAliasSemantics,
+  normalizeMemberAccessEmail,
+} from './authorization';
 
 /**
  * Key design for the dedicated auth DynamoDB table.
@@ -189,6 +193,36 @@ function stripKeys(item: Record<string, unknown>): Record<string, unknown> {
   return data;
 }
 
+function getSingleUserEmailLookupValue(
+  model: string,
+  where: CleanedWhere[],
+): string | null {
+  if (model !== 'user' || where.length !== 1) {
+    return null;
+  }
+
+  const [clause] = where;
+  if (
+    clause?.field !== 'email' ||
+    (clause.operator && clause.operator !== 'eq') ||
+    typeof clause.value !== 'string'
+  ) {
+    return null;
+  }
+
+  return clause.value;
+}
+
+function matchesUserEmailByMemberAccessAlias(
+  item: Record<string, unknown>,
+  email: string,
+): boolean {
+  return (
+    typeof item.email === 'string' &&
+    normalizeMemberAccessEmail(item.email) === normalizeMemberAccessEmail(email)
+  );
+}
+
 /** Check if a single record matches a where clause */
 function matchesWhere(
   item: Record<string, unknown>,
@@ -304,6 +338,42 @@ async function paginatedScan(
   };
 }
 
+async function findUserByMemberAccessEmail(
+  client: DynamoDBDocumentClient,
+  tableName: string,
+  email: string,
+): Promise<Record<string, unknown> | undefined> {
+  if (!hasGmailAliasSemantics(email)) {
+    return undefined;
+  }
+
+  const memberAccessEmail = normalizeMemberAccessEmail(email);
+  const result = await paginatedScan(client, {
+    TableName: tableName,
+    FilterExpression: 'begins_with(pk, :prefix)',
+    ExpressionAttributeValues: { ':prefix': 'USER#' },
+  });
+
+  return result.Items.map(stripKeys)
+    .filter(
+      (item) =>
+        typeof item.email === 'string' &&
+        normalizeMemberAccessEmail(item.email) === memberAccessEmail,
+    )
+    .sort((left, right) => {
+      const leftCreatedAt =
+        typeof left.createdAt === 'string' ? left.createdAt : '';
+      const rightCreatedAt =
+        typeof right.createdAt === 'string' ? right.createdAt : '';
+
+      if (leftCreatedAt !== rightCreatedAt) {
+        return leftCreatedAt.localeCompare(rightCreatedAt);
+      }
+
+      return String(left.id ?? '').localeCompare(String(right.id ?? ''));
+    })[0];
+}
+
 interface DynamoDBAdapterOptions {
   client: DynamoDBDocumentClient;
   tableName: string;
@@ -340,6 +410,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
 
       findOne: async ({ model, where }) => {
         const query = resolveQuery(model, where);
+        const userEmailLookup = getSingleUserEmailLookupValue(model, where);
 
         let item: Record<string, unknown> | undefined;
 
@@ -372,6 +443,14 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
             : (result.Items?.find((i) =>
                 matchesWhere(stripKeys(i as Record<string, unknown>), where),
               ) as Record<string, unknown> | undefined);
+
+          if (!item && userEmailLookup) {
+            item = await findUserByMemberAccessEmail(
+              client,
+              tableName,
+              userEmailLookup,
+            );
+          }
         } else if (query.type === 'gsi2Query') {
           const kc = query.keyCondition!;
           const hasSort = kc.gsi2sk !== undefined;
@@ -409,7 +488,12 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
         // For GetItem / GSI query, still verify all where conditions
         const clean = stripKeys(item);
         if (query.type !== 'scan' && !matchesWhere(clean, where)) {
-          return null;
+          if (
+            !userEmailLookup ||
+            !matchesUserEmailByMemberAccessAlias(clean, userEmailLookup)
+          ) {
+            return null;
+          }
         }
 
         return clean as any;
