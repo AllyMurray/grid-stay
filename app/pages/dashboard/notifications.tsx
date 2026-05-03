@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Divider,
@@ -10,17 +11,19 @@ import {
   Title,
 } from '@mantine/core';
 import {
+  IconAlertCircle,
   IconBellRinging,
   IconCalendarPlus,
   IconCircleCheck,
 } from '@tabler/icons-react';
-import { Form, Link } from 'react-router';
+import { Form, Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { AvailableDay } from '~/lib/days/types';
 import type { UserDayNotification } from '~/lib/db/services/day-notification.server';
 import type { GarageShareRequestRecord } from '~/lib/db/services/garage-sharing.server';
+import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface NotificationsPageProps {
   notifications: UserDayNotification[];
@@ -134,6 +137,11 @@ function GarageShareRequestRow({
   request: GarageShareRequestRecord;
   isLast: boolean;
 }) {
+  const fetcher = useFetcher<GarageShareDecisionActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
   return (
     <Stack gap="md">
       <Group align="flex-start" justify="space-between" gap="lg" wrap="nowrap">
@@ -163,7 +171,7 @@ function GarageShareRequestRow({
         </Group>
 
         <Group gap="xs" justify="flex-end" flex="0 0 auto">
-          <Form method="post">
+          <fetcher.Form method="post">
             <input
               type="hidden"
               name="intent"
@@ -175,23 +183,34 @@ function GarageShareRequestRow({
               name="status"
               value="declined"
               variant="default"
+              disabled={isSubmitting}
             >
               Decline
             </Button>
-          </Form>
-          <Form method="post">
+          </fetcher.Form>
+          <fetcher.Form method="post">
             <input
               type="hidden"
               name="intent"
               value="updateGarageShareRequest"
             />
             <input type="hidden" name="requestId" value={request.requestId} />
-            <Button type="submit" name="status" value="approved">
+            <Button
+              type="submit"
+              name="status"
+              value="approved"
+              loading={isSubmitting}
+            >
               Approve
             </Button>
-          </Form>
+          </fetcher.Form>
         </Group>
       </Group>
+      {formError ? (
+        <Alert color="red" icon={<IconAlertCircle size={18} />}>
+          {formError}
+        </Alert>
+      ) : null}
       {!isLast ? <Divider /> : null}
     </Stack>
   );

@@ -37,6 +37,7 @@ import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { UserGarageShareRequest } from '~/lib/db/services/garage-sharing.server';
+import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface MyBookingsPageProps {
   bookings: BookingRecord[];
@@ -291,8 +292,10 @@ function GarageShareRequestList({
   emptyText: string;
   requests: UserGarageShareRequest[];
 }) {
-  const fetcher = useFetcher<BookingEditorActionResult>();
+  const fetcher = useFetcher<GarageShareDecisionActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const submitStatus = (
     request: UserGarageShareRequest,
     status: 'approved' | 'declined' | 'cancelled',
@@ -310,6 +313,11 @@ function GarageShareRequestList({
   return (
     <Stack gap="xs">
       <Text fw={700}>{title}</Text>
+      {formError ? (
+        <Alert color="red" icon={<IconAlertCircle size={18} />}>
+          {formError}
+        </Alert>
+      ) : null}
       {requests.length === 0 ? (
         <Text size="sm" c="dimmed">
           {emptyText}

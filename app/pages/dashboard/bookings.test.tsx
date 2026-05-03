@@ -124,6 +124,59 @@ describe('MyBookingsPage', () => {
     expect(screen.getByRole('button', { name: 'Approve' })).toBeVisible();
   });
 
+  it('shows garage request action errors inline', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MyBookingsPage
+        bookings={[
+          {
+            ...booking,
+            garageBooked: true,
+            garageCapacity: 2,
+          },
+        ]}
+        garageShareRequests={[
+          {
+            requestScope: 'garage-share-request',
+            requestId: 'garage-request-1',
+            dayId: booking.dayId,
+            date: booking.date,
+            circuit: booking.circuit,
+            provider: booking.provider,
+            description: booking.description,
+            garageBookingId: booking.bookingId,
+            garageOwnerUserId: booking.userId,
+            garageOwnerName: booking.userName,
+            requesterUserId: 'user-2',
+            requesterName: 'Driver Two',
+            requesterBookingId: booking.bookingId,
+            status: 'pending',
+            createdAt: '2026-04-02T10:00:00.000Z',
+            updatedAt: '2026-04-02T10:00:00.000Z',
+            isIncoming: true,
+            isOutgoing: false,
+          },
+        ]}
+      />,
+      async () =>
+        Response.json(
+          {
+            ok: false,
+            formError: 'This garage no longer has a free space.',
+            fieldErrors: {},
+          },
+          { status: 400 },
+        ),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Approve' }));
+
+    expect(
+      await screen.findByText('This garage no longer has a free space.'),
+    ).toBeInTheDocument();
+  });
+
   it('switches the editor when a condensed booking row is selected', async () => {
     const user = userEvent.setup();
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);

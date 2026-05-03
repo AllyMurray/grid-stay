@@ -35,7 +35,11 @@ export async function action({ request }: Route.ActionArgs) {
   if (formData.get('intent') === 'markAllRead') {
     await markAllDayNotificationsRead(user.id);
   } else if (formData.get('intent') === 'updateGarageShareRequest') {
-    await submitGarageShareDecision(formData, user);
+    const result = await submitGarageShareDecision(formData, user);
+    return Response.json(result, {
+      headers,
+      status: result.ok ? 200 : 400,
+    });
   }
 
   return redirect('/dashboard/notifications', { headers });

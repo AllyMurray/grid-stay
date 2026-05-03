@@ -1,15 +1,19 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { theme } from '~/theme';
 import { NotificationsPage } from './notifications';
 
-function renderWithProviders(ui: React.ReactElement) {
+function renderWithProviders(
+  ui: React.ReactElement,
+  action?: () => Promise<unknown>,
+) {
   const Stub = createRoutesStub([
     {
       path: '/dashboard/notifications',
-      action: async () => null,
+      action: action ?? (async () => null),
       Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
     },
     {
@@ -98,5 +102,49 @@ describe('NotificationsPage', () => {
     expect(screen.getByText('Driver Two')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Decline' })).toBeEnabled();
+  });
+
+  it('shows garage request action errors inline', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <NotificationsPage
+        notifications={[]}
+        garageShareRequests={[
+          {
+            requestScope: 'garage-share-request',
+            requestId: 'garage-request-1',
+            dayId: 'day-1',
+            date: '2026-05-10',
+            circuit: 'Brands Hatch',
+            provider: 'MSV',
+            description: 'Open pit lane',
+            garageBookingId: 'day-1',
+            garageOwnerUserId: 'owner-1',
+            garageOwnerName: 'Driver One',
+            requesterUserId: 'requester-1',
+            requesterName: 'Driver Two',
+            requesterBookingId: 'day-1',
+            status: 'pending',
+            createdAt: '2026-04-20T09:00:00.000Z',
+            updatedAt: '2026-04-20T09:00:00.000Z',
+          },
+        ]}
+      />,
+      async () =>
+        Response.json(
+          {
+            ok: false,
+            formError: 'This garage no longer has a free space.',
+            fieldErrors: {},
+          },
+          { status: 400 },
+        ),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Approve' }));
+
+    expect(
+      await screen.findByText('This garage no longer has a free space.'),
+    ).toBeInTheDocument();
   });
 });
