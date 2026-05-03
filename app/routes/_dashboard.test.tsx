@@ -15,6 +15,10 @@ vi.mock('~/lib/db/services/day-notification.server', () => ({
   countUnreadDayNotifications: vi.fn(async () => 0),
 }));
 
+vi.mock('~/lib/db/services/garage-sharing.server', () => ({
+  countPendingIncomingGarageShareRequests: vi.fn(async () => 0),
+}));
+
 const dashboardUser: User = {
   id: 'user-1',
   email: 'driver@example.com',

@@ -24,6 +24,13 @@ vi.mock('./day-plan.server', () => ({
   SHARED_DAY_PLAN_SCOPE: 'shared',
 }));
 
+vi.mock('./garage-share-request.server', () => ({
+  garageShareRequestStore: {
+    listByDay: vi.fn(async () => []),
+    update: vi.fn(),
+  },
+}));
+
 function createMergeStore(): DayMergePersistence {
   const records = new Map<string, DayMergeRecord>();
 

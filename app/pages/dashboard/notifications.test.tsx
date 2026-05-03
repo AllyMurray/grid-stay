@@ -25,6 +25,7 @@ describe('NotificationsPage', () => {
   it('renders newly available day notifications with links back to the day', () => {
     renderWithProviders(
       <NotificationsPage
+        garageShareRequests={[]}
         notifications={[
           {
             scope: 'available-days',
@@ -56,11 +57,46 @@ describe('NotificationsPage', () => {
   });
 
   it('shows an empty state before any notifications exist', () => {
-    renderWithProviders(<NotificationsPage notifications={[]} />);
+    renderWithProviders(
+      <NotificationsPage notifications={[]} garageShareRequests={[]} />,
+    );
 
     expect(screen.getByText('No day notifications yet')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open available days' }),
     ).toHaveAttribute('href', '/dashboard/days');
+  });
+
+  it('renders pending garage share requests with owner actions', () => {
+    renderWithProviders(
+      <NotificationsPage
+        notifications={[]}
+        garageShareRequests={[
+          {
+            requestScope: 'garage-share-request',
+            requestId: 'garage-request-1',
+            dayId: 'day-1',
+            date: '2026-05-10',
+            circuit: 'Brands Hatch',
+            provider: 'MSV',
+            description: 'Open pit lane',
+            garageBookingId: 'day-1',
+            garageOwnerUserId: 'owner-1',
+            garageOwnerName: 'Driver One',
+            requesterUserId: 'requester-1',
+            requesterName: 'Driver Two',
+            requesterBookingId: 'day-1',
+            status: 'pending',
+            createdAt: '2026-04-20T09:00:00.000Z',
+            updatedAt: '2026-04-20T09:00:00.000Z',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Garage request')).toBeInTheDocument();
+    expect(screen.getByText('Driver Two')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Decline' })).toBeEnabled();
   });
 });

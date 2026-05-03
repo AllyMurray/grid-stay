@@ -42,6 +42,12 @@ vi.mock('~/lib/db/services/day-attendance-summary.server', () => ({
   },
 }));
 
+vi.mock('./garage-share-request.server', () => ({
+  garageShareRequestStore: {
+    listByDay: vi.fn(async () => []),
+  },
+}));
+
 import {
   applySharedStaySelection,
   bookingStore,
@@ -290,6 +296,9 @@ describe('booking service', () => {
         bookingReference: 'ABC123',
         accommodationName: 'The Paddock Inn',
         accommodationReference: 'HOTEL-9',
+        garageBooked: true,
+        garageCapacity: 2,
+        garageLabel: 'Garage 4',
         notes: 'Late check-in',
       },
       memory.store as never,
@@ -298,6 +307,9 @@ describe('booking service', () => {
 
     expect(updated.bookingReference).toBe('ABC123');
     expect(updated.accommodationReference).toBe('HOTEL-9');
+    expect(updated.garageBooked).toBe(true);
+    expect(updated.garageCapacity).toBe(2);
+    expect(updated.garageLabel).toBe('Garage 4');
     expect(updated.notes).toBe('Late check-in');
 
     const shared = summarizeDayAttendances(memory.items as never);
@@ -307,7 +319,7 @@ describe('booking service', () => {
       attendeeCount: 1,
       accommodationNames: ['The Paddock Inn'],
     });
-    expect(shared.attendees[0]).toEqual({
+    expect(shared.attendees[0]).toMatchObject({
       bookingId: 'booking-1',
       userId: user.id,
       userName: user.name,
@@ -317,6 +329,75 @@ describe('booking service', () => {
     expect(shared.attendees[0]).not.toHaveProperty('bookingReference');
     expect(shared.attendees[0]).not.toHaveProperty('accommodationReference');
     expect(shared.attendees[0]).not.toHaveProperty('notes');
+  });
+
+  it('summarizes shared garage spaces without counting pending requests as occupied', () => {
+    const shared = summarizeDayAttendances(
+      [
+        {
+          bookingId: 'day-1',
+          userId: 'owner-1',
+          userName: 'Garage Owner',
+          dayId: 'day-1',
+          date: '2026-05-10',
+          type: 'track_day',
+          status: 'booked',
+          circuit: 'Brands Hatch',
+          provider: 'MSV',
+          description: 'Open pit lane',
+          garageBooked: true,
+          garageCapacity: 3,
+          garageLabel: 'Garage 4',
+          createdAt: '2026-04-01T09:00:00.000Z',
+          updatedAt: '2026-04-01T09:00:00.000Z',
+        },
+        {
+          bookingId: 'day-1',
+          userId: 'requester-1',
+          userName: 'Driver Two',
+          dayId: 'day-1',
+          date: '2026-05-10',
+          type: 'track_day',
+          status: 'booked',
+          circuit: 'Brands Hatch',
+          provider: 'MSV',
+          description: 'Open pit lane',
+          createdAt: '2026-04-01T09:00:00.000Z',
+          updatedAt: '2026-04-01T09:00:00.000Z',
+        },
+      ] as never,
+      [
+        {
+          requestId: 'request-1',
+          requestScope: 'garage-share-request',
+          dayId: 'day-1',
+          date: '2026-05-10',
+          circuit: 'Brands Hatch',
+          provider: 'MSV',
+          description: 'Open pit lane',
+          garageBookingId: 'day-1',
+          garageOwnerUserId: 'owner-1',
+          garageOwnerName: 'Garage Owner',
+          requesterUserId: 'requester-1',
+          requesterName: 'Driver Two',
+          requesterBookingId: 'day-1',
+          status: 'pending',
+          createdAt: '2026-04-01T09:00:00.000Z',
+          updatedAt: '2026-04-01T09:00:00.000Z',
+        },
+      ] as never,
+      'requester-1',
+    );
+
+    expect(shared.garageOwnerCount).toBe(1);
+    expect(shared.garageOpenSpaceCount).toBe(2);
+    expect(shared.garageShareOptions?.[0]).toMatchObject({
+      ownerName: 'Garage Owner',
+      garageCapacity: 3,
+      openSpaceCount: 2,
+      pendingRequestCount: 1,
+      myRequestStatus: 'pending',
+    });
   });
 
   it('includes the existing user name when updating a booking status', async () => {
@@ -357,6 +438,9 @@ describe('booking service', () => {
         bookingReference: '',
         accommodationName: '',
         accommodationReference: '',
+        garageBooked: false,
+        garageCapacity: 2,
+        garageLabel: '',
         notes: '',
       },
       store as never,

@@ -39,8 +39,12 @@ export const DAYS_PAGE_SIZE = 30;
 
 export interface DayBookingSnapshot {
   bookingId: string;
+  userId: string;
   status: 'booked' | 'maybe' | 'cancelled';
   accommodationName?: string;
+  garageBooked?: boolean;
+  garageCapacity?: number;
+  garageLabel?: string;
 }
 
 export interface DayRow {
@@ -145,6 +149,14 @@ function combineAttendanceOverviews(
         overviews.flatMap((overview) => overview?.accommodationNames ?? []),
       ),
     ].sort(),
+    garageOwnerCount: overviews.reduce(
+      (count, overview) => count + (overview?.garageOwnerCount ?? 0),
+      0,
+    ),
+    garageOpenSpaceCount: overviews.reduce(
+      (count, overview) => count + (overview?.garageOpenSpaceCount ?? 0),
+      0,
+    ),
   };
 }
 
@@ -380,12 +392,19 @@ export async function loadDaysIndex(
 
   if (selectedDayRecord) {
     [selectedDayAttendance, selectedDayPlan] = await Promise.all([
-      listAttendanceByDay(selectedDayRecord.dayId),
+      listAttendanceByDay(
+        selectedDayRecord.dayId,
+        undefined,
+        undefined,
+        user.id,
+      ),
       getSharedDayPlan(selectedDayRecord.dayId),
     ]);
     selectedDaySummary = {
       attendeeCount: selectedDayAttendance.attendeeCount,
       accommodationNames: selectedDayAttendance.accommodationNames,
+      garageOwnerCount: selectedDayAttendance.garageOwnerCount ?? 0,
+      garageOpenSpaceCount: selectedDayAttendance.garageOpenSpaceCount ?? 0,
     };
   }
 
@@ -411,8 +430,12 @@ export async function loadDaysIndex(
             booking.dayId,
             {
               bookingId: booking.bookingId,
+              userId: booking.userId,
               status: booking.status,
               accommodationName: booking.accommodationName,
+              garageBooked: booking.garageBooked,
+              garageCapacity: booking.garageCapacity,
+              garageLabel: booking.garageLabel,
             },
           ],
         ];

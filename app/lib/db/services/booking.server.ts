@@ -1,6 +1,11 @@
 import type { User } from '~/lib/auth/schemas';
 import type { BookingStatus } from '~/lib/constants/enums';
-import type { DayAttendanceSummary, SharedAttendee } from '~/lib/days/types';
+import type {
+  DayAttendanceSummary,
+  GarageShareOption,
+  SharedAttendee,
+  SharedGarageRequest,
+} from '~/lib/days/types';
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
@@ -11,6 +16,11 @@ import type {
 import { BookingEntity, type BookingRecord } from '../entities/booking.server';
 import type { DayAttendanceOverview } from './day-attendance-summary.server';
 import { dayAttendanceSummaryStore } from './day-attendance-summary.server';
+import {
+  type GarageShareRequestPersistence,
+  type GarageShareRequestRecord,
+  garageShareRequestStore,
+} from './garage-share-request.server';
 
 export interface BookingPersistence {
   create(item: BookingRecord): Promise<BookingRecord>;
@@ -135,9 +145,10 @@ async function syncDayAttendanceSummariesSafely(
   dayIds: string[],
   store: BookingPersistence,
   summaryStore: BookingSummaryPersistence,
+  requestStore: GarageShareRequestPersistence = garageShareRequestStore,
 ): Promise<void> {
   try {
-    await syncDayAttendanceSummaries(dayIds, store, summaryStore);
+    await syncDayAttendanceSummaries(dayIds, store, summaryStore, requestStore);
   } catch (error) {
     console.error('Failed to refresh booking attendance summaries', {
       dayIds,
@@ -216,6 +227,11 @@ export async function createBooking(
     bookingReference: undefined,
     accommodationName: undefined,
     accommodationReference: undefined,
+    garageBooked: false,
+    garageCapacity: undefined,
+    garageLabel: undefined,
+    garageCostTotalPence: undefined,
+    garageCostCurrency: undefined,
     notes: undefined,
   } as BookingRecord);
   await syncDayAttendanceSummariesSafely([created.dayId], store, summaryStore);
@@ -275,6 +291,11 @@ export async function ensureBookingsForDays(
       bookingReference: undefined,
       accommodationName: undefined,
       accommodationReference: undefined,
+      garageBooked: false,
+      garageCapacity: undefined,
+      garageLabel: undefined,
+      garageCostTotalPence: undefined,
+      garageCostCurrency: undefined,
       notes: undefined,
     } as BookingRecord);
     createdDayIds.push(created.dayId);
@@ -308,6 +329,19 @@ export async function updateBooking(
     bookingReference: sanitizeOptional(input.bookingReference),
     accommodationName: sanitizeOptional(input.accommodationName),
     accommodationReference: sanitizeOptional(input.accommodationReference),
+    garageBooked: input.garageBooked,
+    garageCapacity: input.garageBooked ? input.garageCapacity : undefined,
+    garageLabel: input.garageBooked
+      ? sanitizeOptional(input.garageLabel)
+      : undefined,
+    garageCostTotalPence:
+      input.garageBooked && input.garageCostTotalPence !== undefined
+        ? input.garageCostTotalPence
+        : undefined,
+    garageCostCurrency:
+      input.garageBooked && input.garageCostCurrency
+        ? input.garageCostCurrency
+        : undefined,
     notes: sanitizeOptional(input.notes),
     updatedAt: new Date().toISOString(),
   });
@@ -386,6 +420,11 @@ export async function applySharedStaySelection(
     bookingReference: undefined,
     accommodationName,
     accommodationReference: undefined,
+    garageBooked: false,
+    garageCapacity: undefined,
+    garageLabel: undefined,
+    garageCostTotalPence: undefined,
+    garageCostCurrency: undefined,
     notes: undefined,
   } as BookingRecord);
   await syncDayAttendanceSummariesSafely([created.dayId], store, summaryStore);
@@ -411,11 +450,96 @@ function toSharedAttendee(booking: BookingRecord): SharedAttendee {
     userName: booking.userName,
     status: booking.status as BookingStatus,
     accommodationName: booking.accommodationName,
+    garageBooked: booking.garageBooked,
+    garageCapacity: booking.garageCapacity,
+    garageLabel: booking.garageLabel,
   };
+}
+
+function getGarageCapacity(booking: BookingRecord): number {
+  return Math.max(booking.garageCapacity ?? 2, 1);
+}
+
+function toSharedGarageRequest(
+  request: GarageShareRequestRecord,
+): SharedGarageRequest {
+  return {
+    requestId: request.requestId,
+    requesterUserId: request.requesterUserId,
+    requesterName: request.requesterName,
+    status: request.status,
+  };
+}
+
+function buildGarageShareOptions(
+  bookings: BookingRecord[],
+  requests: GarageShareRequestRecord[],
+  currentUserId?: string,
+): GarageShareOption[] {
+  const activeBookings = bookings.filter(
+    (booking) => booking.status !== 'cancelled',
+  );
+  const activeUserIds = new Set(
+    activeBookings.map((booking) => booking.userId),
+  );
+  const activeGarageBookings = activeBookings.filter(
+    (booking) => booking.garageBooked,
+  );
+
+  return activeGarageBookings
+    .map((booking) => {
+      const relatedRequests = requests.filter(
+        (request) =>
+          request.dayId === booking.dayId &&
+          request.garageOwnerUserId === booking.userId &&
+          request.garageBookingId === booking.bookingId &&
+          activeUserIds.has(request.requesterUserId),
+      );
+      const visibleRequests = relatedRequests.filter(
+        (request) =>
+          request.status === 'pending' || request.status === 'approved',
+      );
+      const approvedRequests = visibleRequests.filter(
+        (request) => request.status === 'approved',
+      );
+      const pendingRequests = visibleRequests.filter(
+        (request) => request.status === 'pending',
+      );
+      const myRequest = currentUserId
+        ? relatedRequests
+            .filter((request) => request.requesterUserId === currentUserId)
+            .sort((left, right) =>
+              right.updatedAt.localeCompare(left.updatedAt),
+            )
+            .at(0)
+        : undefined;
+      const garageCapacity = getGarageCapacity(booking);
+      const openSpaceCount = Math.max(
+        garageCapacity - 1 - approvedRequests.length,
+        0,
+      );
+
+      return {
+        garageBookingId: booking.bookingId,
+        ownerUserId: booking.userId,
+        ownerName: booking.userName,
+        garageLabel: booking.garageLabel,
+        garageCapacity,
+        approvedRequestCount: approvedRequests.length,
+        pendingRequestCount: pendingRequests.length,
+        openSpaceCount,
+        myRequestId: myRequest?.requestId,
+        myRequestStatus: myRequest?.status,
+        requests: visibleRequests.map(toSharedGarageRequest),
+      };
+    })
+    .sort((left, right) => left.ownerName.localeCompare(right.ownerName));
 }
 
 export function summarizeDayAttendances(
   bookings: BookingRecord[],
+  requests: GarageShareRequestRecord[] = [],
+  currentUserId?: string,
 ): DayAttendanceSummary {
   const attendees = bookings
     .map(toSharedAttendee)
@@ -431,11 +555,22 @@ export function summarizeDayAttendances(
         .filter((name): name is string => Boolean(name)),
     ),
   ].sort((left, right) => left.localeCompare(right));
+  const garageShareOptions = buildGarageShareOptions(
+    bookings,
+    requests,
+    currentUserId,
+  );
 
   return {
     attendeeCount: activeAttendees.length,
     attendees,
     accommodationNames,
+    garageOwnerCount: garageShareOptions.length,
+    garageOpenSpaceCount: garageShareOptions.reduce(
+      (count, option) => count + option.openSpaceCount,
+      0,
+    ),
+    garageShareOptions,
   };
 }
 
@@ -445,6 +580,8 @@ function toDayAttendanceOverview(
   return {
     attendeeCount: summary.attendeeCount,
     accommodationNames: summary.accommodationNames,
+    garageOwnerCount: summary.garageOwnerCount ?? 0,
+    garageOpenSpaceCount: summary.garageOpenSpaceCount ?? 0,
   };
 }
 
@@ -452,9 +589,13 @@ export async function syncDayAttendanceSummary(
   dayId: string,
   store: BookingPersistence = bookingStore,
   summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+  requestStore: GarageShareRequestPersistence = garageShareRequestStore,
 ): Promise<DayAttendanceOverview> {
-  const bookings = await store.listByDay(dayId);
-  const summary = summarizeDayAttendances(bookings);
+  const [bookings, requests] = await Promise.all([
+    store.listByDay(dayId),
+    requestStore.listByDay(dayId),
+  ]);
+  const summary = summarizeDayAttendances(bookings, requests);
   const overview = toDayAttendanceOverview(summary);
 
   await summaryStore.put(dayId, overview, new Date().toISOString());
@@ -465,29 +606,37 @@ export async function syncDayAttendanceSummary(
 export async function listAttendanceByDay(
   dayId: string,
   store: BookingPersistence = bookingStore,
+  requestStore: GarageShareRequestPersistence = garageShareRequestStore,
+  currentUserId?: string,
 ): Promise<DayAttendanceSummary> {
-  return listAttendanceByDayIds([dayId], store);
+  return listAttendanceByDayIds([dayId], store, requestStore, currentUserId);
 }
 
 export async function listAttendanceByDayIds(
   dayIds: string[],
   store: BookingPersistence = bookingStore,
+  requestStore: GarageShareRequestPersistence = garageShareRequestStore,
+  currentUserId?: string,
 ): Promise<DayAttendanceSummary> {
-  const bookingsByDay = await Promise.all(
-    [...new Set(dayIds)].map((dayId) => store.listByDay(dayId)),
-  );
+  const uniqueDayIds = [...new Set(dayIds)];
+  const [bookingsByDay, requestsByDay] = await Promise.all([
+    Promise.all(uniqueDayIds.map((dayId) => store.listByDay(dayId))),
+    Promise.all(uniqueDayIds.map((dayId) => requestStore.listByDay(dayId))),
+  ]);
   const bookings = bookingsByDay.flat();
-  return summarizeDayAttendances(bookings);
+  const requests = requestsByDay.flat();
+  return summarizeDayAttendances(bookings, requests, currentUserId);
 }
 
 export async function listAttendanceSummariesForDays(
   dayIds: string[],
   store: BookingPersistence = bookingStore,
+  requestStore: GarageShareRequestPersistence = garageShareRequestStore,
 ): Promise<Map<string, DayAttendanceSummary>> {
   const summaries = await Promise.all(
     dayIds.map(
       async (dayId) =>
-        [dayId, await listAttendanceByDay(dayId, store)] as const,
+        [dayId, await listAttendanceByDay(dayId, store, requestStore)] as const,
     ),
   );
   return new Map(summaries);
@@ -497,11 +646,12 @@ export async function syncDayAttendanceSummaries(
   dayIds: string[],
   store: BookingPersistence = bookingStore,
   summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+  requestStore: GarageShareRequestPersistence = garageShareRequestStore,
 ): Promise<void> {
   const uniqueDayIds = [...new Set(dayIds)];
   await Promise.all(
     uniqueDayIds.map((dayId) =>
-      syncDayAttendanceSummary(dayId, store, summaryStore),
+      syncDayAttendanceSummary(dayId, store, summaryStore, requestStore),
     ),
   );
 }

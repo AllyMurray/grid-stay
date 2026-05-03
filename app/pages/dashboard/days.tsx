@@ -44,8 +44,10 @@ import type {
 } from '~/lib/days/shared-plan.server';
 import type {
   DayAttendanceSummary as DayAttendanceDetails,
+  GarageShareOption,
   SharedAttendee,
 } from '~/lib/days/types';
+import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface AvailableDaysPageProps {
   data: DaysIndexData;
@@ -308,6 +310,8 @@ function formatMonthOption(value: string) {
 interface DayAttendanceSummaryPreview {
   attendeeCount: number;
   accommodationNames: string[];
+  garageOwnerCount?: number;
+  garageOpenSpaceCount?: number;
 }
 
 interface AttendeeStatusGroup {
@@ -364,6 +368,8 @@ function getAttendanceSummary(
     summaries[dayId] ?? {
       attendeeCount: 0,
       accommodationNames: [],
+      garageOwnerCount: 0,
+      garageOpenSpaceCount: 0,
     }
   );
 }
@@ -378,6 +384,20 @@ function getAccommodationLabel(summary: DayAttendanceSummaryPreview) {
   }
 
   return summary.accommodationNames.join(', ');
+}
+
+function getGarageAvailabilityLabel(summary: DayAttendanceSummaryPreview) {
+  const openSpaceCount = summary.garageOpenSpaceCount ?? 0;
+  if (openSpaceCount > 0) {
+    return `${openSpaceCount} garage ${openSpaceCount === 1 ? 'space' : 'spaces'} open`;
+  }
+
+  const garageOwnerCount = summary.garageOwnerCount ?? 0;
+  if (garageOwnerCount > 0) {
+    return `${garageOwnerCount} shared ${garageOwnerCount === 1 ? 'garage' : 'garages'} full`;
+  }
+
+  return 'No garage spaces shared yet';
 }
 
 function getDaySessionText(day: DayRow) {
@@ -424,6 +444,18 @@ function getMyPlanSharedStay(booking?: DayBookingSnapshot) {
   }
 
   return booking.accommodationName?.trim() || 'No stay selected';
+}
+
+function getMyPlanGarage(booking?: DayBookingSnapshot) {
+  if (!booking) {
+    return 'No booking yet';
+  }
+
+  if (!booking.garageBooked) {
+    return 'No garage shared';
+  }
+
+  return booking.garageLabel?.trim() || `${booking.garageCapacity ?? 2} cars`;
 }
 
 function getSavedStayCountLabel(count: number) {
@@ -764,7 +796,8 @@ function DayListItem({
             </Group>
 
             <Text size="sm" lineClamp={1}>
-              {getAttendanceLabel(summary)} • {getAccommodationLabel(summary)}
+              {getAttendanceLabel(summary)} • {getAccommodationLabel(summary)} •{' '}
+              {getGarageAvailabilityLabel(summary)}
             </Text>
 
             <Text size="xs" c="dimmed" lineClamp={1}>
@@ -1172,6 +1205,194 @@ function SharedStayAssignments({
   );
 }
 
+function GarageShareRequestAction({
+  day,
+  booking,
+  option,
+}: {
+  day: DayRow;
+  booking?: DayBookingSnapshot;
+  option: GarageShareOption;
+}) {
+  const fetcher = useFetcher<GarageShareRequestActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const isOwner = booking && option.ownerUserId === booking.userId;
+  const activeBooking = booking && booking.status !== 'cancelled';
+  const requestStatus = option.myRequestStatus;
+  const canRequest =
+    activeBooking &&
+    !isOwner &&
+    option.openSpaceCount > 0 &&
+    requestStatus !== 'pending' &&
+    requestStatus !== 'approved';
+  const buttonLabel = !activeBooking
+    ? 'Add day first'
+    : isOwner
+      ? 'Your garage'
+      : requestStatus === 'pending'
+        ? 'Requested'
+        : requestStatus === 'approved'
+          ? 'Shared'
+          : option.openSpaceCount > 0
+            ? 'Request space'
+            : 'Full';
+
+  return (
+    <Stack gap={4} align="flex-end">
+      <fetcher.Form method="post">
+        <input type="hidden" name="intent" value="requestGarageShare" />
+        <input type="hidden" name="dayId" value={day.dayId} />
+        <input
+          type="hidden"
+          name="garageBookingId"
+          value={option.garageBookingId}
+        />
+        <input
+          type="hidden"
+          name="garageOwnerUserId"
+          value={option.ownerUserId}
+        />
+        <Button
+          type="submit"
+          size="sm"
+          color="orange"
+          variant={canRequest ? 'filled' : 'light'}
+          loading={isSubmitting}
+          disabled={!canRequest}
+        >
+          {buttonLabel}
+        </Button>
+      </fetcher.Form>
+      {formError ? (
+        <Text size="xs" c="red" ta="right">
+          {formError}
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
+function GarageShareAssignments({
+  day,
+  options,
+  booking,
+}: {
+  day: DayRow;
+  options: GarageShareOption[];
+  booking?: DayBookingSnapshot;
+}) {
+  if (options.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No active attendees have shared garage space for this day yet.
+      </Text>
+    );
+  }
+
+  return (
+    <Box>
+      <Box className="shared-stay-header">
+        <Text size="xs" fw={700} c="dimmed">
+          Garage
+        </Text>
+        <Text size="xs" fw={700} c="dimmed">
+          Capacity
+        </Text>
+        <Text size="xs" fw={700} c="dimmed">
+          Requests
+        </Text>
+        <Text size="xs" fw={700} c="dimmed" ta="right">
+          Action
+        </Text>
+      </Box>
+
+      <Stack gap={0}>
+        {options.map((option, index) => (
+          <Fragment key={`${option.ownerUserId}:${option.garageBookingId}`}>
+            <Box
+              className="shared-stay-row"
+              data-current={
+                booking?.userId === option.ownerUserId ? 'true' : undefined
+              }
+            >
+              <Stack gap={4} className="shared-stay-cell">
+                <Text
+                  size="xs"
+                  fw={700}
+                  c="dimmed"
+                  className="shared-stay-cell-label"
+                >
+                  Garage
+                </Text>
+                <Group gap="xs" wrap="wrap">
+                  <Text fw={700}>{option.ownerName}</Text>
+                  {option.garageLabel ? (
+                    <Badge variant="light" color="gray">
+                      {option.garageLabel}
+                    </Badge>
+                  ) : null}
+                </Group>
+              </Stack>
+
+              <Stack gap={4} className="shared-stay-cell">
+                <Text
+                  size="xs"
+                  fw={700}
+                  c="dimmed"
+                  className="shared-stay-cell-label"
+                >
+                  Capacity
+                </Text>
+                <Text size="sm" c="dimmed">
+                  {option.openSpaceCount} of{' '}
+                  {Math.max(option.garageCapacity - 1, 0)} shareable spaces open
+                </Text>
+              </Stack>
+
+              <Stack gap={4} className="shared-stay-cell">
+                <Text
+                  size="xs"
+                  fw={700}
+                  c="dimmed"
+                  className="shared-stay-cell-label"
+                >
+                  Requests
+                </Text>
+                <Text size="sm" c="dimmed">
+                  {option.approvedRequestCount} approved •{' '}
+                  {option.pendingRequestCount} pending
+                </Text>
+              </Stack>
+
+              <Stack
+                gap={4}
+                className="shared-stay-cell shared-stay-action-cell"
+              >
+                <Text
+                  size="xs"
+                  fw={700}
+                  c="dimmed"
+                  className="shared-stay-cell-label"
+                >
+                  Action
+                </Text>
+                <GarageShareRequestAction
+                  day={day}
+                  booking={booking}
+                  option={option}
+                />
+              </Stack>
+            </Box>
+            {index < options.length - 1 ? <Divider /> : null}
+          </Fragment>
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
 function SharedPlanNoteEditor({
   day,
   plan,
@@ -1392,6 +1613,19 @@ function DayDetailContent({
                 {getMyPlanSharedStay(booking)}
               </Text>
             </Box>
+            <Box className="selected-day-summary-item">
+              <Text size="xs" c="dimmed">
+                Garage
+              </Text>
+              <Text
+                size="sm"
+                fw={700}
+                lineClamp={2}
+                className="selected-day-summary-value"
+              >
+                {getMyPlanGarage(booking)}
+              </Text>
+            </Box>
           </Box>
         </Box>
 
@@ -1416,6 +1650,14 @@ function DayDetailContent({
                 {getSavedStayCountLabel(summary.accommodationNames.length)}
               </Text>
             </Box>
+            <Box className="selected-day-summary-item">
+              <Text size="xs" c="dimmed">
+                Garage spaces
+              </Text>
+              <Text size="sm" fw={700} className="selected-day-summary-value">
+                {summary.garageOpenSpaceCount ?? 0}
+              </Text>
+            </Box>
           </Box>
         </Box>
       </Box>
@@ -1423,6 +1665,41 @@ function DayDetailContent({
       <Divider />
 
       <SharedPlanNoteEditor day={day} plan={sharedPlan} />
+
+      <Divider />
+
+      <Stack gap="sm">
+        <Group justify="space-between" align="flex-end" gap="md">
+          <Stack gap={2}>
+            <Text fw={700}>Garage sharing</Text>
+            <Text size="sm" c="dimmed">
+              See who has a garage and request one of the spare spaces.
+            </Text>
+          </Stack>
+          <Text size="sm" fw={700} c="dimmed">
+            {summary.garageOpenSpaceCount ?? 0} open
+          </Text>
+        </Group>
+
+        {attendanceLoading ? (
+          <Group gap="sm">
+            <Loader size="sm" color="brand" />
+            <Text size="sm" c="dimmed">
+              Loading garage sharing
+            </Text>
+          </Group>
+        ) : attendanceDetails ? (
+          <GarageShareAssignments
+            day={day}
+            options={attendanceDetails.garageShareOptions ?? []}
+            booking={booking}
+          />
+        ) : (
+          <Text size="sm" c="dimmed">
+            Garage sharing is not available yet.
+          </Text>
+        )}
+      </Stack>
 
       <Divider />
 

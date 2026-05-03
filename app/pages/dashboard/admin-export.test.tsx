@@ -33,6 +33,7 @@ describe('AdminExportPage', () => {
           circuitAliasCount: 1,
           dayMergeCount: 2,
           externalNotificationCount: 3,
+          garageShareRequestCount: 1,
           feedbackCount: 1,
         }}
       />,

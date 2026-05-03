@@ -1,5 +1,6 @@
 import {
   IconCalendarMonth,
+  IconCarGarage,
   IconLock,
   IconMessageCircle,
   IconSparkles,
@@ -20,6 +21,22 @@ export interface WhatsNewEntry {
 }
 
 export const whatsNewEntries: WhatsNewEntry[] = [
+  {
+    id: 'garage-sharing',
+    title: 'Garage sharing is now built in',
+    dateLabel: '3 May 2026',
+    category: 'Garage sharing',
+    description:
+      'Drivers can share spare garage space for track days and manage requests without leaving the event plan.',
+    highlights: [
+      'Mark a booking as having a garage and set how many cars it can hold.',
+      'See open garage spaces from Available Days before asking to share.',
+      'Approve, decline, or cancel garage share requests from My Bookings and Notifications.',
+    ],
+    href: '/dashboard/days',
+    actionLabel: 'Open available days',
+    icon: IconCarGarage,
+  },
   {
     id: 'feedback-updates',
     title: 'Feedback updates are easier to track',

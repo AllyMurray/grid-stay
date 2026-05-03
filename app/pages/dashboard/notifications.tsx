@@ -20,9 +20,11 @@ import { PageHeader } from '~/components/layout/page-header';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { AvailableDay } from '~/lib/days/types';
 import type { UserDayNotification } from '~/lib/db/services/day-notification.server';
+import type { GarageShareRequestRecord } from '~/lib/db/services/garage-sharing.server';
 
 export interface NotificationsPageProps {
   notifications: UserDayNotification[];
+  garageShareRequests: GarageShareRequestRecord[];
 }
 
 function titleCase(value: string) {
@@ -125,10 +127,85 @@ function NotificationRow({
   );
 }
 
-export function NotificationsPage({ notifications }: NotificationsPageProps) {
+function GarageShareRequestRow({
+  request,
+  isLast,
+}: {
+  request: GarageShareRequestRecord;
+  isLast: boolean;
+}) {
+  return (
+    <Stack gap="md">
+      <Group align="flex-start" justify="space-between" gap="lg" wrap="nowrap">
+        <Group
+          align="flex-start"
+          gap="sm"
+          wrap="nowrap"
+          style={{ minWidth: 0 }}
+        >
+          <ThemeIcon size={38} radius="sm" color="orange" variant="light">
+            <IconBellRinging size={20} />
+          </ThemeIcon>
+          <Stack gap={6} style={{ minWidth: 0 }}>
+            <Group gap="xs" wrap="wrap">
+              <Text fw={800}>{request.requesterName}</Text>
+              <Badge color="orange">Garage request</Badge>
+              <Badge color="gray">{request.circuit}</Badge>
+            </Group>
+            <Text size="sm" c="dimmed">
+              {formatNotificationDate(request.date)} • {request.provider}
+            </Text>
+            <Text size="sm">
+              Wants to share your garage for{' '}
+              {request.description || request.circuit}.
+            </Text>
+          </Stack>
+        </Group>
+
+        <Group gap="xs" justify="flex-end" flex="0 0 auto">
+          <Form method="post">
+            <input
+              type="hidden"
+              name="intent"
+              value="updateGarageShareRequest"
+            />
+            <input type="hidden" name="requestId" value={request.requestId} />
+            <Button
+              type="submit"
+              name="status"
+              value="declined"
+              variant="default"
+            >
+              Decline
+            </Button>
+          </Form>
+          <Form method="post">
+            <input
+              type="hidden"
+              name="intent"
+              value="updateGarageShareRequest"
+            />
+            <input type="hidden" name="requestId" value={request.requestId} />
+            <Button type="submit" name="status" value="approved">
+              Approve
+            </Button>
+          </Form>
+        </Group>
+      </Group>
+      {!isLast ? <Divider /> : null}
+    </Stack>
+  );
+}
+
+export function NotificationsPage({
+  notifications,
+  garageShareRequests,
+}: NotificationsPageProps) {
   const unreadCount = notifications.filter(
     (notification) => !notification.isRead,
   ).length;
+  const pendingRequestCount = garageShareRequests.length;
+  const hasItems = notifications.length > 0 || pendingRequestCount > 0;
 
   return (
     <Stack gap="xl">
@@ -152,10 +229,10 @@ export function NotificationsPage({ notifications }: NotificationsPageProps) {
         }
       />
 
-      {notifications.length === 0 ? (
+      {!hasItems ? (
         <EmptyStateCard
           title="No day notifications yet"
-          description="When a new race day, test day, or track day appears in the calendar, it will be listed here."
+          description="When a new day appears or someone asks to share your garage, it will be listed here."
           action={
             <Button component={Link} to="/dashboard/days">
               Open available days
@@ -173,15 +250,27 @@ export function NotificationsPage({ notifications }: NotificationsPageProps) {
                 <Stack gap={2}>
                   <Title order={3}>Latest changes</Title>
                   <Text size="sm" c="dimmed">
-                    {unreadCount === 0
-                      ? 'Everything here has been read.'
-                      : `${unreadCount} unread ${unreadCount === 1 ? 'day' : 'days'}.`}
+                    {pendingRequestCount > 0
+                      ? `${pendingRequestCount} pending garage ${pendingRequestCount === 1 ? 'request' : 'requests'}.`
+                      : unreadCount === 0
+                        ? 'Everything here has been read.'
+                        : `${unreadCount} unread ${unreadCount === 1 ? 'day' : 'days'}.`}
                   </Text>
                 </Stack>
               </Group>
             </Group>
 
             <Stack gap="md">
+              {garageShareRequests.map((request, index) => (
+                <GarageShareRequestRow
+                  key={request.requestId}
+                  request={request}
+                  isLast={
+                    index === garageShareRequests.length - 1 &&
+                    notifications.length === 0
+                  }
+                />
+              ))}
               {notifications.map((notification, index) => (
                 <NotificationRow
                   key={notification.notificationId}

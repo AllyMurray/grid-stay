@@ -302,7 +302,7 @@ export function DashboardShell({
                 aria-label={
                   unreadNotificationCount === 0
                     ? 'Open notifications'
-                    : `Open notifications, ${unreadNotificationCount} unread`
+                    : `Open notifications, ${unreadNotificationCount} pending`
                 }
               >
                 <IconBell size={18} />
