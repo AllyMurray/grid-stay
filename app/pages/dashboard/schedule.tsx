@@ -35,6 +35,7 @@ export interface BookingSchedulePageProps {
   calendarFeedUrl?: string | null;
   calendarFeedTokenHint?: string | null;
   calendarFeedOptions?: CalendarFeedOptions;
+  today?: string;
 }
 
 type CalendarFeedActionResult =
@@ -140,6 +141,15 @@ function getDefaultSelectedBookingId(
   );
 
   return nextActiveBooking?.bookingId ?? bookings[0]?.bookingId ?? null;
+}
+
+function filterUpcomingScheduleBookings(
+  bookings: BookingRecord[],
+  today: string,
+) {
+  return bookings.filter(
+    (booking) => booking.status !== 'cancelled' && booking.date >= today,
+  );
 }
 
 function buildScheduleEvents(
@@ -400,9 +410,9 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
       <Stack gap="lg">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
-            <Title order={3}>Upcoming and planned trips</Title>
+            <Title order={3}>Upcoming trips</Title>
             <Text size="sm" c="dimmed">
-              A simple month-by-month view of everything you have already added.
+              A simple month-by-month view of the trips still ahead.
             </Text>
           </Stack>
           <ScheduleLegend />
@@ -464,6 +474,7 @@ export function BookingSchedulePage({
   calendarFeedUrl = null,
   calendarFeedTokenHint = null,
   calendarFeedOptions = defaultCalendarFeedOptions,
+  today = new Date().toISOString().slice(0, 10),
 }: BookingSchedulePageProps) {
   const isMobile = useMediaQuery('(max-width: 48em)', false, {
     getInitialValueInEffect: false,
@@ -473,29 +484,33 @@ export function BookingSchedulePage({
     () => [...bookings].sort(sortBookings),
     [bookings],
   );
-  const confirmedCount = bookings.filter(
+  const scheduleBookings = useMemo(
+    () => filterUpcomingScheduleBookings(sortedBookings, today),
+    [sortedBookings, today],
+  );
+  const confirmedCount = scheduleBookings.filter(
     (booking) => booking.status === 'booked',
   ).length;
-  const maybeCount = bookings.filter(
+  const maybeCount = scheduleBookings.filter(
     (booking) => booking.status === 'maybe',
   ).length;
-  const sharedStayCount = bookings.filter((booking) =>
+  const sharedStayCount = scheduleBookings.filter((booking) =>
     Boolean(booking.accommodationName?.trim()),
   ).length;
   const scheduleEvents = useMemo(
-    () => buildScheduleEvents(sortedBookings),
-    [sortedBookings],
+    () => buildScheduleEvents(scheduleBookings),
+    [scheduleBookings],
   );
   const [view, setView] = useState<ScheduleViewLevel>('month');
   const [currentDate, setCurrentDate] = useState<string>(
-    sortedBookings[0]?.date ?? new Date().toISOString().slice(0, 10),
+    scheduleBookings[0]?.date ?? today,
   );
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
-    getDefaultSelectedBookingId(sortedBookings),
+    getDefaultSelectedBookingId(scheduleBookings, today),
   );
 
   useEffect(() => {
-    if (sortedBookings.length === 0) {
+    if (scheduleBookings.length === 0) {
       setSelectedBookingId(null);
       return;
     }
@@ -503,26 +518,27 @@ export function BookingSchedulePage({
     setSelectedBookingId((current) => {
       if (
         current &&
-        sortedBookings.some((booking) => booking.bookingId === current)
+        scheduleBookings.some((booking) => booking.bookingId === current)
       ) {
         return current;
       }
 
-      return getDefaultSelectedBookingId(sortedBookings);
+      return getDefaultSelectedBookingId(scheduleBookings, today);
     });
-  }, [sortedBookings]);
+  }, [scheduleBookings, today]);
 
   useEffect(() => {
-    if (sortedBookings.length === 0) {
+    if (scheduleBookings.length === 0) {
       return;
     }
 
-    setCurrentDate((current) => current || sortedBookings[0]!.date);
-  }, [sortedBookings]);
+    setCurrentDate((current) => current || scheduleBookings[0]!.date);
+  }, [scheduleBookings]);
 
   const selectedBooking =
-    sortedBookings.find((booking) => booking.bookingId === selectedBookingId) ??
-    null;
+    scheduleBookings.find(
+      (booking) => booking.bookingId === selectedBookingId,
+    ) ?? null;
 
   return (
     <Stack gap="xl">
@@ -537,10 +553,10 @@ export function BookingSchedulePage({
       <PageHeader
         eyebrow="Trip calendar"
         title="Schedule"
-        description="See the season at a glance here, then jump into My Bookings whenever you need to edit the private details."
+        description="See your upcoming trips at a glance, then jump into My Bookings whenever you need the full history or private details."
         meta={
           <TripStatusSummary
-            totalCount={bookings.length}
+            totalCount={scheduleBookings.length}
             confirmedCount={confirmedCount}
             maybeCount={maybeCount}
             sharedStayCount={sharedStayCount}
@@ -552,24 +568,39 @@ export function BookingSchedulePage({
               Sync calendar
             </Button>
             <Button component={Link} to="/dashboard/bookings" variant="default">
-              Manage bookings
+              View all bookings
             </Button>
           </Group>
         }
       />
 
-      {sortedBookings.length === 0 ? (
+      {scheduleBookings.length === 0 ? (
         <EmptyStateCard
-          title="No trips to schedule yet"
-          description="Add the next race, test, or track day first, then come back here for a cleaner season view."
+          title={
+            bookings.length > 0
+              ? 'No upcoming trips'
+              : 'No trips to schedule yet'
+          }
+          description={
+            bookings.length > 0
+              ? 'Your past and cancelled trips are still available in My Bookings.'
+              : 'Add the next race, test, or track day first, then come back here for a cleaner season view.'
+          }
           action={
-            <Button component={Link} to="/dashboard/days">
-              Browse available days
+            <Button
+              component={Link}
+              to={
+                bookings.length > 0 ? '/dashboard/bookings' : '/dashboard/days'
+              }
+            >
+              {bookings.length > 0
+                ? 'View all bookings'
+                : 'Browse available days'}
             </Button>
           }
         />
       ) : isMobile ? (
-        <MobileBookingList bookings={sortedBookings} />
+        <MobileBookingList bookings={scheduleBookings} />
       ) : (
         <>
           <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
@@ -579,7 +610,7 @@ export function BookingSchedulePage({
                   <Title order={3}>Calendar</Title>
                   <Text size="sm" c="dimmed">
                     Month and year views work best for whole-day bookings, so
-                    this page stays focused on the season rather than editor
+                    this page stays focused on upcoming trips rather than editor
                     controls.
                   </Text>
                 </Stack>
@@ -601,7 +632,7 @@ export function BookingSchedulePage({
                   )
                 }
                 onDayClick={(date) => {
-                  const bookingForDay = sortedBookings.find(
+                  const bookingForDay = scheduleBookings.find(
                     (booking) => booking.date === date,
                   );
 
