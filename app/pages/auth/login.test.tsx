@@ -59,6 +59,7 @@ describe('LoginPage', () => {
     expect(signInSocial).toHaveBeenCalledWith({
       provider: 'google',
       callbackURL: '/dashboard/bookings',
+      errorCallbackURL: '/auth/login?redirectTo=%2Fdashboard%2Fbookings',
     });
   });
 
@@ -118,6 +119,20 @@ describe('LoginPage', () => {
     expect(
       screen.getByText(
         'Password reset. You can sign in with your new password.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('shows Google sign-in errors on the login page', () => {
+    renderLoginPage({
+      redirectTo: '/dashboard',
+      authError:
+        'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.',
+    });
+
+    expect(
+      screen.getByText(
+        'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.',
       ),
     ).toBeVisible();
   });

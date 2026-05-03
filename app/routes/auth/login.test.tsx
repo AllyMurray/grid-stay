@@ -101,6 +101,22 @@ describe('auth login route', () => {
     });
   });
 
+  it('returns a Google auth error from the OAuth callback query string', async () => {
+    const response = (await loader({
+      request: new Request(
+        'https://gridstay.app/auth/login?redirectTo=/dashboard/days&error=unable_to_create_user',
+      ),
+      params: {},
+      context: {},
+    } as never)) as Response;
+
+    expect(await response.json()).toEqual({
+      authError:
+        'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.',
+      redirectTo: '/dashboard/days',
+    });
+  });
+
   it('advertises reset notices without a password-auth feature flag', async () => {
     const response = (await loader({
       request: new Request(

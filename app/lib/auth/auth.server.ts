@@ -65,7 +65,15 @@ export const auth = betterAuth({
     user: {
       create: {
         async before(user) {
-          return canCreateMemberAccountForEmail(String(user.email));
+          const allowed = await canCreateMemberAccountForEmail(
+            String(user.email),
+          );
+
+          if (!allowed) {
+            console.warn('Auth user creation rejected by member invite gate');
+          }
+
+          return allowed;
         },
       },
     },

@@ -24,6 +24,7 @@ import {
 
 interface LoginPageProps {
   actionData?: PasswordAuthActionData;
+  authError?: string;
   notice?: string;
   redirectTo: string;
 }
@@ -41,7 +42,12 @@ function getFirstFieldError(
     : undefined;
 }
 
-export function LoginPage({ actionData, notice, redirectTo }: LoginPageProps) {
+export function LoginPage({
+  actionData,
+  authError,
+  notice,
+  redirectTo,
+}: LoginPageProps) {
   const navigation = useNavigation();
   const pendingIntent = navigation.formData?.get('intent')?.toString();
 
@@ -49,6 +55,9 @@ export function LoginPage({ actionData, notice, redirectTo }: LoginPageProps) {
     authClient.signIn.social({
       provider: 'google',
       callbackURL: redirectTo,
+      errorCallbackURL: `/auth/login?redirectTo=${encodeURIComponent(
+        redirectTo,
+      )}`,
     });
   }
 
@@ -83,6 +92,12 @@ export function LoginPage({ actionData, notice, redirectTo }: LoginPageProps) {
               >
                 Continue with Google
               </Button>
+
+              {authError ? (
+                <Alert color="red" icon={<IconLock size={16} />}>
+                  {authError}
+                </Alert>
+              ) : null}
 
               {notice ? (
                 <Alert color="green" icon={<IconLock size={16} />}>
