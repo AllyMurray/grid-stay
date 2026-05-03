@@ -102,6 +102,12 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
               </Text>
               <Text fw={800}>{summary.feedbackCount}</Text>
             </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                What's new views
+              </Text>
+              <Text fw={800}>{summary.whatsNewViewCount}</Text>
+            </Stack>
           </Group>
 
           <Text size="sm" c="dimmed">

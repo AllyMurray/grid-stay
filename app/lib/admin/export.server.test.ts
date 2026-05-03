@@ -51,6 +51,11 @@ vi.mock('~/lib/db/services/series-subscription.server', () => ({
     listByUser: vi.fn(),
   },
 }));
+vi.mock('~/lib/db/services/whats-new-view.server', () => ({
+  whatsNewViewStore: {
+    listAll: vi.fn(),
+  },
+}));
 vi.mock('~/lib/db/entities/booking.server', () => ({
   BookingEntity: {},
 }));
@@ -83,6 +88,9 @@ vi.mock('~/lib/db/entities/member-invite.server', () => ({
 }));
 vi.mock('~/lib/db/entities/series-subscription.server', () => ({
   SeriesSubscriptionEntity: {},
+}));
+vi.mock('~/lib/db/entities/whats-new-view.server', () => ({
+  WhatsNewViewEntity: {},
 }));
 
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -215,10 +223,26 @@ describe('admin data export', () => {
           updatedAt: '2026-04-27T10:00:00.000Z',
         },
       ],
+      loadWhatsNewViews: async () => [
+        {
+          userId: 'user-1',
+          viewScope: 'whats-new',
+          lastViewedAt: '2026-05-03T12:00:00.000Z',
+          createdAt: '2026-05-03T12:00:00.000Z',
+          updatedAt: '2026-05-03T12:00:00.000Z',
+        },
+      ],
     });
 
+    expect(dataExport.exportVersion).toBe(4);
     expect(dataExport.exportedAt).toBe('2026-04-27T10:00:00.000Z');
     expect(dataExport.bookings).toEqual([booking]);
+    expect(dataExport.whatsNewViews).toEqual([
+      expect.objectContaining({
+        userId: 'user-1',
+        lastViewedAt: '2026-05-03T12:00:00.000Z',
+      }),
+    ]);
     expect(dataExport.calendarFeeds).toEqual([
       expect.objectContaining({
         tokenHash: 'hash-1',
@@ -238,6 +262,7 @@ describe('admin data export', () => {
       externalNotificationCount: 1,
       garageShareRequestCount: 1,
       feedbackCount: 1,
+      whatsNewViewCount: 1,
     });
   });
 });

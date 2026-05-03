@@ -11,6 +11,7 @@ import type { ComponentType } from 'react';
 export interface WhatsNewEntry {
   id: string;
   title: string;
+  publishedAt: string;
   dateLabel: string;
   category: string;
   description: string;
@@ -24,6 +25,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   {
     id: 'garage-sharing',
     title: 'Garage sharing is now built in',
+    publishedAt: '2026-05-03T12:00:00.000Z',
     dateLabel: '3 May 2026',
     category: 'Garage sharing',
     description:
@@ -40,6 +42,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   {
     id: 'feedback-updates',
     title: 'Feedback updates are easier to track',
+    publishedAt: '2026-05-03T11:00:00.000Z',
     dateLabel: '3 May 2026',
     category: 'Feedback',
     description:
@@ -56,6 +59,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   {
     id: 'upcoming-schedule',
     title: 'Schedule starts with what is ahead',
+    publishedAt: '2026-05-03T10:00:00.000Z',
     dateLabel: '3 May 2026',
     category: 'Schedule',
     description:
@@ -72,6 +76,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   {
     id: 'member-days',
     title: 'Book alongside other members',
+    publishedAt: '2026-05-02T10:00:00.000Z',
     dateLabel: '2 May 2026',
     category: 'Members',
     description:
@@ -88,6 +93,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   {
     id: 'password-sign-in',
     title: 'Password sign-in is available',
+    publishedAt: '2026-05-01T10:00:00.000Z',
     dateLabel: '1 May 2026',
     category: 'Account',
     description:
@@ -104,6 +110,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   {
     id: 'dashboard-polish',
     title: 'Cleaner mobile dashboard headers',
+    publishedAt: '2026-04-30T10:00:00.000Z',
     dateLabel: '30 April 2026',
     category: 'Interface',
     description:
@@ -118,3 +125,11 @@ export const whatsNewEntries: WhatsNewEntry[] = [
     icon: IconSparkles,
   },
 ];
+
+export function countWhatsNewEntriesAfter(
+  viewedAt: string | undefined,
+  entries: WhatsNewEntry[] = whatsNewEntries,
+) {
+  return entries.filter((entry) => !viewedAt || entry.publishedAt > viewedAt)
+    .length;
+}

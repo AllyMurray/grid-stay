@@ -19,6 +19,10 @@ vi.mock('~/lib/db/services/garage-sharing.server', () => ({
   countPendingIncomingGarageShareRequests: vi.fn(async () => 0),
 }));
 
+vi.mock('~/lib/db/services/whats-new-view.server', () => ({
+  countNewWhatsNewEntries: vi.fn(async () => 0),
+}));
+
 const dashboardUser: User = {
   id: 'user-1',
   email: 'driver@example.com',
@@ -35,11 +39,21 @@ function createPageShowEvent(persisted: boolean) {
   return event;
 }
 
-function renderDashboard(user: User = dashboardUser) {
+function renderDashboard(
+  user: User = dashboardUser,
+  options: {
+    initialEntries?: string[];
+    newWhatsNewCount?: number;
+  } = {},
+) {
   const Stub = createRoutesStub([
     {
       path: '/dashboard',
-      loader: () => ({ user, unreadNotificationCount: 0 }),
+      loader: () => ({
+        user,
+        unreadNotificationCount: 0,
+        newWhatsNewCount: options.newWhatsNewCount ?? 0,
+      }),
       Component: () => (
         <MantineProvider theme={theme}>
           <DashboardLayoutRoute />
@@ -50,11 +64,17 @@ function renderDashboard(user: User = dashboardUser) {
           index: true,
           Component: () => <div>Dashboard content</div>,
         },
+        {
+          path: 'whats-new',
+          Component: () => <div>What's new content</div>,
+        },
       ],
     },
   ]);
 
-  return render(<Stub initialEntries={['/dashboard']} />);
+  return render(
+    <Stub initialEntries={options.initialEntries ?? ['/dashboard']} />,
+  );
 }
 
 describe('DashboardLayoutRoute', () => {
@@ -127,6 +147,38 @@ describe('DashboardLayoutRoute', () => {
     expect(
       within(drawer).queryByRole('link', { name: 'Member Management' }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a what's new menu badge for unseen updates", async () => {
+    const user = userEvent.setup();
+    renderDashboard(dashboardUser, { newWhatsNewCount: 2 });
+
+    await user.click(await screen.findByRole('button', { name: 'Open menu' }));
+
+    const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+    const whatsNewLink = within(drawer).getByRole('link', {
+      name: "What's New, 2 new updates",
+    });
+
+    expect(whatsNewLink).toHaveAttribute('href', '/dashboard/whats-new');
+    expect(within(whatsNewLink).getByText('2')).toBeInTheDocument();
+  });
+
+  it("hides the what's new badge while the what's new page is open", async () => {
+    const user = userEvent.setup();
+    renderDashboard(dashboardUser, {
+      initialEntries: ['/dashboard/whats-new'],
+      newWhatsNewCount: 2,
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Open menu' }));
+
+    const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+    const whatsNewLink = within(drawer).getByRole('link', {
+      name: "What's New",
+    });
+
+    expect(within(whatsNewLink).queryByText('2')).not.toBeInTheDocument();
   });
 
   it('resets the mobile menu when Safari restores the page from back-forward cache', async () => {

@@ -14,6 +14,7 @@ import type { FeedbackRecord } from '~/lib/db/entities/feedback.server';
 import type { GarageShareRequestRecord } from '~/lib/db/entities/garage-share-request.server';
 import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 import type { SeriesSubscriptionRecord } from '~/lib/db/entities/series-subscription.server';
+import type { WhatsNewViewRecord } from '~/lib/db/entities/whats-new-view.server';
 import {
   type AvailableDaysSnapshot,
   getAvailableDaysSnapshot,
@@ -27,6 +28,7 @@ import { feedbackStore } from '~/lib/db/services/feedback.server';
 import { garageShareRequestStore } from '~/lib/db/services/garage-share-request.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
 import { seriesSubscriptionStore } from '~/lib/db/services/series-subscription.server';
+import { whatsNewViewStore } from '~/lib/db/services/whats-new-view.server';
 
 export interface AdminExportDependencies {
   loadMembers?: typeof listAdminSiteMembers;
@@ -42,6 +44,7 @@ export interface AdminExportDependencies {
   loadExternalNotifications?: typeof externalNotificationStore.listAll;
   loadFeedback?: typeof feedbackStore.listAll;
   loadGarageShareRequests?: typeof garageShareRequestStore.listAll;
+  loadWhatsNewViews?: typeof whatsNewViewStore.listAll;
   now?: Date;
 }
 
@@ -51,7 +54,7 @@ export interface AdminCalendarFeedExport
 }
 
 export interface AdminDataExport {
-  exportVersion: 3;
+  exportVersion: 4;
   exportedAt: string;
   members: AdminMemberDirectoryEntry[];
   memberInvites: Awaited<ReturnType<typeof listMemberInvites>>;
@@ -66,6 +69,7 @@ export interface AdminDataExport {
   externalNotifications: ExternalNotificationRecord[];
   garageShareRequests: GarageShareRequestRecord[];
   feedback: FeedbackRecord[];
+  whatsNewViews: WhatsNewViewRecord[];
 }
 
 export interface AdminDataExportSummary {
@@ -83,6 +87,7 @@ export interface AdminDataExportSummary {
   externalNotificationCount: number;
   garageShareRequestCount: number;
   feedbackCount: number;
+  whatsNewViewCount: number;
 }
 
 function redactCalendarFeedToken(
@@ -119,6 +124,8 @@ export async function createAdminDataExport(
     dependencies.loadFeedback ?? feedbackStore.listAll;
   const loadGarageShareRequestRecords =
     dependencies.loadGarageShareRequests ?? garageShareRequestStore.listAll;
+  const loadWhatsNewViewRecords =
+    dependencies.loadWhatsNewViews ?? whatsNewViewStore.listAll;
   const exportedAt = (dependencies.now ?? new Date()).toISOString();
   const [
     members,
@@ -131,6 +138,7 @@ export async function createAdminDataExport(
     externalNotifications,
     garageShareRequests,
     feedback,
+    whatsNewViews,
   ] = await Promise.all([
     loadMembers(),
     loadMemberInvites(),
@@ -142,6 +150,7 @@ export async function createAdminDataExport(
     loadExternalNotificationRecords(),
     loadGarageShareRequestRecords(),
     loadFeedbackRecords(),
+    loadWhatsNewViewRecords(),
   ]);
   const [bookingsByMember, subscriptionsByMember, feedsByMember] =
     await Promise.all([
@@ -151,7 +160,7 @@ export async function createAdminDataExport(
     ]);
 
   return {
-    exportVersion: 3,
+    exportVersion: 4,
     exportedAt,
     members,
     memberInvites,
@@ -166,6 +175,7 @@ export async function createAdminDataExport(
     externalNotifications,
     garageShareRequests,
     feedback,
+    whatsNewViews,
   };
 }
 
@@ -187,5 +197,6 @@ export function summarizeAdminDataExport(
     externalNotificationCount: dataExport.externalNotifications.length,
     garageShareRequestCount: dataExport.garageShareRequests.length,
     feedbackCount: dataExport.feedback.length,
+    whatsNewViewCount: dataExport.whatsNewViews.length,
   };
 }

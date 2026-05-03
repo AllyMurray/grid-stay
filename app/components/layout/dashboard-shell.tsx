@@ -2,6 +2,7 @@ import {
   ActionIcon,
   AppShell,
   Avatar,
+  Badge,
   Burger,
   Button,
   Container,
@@ -43,11 +44,13 @@ interface DashboardNavItem {
   icon: ComponentType<{ size?: number | string }>;
   active: boolean;
   count?: number;
+  countLabel?: string;
 }
 
 export interface DashboardShellProps {
   user: User;
   unreadNotificationCount: number;
+  newWhatsNewCount: number;
 }
 
 interface DashboardNavContentProps {
@@ -97,12 +100,17 @@ function DashboardNavContent({
                   component={Link}
                   to={item.to}
                   label={item.label}
+                  aria-label={
+                    itemCount > 0 && item.countLabel
+                      ? `${item.label}, ${itemCount} ${item.countLabel}`
+                      : item.label
+                  }
                   leftSection={<Icon size={18} />}
                   rightSection={
                     itemCount > 0 ? (
-                      <Text size="xs" fw={800} c="brand.7">
+                      <Badge size="xs" radius="sm" aria-hidden="true">
                         {itemCount}
-                      </Text>
+                      </Badge>
                     ) : null
                   }
                   active={item.active}
@@ -150,6 +158,7 @@ function DashboardNavContent({
 export function DashboardShell({
   user,
   unreadNotificationCount,
+  newWhatsNewCount,
 }: DashboardShellProps) {
   const location = useLocation();
   const { toggleColorScheme } = useMantineColorScheme();
@@ -160,6 +169,9 @@ export function DashboardShell({
   const revalidator = useRevalidator();
   const isAdmin = isAdminUser(user);
   const mobileMenuId = 'dashboard-mobile-menu';
+  const whatsNewCount = location.pathname.startsWith('/dashboard/whats-new')
+    ? 0
+    : newWhatsNewCount;
 
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {
@@ -215,6 +227,10 @@ export function DashboardShell({
       icon: IconBell,
       active: location.pathname.startsWith('/dashboard/notifications'),
       count: unreadNotificationCount,
+      countLabel:
+        unreadNotificationCount === 1
+          ? 'pending notification'
+          : 'pending notifications',
     },
     {
       label: 'Feedback',
@@ -227,6 +243,8 @@ export function DashboardShell({
       to: '/dashboard/whats-new',
       icon: IconSparkles,
       active: location.pathname.startsWith('/dashboard/whats-new'),
+      count: whatsNewCount,
+      countLabel: whatsNewCount === 1 ? 'new update' : 'new updates',
     },
     {
       label: 'Account',
