@@ -19,6 +19,7 @@ import {
 } from './day-plan.server';
 import {
   type GarageShareRequestPersistence,
+  type GarageShareRequestRecord,
   garageShareRequestStore,
 } from './garage-share-request.server';
 
@@ -101,6 +102,14 @@ function toMergeRule(record: DayMergeRecord): DayMergeRule {
   };
 }
 
+function bookingKey(userId: string, bookingId: string) {
+  return `${userId}:${bookingId}`;
+}
+
+function isOpenGarageShareRequest(request: GarageShareRequestRecord) {
+  return request.status === 'pending' || request.status === 'approved';
+}
+
 function copyBookingToTarget(
   source: BookingRecord,
   targetDay: AvailableDay,
@@ -121,6 +130,13 @@ function copyBookingToTarget(
     description: targetDay.description,
     updatedAt: now,
   } as BookingRecord;
+}
+
+function mergeGarageShareCount(target: BookingRecord, source: BookingRecord) {
+  const count =
+    (target.garageApprovedShareCount ?? 0) +
+    (source.garageApprovedShareCount ?? 0);
+  return count > 0 ? count : undefined;
 }
 
 function mergePrivateBookingFields(
@@ -144,7 +160,55 @@ function mergePrivateBookingFields(
     accommodationName: target.accommodationName ?? source.accommodationName,
     accommodationReference:
       target.accommodationReference ?? source.accommodationReference,
+    garageBooked: target.garageBooked || source.garageBooked,
+    garageCapacity:
+      target.garageCapacity ??
+      (source.garageBooked ? source.garageCapacity : undefined),
+    garageLabel:
+      target.garageLabel ??
+      (source.garageBooked ? source.garageLabel : undefined),
+    garageCostTotalPence:
+      target.garageCostTotalPence ??
+      (source.garageBooked ? source.garageCostTotalPence : undefined),
+    garageCostCurrency:
+      target.garageCostCurrency ??
+      (source.garageBooked ? source.garageCostCurrency : undefined),
+    garageApprovedShareCount: mergeGarageShareCount(target, source),
     notes: target.notes ?? source.notes,
+    updatedAt: now,
+  };
+}
+
+function getGarageShareMigrationChanges(
+  request: GarageShareRequestRecord,
+  movedBookings: Map<string, BookingRecord>,
+  targetDay: AvailableDay,
+  now: string,
+): Partial<GarageShareRequestRecord> | null {
+  const ownerBooking = movedBookings.get(
+    bookingKey(request.garageOwnerUserId, request.garageBookingId),
+  );
+  const requesterBooking = movedBookings.get(
+    bookingKey(request.requesterUserId, request.requesterBookingId),
+  );
+
+  if (!ownerBooking?.garageBooked || !requesterBooking) {
+    return isOpenGarageShareRequest(request)
+      ? {
+          status: 'cancelled',
+          updatedAt: now,
+        }
+      : null;
+  }
+
+  return {
+    dayId: targetDay.dayId,
+    date: targetDay.date,
+    circuit: targetDay.circuit,
+    provider: targetDay.provider,
+    description: targetDay.description,
+    garageBookingId: ownerBooking.bookingId,
+    requesterBookingId: requesterBooking.bookingId,
     updatedAt: now,
   };
 }
@@ -204,6 +268,7 @@ export async function migrateMergedDayData(
   const sourceBookings = await bookings.listByDay(sourceDayId);
   const sourceGarageRequests = await garageRequests.listByDay(sourceDayId);
   const now = new Date().toISOString();
+  const movedBookings = new Map<string, BookingRecord>();
   let movedBookingCount = 0;
   let mergedBookingCount = 0;
 
@@ -214,58 +279,58 @@ export async function migrateMergedDayData(
     );
 
     if (existingTarget) {
-      await bookings.update(
+      const changes = mergePrivateBookingFields(
+        existingTarget,
+        sourceBooking,
+        targetDay,
+        now,
+      );
+      const updatedTarget = await bookings.update(
         existingTarget.userId,
         existingTarget.bookingId,
-        mergePrivateBookingFields(
-          existingTarget,
-          sourceBooking,
-          targetDay,
-          now,
-        ),
+        changes,
       );
-      await Promise.all(
-        sourceGarageRequests
-          .filter(
-            (request) =>
-              request.garageOwnerUserId === sourceBooking.userId &&
-              request.garageBookingId === sourceBooking.bookingId &&
-              (request.status === 'pending' || request.status === 'approved'),
-          )
-          .map((request) =>
-            garageRequests.update(request.requestId, {
-              status: 'cancelled',
-              updatedAt: now,
-            }),
-          ),
+      movedBookings.set(
+        bookingKey(sourceBooking.userId, sourceBooking.bookingId),
+        updatedTarget,
       );
       mergedBookingCount += 1;
     } else {
-      await bookings.create(copyBookingToTarget(sourceBooking, targetDay, now));
-      await Promise.all(
-        sourceGarageRequests
-          .filter(
-            (request) =>
-              request.garageOwnerUserId === sourceBooking.userId &&
-              request.garageBookingId === sourceBooking.bookingId,
-          )
-          .map((request) =>
-            garageRequests.update(request.requestId, {
-              dayId: targetDay.dayId,
-              date: targetDay.date,
-              circuit: targetDay.circuit,
-              provider: targetDay.provider,
-              description: targetDay.description,
-              garageBookingId: targetDay.dayId,
-              updatedAt: now,
-            }),
-          ),
+      const targetBooking = copyBookingToTarget(sourceBooking, targetDay, now);
+      await bookings.create(targetBooking);
+      movedBookings.set(
+        bookingKey(sourceBooking.userId, sourceBooking.bookingId),
+        targetBooking,
       );
       movedBookingCount += 1;
     }
 
     await bookings.delete(sourceBooking.userId, sourceBooking.bookingId);
   }
+
+  await Promise.all(
+    sourceGarageRequests
+      .map((request) => ({
+        request,
+        changes: getGarageShareMigrationChanges(
+          request,
+          movedBookings,
+          targetDay,
+          now,
+        ),
+      }))
+      .filter(
+        (
+          item,
+        ): item is {
+          request: GarageShareRequestRecord;
+          changes: Partial<GarageShareRequestRecord>;
+        } => item.changes !== null,
+      )
+      .map(({ request, changes }) =>
+        garageRequests.update(request.requestId, changes),
+      ),
+  );
 
   const [sourcePlan, targetPlan] = await Promise.all([
     plans.get(sourceDayId),
