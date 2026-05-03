@@ -23,6 +23,7 @@ import {
   IconHome2,
   IconHotelService,
   IconLock,
+  IconMessageCircle,
   IconMoon,
   IconRoad,
   IconSparkles,
@@ -214,6 +215,12 @@ export function DashboardShell({
       icon: IconBell,
       active: location.pathname.startsWith('/dashboard/notifications'),
       count: unreadNotificationCount,
+    },
+    {
+      label: 'Feedback',
+      to: '/dashboard/feedback',
+      icon: IconMessageCircle,
+      active: location.pathname.startsWith('/dashboard/feedback'),
     },
     {
       label: "What's New",

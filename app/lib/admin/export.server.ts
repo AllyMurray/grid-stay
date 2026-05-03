@@ -10,6 +10,7 @@ import type { CircuitAliasRecord } from '~/lib/db/entities/circuit-alias.server'
 import type { DayMergeRecord } from '~/lib/db/entities/day-merge.server';
 import type { DayPlanRecord } from '~/lib/db/entities/day-plan.server';
 import type { ExternalNotificationRecord } from '~/lib/db/entities/external-notification.server';
+import type { FeedbackRecord } from '~/lib/db/entities/feedback.server';
 import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 import type { SeriesSubscriptionRecord } from '~/lib/db/entities/series-subscription.server';
 import {
@@ -21,6 +22,7 @@ import { listCircuitAliases } from '~/lib/db/services/circuit-alias.server';
 import { listDayMerges } from '~/lib/db/services/day-merge.server';
 import { dayPlanStore } from '~/lib/db/services/day-plan.server';
 import { externalNotificationStore } from '~/lib/db/services/external-notification.server';
+import { feedbackStore } from '~/lib/db/services/feedback.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
 import { seriesSubscriptionStore } from '~/lib/db/services/series-subscription.server';
 
@@ -36,6 +38,7 @@ export interface AdminExportDependencies {
   loadCircuitAliases?: typeof listCircuitAliases;
   loadDayMerges?: typeof listDayMerges;
   loadExternalNotifications?: typeof externalNotificationStore.listAll;
+  loadFeedback?: typeof feedbackStore.listAll;
   now?: Date;
 }
 
@@ -45,7 +48,7 @@ export interface AdminCalendarFeedExport
 }
 
 export interface AdminDataExport {
-  exportVersion: 1;
+  exportVersion: 2;
   exportedAt: string;
   members: AdminMemberDirectoryEntry[];
   memberInvites: Awaited<ReturnType<typeof listMemberInvites>>;
@@ -58,6 +61,7 @@ export interface AdminDataExport {
   circuitAliases: CircuitAliasRecord[];
   dayMerges: DayMergeRecord[];
   externalNotifications: ExternalNotificationRecord[];
+  feedback: FeedbackRecord[];
 }
 
 export interface AdminDataExportSummary {
@@ -73,6 +77,7 @@ export interface AdminDataExportSummary {
   circuitAliasCount: number;
   dayMergeCount: number;
   externalNotificationCount: number;
+  feedbackCount: number;
 }
 
 function redactCalendarFeedToken(
@@ -105,6 +110,8 @@ export async function createAdminDataExport(
   const loadDayMergeRecords = dependencies.loadDayMerges ?? listDayMerges;
   const loadExternalNotificationRecords =
     dependencies.loadExternalNotifications ?? externalNotificationStore.listAll;
+  const loadFeedbackRecords =
+    dependencies.loadFeedback ?? feedbackStore.listAll;
   const exportedAt = (dependencies.now ?? new Date()).toISOString();
   const [
     members,
@@ -115,6 +122,7 @@ export async function createAdminDataExport(
     circuitAliases,
     dayMerges,
     externalNotifications,
+    feedback,
   ] = await Promise.all([
     loadMembers(),
     loadMemberInvites(),
@@ -124,6 +132,7 @@ export async function createAdminDataExport(
     loadCircuitAliasRecords(),
     loadDayMergeRecords(),
     loadExternalNotificationRecords(),
+    loadFeedbackRecords(),
   ]);
   const [bookingsByMember, subscriptionsByMember, feedsByMember] =
     await Promise.all([
@@ -133,7 +142,7 @@ export async function createAdminDataExport(
     ]);
 
   return {
-    exportVersion: 1,
+    exportVersion: 2,
     exportedAt,
     members,
     memberInvites,
@@ -146,6 +155,7 @@ export async function createAdminDataExport(
     circuitAliases,
     dayMerges,
     externalNotifications,
+    feedback,
   };
 }
 
@@ -165,5 +175,6 @@ export function summarizeAdminDataExport(
     circuitAliasCount: dataExport.circuitAliases.length,
     dayMergeCount: dataExport.dayMerges.length,
     externalNotificationCount: dataExport.externalNotifications.length,
+    feedbackCount: dataExport.feedback.length,
   };
 }

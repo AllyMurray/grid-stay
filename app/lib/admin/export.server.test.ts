@@ -33,6 +33,11 @@ vi.mock('~/lib/db/services/external-notification.server', () => ({
     listAll: vi.fn(),
   },
 }));
+vi.mock('~/lib/db/services/feedback.server', () => ({
+  feedbackStore: {
+    listAll: vi.fn(),
+  },
+}));
 vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManagedManualDays: vi.fn(),
 }));
@@ -58,6 +63,9 @@ vi.mock('~/lib/db/entities/day-plan.server', () => ({
 }));
 vi.mock('~/lib/db/entities/external-notification.server', () => ({
   ExternalNotificationEntity: {},
+}));
+vi.mock('~/lib/db/entities/feedback.server', () => ({
+  FeedbackEntity: {},
 }));
 vi.mock('~/lib/db/entities/manual-day.server', () => ({
   ManualDayEntity: {},
@@ -164,6 +172,21 @@ describe('admin data export', () => {
           updatedAt: '2026-04-27T10:00:00.000Z',
         },
       ],
+      loadFeedback: async () => [
+        {
+          feedbackId: 'feedback-1',
+          feedbackScope: 'feedback',
+          userId: 'user-1',
+          userName: 'Driver One',
+          userEmail: 'driver@example.com',
+          type: 'feature_request',
+          status: 'new',
+          title: 'Make filtering easier',
+          message: 'Please add saved filters to the schedule.',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
     });
 
     expect(dataExport.exportedAt).toBe('2026-04-27T10:00:00.000Z');
@@ -185,6 +208,7 @@ describe('admin data export', () => {
       circuitAliasCount: 1,
       dayMergeCount: 1,
       externalNotificationCount: 1,
+      feedbackCount: 1,
     });
   });
 });

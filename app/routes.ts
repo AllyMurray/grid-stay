@@ -21,6 +21,7 @@ export default [
   layout('routes/_dashboard.tsx', [
     route('dashboard', 'routes/dashboard/index.tsx'),
     route('dashboard/account', 'routes/dashboard/account.tsx'),
+    route('dashboard/feedback', 'routes/dashboard/feedback.tsx'),
     route('dashboard/days', 'routes/dashboard/days.tsx'),
     route(
       'dashboard/series/:seriesKey',
@@ -34,6 +35,7 @@ export default [
       'routes/dashboard/admin.day-merges.tsx',
     ),
     route('dashboard/admin/feed', 'routes/dashboard/admin.feed.tsx'),
+    route('dashboard/admin/feedback', 'routes/dashboard/admin.feedback.tsx'),
     route('dashboard/admin/export', 'routes/dashboard/admin.export.tsx'),
     route(
       'dashboard/admin/data-quality',

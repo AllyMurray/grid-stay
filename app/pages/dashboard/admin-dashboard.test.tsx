@@ -56,5 +56,9 @@ describe('AdminDashboardPage', () => {
     expect(
       screen.getByRole('link', { name: 'Open Data export' }),
     ).toHaveAttribute('href', '/dashboard/admin/export');
+    expect(screen.getByRole('link', { name: 'Open Feedback' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/feedback',
+    );
   });
 });

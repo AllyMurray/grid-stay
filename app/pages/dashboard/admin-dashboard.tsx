@@ -16,6 +16,7 @@ import {
   IconDownload,
   IconLock,
   IconMapPin,
+  IconMessageCircle,
   IconRouteAltLeft,
   IconUsersGroup,
 } from '@tabler/icons-react';
@@ -109,6 +110,13 @@ const adminToolGroups: AdminToolGroup[] = [
         href: '/dashboard/admin/export',
         label: 'Export',
         icon: IconDownload,
+      },
+      {
+        title: 'Feedback',
+        description: 'Review feedback and feature requests from members.',
+        href: '/dashboard/admin/feedback',
+        label: 'Requests',
+        icon: IconMessageCircle,
       },
     ],
   },

@@ -90,6 +90,12 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
               </Text>
               <Text fw={800}>{summary.externalNotificationCount}</Text>
             </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
+                Feedback
+              </Text>
+              <Text fw={800}>{summary.feedbackCount}</Text>
+            </Stack>
           </Group>
 
           <Text size="sm" c="dimmed">

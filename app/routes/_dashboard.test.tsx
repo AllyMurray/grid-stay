@@ -76,6 +76,9 @@ describe('DashboardLayoutRoute', () => {
       within(drawer).getByRole('link', { name: "What's New" }),
     ).toHaveAttribute('href', '/dashboard/whats-new');
     expect(
+      within(drawer).getByRole('link', { name: 'Feedback' }),
+    ).toHaveAttribute('href', '/dashboard/feedback');
+    expect(
       within(drawer)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
@@ -88,6 +91,7 @@ describe('DashboardLayoutRoute', () => {
       'Members',
       'My Bookings',
       'Notifications',
+      'Feedback',
       "What's New",
       'Account',
     ]);
