@@ -25,13 +25,16 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Schedule starts with what is ahead',
+        name: 'Feedback updates are easier to track',
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
     expect(
-      screen.getByText(/past and cancelled trips stay available/i),
+      screen.getByText(/concurrent admin replies are preserved/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open feedback/i }),
+    ).toHaveAttribute('href', '/dashboard/feedback');
     expect(
       screen.getByRole('link', { name: /open schedule/i }),
     ).toHaveAttribute('href', '/dashboard/schedule');
