@@ -37,6 +37,17 @@ export interface BookingPersistence {
   ): Promise<BookingRecord | null>;
   getByUser(userId: string, bookingId: string): Promise<BookingRecord | null>;
   listByDay(dayId: string): Promise<BookingRecord[]>;
+  claimGarageShareSpace?(
+    userId: string,
+    bookingId: string,
+    maxApprovedShareCount: number,
+    updatedAt: string,
+  ): Promise<BookingRecord | null>;
+  releaseGarageShareSpace?(
+    userId: string,
+    bookingId: string,
+    updatedAt: string,
+  ): Promise<BookingRecord | null>;
 }
 
 export interface BookingSummaryPersistence {
@@ -81,7 +92,65 @@ export const bookingStore: BookingPersistence = {
     const response = await BookingEntity.query.byDay({ dayId }).go();
     return response.data;
   },
+  async claimGarageShareSpace(
+    userId,
+    bookingId,
+    maxApprovedShareCount,
+    updatedAt,
+  ) {
+    if (maxApprovedShareCount <= 0) {
+      return null;
+    }
+
+    try {
+      const updated = await BookingEntity.patch({ userId, bookingId })
+        .add({ garageApprovedShareCount: 1 })
+        .set({ updatedAt })
+        .where(
+          (
+            { garageApprovedShareCount, garageBooked, status },
+            { eq, lt, ne, notExists },
+          ) =>
+            `${eq(garageBooked, true)} AND ${ne(status, 'cancelled')} AND (${notExists(garageApprovedShareCount)} OR ${lt(garageApprovedShareCount, maxApprovedShareCount)})`,
+        )
+        .go({ response: 'all_new' });
+      return updated.data;
+    } catch (error) {
+      if (isConditionalCheckFailed(error)) {
+        return null;
+      }
+
+      throw error;
+    }
+  },
+  async releaseGarageShareSpace(userId, bookingId, updatedAt) {
+    try {
+      const updated = await BookingEntity.patch({ userId, bookingId })
+        .subtract({ garageApprovedShareCount: 1 })
+        .set({ updatedAt })
+        .where(({ garageApprovedShareCount }, { gt }) =>
+          gt(garageApprovedShareCount, 0),
+        )
+        .go({ response: 'all_new' });
+      return updated.data;
+    } catch (error) {
+      if (isConditionalCheckFailed(error)) {
+        return null;
+      }
+
+      throw error;
+    }
+  },
 };
+
+function isConditionalCheckFailed(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'ConditionalCheckFailedException'
+  );
+}
 
 function sanitizeOptional(value?: string): string | undefined {
   const trimmed = value?.trim();

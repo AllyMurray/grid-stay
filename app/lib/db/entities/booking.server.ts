@@ -38,6 +38,7 @@ export const BookingEntity = new Entity(
       garageLabel: { type: 'string' },
       garageCostTotalPence: { type: 'number' },
       garageCostCurrency: { type: 'string' },
+      garageApprovedShareCount: { type: 'number' },
       notes: { type: 'string' },
       createdAt: { type: 'string', required: true },
       updatedAt: { type: 'string', required: true },

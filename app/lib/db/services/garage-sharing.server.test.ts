@@ -90,6 +90,40 @@ function createMemoryDependencies({
       async listByDay(dayId: string) {
         return bookings.filter((booking) => booking.dayId === dayId);
       },
+      claimGarageShareSpace: vi.fn(
+        async (
+          userId: string,
+          bookingId: string,
+          maxApprovedShareCount: number,
+        ) => {
+          const booking = bookings.find(
+            (item) => item.userId === userId && item.bookingId === bookingId,
+          );
+          const activeUserIds = new Set(
+            bookings
+              .filter((item) => item.dayId === booking?.dayId)
+              .filter((item) => item.status !== 'cancelled')
+              .map((item) => item.userId),
+          );
+          const approvedCount = requestItems.filter(
+            (request) =>
+              request.garageOwnerUserId === userId &&
+              request.garageBookingId === bookingId &&
+              request.status === 'approved' &&
+              activeUserIds.has(request.requesterUserId),
+          ).length;
+
+          if (!booking || approvedCount >= maxApprovedShareCount) {
+            return null;
+          }
+
+          return {
+            ...booking,
+            garageApprovedShareCount: approvedCount + 1,
+          };
+        },
+      ),
+      releaseGarageShareSpace: vi.fn(async () => ownerBooking),
     },
     requestStore: {
       async create(item: GarageShareRequestRecord) {
@@ -221,6 +255,47 @@ describe('garage sharing service', () => {
         memory as never,
       ),
     ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('does not approve a request when the garage capacity claim fails', async () => {
+    const memory = createMemoryDependencies({
+      requests: [createRequest()],
+    });
+    memory.bookingStore.claimGarageShareSpace.mockResolvedValue(null);
+
+    await expect(
+      updateGarageShareRequestStatus(
+        { requestId: 'request-1', status: 'approved' },
+        owner,
+        memory as never,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+
+    expect(memory.bookingStore.claimGarageShareSpace).toHaveBeenCalledWith(
+      owner.id,
+      ownerBooking.bookingId,
+      1,
+      expect.any(String),
+    );
+    expect(memory.requestItems[0]?.status).toBe('pending');
+  });
+
+  it('releases claimed garage capacity when an approved request is cancelled', async () => {
+    const memory = createMemoryDependencies({
+      requests: [createRequest({ status: 'approved' })],
+    });
+
+    await updateGarageShareRequestStatus(
+      { requestId: 'request-1', status: 'cancelled' },
+      requester,
+      memory as never,
+    );
+
+    expect(memory.bookingStore.releaseGarageShareSpace).toHaveBeenCalledWith(
+      owner.id,
+      ownerBooking.bookingId,
+      expect.any(String),
+    );
   });
 
   it('lets the owner approve and the requester cancel a request', async () => {

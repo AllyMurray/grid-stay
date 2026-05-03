@@ -42,6 +42,10 @@ function getGarageCapacity(booking: BookingRecord) {
   return Math.max(booking.garageCapacity ?? 2, 1);
 }
 
+function getShareableGarageSpaceCount(booking: BookingRecord) {
+  return Math.max(getGarageCapacity(booking) - 1, 0);
+}
+
 function sanitizeOptional(value?: string): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
@@ -203,6 +207,7 @@ export async function updateGarageShareRequestStatus(
   const bookings = dependencies.bookingStore ?? bookingStore;
   const requests = dependencies.requestStore ?? garageShareRequestStore;
   const existing = await requests.get(input.requestId);
+  const now = new Date().toISOString();
 
   if (!existing) {
     throw new Response('Garage share request not found.', { status: 404 });
@@ -225,7 +230,54 @@ export async function updateGarageShareRequestStatus(
     });
   }
 
-  if (input.status === 'approved') {
+  const isApproval = input.status === 'approved';
+  const needsGarageSpaceClaim = isApproval && existing.status !== 'approved';
+  const releasesGarageSpace = existing.status === 'approved' && !isApproval;
+  let claimedGarageSpace = false;
+
+  if (needsGarageSpaceClaim) {
+    if (existing.status !== 'pending') {
+      throw new Response('This garage request is no longer pending.', {
+        status: 400,
+      });
+    }
+
+    const [ownerBooking, requesterBooking] = await Promise.all([
+      bookings.getByUser(existing.garageOwnerUserId, existing.garageBookingId),
+      bookings.getByUser(existing.requesterUserId, existing.requesterBookingId),
+    ]);
+
+    if (!isActiveBooking(requesterBooking)) {
+      throw new Response('Requester no longer has an active booking.', {
+        status: 400,
+      });
+    }
+
+    if (!ownerBooking?.garageBooked || !isActiveBooking(ownerBooking)) {
+      throw new Response('Garage is no longer available to share.', {
+        status: 400,
+      });
+    }
+
+    if (!bookings.claimGarageShareSpace) {
+      throw new Error('Booking store does not support garage capacity claims.');
+    }
+
+    const claimed = await bookings.claimGarageShareSpace(
+      ownerBooking.userId,
+      ownerBooking.bookingId,
+      getShareableGarageSpaceCount(ownerBooking),
+      now,
+    );
+
+    if (!claimed) {
+      throw new Response('This garage no longer has a free space.', {
+        status: 400,
+      });
+    }
+
+    claimedGarageSpace = true;
+  } else if (isApproval) {
     const ownerBooking = await bookings.getByUser(
       existing.garageOwnerUserId,
       existing.garageBookingId,
@@ -250,19 +302,39 @@ export async function updateGarageShareRequestStatus(
     }
   }
 
-  const now = new Date().toISOString();
-  const updated = await requests.update(existing.requestId, {
-    status: input.status,
-    decidedAt:
-      input.status === 'approved' || input.status === 'declined'
-        ? now
-        : existing.decidedAt,
-    decidedByUserId:
-      input.status === 'approved' || input.status === 'declined'
-        ? user.id
-        : existing.decidedByUserId,
-    updatedAt: now,
-  });
+  let updated: GarageShareRequestRecord;
+  try {
+    updated = await requests.update(existing.requestId, {
+      status: input.status,
+      decidedAt:
+        input.status === 'approved' || input.status === 'declined'
+          ? now
+          : existing.decidedAt,
+      decidedByUserId:
+        input.status === 'approved' || input.status === 'declined'
+          ? user.id
+          : existing.decidedByUserId,
+      updatedAt: now,
+    });
+  } catch (error) {
+    if (claimedGarageSpace && bookings.releaseGarageShareSpace) {
+      await bookings.releaseGarageShareSpace(
+        existing.garageOwnerUserId,
+        existing.garageBookingId,
+        now,
+      );
+    }
+
+    throw error;
+  }
+
+  if (releasesGarageSpace && bookings.releaseGarageShareSpace) {
+    await bookings.releaseGarageShareSpace(
+      existing.garageOwnerUserId,
+      existing.garageBookingId,
+      now,
+    );
+  }
 
   await (dependencies.syncSummaries ?? syncDayAttendanceSummaries)([
     updated.dayId,
