@@ -29,9 +29,7 @@ describe('WhatsNewPage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
-    expect(
-      screen.getByText(/concurrent admin replies are preserved/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/email updates link back/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open feedback/i }),
     ).toHaveAttribute('href', '/dashboard/feedback');

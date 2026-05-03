@@ -26,11 +26,11 @@ export const whatsNewEntries: WhatsNewEntry[] = [
     dateLabel: '3 May 2026',
     category: 'Feedback',
     description:
-      'Feedback now has a history view for members and admin controls for status changes, replies, email updates, and cleanup.',
+      'When you send feedback, you can now receive updates and track the request from your Feedback page.',
     highlights: [
-      'Members can see their submitted feedback and any admin updates from the Feedback page.',
-      'Admins can review feedback, change status, send member updates, and remove old records.',
-      'A follow-up release will move feedback reply history to append-only storage so concurrent admin replies are preserved.',
+      'See your submitted feedback requests in one place.',
+      'Track the latest status and replies alongside the original request.',
+      'Email updates link back to the matching feedback request.',
     ],
     href: '/dashboard/feedback',
     actionLabel: 'Open feedback',
