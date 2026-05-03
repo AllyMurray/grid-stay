@@ -18,19 +18,13 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
-  IconActivityHeartbeat,
-  IconAlertTriangle,
   IconBell,
   IconCalendarMonth,
-  IconClipboardList,
-  IconDownload,
   IconHome2,
   IconHotelService,
   IconLock,
-  IconMapPin,
   IconMoon,
   IconRoad,
-  IconRouteAltLeft,
   IconSparkles,
   IconSun,
   IconUserCircle,
@@ -236,52 +230,12 @@ export function DashboardShell({
   ];
   const adminNavItems = [
     {
-      label: 'Manual Days',
-      to: '/dashboard/manual-days',
+      label: 'Admin',
+      to: '/dashboard/admin',
       icon: IconLock,
-      active: location.pathname.startsWith('/dashboard/manual-days'),
-    },
-    {
-      label: 'Feed Status',
-      to: '/dashboard/admin/feed',
-      icon: IconActivityHeartbeat,
-      active: location.pathname.startsWith('/dashboard/admin/feed'),
-    },
-    {
-      label: 'Circuit Tools',
-      to: '/dashboard/admin/circuits',
-      icon: IconMapPin,
-      active: location.pathname.startsWith('/dashboard/admin/circuits'),
-    },
-    {
-      label: 'Day Merges',
-      to: '/dashboard/admin/day-merges',
-      icon: IconRouteAltLeft,
-      active: location.pathname.startsWith('/dashboard/admin/day-merges'),
-    },
-    {
-      label: 'Data Quality',
-      to: '/dashboard/admin/data-quality',
-      icon: IconAlertTriangle,
-      active: location.pathname.startsWith('/dashboard/admin/data-quality'),
-    },
-    {
-      label: 'Data Export',
-      to: '/dashboard/admin/export',
-      icon: IconDownload,
-      active: location.pathname.startsWith('/dashboard/admin/export'),
-    },
-    {
-      label: 'Operations',
-      to: '/dashboard/admin/operations',
-      icon: IconClipboardList,
-      active: location.pathname.startsWith('/dashboard/admin/operations'),
-    },
-    {
-      label: 'Member Management',
-      to: '/dashboard/admin/members',
-      icon: IconUsersGroup,
-      active: location.pathname.startsWith('/dashboard/admin/members'),
+      active:
+        location.pathname.startsWith('/dashboard/admin') ||
+        location.pathname.startsWith('/dashboard/manual-days'),
     },
   ];
 

@@ -26,6 +26,7 @@ export default [
       'dashboard/series/:seriesKey',
       'routes/dashboard/series.$seriesKey.tsx',
     ),
+    route('dashboard/admin', 'routes/dashboard/admin.tsx'),
     route('dashboard/manual-days', 'routes/dashboard/manual-days.tsx'),
     route('dashboard/admin/circuits', 'routes/dashboard/admin.circuits.tsx'),
     route(

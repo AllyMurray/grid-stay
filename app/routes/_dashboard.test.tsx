@@ -3,6 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
+import type { User } from '~/lib/auth/schemas';
 import { theme } from '~/theme';
 import DashboardLayoutRoute from './_dashboard';
 
@@ -14,11 +15,11 @@ vi.mock('~/lib/db/services/day-notification.server', () => ({
   countUnreadDayNotifications: vi.fn(async () => 0),
 }));
 
-const dashboardUser = {
+const dashboardUser: User = {
   id: 'user-1',
   email: 'driver@example.com',
   name: 'Driver One',
-  role: 'member' as const,
+  role: 'member',
 };
 
 function createPageShowEvent(persisted: boolean) {
@@ -30,11 +31,11 @@ function createPageShowEvent(persisted: boolean) {
   return event;
 }
 
-function renderDashboard() {
+function renderDashboard(user: User = dashboardUser) {
   const Stub = createRoutesStub([
     {
       path: '/dashboard',
-      loader: () => ({ user: dashboardUser, unreadNotificationCount: 0 }),
+      loader: () => ({ user, unreadNotificationCount: 0 }),
       Component: () => (
         <MantineProvider theme={theme}>
           <DashboardLayoutRoute />
@@ -75,6 +76,33 @@ describe('DashboardLayoutRoute', () => {
       within(drawer).getByRole('link', { name: "What's New" }),
     ).toHaveAttribute('href', '/dashboard/whats-new');
     expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('shows a single admin hub link for admins', async () => {
+    const user = userEvent.setup();
+    renderDashboard({ ...dashboardUser, role: 'admin' });
+
+    const menuButton = await screen.findByRole('button', {
+      name: 'Open menu',
+    });
+
+    await user.click(menuButton);
+
+    const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
+
+    expect(within(drawer).getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'href',
+      '/dashboard/admin',
+    );
+    expect(
+      within(drawer).queryByRole('link', { name: 'Manual Days' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(drawer).queryByRole('link', { name: 'Feed Status' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(drawer).queryByRole('link', { name: 'Member Management' }),
+    ).not.toBeInTheDocument();
   });
 
   it('resets the mobile menu when Safari restores the page from back-forward cache', async () => {
