@@ -17,6 +17,10 @@ import {
   dayPlanStore,
   SHARED_DAY_PLAN_SCOPE,
 } from './day-plan.server';
+import {
+  type GarageShareRequestPersistence,
+  garageShareRequestStore,
+} from './garage-share-request.server';
 
 export const DAY_MERGE_SCOPE = 'day-merge';
 
@@ -36,6 +40,7 @@ export interface DayMergePersistence {
 export interface DayMergeMigrationDependencies {
   bookingStore?: BookingPersistence;
   planStore?: DayPlanPersistence;
+  garageShareRequestStore?: GarageShareRequestPersistence;
   syncSummaries?: typeof syncDayAttendanceSummaries;
 }
 
@@ -192,9 +197,12 @@ export async function migrateMergedDayData(
 ): Promise<DayMergeMigrationResult> {
   const bookings = dependencies.bookingStore ?? bookingStore;
   const plans = dependencies.planStore ?? dayPlanStore;
+  const garageRequests =
+    dependencies.garageShareRequestStore ?? garageShareRequestStore;
   const syncSummaries =
     dependencies.syncSummaries ?? syncDayAttendanceSummaries;
   const sourceBookings = await bookings.listByDay(sourceDayId);
+  const sourceGarageRequests = await garageRequests.listByDay(sourceDayId);
   const now = new Date().toISOString();
   let movedBookingCount = 0;
   let mergedBookingCount = 0;
@@ -216,9 +224,43 @@ export async function migrateMergedDayData(
           now,
         ),
       );
+      await Promise.all(
+        sourceGarageRequests
+          .filter(
+            (request) =>
+              request.garageOwnerUserId === sourceBooking.userId &&
+              request.garageBookingId === sourceBooking.bookingId &&
+              (request.status === 'pending' || request.status === 'approved'),
+          )
+          .map((request) =>
+            garageRequests.update(request.requestId, {
+              status: 'cancelled',
+              updatedAt: now,
+            }),
+          ),
+      );
       mergedBookingCount += 1;
     } else {
       await bookings.create(copyBookingToTarget(sourceBooking, targetDay, now));
+      await Promise.all(
+        sourceGarageRequests
+          .filter(
+            (request) =>
+              request.garageOwnerUserId === sourceBooking.userId &&
+              request.garageBookingId === sourceBooking.bookingId,
+          )
+          .map((request) =>
+            garageRequests.update(request.requestId, {
+              dayId: targetDay.dayId,
+              date: targetDay.date,
+              circuit: targetDay.circuit,
+              provider: targetDay.provider,
+              description: targetDay.description,
+              garageBookingId: targetDay.dayId,
+              updatedAt: now,
+            }),
+          ),
+      );
       movedBookingCount += 1;
     }
 

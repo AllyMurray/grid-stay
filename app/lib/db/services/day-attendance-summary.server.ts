@@ -6,6 +6,8 @@ import {
 export interface DayAttendanceOverview {
   attendeeCount: number;
   accommodationNames: string[];
+  garageOwnerCount?: number;
+  garageOpenSpaceCount?: number;
 }
 
 const DAY_ATTENDANCE_SUMMARY_SCOPE = 'summary';
@@ -13,12 +15,17 @@ const DAY_ATTENDANCE_SUMMARY_SCOPE = 'summary';
 function toOverview(
   record: Pick<
     DayAttendanceSummaryRecord,
-    'attendeeCount' | 'accommodationNames'
+    | 'attendeeCount'
+    | 'accommodationNames'
+    | 'garageOwnerCount'
+    | 'garageOpenSpaceCount'
   >,
 ): DayAttendanceOverview {
   return {
     attendeeCount: record.attendeeCount,
     accommodationNames: record.accommodationNames,
+    garageOwnerCount: record.garageOwnerCount ?? 0,
+    garageOpenSpaceCount: record.garageOpenSpaceCount ?? 0,
   };
 }
 
@@ -59,6 +66,8 @@ export const dayAttendanceSummaryStore: DayAttendanceSummaryPersistence = {
       scope: DAY_ATTENDANCE_SUMMARY_SCOPE,
       attendeeCount: overview.attendeeCount,
       accommodationNames: overview.accommodationNames,
+      garageOwnerCount: overview.garageOwnerCount ?? 0,
+      garageOpenSpaceCount: overview.garageOpenSpaceCount ?? 0,
       updatedAt,
     }).go();
   },

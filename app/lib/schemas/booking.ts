@@ -42,12 +42,33 @@ export const BulkRaceSeriesBookingSchema = z.object({
   status: z.enum(['booked', 'maybe']),
 });
 
+const GarageBookedSchema = z.preprocess(
+  (value) =>
+    value === true || value === 'true' || value === 'on' || value === '1',
+  z.boolean(),
+);
+
+const OptionalMoneySchema = z.preprocess(
+  (value) => (value === '' || value == null ? undefined : value),
+  z.coerce.number().int().nonnegative().optional(),
+);
+
+const GarageCapacitySchema = z.preprocess(
+  (value) => (value === '' || value == null ? undefined : value),
+  z.coerce.number().int().min(1).max(20).default(2),
+);
+
 export const UpdateBookingSchema = z.object({
   bookingId: z.string().min(1),
   status: BookingStatusSchema,
   bookingReference: z.string().trim().max(120).optional().default(''),
   accommodationName: z.string().trim().max(120).optional().default(''),
   accommodationReference: z.string().trim().max(120).optional().default(''),
+  garageBooked: GarageBookedSchema,
+  garageCapacity: GarageCapacitySchema,
+  garageLabel: z.string().trim().max(120).optional().default(''),
+  garageCostTotalPence: OptionalMoneySchema,
+  garageCostCurrency: z.string().trim().length(3).optional().or(z.literal('')),
   notes: z.string().trim().max(1000).optional().default(''),
 });
 

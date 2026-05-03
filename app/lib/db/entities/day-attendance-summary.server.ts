@@ -19,6 +19,8 @@ export const DayAttendanceSummaryEntity = new Entity(
         },
         required: true,
       },
+      garageOwnerCount: { type: 'number' },
+      garageOpenSpaceCount: { type: 'number' },
       updatedAt: { type: 'string', required: true },
     },
     indexes: {

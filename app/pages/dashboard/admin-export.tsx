@@ -92,6 +92,12 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
             </Stack>
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700}>
+                Garage requests
+              </Text>
+              <Text fw={800}>{summary.garageShareRequestCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
                 Feedback
               </Text>
               <Text fw={800}>{summary.feedbackCount}</Text>

@@ -73,6 +73,7 @@ describe('MyBookingsPage', () => {
       screen.getByRole('button', { name: /donington park/i }),
     ).toBeVisible();
     expect(screen.getByText('Shared with the group')).toBeInTheDocument();
+    expect(screen.getByText('Garage sharing')).toBeInTheDocument();
     expect(screen.getByText('Private to you')).toBeInTheDocument();
     expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(
       0,
@@ -80,6 +81,47 @@ describe('MyBookingsPage', () => {
     expect(screen.getByDisplayValue('REF-123')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Trackside Hotel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save changes/i })).toBeVisible();
+  });
+
+  it('renders garage requests for the selected booking', () => {
+    renderWithProviders(
+      <MyBookingsPage
+        bookings={[
+          {
+            ...booking,
+            garageBooked: true,
+            garageCapacity: 2,
+            garageLabel: 'Garage 7',
+          },
+        ]}
+        garageShareRequests={[
+          {
+            requestScope: 'garage-share-request',
+            requestId: 'garage-request-1',
+            dayId: booking.dayId,
+            date: booking.date,
+            circuit: booking.circuit,
+            provider: booking.provider,
+            description: booking.description,
+            garageBookingId: booking.bookingId,
+            garageOwnerUserId: booking.userId,
+            garageOwnerName: booking.userName,
+            requesterUserId: 'user-2',
+            requesterName: 'Driver Two',
+            requesterBookingId: booking.bookingId,
+            status: 'pending',
+            createdAt: '2026-04-02T10:00:00.000Z',
+            updatedAt: '2026-04-02T10:00:00.000Z',
+            isIncoming: true,
+            isOutgoing: false,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByDisplayValue('Garage 7')).toBeInTheDocument();
+    expect(screen.getByText('Driver Two')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeVisible();
   });
 
   it('switches the editor when a condensed booking row is selected', async () => {

@@ -6,11 +6,13 @@ import {
   Grid,
   Group,
   Modal,
+  NumberInput,
   Paper,
   ScrollArea,
   Select,
   SimpleGrid,
   Stack,
+  Switch,
   Text,
   Textarea,
   TextInput,
@@ -34,9 +36,11 @@ import { TripStatusSummary } from '~/components/layout/trip-status-summary';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import type { UserGarageShareRequest } from '~/lib/db/services/garage-sharing.server';
 
 export interface MyBookingsPageProps {
   bookings: BookingRecord[];
+  garageShareRequests?: UserGarageShareRequest[];
 }
 
 type BookingFilter = 'all' | BookingRecord['status'];
@@ -80,6 +84,29 @@ function bookingPrivateSummary(booking: BookingRecord) {
   }
 
   return 'No private references yet';
+}
+
+function bookingGarageSummary(booking: BookingRecord) {
+  if (!booking.garageBooked) {
+    return 'No garage shared yet';
+  }
+
+  const capacity = booking.garageCapacity ?? 2;
+  const label = booking.garageLabel?.trim();
+  return label ? `${label} • ${capacity} cars` : `Garage • ${capacity} cars`;
+}
+
+function garageRequestStatusColor(status: UserGarageShareRequest['status']) {
+  switch (status) {
+    case 'pending':
+      return 'yellow';
+    case 'approved':
+      return 'green';
+    case 'declined':
+      return 'gray';
+    case 'cancelled':
+      return 'gray';
+  }
 }
 
 function BookingFieldLabel({
@@ -172,6 +199,7 @@ function matchesBookingQuery(booking: BookingRecord, query: string) {
     booking.date,
     booking.description,
     booking.accommodationName,
+    booking.garageLabel,
     booking.bookingReference,
   ].some((field) => field?.toLowerCase().includes(value));
 }
@@ -233,7 +261,7 @@ function BookingListItem({
           <Text span className="booking-list-kicker">
             Shared
           </Text>{' '}
-          {bookingSharedSummary(booking)}
+          {bookingSharedSummary(booking)} • {bookingGarageSummary(booking)}
         </Text>
         <Text
           className="booking-list-private"
@@ -254,8 +282,106 @@ function BookingListItem({
   );
 }
 
+function GarageShareRequestList({
+  title,
+  emptyText,
+  requests,
+}: {
+  title: string;
+  emptyText: string;
+  requests: UserGarageShareRequest[];
+}) {
+  const fetcher = useFetcher<BookingEditorActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const submitStatus = (
+    request: UserGarageShareRequest,
+    status: 'approved' | 'declined' | 'cancelled',
+  ) => {
+    fetcher.submit(
+      {
+        intent: 'updateGarageShareRequest',
+        requestId: request.requestId,
+        status,
+      },
+      { method: 'post' },
+    );
+  };
+
+  return (
+    <Stack gap="xs">
+      <Text fw={700}>{title}</Text>
+      {requests.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          {emptyText}
+        </Text>
+      ) : (
+        <Stack gap="xs">
+          {requests.map((request) => (
+            <Paper key={request.requestId} withBorder p="sm" radius="md">
+              <Group justify="space-between" align="flex-start" gap="md">
+                <Stack gap={4}>
+                  <Group gap="xs" wrap="wrap">
+                    <Text size="sm" fw={700}>
+                      {request.isIncoming
+                        ? request.requesterName
+                        : request.garageOwnerName}
+                    </Text>
+                    <Badge
+                      color={garageRequestStatusColor(request.status)}
+                      variant="light"
+                    >
+                      {titleCase(request.status)}
+                    </Badge>
+                  </Group>
+                  <Text size="sm" c="dimmed">
+                    {request.circuit} • {request.provider}
+                  </Text>
+                </Stack>
+
+                {request.isIncoming && request.status === 'pending' ? (
+                  <Group gap="xs" justify="flex-end">
+                    <Button
+                      type="button"
+                      size="compact-sm"
+                      variant="default"
+                      disabled={isSubmitting}
+                      onClick={() => submitStatus(request, 'declined')}
+                    >
+                      Decline
+                    </Button>
+                    <Button
+                      type="button"
+                      size="compact-sm"
+                      loading={isSubmitting}
+                      onClick={() => submitStatus(request, 'approved')}
+                    >
+                      Approve
+                    </Button>
+                  </Group>
+                ) : request.status === 'pending' ||
+                  request.status === 'approved' ? (
+                  <Button
+                    type="button"
+                    size="compact-sm"
+                    variant="default"
+                    loading={isSubmitting}
+                    onClick={() => submitStatus(request, 'cancelled')}
+                  >
+                    Cancel
+                  </Button>
+                ) : null}
+              </Group>
+            </Paper>
+          ))}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
 function BookingEditorPanel({
   booking,
+  garageShareRequests,
   selectedIndex,
   totalBookings,
   hasPrevious,
@@ -270,6 +396,7 @@ function BookingEditorPanel({
   hasNext: boolean;
   onSelectPrevious: () => void;
   onSelectNext: () => void;
+  garageShareRequests: UserGarageShareRequest[];
 }) {
   const [
     deleteModalOpened,
@@ -291,6 +418,18 @@ function BookingEditorPanel({
     deleteFetcher.data && !deleteFetcher.data.ok
       ? deleteFetcher.data.formError
       : null;
+  const incomingGarageRequests = garageShareRequests.filter(
+    (request) =>
+      request.isIncoming &&
+      request.dayId === booking.dayId &&
+      request.garageBookingId === booking.bookingId,
+  );
+  const outgoingGarageRequests = garageShareRequests.filter(
+    (request) =>
+      request.isOutgoing &&
+      (request.requesterBookingId === booking.bookingId ||
+        request.dayId === booking.dayId),
+  );
 
   useEffect(() => {
     if (deleteFetcher.state === 'idle' && deleteFetcher.data?.ok) {
@@ -445,6 +584,71 @@ function BookingEditorPanel({
 
             <Stack gap="md" className="booking-editor-section">
               <BookingSectionHeading
+                icon={<IconUsers size={16} />}
+                title="Garage sharing"
+                description="Garage availability is visible to active attendees for this day."
+                color="orange"
+              />
+              <Switch
+                name="garageBooked"
+                value="true"
+                label={
+                  <BookingFieldLabel
+                    label="Garage booked"
+                    visibility="Visible to the group"
+                    visibilityColor="orange.7"
+                  />
+                }
+                description="Turn this on when you have a garage and can share spare space."
+                defaultChecked={Boolean(booking.garageBooked)}
+              />
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <NumberInput
+                  name="garageCapacity"
+                  label={
+                    <BookingFieldLabel
+                      label="Garage capacity"
+                      visibility="Includes your car"
+                      visibilityColor="orange.7"
+                    />
+                  }
+                  description="Most garages hold two cars."
+                  defaultValue={booking.garageCapacity ?? 2}
+                  min={1}
+                  max={20}
+                  error={fieldErrors?.garageCapacity?.[0]}
+                />
+                <TextInput
+                  name="garageLabel"
+                  label={
+                    <BookingFieldLabel
+                      label="Garage label"
+                      visibility="Visible to the group"
+                      visibilityColor="orange.7"
+                    />
+                  }
+                  description="Optional garage number, block, or note."
+                  defaultValue={booking.garageLabel ?? ''}
+                  error={fieldErrors?.garageLabel?.[0]}
+                  maxLength={120}
+                />
+              </SimpleGrid>
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <GarageShareRequestList
+                  title="Requests to my garage"
+                  emptyText="No one has asked to share this garage yet."
+                  requests={incomingGarageRequests}
+                />
+                <GarageShareRequestList
+                  title="My garage requests"
+                  emptyText="You have not asked to share another garage for this trip."
+                  requests={outgoingGarageRequests}
+                />
+              </SimpleGrid>
+            </Stack>
+
+            <Stack gap="md" className="booking-editor-section">
+              <BookingSectionHeading
                 icon={<IconLock size={16} />}
                 title="Private to you"
                 description="References and notes stay on your side and do not appear in the shared plan."
@@ -526,7 +730,10 @@ function BookingEditorPanel({
   );
 }
 
-export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
+export function MyBookingsPage({
+  bookings,
+  garageShareRequests = [],
+}: MyBookingsPageProps) {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     bookings[0]?.bookingId ?? null,
   );
@@ -747,6 +954,7 @@ export function MyBookingsPage({ bookings }: MyBookingsPageProps) {
               <BookingEditorPanel
                 key={selectedBooking.bookingId}
                 booking={selectedBooking}
+                garageShareRequests={garageShareRequests}
                 selectedIndex={selectedIndex}
                 totalBookings={filteredBookings.length}
                 hasPrevious={selectedIndex > 0}

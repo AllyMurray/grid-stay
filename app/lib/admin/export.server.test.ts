@@ -38,6 +38,11 @@ vi.mock('~/lib/db/services/feedback.server', () => ({
     listAll: vi.fn(),
   },
 }));
+vi.mock('~/lib/db/services/garage-share-request.server', () => ({
+  garageShareRequestStore: {
+    listAll: vi.fn(),
+  },
+}));
 vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManagedManualDays: vi.fn(),
 }));
@@ -66,6 +71,9 @@ vi.mock('~/lib/db/entities/external-notification.server', () => ({
 }));
 vi.mock('~/lib/db/entities/feedback.server', () => ({
   FeedbackEntity: {},
+}));
+vi.mock('~/lib/db/entities/garage-share-request.server', () => ({
+  GarageShareRequestEntity: {},
 }));
 vi.mock('~/lib/db/entities/manual-day.server', () => ({
   ManualDayEntity: {},
@@ -172,6 +180,26 @@ describe('admin data export', () => {
           updatedAt: '2026-04-27T10:00:00.000Z',
         },
       ],
+      loadGarageShareRequests: async () => [
+        {
+          requestScope: 'garage-share-request',
+          requestId: 'garage-request-1',
+          dayId: 'day-1',
+          date: '2026-05-01',
+          circuit: 'Silverstone',
+          provider: 'MSV',
+          description: 'Testing',
+          garageBookingId: 'day-1',
+          garageOwnerUserId: 'user-1',
+          garageOwnerName: 'Driver One',
+          requesterUserId: 'user-2',
+          requesterName: 'Driver Two',
+          requesterBookingId: 'day-1',
+          status: 'pending',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
       loadFeedback: async () => [
         {
           feedbackId: 'feedback-1',
@@ -208,6 +236,7 @@ describe('admin data export', () => {
       circuitAliasCount: 1,
       dayMergeCount: 1,
       externalNotificationCount: 1,
+      garageShareRequestCount: 1,
       feedbackCount: 1,
     });
   });

@@ -13,6 +13,7 @@ import {
 } from '~/lib/days/preferences.server';
 import { submitSharedDayPlan } from '~/lib/days/shared-plan.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
+import { submitGarageShareRequest } from '~/lib/garage-sharing/actions.server';
 import { AvailableDaysPage } from '~/pages/dashboard/days';
 import type { Route } from './+types/days';
 
@@ -22,7 +23,8 @@ type AvailableDaysActionResult =
   | Awaited<ReturnType<typeof submitSharedStaySelection>>
   | Awaited<ReturnType<typeof submitBulkRaceSeriesBooking>>
   | Awaited<ReturnType<typeof submitCreateBooking>>
-  | Awaited<ReturnType<typeof submitSharedDayPlan>>;
+  | Awaited<ReturnType<typeof submitSharedDayPlan>>
+  | Awaited<ReturnType<typeof submitGarageShareRequest>>;
 
 function revalidationFilterKey(url: URL) {
   const params = new URLSearchParams(url.searchParams);
@@ -51,6 +53,8 @@ export async function action({ request }: Route.ActionArgs) {
     result = await submitSharedStaySelection(formData, user);
   } else if (intent === 'saveSharedDayPlan') {
     result = await submitSharedDayPlan(formData, user);
+  } else if (intent === 'requestGarageShare') {
+    result = await submitGarageShareRequest(formData, user);
   } else if (intent === 'addRaceSeries') {
     result = await submitBulkRaceSeriesBooking(formData, user);
   } else {
@@ -84,6 +88,20 @@ export async function action({ request }: Route.ActionArgs) {
         subject: {
           type: 'day',
           id: formData.get('dayId')?.toString(),
+        },
+      });
+    } else if (intent === 'requestGarageShare') {
+      await recordAppEventSafely({
+        category: 'audit',
+        action: 'garageShare.requested',
+        message: 'Garage share request sent.',
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'day',
+          id: formData.get('dayId')?.toString(),
+        },
+        metadata: {
+          garageOwnerUserId: formData.get('garageOwnerUserId')?.toString(),
         },
       });
     } else if (intent === 'addRaceSeries') {

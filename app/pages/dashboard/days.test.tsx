@@ -742,6 +742,7 @@ describe('AvailableDaysPage', () => {
           myBookingsByDay: {
             'day-1': {
               bookingId: 'booking-1',
+              userId: 'user-1',
               status: 'booked',
               accommodationName: 'Trackside Hotel',
             },
@@ -774,6 +775,67 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByText('Wait for someone to name the stay.'),
     ).toBeInTheDocument();
+  });
+
+  it('submits garage share requests from the selected-day view', async () => {
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          myBookingsByDay: {
+            'day-1': {
+              bookingId: 'booking-1',
+              userId: 'user-1',
+              status: 'booked',
+            },
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+      {
+        ...defaultAttendanceByDay,
+        'day-1': {
+          ...defaultAttendanceByDay['day-1']!,
+          garageOwnerCount: 1,
+          garageOpenSpaceCount: 1,
+          garageShareOptions: [
+            {
+              garageBookingId: 'booking-2',
+              ownerUserId: 'user-2',
+              ownerName: 'Driver Two',
+              garageLabel: 'Garage 4',
+              garageCapacity: 2,
+              approvedRequestCount: 0,
+              pendingRequestCount: 0,
+              openSpaceCount: 1,
+              requests: [],
+            },
+          ],
+        },
+      },
+      {},
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return { ok: true };
+      },
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /request space/i }),
+    );
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          intent: 'requestGarageShare',
+          dayId: 'day-1',
+          garageBookingId: 'booking-2',
+          garageOwnerUserId: 'user-2',
+        }),
+      ),
+    );
   });
 
   it('renders the empty state when no rows match', () => {

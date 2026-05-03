@@ -25,10 +25,19 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Feedback updates are easier to track',
+        name: 'Garage sharing is now built in',
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
+    expect(screen.getByText(/see open garage spaces/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open available days/i }),
+    ).toHaveAttribute('href', '/dashboard/days');
+    expect(
+      screen.getByRole('heading', {
+        name: 'Feedback updates are easier to track',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/email updates link back/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open feedback/i }),

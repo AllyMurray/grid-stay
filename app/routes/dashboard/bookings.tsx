@@ -7,13 +7,21 @@ import {
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
+import {
+  listGarageShareRequestsForUser,
+  type UserGarageShareRequest,
+} from '~/lib/db/services/garage-sharing.server';
+import { submitGarageShareDecision } from '~/lib/garage-sharing/actions.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
 import type { Route } from './+types/bookings';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const bookings = await listMyBookings(user.id);
-  return Response.json({ bookings }, { headers });
+  const [bookings, garageShareRequests] = await Promise.all([
+    listMyBookings(user.id),
+    listGarageShareRequestsForUser(user.id),
+  ]);
+  return Response.json({ bookings, garageShareRequests }, { headers });
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -23,19 +31,32 @@ export async function action({ request }: Route.ActionArgs) {
   const result =
     intent === 'deleteBooking'
       ? await submitBookingDelete(formData, user.id)
-      : await submitBookingUpdate(formData, user.id);
+      : intent === 'updateGarageShareRequest'
+        ? await submitGarageShareDecision(formData, user)
+        : await submitBookingUpdate(formData, user.id);
 
   if (result.ok) {
     await recordAppEventSafely({
       category: 'audit',
       action:
-        intent === 'deleteBooking' ? 'booking.deleted' : 'booking.updated',
+        intent === 'deleteBooking'
+          ? 'booking.deleted'
+          : intent === 'updateGarageShareRequest'
+            ? 'garageShare.updated'
+            : 'booking.updated',
       message:
-        intent === 'deleteBooking' ? 'Booking deleted.' : 'Booking updated.',
+        intent === 'deleteBooking'
+          ? 'Booking deleted.'
+          : intent === 'updateGarageShareRequest'
+            ? 'Garage share request updated.'
+            : 'Booking updated.',
       actor: { userId: user.id, name: user.name },
       subject: {
-        type: 'booking',
-        id: formData.get('bookingId')?.toString(),
+        type: intent === 'updateGarageShareRequest' ? 'garageShare' : 'booking',
+        id:
+          intent === 'updateGarageShareRequest'
+            ? formData.get('requestId')?.toString()
+            : formData.get('bookingId')?.toString(),
       },
       metadata: {
         status: formData.get('status')?.toString(),
@@ -50,6 +71,14 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function MyBookingsRoute() {
-  const data = useLoaderData<typeof loader>() as { bookings: BookingRecord[] };
-  return <MyBookingsPage bookings={data.bookings} />;
+  const data = useLoaderData<typeof loader>() as {
+    bookings: BookingRecord[];
+    garageShareRequests: UserGarageShareRequest[];
+  };
+  return (
+    <MyBookingsPage
+      bookings={data.bookings}
+      garageShareRequests={data.garageShareRequests}
+    />
+  );
 }

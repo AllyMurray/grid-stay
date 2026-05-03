@@ -11,6 +11,7 @@ import type { DayMergeRecord } from '~/lib/db/entities/day-merge.server';
 import type { DayPlanRecord } from '~/lib/db/entities/day-plan.server';
 import type { ExternalNotificationRecord } from '~/lib/db/entities/external-notification.server';
 import type { FeedbackRecord } from '~/lib/db/entities/feedback.server';
+import type { GarageShareRequestRecord } from '~/lib/db/entities/garage-share-request.server';
 import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 import type { SeriesSubscriptionRecord } from '~/lib/db/entities/series-subscription.server';
 import {
@@ -23,6 +24,7 @@ import { listDayMerges } from '~/lib/db/services/day-merge.server';
 import { dayPlanStore } from '~/lib/db/services/day-plan.server';
 import { externalNotificationStore } from '~/lib/db/services/external-notification.server';
 import { feedbackStore } from '~/lib/db/services/feedback.server';
+import { garageShareRequestStore } from '~/lib/db/services/garage-share-request.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
 import { seriesSubscriptionStore } from '~/lib/db/services/series-subscription.server';
 
@@ -39,6 +41,7 @@ export interface AdminExportDependencies {
   loadDayMerges?: typeof listDayMerges;
   loadExternalNotifications?: typeof externalNotificationStore.listAll;
   loadFeedback?: typeof feedbackStore.listAll;
+  loadGarageShareRequests?: typeof garageShareRequestStore.listAll;
   now?: Date;
 }
 
@@ -48,7 +51,7 @@ export interface AdminCalendarFeedExport
 }
 
 export interface AdminDataExport {
-  exportVersion: 2;
+  exportVersion: 3;
   exportedAt: string;
   members: AdminMemberDirectoryEntry[];
   memberInvites: Awaited<ReturnType<typeof listMemberInvites>>;
@@ -61,6 +64,7 @@ export interface AdminDataExport {
   circuitAliases: CircuitAliasRecord[];
   dayMerges: DayMergeRecord[];
   externalNotifications: ExternalNotificationRecord[];
+  garageShareRequests: GarageShareRequestRecord[];
   feedback: FeedbackRecord[];
 }
 
@@ -77,6 +81,7 @@ export interface AdminDataExportSummary {
   circuitAliasCount: number;
   dayMergeCount: number;
   externalNotificationCount: number;
+  garageShareRequestCount: number;
   feedbackCount: number;
 }
 
@@ -112,6 +117,8 @@ export async function createAdminDataExport(
     dependencies.loadExternalNotifications ?? externalNotificationStore.listAll;
   const loadFeedbackRecords =
     dependencies.loadFeedback ?? feedbackStore.listAll;
+  const loadGarageShareRequestRecords =
+    dependencies.loadGarageShareRequests ?? garageShareRequestStore.listAll;
   const exportedAt = (dependencies.now ?? new Date()).toISOString();
   const [
     members,
@@ -122,6 +129,7 @@ export async function createAdminDataExport(
     circuitAliases,
     dayMerges,
     externalNotifications,
+    garageShareRequests,
     feedback,
   ] = await Promise.all([
     loadMembers(),
@@ -132,6 +140,7 @@ export async function createAdminDataExport(
     loadCircuitAliasRecords(),
     loadDayMergeRecords(),
     loadExternalNotificationRecords(),
+    loadGarageShareRequestRecords(),
     loadFeedbackRecords(),
   ]);
   const [bookingsByMember, subscriptionsByMember, feedsByMember] =
@@ -142,7 +151,7 @@ export async function createAdminDataExport(
     ]);
 
   return {
-    exportVersion: 2,
+    exportVersion: 3,
     exportedAt,
     members,
     memberInvites,
@@ -155,6 +164,7 @@ export async function createAdminDataExport(
     circuitAliases,
     dayMerges,
     externalNotifications,
+    garageShareRequests,
     feedback,
   };
 }
@@ -175,6 +185,7 @@ export function summarizeAdminDataExport(
     circuitAliasCount: dataExport.circuitAliases.length,
     dayMergeCount: dataExport.dayMerges.length,
     externalNotificationCount: dataExport.externalNotifications.length,
+    garageShareRequestCount: dataExport.garageShareRequests.length,
     feedbackCount: dataExport.feedback.length,
   };
 }

@@ -4,6 +4,8 @@ import {
   listUserDayNotifications,
   markAllDayNotificationsRead,
 } from '~/lib/db/services/day-notification.server';
+import { listPendingIncomingGarageShareRequests } from '~/lib/db/services/garage-sharing.server';
+import { submitGarageShareDecision } from '~/lib/garage-sharing/actions.server';
 import {
   NotificationsPage,
   type NotificationsPageProps,
@@ -12,11 +14,15 @@ import type { Route } from './+types/notifications';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const notifications = await listUserDayNotifications(user.id);
+  const [notifications, garageShareRequests] = await Promise.all([
+    listUserDayNotifications(user.id),
+    listPendingIncomingGarageShareRequests(user.id),
+  ]);
 
   return Response.json(
     {
       notifications,
+      garageShareRequests,
     } satisfies NotificationsPageProps,
     { headers },
   );
@@ -28,6 +34,8 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (formData.get('intent') === 'markAllRead') {
     await markAllDayNotificationsRead(user.id);
+  } else if (formData.get('intent') === 'updateGarageShareRequest') {
+    await submitGarageShareDecision(formData, user);
   }
 
   return redirect('/dashboard/notifications', { headers });

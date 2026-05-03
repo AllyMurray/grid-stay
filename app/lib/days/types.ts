@@ -28,12 +28,45 @@ export interface SharedAttendee {
   userName: string;
   status: BookingStatus;
   accommodationName?: string;
+  garageBooked?: boolean;
+  garageCapacity?: number;
+  garageLabel?: string;
+}
+
+export type GarageShareRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'declined'
+  | 'cancelled';
+
+export interface SharedGarageRequest {
+  requestId: string;
+  requesterUserId: string;
+  requesterName: string;
+  status: GarageShareRequestStatus;
+}
+
+export interface GarageShareOption {
+  garageBookingId: string;
+  ownerUserId: string;
+  ownerName: string;
+  garageLabel?: string;
+  garageCapacity: number;
+  approvedRequestCount: number;
+  pendingRequestCount: number;
+  openSpaceCount: number;
+  myRequestId?: string;
+  myRequestStatus?: GarageShareRequestStatus;
+  requests: SharedGarageRequest[];
 }
 
 export interface DayAttendanceSummary {
   attendeeCount: number;
   attendees: SharedAttendee[];
   accommodationNames: string[];
+  garageOwnerCount?: number;
+  garageOpenSpaceCount?: number;
+  garageShareOptions?: GarageShareOption[];
 }
 
 export interface DaySourceError {
