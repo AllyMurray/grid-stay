@@ -44,6 +44,8 @@ function typeColor(type: AvailableDay['type']) {
       return 'blue';
     case 'track_day':
       return 'orange';
+    case 'road_drive':
+      return 'teal';
   }
 }
 

@@ -24,6 +24,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'member-event-requests',
+    title: 'Suggest missing events',
+    publishedAt: '2026-05-03T19:00:00.000Z',
+    dateLabel: '3 May 2026',
+    category: 'Events',
+    description:
+      'Members can now send missing track days, club days, and group road drives for admin review.',
+    highlights: [
+      'Suggest an event from Available Days with the date, location, organiser, and link.',
+      'Admins review each request before it enters the shared calendar.',
+      'Approved road drives appear as their own day type across bookings, schedules, and calendar feeds.',
+    ],
+    href: '/dashboard/days',
+    actionLabel: 'Suggest an event',
+    icon: IconCalendarMonth,
+  },
+  {
     id: 'cost-splitting',
     title: 'Split shared event costs',
     publishedAt: '2026-05-03T18:00:00.000Z',

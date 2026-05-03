@@ -1,6 +1,10 @@
 import type { BookingStatus } from '~/lib/constants/enums';
 
-export type AvailableDayType = 'race_day' | 'test_day' | 'track_day';
+export type AvailableDayType =
+  | 'race_day'
+  | 'test_day'
+  | 'track_day'
+  | 'road_drive';
 
 export interface AvailableDay {
   dayId: string;

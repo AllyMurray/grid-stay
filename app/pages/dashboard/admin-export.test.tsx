@@ -26,6 +26,7 @@ describe('AdminExportPage', () => {
           inviteCount: 1,
           bookingCount: 8,
           manualDayCount: 2,
+          eventRequestCount: 2,
           sharedPlanCount: 4,
           seriesSubscriptionCount: 5,
           calendarFeedCount: 2,
@@ -49,6 +50,7 @@ describe('AdminExportPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getByText('Calendar feeds')).toBeInTheDocument();
+    expect(screen.getByText('Event requests')).toBeInTheDocument();
     expect(screen.getByText('Circuit aliases')).toBeInTheDocument();
     expect(screen.getByText('Day merges')).toBeInTheDocument();
     expect(screen.getByText('External notifications')).toBeInTheDocument();

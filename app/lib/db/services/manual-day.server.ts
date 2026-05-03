@@ -15,6 +15,11 @@ export interface ManualDayPersistence {
   listAll(): Promise<ManualDayRecord[]>;
 }
 
+export interface CreateManualDayOptions {
+  manualDayId?: string;
+  now?: string;
+}
+
 export const manualDayStore: ManualDayPersistence = {
   async create(item) {
     await ManualDayEntity.create(item).go({
@@ -80,9 +85,10 @@ export async function createManualDay(
   input: CreateManualDayInput,
   user: User,
   store: ManualDayPersistence = manualDayStore,
+  options: CreateManualDayOptions = {},
 ): Promise<ManualDayRecord> {
-  const manualDayId = ulid();
-  const now = new Date().toISOString();
+  const manualDayId = options.manualDayId ?? ulid();
+  const now = options.now ?? new Date().toISOString();
 
   return store.create({
     ownerUserId: user.id,

@@ -36,6 +36,11 @@ vi.mock('~/lib/db/services/day-plan.server', () => ({
     listAll: vi.fn(),
   },
 }));
+vi.mock('~/lib/db/services/event-request.server', () => ({
+  eventRequestStore: {
+    listAll: vi.fn(),
+  },
+}));
 vi.mock('~/lib/db/services/day-merge.server', () => ({
   listDayMerges: vi.fn(),
 }));
@@ -95,6 +100,9 @@ vi.mock('~/lib/db/entities/day-merge.server', () => ({
 }));
 vi.mock('~/lib/db/entities/day-plan.server', () => ({
   DayPlanEntity: {},
+}));
+vi.mock('~/lib/db/entities/event-request.server', () => ({
+  EventRequestEntity: {},
 }));
 vi.mock('~/lib/db/entities/external-notification.server', () => ({
   ExternalNotificationEntity: {},
@@ -177,6 +185,24 @@ describe('admin data export', () => {
         errors: [],
       }),
       loadManualDays: async () => [],
+      loadEventRequests: async () => [
+        {
+          requestId: 'event-request-1',
+          requestScope: 'event-request',
+          status: 'pending',
+          date: '2026-05-10',
+          type: 'road_drive',
+          title: 'Sunday road drive',
+          location: 'North Coast 500',
+          provider: 'Grid Stay',
+          description: 'Group road drive.',
+          submittedByUserId: 'user-1',
+          submittedByName: 'Driver One',
+          submittedByEmail: 'driver@example.com',
+          createdAt: '2026-04-27T10:00:00.000Z',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
       loadSharedDayPlans: async () => [],
       loadSeriesSubscriptions: async () => [],
       loadCalendarFeeds: async () => [feed],
@@ -321,9 +347,12 @@ describe('admin data export', () => {
       ],
     });
 
-    expect(dataExport.exportVersion).toBe(5);
+    expect(dataExport.exportVersion).toBe(6);
     expect(dataExport.exportedAt).toBe('2026-04-27T10:00:00.000Z');
     expect(dataExport.bookings).toEqual([booking]);
+    expect(dataExport.eventRequests).toEqual([
+      expect.objectContaining({ requestId: 'event-request-1' }),
+    ]);
     expect(dataExport.costGroups).toEqual([
       expect.objectContaining({ groupId: 'group-1' }),
     ]);
@@ -355,6 +384,7 @@ describe('admin data export', () => {
     expect(summarizeAdminDataExport(dataExport)).toMatchObject({
       memberCount: 1,
       bookingCount: 1,
+      eventRequestCount: 1,
       calendarFeedCount: 1,
       circuitAliasCount: 1,
       dayMergeCount: 1,

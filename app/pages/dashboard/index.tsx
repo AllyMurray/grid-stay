@@ -46,6 +46,8 @@ function typeColor(type: AvailableDay['type']) {
       return 'blue';
     case 'track_day':
       return 'orange';
+    case 'road_drive':
+      return 'teal';
   }
 }
 
@@ -76,6 +78,8 @@ function bookingReferenceLabel(type?: AvailableDay['type']) {
       return 'Test day reference';
     case 'track_day':
       return 'Track day reference';
+    case 'road_drive':
+      return 'Road drive reference';
     default:
       return 'Event booking reference';
   }

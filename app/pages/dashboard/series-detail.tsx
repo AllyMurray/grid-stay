@@ -34,6 +34,8 @@ function typeColor(type: RaceSeriesRound['type']) {
       return 'blue';
     case 'track_day':
       return 'orange';
+    case 'road_drive':
+      return 'teal';
   }
 }
 

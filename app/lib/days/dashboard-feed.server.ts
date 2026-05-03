@@ -54,7 +54,7 @@ export interface DayBookingSnapshot {
 export interface DayRow {
   dayId: string;
   date: string;
-  type: 'race_day' | 'test_day' | 'track_day';
+  type: AvailableDayType;
   circuit: string;
   provider: string;
   description: string;
@@ -174,6 +174,7 @@ function parseType(value: string): AvailableDayType | undefined {
     case 'race_day':
     case 'test_day':
     case 'track_day':
+    case 'road_drive':
       return value;
     default:
       return undefined;

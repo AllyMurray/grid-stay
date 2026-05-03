@@ -53,6 +53,8 @@ function formatDayType(type: MemberBookedDay['type']) {
       return 'Test day';
     case 'track_day':
       return 'Track day';
+    case 'road_drive':
+      return 'Road drive';
   }
 }
 

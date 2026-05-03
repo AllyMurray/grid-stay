@@ -12,6 +12,7 @@ import {
 import {
   IconActivityHeartbeat,
   IconAlertTriangle,
+  IconCalendarPlus,
   IconClipboardList,
   IconDownload,
   IconLock,
@@ -71,8 +72,16 @@ const adminToolGroups: AdminToolGroup[] = [
     description: 'Keep circuits, merges, and manually added days tidy.',
     tools: [
       {
+        title: 'Event requests',
+        description: 'Review member suggestions before adding calendar days.',
+        href: '/dashboard/admin/event-requests',
+        label: 'Review',
+        icon: IconCalendarPlus,
+      },
+      {
         title: 'Manual days',
-        description: 'Add track, test, or race days that are not in the feed.',
+        description:
+          'Add track, test, race, or road drive days that are not in the feed.',
         href: '/dashboard/manual-days',
         label: 'Create',
         icon: IconLock,

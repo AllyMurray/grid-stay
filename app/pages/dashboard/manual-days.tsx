@@ -130,6 +130,7 @@ function ManualDayForm({
                   { value: 'race_day', label: 'Race day' },
                   { value: 'test_day', label: 'Test day' },
                   { value: 'track_day', label: 'Track day' },
+                  { value: 'road_drive', label: 'Road drive' },
                 ]}
                 defaultValue="track_day"
                 allowDeselect={false}

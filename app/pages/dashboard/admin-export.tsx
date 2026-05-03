@@ -62,6 +62,12 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
             </Stack>
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700}>
+                Event requests
+              </Text>
+              <Text fw={800}>{summary.eventRequestCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
                 Series subscriptions
               </Text>
               <Text fw={800}>{summary.seriesSubscriptionCount}</Text>

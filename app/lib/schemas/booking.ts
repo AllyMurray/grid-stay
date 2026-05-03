@@ -5,6 +5,7 @@ export const AvailableDayTypeSchema = z.enum([
   'race_day',
   'test_day',
   'track_day',
+  'road_drive',
 ]);
 
 export const BookingStatusSchema = z.enum(BOOKING_STATUS_VALUES);

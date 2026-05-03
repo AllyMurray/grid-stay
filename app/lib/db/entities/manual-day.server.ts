@@ -15,7 +15,7 @@ export const ManualDayEntity = new Entity(
       dayId: { type: 'string', required: true },
       date: { type: 'string', required: true },
       type: {
-        type: ['race_day', 'test_day', 'track_day'] as const,
+        type: ['race_day', 'test_day', 'track_day', 'road_drive'] as const,
         required: true,
       },
       circuit: { type: 'string', required: true },

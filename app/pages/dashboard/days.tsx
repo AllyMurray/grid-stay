@@ -56,6 +56,7 @@ import type {
   EventCostSummary,
   NetCostSettlement,
 } from '~/lib/db/services/cost-splitting.server';
+import type { EventRequestActionResult } from '~/lib/db/services/event-request.server';
 import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface AvailableDaysPageProps {
@@ -249,6 +250,125 @@ function formatSavedFilterSummary(
   return parts.join(' • ') || 'No filters saved';
 }
 
+function getEventRequestFieldError(
+  fieldErrors:
+    | Extract<EventRequestActionResult, { ok: false }>['fieldErrors']
+    | undefined,
+  fieldName: keyof Extract<
+    EventRequestActionResult,
+    { ok: false }
+  >['fieldErrors'],
+) {
+  return fieldErrors?.[fieldName]?.[0];
+}
+
+function EventRequestForm() {
+  const fetcher = useFetcher<EventRequestActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const success = fetcher.data?.ok ? fetcher.data : null;
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Stack gap={2}>
+          <Title order={3}>Suggest an event</Title>
+          <Text size="sm" c="dimmed">
+            Missing track days, club days, or group road drives can be sent for
+            admin review before they appear in the shared calendar.
+          </Text>
+        </Stack>
+
+        <fetcher.Form
+          method="post"
+          key={success?.request.requestId ?? 'event-request-form'}
+        >
+          <Stack gap="md">
+            <input type="hidden" name="intent" value="createEventRequest" />
+            <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
+              <TextInput
+                name="date"
+                label="Date"
+                type="date"
+                required
+                error={getEventRequestFieldError(fieldErrors, 'date')}
+              />
+              <Select
+                name="type"
+                label="Type"
+                defaultValue="track_day"
+                allowDeselect={false}
+                data={[
+                  { value: 'track_day', label: 'Track day' },
+                  { value: 'test_day', label: 'Test day' },
+                  { value: 'race_day', label: 'Race day' },
+                  { value: 'road_drive', label: 'Road drive' },
+                ]}
+                error={getEventRequestFieldError(fieldErrors, 'type')}
+              />
+              <TextInput
+                name="location"
+                label="Location"
+                placeholder="Circuit, route, or meet point"
+                required
+                error={getEventRequestFieldError(fieldErrors, 'location')}
+              />
+              <TextInput
+                name="provider"
+                label="Organiser"
+                placeholder="Club, provider, or group"
+                required
+                error={getEventRequestFieldError(fieldErrors, 'provider')}
+              />
+            </SimpleGrid>
+
+            <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
+              <TextInput
+                name="title"
+                label="Title"
+                placeholder="Caterham and Lotus 7 Club track day"
+                required
+                error={getEventRequestFieldError(fieldErrors, 'title')}
+              />
+              <TextInput
+                name="bookingUrl"
+                label="Booking or info link"
+                placeholder="https://..."
+                error={getEventRequestFieldError(fieldErrors, 'bookingUrl')}
+              />
+            </SimpleGrid>
+
+            <Textarea
+              name="description"
+              label="Details"
+              placeholder="Any useful context for the admin team"
+              rows={3}
+              error={getEventRequestFieldError(fieldErrors, 'description')}
+            />
+
+            <Group justify="space-between" gap="sm" align="center">
+              <Text
+                size="sm"
+                c={formError ? 'red' : success ? 'green' : 'dimmed'}
+              >
+                {formError ??
+                  success?.message ??
+                  'Approved requests are added to Available Days for everyone.'}
+              </Text>
+              <Button type="submit" loading={isSubmitting}>
+                Send for review
+              </Button>
+            </Group>
+          </Stack>
+        </fetcher.Form>
+      </Stack>
+    </Paper>
+  );
+}
+
 function typeColor(type: DayRow['type']) {
   switch (type) {
     case 'race_day':
@@ -257,6 +377,8 @@ function typeColor(type: DayRow['type']) {
       return 'blue';
     case 'track_day':
       return 'orange';
+    case 'road_drive':
+      return 'teal';
   }
 }
 
@@ -3109,6 +3231,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                     { value: 'race_day', label: 'Race day' },
                     { value: 'test_day', label: 'Test day' },
                     { value: 'track_day', label: 'Track day' },
+                    { value: 'road_drive', label: 'Road drive' },
                   ]}
                   defaultValue={data.filters.type}
                   clearable
@@ -3122,6 +3245,8 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           </Form>
         </Stack>
       </Paper>
+
+      <EventRequestForm />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">

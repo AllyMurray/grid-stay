@@ -6,6 +6,7 @@ const dayTypeLabels: Record<AvailableDayType, string> = {
   race_day: 'Race day',
   test_day: 'Test day',
   track_day: 'Track day',
+  road_drive: 'Road drive',
 };
 
 function titleCase(value: string) {

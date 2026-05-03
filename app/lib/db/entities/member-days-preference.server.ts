@@ -21,7 +21,7 @@ export const MemberDaysPreferenceEntity = new Entity(
       },
       provider: { type: 'string' },
       dayType: {
-        type: ['race_day', 'test_day', 'track_day'] as const,
+        type: ['race_day', 'test_day', 'track_day', 'road_drive'] as const,
       },
       notifyOnNewMatches: { type: 'boolean' },
       externalChannel: {

@@ -499,6 +499,72 @@ describe('AvailableDaysPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('submits missing event requests from the feed', async () => {
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    const view = renderWithProviders(
+      <AvailableDaysPage data={defaultData} />,
+      '/dashboard/days',
+      defaultAttendanceByDay,
+      {},
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return {
+          ok: true,
+          message: 'Thanks, this event has been sent for admin review.',
+          request: {
+            requestId: 'request-1',
+          },
+        };
+      },
+    );
+    const eventRequestForm = view.container.querySelector<HTMLFormElement>(
+      'input[name="intent"][value="createEventRequest"]',
+    )?.form;
+
+    expect(eventRequestForm).toBeTruthy();
+    const field = (name: string) =>
+      eventRequestForm!.elements.namedItem(name) as HTMLElement;
+    const dateField = eventRequestForm!.querySelector(
+      'input[name="date"]',
+    ) as HTMLInputElement;
+
+    fireEvent.change(dateField, {
+      target: { value: '2026-06-14' },
+    });
+    fireEvent.change(field('location'), {
+      target: { value: 'Bedford Autodrome' },
+    });
+    fireEvent.change(field('provider'), {
+      target: { value: 'Caterham and Lotus 7 Club' },
+    });
+    fireEvent.change(field('title'), {
+      target: { value: 'Club track day' },
+    });
+    fireEvent.change(field('bookingUrl'), {
+      target: { value: 'https://example.com/club-day' },
+    });
+    fireEvent.change(field('description'), {
+      target: { value: 'A club track day missing from the feed.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send for review' }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          intent: 'createEventRequest',
+          date: '2026-06-14',
+          type: 'track_day',
+          location: 'Bedford Autodrome',
+          provider: 'Caterham and Lotus 7 Club',
+          title: 'Club track day',
+          bookingUrl: 'https://example.com/club-day',
+          description: 'A club track day missing from the feed.',
+        }),
+      ),
+    );
+  });
+
   it('does not render the source loading warning in the member feed', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 

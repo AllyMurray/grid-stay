@@ -31,6 +31,7 @@ function parseSavedType(value: string): DaysFilters['type'] {
     case 'race_day':
     case 'test_day':
     case 'track_day':
+    case 'road_drive':
       return value;
     default:
       return '';

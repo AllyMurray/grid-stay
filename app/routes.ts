@@ -35,6 +35,10 @@ export default [
       'dashboard/admin/day-merges',
       'routes/dashboard/admin.day-merges.tsx',
     ),
+    route(
+      'dashboard/admin/event-requests',
+      'routes/dashboard/admin.event-requests.tsx',
+    ),
     route('dashboard/admin/feed', 'routes/dashboard/admin.feed.tsx'),
     route('dashboard/admin/feedback', 'routes/dashboard/admin.feedback.tsx'),
     route('dashboard/admin/export', 'routes/dashboard/admin.export.tsx'),
