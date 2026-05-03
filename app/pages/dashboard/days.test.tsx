@@ -499,7 +499,7 @@ describe('AvailableDaysPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('submits missing event requests from the feed', async () => {
+  it('adds missing events from the feed', async () => {
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
     renderWithProviders(
@@ -511,24 +511,22 @@ describe('AvailableDaysPage', () => {
         submitted = Object.fromEntries(await request.formData());
         return {
           ok: true,
-          message: 'Thanks, this event has been sent for admin review.',
-          request: {
-            requestId: 'request-1',
+          message: 'Event added to Available Days.',
+          day: {
+            dayId: 'manual:manual-day-1',
           },
         };
       },
     );
     expect(
-      document.querySelector(
-        'input[name="intent"][value="createEventRequest"]',
-      ),
+      document.querySelector('input[name="intent"][value="createMemberEvent"]'),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suggest event' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add event' }));
 
-    await screen.findByRole('dialog', { name: 'Suggest an event' });
+    await screen.findByRole('dialog', { name: 'Add an event' });
     const eventRequestForm = document.querySelector<HTMLInputElement>(
-      'input[name="intent"][value="createEventRequest"]',
+      'input[name="intent"][value="createMemberEvent"]',
     )?.form;
 
     expect(eventRequestForm).toBeTruthy();
@@ -556,12 +554,12 @@ describe('AvailableDaysPage', () => {
     fireEvent.change(field('description'), {
       target: { value: 'A club track day missing from the feed.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Send for review' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
 
     await waitFor(() =>
       expect(submitted).toEqual(
         expect.objectContaining({
-          intent: 'createEventRequest',
+          intent: 'createMemberEvent',
           date: '2026-06-14',
           type: 'track_day',
           location: 'Bedford Autodrome',

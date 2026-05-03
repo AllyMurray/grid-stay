@@ -39,9 +39,6 @@ describe('AdminDashboardPage', () => {
       screen.getByRole('link', { name: 'Open Manual days' }),
     ).toHaveAttribute('href', '/dashboard/manual-days');
     expect(
-      screen.getByRole('link', { name: 'Open Event requests' }),
-    ).toHaveAttribute('href', '/dashboard/admin/event-requests');
-    expect(
       screen.getByRole('link', { name: 'Open Circuit tools' }),
     ).toHaveAttribute('href', '/dashboard/admin/circuits');
     expect(

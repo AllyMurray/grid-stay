@@ -251,7 +251,7 @@ function formatSavedFilterSummary(
   return parts.join(' • ') || 'No filters saved';
 }
 
-function getEventRequestFieldError(
+function getMemberEventFieldError(
   fieldErrors:
     | Extract<EventRequestActionResult, { ok: false }>['fieldErrors']
     | undefined,
@@ -263,7 +263,7 @@ function getEventRequestFieldError(
   return fieldErrors?.[fieldName]?.[0];
 }
 
-function EventRequestForm({ onClose }: { onClose: () => void }) {
+function MemberEventForm({ onClose }: { onClose: () => void }) {
   const fetcher = useFetcher<EventRequestActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const success = fetcher.data?.ok ? fetcher.data : null;
@@ -275,23 +275,23 @@ function EventRequestForm({ onClose }: { onClose: () => void }) {
   return (
     <Stack gap="md">
       <Text size="sm" c="dimmed">
-        Missing track days, club days, or group road drives can be sent for
-        admin review before they appear in the shared calendar.
+        Add missing track days, club days, or group road drives to the shared
+        calendar for everyone.
       </Text>
 
       <fetcher.Form
         method="post"
-        key={success?.request.requestId ?? 'event-request-form'}
+        key={success?.day.dayId ?? 'member-event-form'}
       >
         <Stack gap="md">
-          <input type="hidden" name="intent" value="createEventRequest" />
+          <input type="hidden" name="intent" value="createMemberEvent" />
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             <TextInput
               name="date"
               label="Date"
               type="date"
               required
-              error={getEventRequestFieldError(fieldErrors, 'date')}
+              error={getMemberEventFieldError(fieldErrors, 'date')}
             />
             <Select
               name="type"
@@ -304,21 +304,21 @@ function EventRequestForm({ onClose }: { onClose: () => void }) {
                 { value: 'race_day', label: 'Race day' },
                 { value: 'road_drive', label: 'Road drive' },
               ]}
-              error={getEventRequestFieldError(fieldErrors, 'type')}
+              error={getMemberEventFieldError(fieldErrors, 'type')}
             />
             <TextInput
               name="location"
               label="Location"
               placeholder="Circuit, route, or meet point"
               required
-              error={getEventRequestFieldError(fieldErrors, 'location')}
+              error={getMemberEventFieldError(fieldErrors, 'location')}
             />
             <TextInput
               name="provider"
               label="Organiser"
               placeholder="Club, provider, or group"
               required
-              error={getEventRequestFieldError(fieldErrors, 'provider')}
+              error={getMemberEventFieldError(fieldErrors, 'provider')}
             />
           </SimpleGrid>
 
@@ -328,22 +328,22 @@ function EventRequestForm({ onClose }: { onClose: () => void }) {
               label="Title"
               placeholder="Caterham and Lotus 7 Club track day"
               required
-              error={getEventRequestFieldError(fieldErrors, 'title')}
+              error={getMemberEventFieldError(fieldErrors, 'title')}
             />
             <TextInput
               name="bookingUrl"
               label="Booking or info link"
               placeholder="https://..."
-              error={getEventRequestFieldError(fieldErrors, 'bookingUrl')}
+              error={getMemberEventFieldError(fieldErrors, 'bookingUrl')}
             />
           </SimpleGrid>
 
           <Textarea
             name="description"
             label="Details"
-            placeholder="Any useful context for the admin team"
+            placeholder="Any useful context for other members"
             rows={3}
-            error={getEventRequestFieldError(fieldErrors, 'description')}
+            error={getMemberEventFieldError(fieldErrors, 'description')}
           />
 
           <Group justify="space-between" gap="sm" align="center">
@@ -353,7 +353,7 @@ function EventRequestForm({ onClose }: { onClose: () => void }) {
             >
               {formError ??
                 success?.message ??
-                'Approved requests are added to Available Days for everyone.'}
+                'Saved events appear in Available Days for everyone.'}
             </Text>
             <Group gap="sm" justify="flex-end">
               <Button type="button" variant="default" onClick={onClose}>
@@ -361,7 +361,7 @@ function EventRequestForm({ onClose }: { onClose: () => void }) {
               </Button>
               {success ? null : (
                 <Button type="submit" loading={isSubmitting}>
-                  Send for review
+                  Save event
                 </Button>
               )}
             </Group>
@@ -3030,11 +3030,11 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       <Modal
         opened={eventRequestModalOpened}
         onClose={() => setEventRequestModalOpened(false)}
-        title="Suggest an event"
+        title="Add an event"
         size="lg"
         centered
       >
-        <EventRequestForm onClose={() => setEventRequestModalOpened(false)} />
+        <MemberEventForm onClose={() => setEventRequestModalOpened(false)} />
       </Modal>
 
       <PageHeader
@@ -3067,7 +3067,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               variant="light"
               onClick={() => setEventRequestModalOpened(true)}
             >
-              Suggest event
+              Add event
             </Button>
           </>
         }

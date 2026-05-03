@@ -25,14 +25,15 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Suggest missing events',
+        name: 'Add missing events',
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
-    expect(screen.getByText(/approved road drives/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /suggest an event/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByText(/saved events appear/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /add an event/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
     expect(
       screen.getByRole('heading', {
         name: 'Split shared event costs',

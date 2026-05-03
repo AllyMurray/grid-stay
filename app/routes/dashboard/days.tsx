@@ -87,7 +87,7 @@ export async function action({ request }: Route.ActionArgs) {
     result = await submitUpdateCostSettlement(formData, user);
   } else if (intent === 'requestGarageShare') {
     result = await submitGarageShareRequest(formData, user);
-  } else if (intent === 'createEventRequest') {
+  } else if (intent === 'createMemberEvent') {
     result = await submitEventRequestAction(formData, user);
   } else if (intent === 'addRaceSeries') {
     result = await submitBulkRaceSeriesBooking(formData, user);
@@ -138,17 +138,16 @@ export async function action({ request }: Route.ActionArgs) {
           garageOwnerUserId: formData.get('garageOwnerUserId')?.toString(),
         },
       });
-    } else if (intent === 'createEventRequest') {
-      const requestId =
-        'request' in result ? result.request.requestId : undefined;
+    } else if (intent === 'createMemberEvent') {
+      const dayId = 'day' in result ? result.day.dayId : undefined;
       await recordAppEventSafely({
         category: 'audit',
-        action: 'eventRequest.created',
-        message: 'Event request submitted from available days.',
+        action: 'memberEvent.created',
+        message: 'Member-added event created from available days.',
         actor: { userId: user.id, name: user.name },
         subject: {
-          type: 'eventRequest',
-          id: requestId,
+          type: 'day',
+          id: dayId,
         },
         metadata: {
           date: formData.get('date')?.toString(),

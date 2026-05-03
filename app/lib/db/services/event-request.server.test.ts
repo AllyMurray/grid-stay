@@ -5,22 +5,11 @@ import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
 vi.mock('../entities/event-request.server', () => ({
   EventRequestEntity: {},
 }));
-vi.mock('~/lib/db/services/available-days-cache.server', () => ({
-  getAvailableDaysSnapshot: vi.fn(),
-}));
 vi.mock('~/lib/db/services/day-notification.server', () => ({
   createAvailableDayNotificationsSafely: vi.fn(),
 }));
-vi.mock('~/lib/days/series.server', () => ({
-  getRaceSeriesDaysForDay: vi.fn(),
-}));
-vi.mock('~/lib/days/series-subscriptions.server', () => ({
-  reconcileSeriesSubscriptionsForDays: vi.fn(),
-}));
 vi.mock('./manual-day.server', () => ({
   createManualDay: vi.fn(),
-  listManagedManualDays: vi.fn(),
-  listManualDays: vi.fn(),
   toAvailableManualDay: (day: ManualDayRecord) => ({
     dayId: day.dayId,
     date: day.date,
@@ -40,15 +29,11 @@ vi.mock('./manual-day.server', () => ({
 import type { EventRequestRecord } from '../entities/event-request.server';
 import type { ManualDayRecord } from '../entities/manual-day.server';
 import {
-  approveEventRequest,
-  createEventRequest,
   EVENT_REQUEST_SCOPE,
   type EventRequestPersistence,
   listRecentEventRequests,
-  rejectEventRequest,
   submitEventRequestAction,
 } from './event-request.server';
-import type { CreateManualDayOptions } from './manual-day.server';
 
 const user: User = {
   id: 'user-1',
@@ -57,10 +42,43 @@ const user: User = {
   role: 'member',
 };
 
-const admin = {
-  id: 'admin-1',
-  name: 'Admin One',
-} as const;
+function createFormData(overrides: Record<string, string> = {}) {
+  const formData = new FormData();
+  formData.set('date', '2026-06-14');
+  formData.set('type', 'road_drive');
+  formData.set('title', 'Sunday road drive');
+  formData.set('location', 'North Coast 500');
+  formData.set('provider', 'Grid Stay');
+  formData.set('description', 'A group drive.');
+  formData.set('bookingUrl', 'https://example.com/drive');
+
+  for (const [key, value] of Object.entries(overrides)) {
+    formData.set(key, value);
+  }
+
+  return formData;
+}
+
+function createManualDayRecord(
+  input: CreateManualDayInput,
+  owner: Pick<User, 'id'>,
+): ManualDayRecord {
+  return {
+    ownerUserId: owner.id,
+    visibilityScope: 'global',
+    manualDayId: 'manual-day-1',
+    dayId: 'manual:manual-day-1',
+    date: input.date,
+    type: input.type,
+    circuit: input.circuit,
+    provider: input.provider,
+    series: input.series || undefined,
+    description: input.description,
+    bookingUrl: input.bookingUrl || undefined,
+    createdAt: '2026-05-03T12:00:00.000Z',
+    updatedAt: '2026-05-03T12:00:00.000Z',
+  } as ManualDayRecord;
+}
 
 function createRequest(
   overrides: Partial<EventRequestRecord> = {},
@@ -87,237 +105,113 @@ function createRequest(
 function createMemoryStore(initialItems: EventRequestRecord[] = []) {
   const items = [...initialItems];
   const store: EventRequestPersistence = {
-    async create(item) {
-      items.push(item);
-      return item;
-    },
-    async update(requestId, changes) {
-      const index = items.findIndex((item) => item.requestId === requestId);
-
-      if (index === -1) {
-        throw new Error(`Missing event request ${requestId}`);
-      }
-
-      items[index] = {
-        ...items[index],
-        ...changes,
-      } as EventRequestRecord;
-
-      return items[index]!;
-    },
-    async get(requestId) {
-      return items.find((item) => item.requestId === requestId) ?? null;
-    },
     async listAll() {
       return [...items];
     },
-    async listByStatus(status) {
-      return items.filter((item) => item.status === status);
-    },
   };
 
-  return { items, store };
+  return { store };
 }
 
-function createApprovalDependencies(
-  requestStore: EventRequestPersistence,
-  manualDays: ManualDayRecord[] = [],
-) {
-  const notifyAvailableDays = vi.fn(async () => []);
-  const saveManualDay = vi.fn(
-    async (
-      input: CreateManualDayInput,
-      saveUser: Pick<User, 'id'>,
-      _store: unknown,
-      options?: CreateManualDayOptions,
-    ): Promise<ManualDayRecord> => {
-      const manualDayId = options?.manualDayId ?? 'manual-day-1';
-      const day = {
-        ownerUserId: saveUser.id,
-        visibilityScope: 'global',
-        manualDayId,
-        dayId: `manual:${manualDayId}`,
-        date: input.date,
-        type: input.type,
-        circuit: input.circuit,
-        provider: input.provider,
-        series: input.series || undefined,
-        description: input.description,
-        bookingUrl: input.bookingUrl || undefined,
-        createdAt: '2026-05-03T12:00:00.000Z',
-        updatedAt: '2026-05-03T12:00:00.000Z',
-      } as ManualDayRecord;
-      manualDays.push(day);
-      return day;
-    },
-  );
+describe('member-added event service', () => {
+  it('adds member-submitted events directly as manual days', async () => {
+    const saveManualDay = vi.fn(
+      async (input: CreateManualDayInput, owner: User) =>
+        createManualDayRecord(input, owner),
+    );
+    const notifyAvailableDays = vi.fn(async () => []);
 
-  return {
-    requestStore,
-    saveManualDay,
-    loadManagedManualDays: vi.fn(async () => [...manualDays]),
-    loadAvailableManualDays: vi.fn(async () => []),
-    loadSnapshot: vi.fn(async () => ({
-      refreshedAt: '2026-05-03T09:00:00.000Z',
-      days: [],
-      errors: [],
-    })),
-    notifyAvailableDays,
-    reconcileSeries: vi.fn(async () => ({
-      seriesKey: null,
-      seriesName: null,
-      subscriptionCount: 0,
-      bookingCount: 0,
-    })),
-  };
-}
-
-describe('event request service', () => {
-  it('creates a pending event request from form data', async () => {
-    const memory = createMemoryStore();
-    const formData = new FormData();
-    formData.set('date', '2026-06-14');
-    formData.set('type', 'road_drive');
-    formData.set('title', 'Sunday road drive');
-    formData.set('location', 'North Coast 500');
-    formData.set('provider', 'Grid Stay');
-    formData.set('description', 'A group drive.');
-    formData.set('bookingUrl', 'https://example.com/drive');
-
-    const result = await submitEventRequestAction(formData, user, memory.store);
+    const result = await submitEventRequestAction(createFormData(), user, {
+      saveManualDay,
+      notifyAvailableDays,
+    });
 
     expect(result).toMatchObject({
       ok: true,
-      request: {
-        requestScope: EVENT_REQUEST_SCOPE,
-        status: 'pending',
+      message: 'Event added to Available Days.',
+      day: {
+        dayId: 'manual:manual-day-1',
         type: 'road_drive',
-        location: 'North Coast 500',
-        submittedByEmail: 'driver@example.com',
+        circuit: 'North Coast 500',
       },
     });
-    expect(memory.items).toHaveLength(1);
+    expect(saveManualDay).toHaveBeenCalledWith(
+      {
+        date: '2026-06-14',
+        type: 'road_drive',
+        circuit: 'North Coast 500',
+        provider: 'Grid Stay',
+        series: '',
+        description: 'Sunday road drive. A group drive.',
+        bookingUrl: 'https://example.com/drive',
+      },
+      user,
+    );
+    expect(notifyAvailableDays).toHaveBeenCalledWith([
+      expect.objectContaining({
+        dayId: 'manual:manual-day-1',
+        type: 'road_drive',
+        circuit: 'North Coast 500',
+      }),
+    ]);
   });
 
-  it('returns field errors for invalid requests', async () => {
-    const memory = createMemoryStore();
-    const formData = new FormData();
-    formData.set('date', 'not-a-date');
-    formData.set('type', 'road_drive');
-    formData.set('title', '');
-    formData.set('location', '');
-    formData.set('provider', 'Grid Stay');
-
-    const result = await submitEventRequestAction(formData, user, memory.store);
+  it('returns field errors for invalid events', async () => {
+    const saveManualDay = vi.fn(
+      async (input: CreateManualDayInput, owner: User) =>
+        createManualDayRecord(input, owner),
+    );
+    const notifyAvailableDays = vi.fn(async () => []);
+    const result = await submitEventRequestAction(
+      createFormData({
+        date: 'not-a-date',
+        title: '',
+        location: '',
+      }),
+      user,
+      {
+        saveManualDay,
+        notifyAvailableDays,
+      },
+    );
 
     expect(result).toMatchObject({
       ok: false,
+      formError: 'Could not add this event yet.',
       fieldErrors: {
         date: expect.any(Array),
         title: expect.any(Array),
         location: expect.any(Array),
       },
     });
-    expect(memory.items).toHaveLength(0);
+    expect(saveManualDay).not.toHaveBeenCalled();
+    expect(notifyAvailableDays).not.toHaveBeenCalled();
   });
 
-  it('approves a request into a deterministic manual day', async () => {
-    const memory = createMemoryStore([createRequest()]);
-    const manualDays: ManualDayRecord[] = [];
-    const dependencies = createApprovalDependencies(memory.store, manualDays);
-
-    const result = await approveEventRequest(
-      {
-        requestId: 'request-1',
-        date: '2026-05-10',
-        type: 'road_drive',
-        circuit: 'North Coast 500',
-        provider: 'Grid Stay',
-        series: '',
-        description: 'Sunday road drive.',
-        bookingUrl: '',
-      },
-      admin,
-      dependencies,
+  it('truncates member details to the manual day description limit', async () => {
+    const saveManualDay = vi.fn(
+      async (input: CreateManualDayInput, owner: User) =>
+        createManualDayRecord(input, owner),
     );
+    const longDescription = 'Details '.repeat(60);
 
-    expect(result.request).toMatchObject({
-      status: 'approved',
-      reviewedByUserId: 'admin-1',
-      approvedManualDayId: 'event-request:request-1',
-      approvedDayId: 'manual:event-request:request-1',
-    });
-    expect(result.manualDay).toMatchObject({
-      manualDayId: 'event-request:request-1',
-      type: 'road_drive',
-      circuit: 'North Coast 500',
-    });
-    expect(dependencies.notifyAvailableDays).toHaveBeenCalledWith([
-      expect.objectContaining({
-        dayId: 'manual:event-request:request-1',
-        type: 'road_drive',
+    await submitEventRequestAction(
+      createFormData({
+        description: longDescription,
       }),
-    ]);
-  });
-
-  it('reuses an existing manual day if a previous approval partially completed', async () => {
-    const existingManualDay = {
-      ownerUserId: 'admin-1',
-      visibilityScope: 'global',
-      manualDayId: 'event-request:request-1',
-      dayId: 'manual:event-request:request-1',
-      date: '2026-05-10',
-      type: 'road_drive',
-      circuit: 'North Coast 500',
-      provider: 'Grid Stay',
-      description: 'Sunday road drive.',
-      createdAt: '2026-05-03T12:00:00.000Z',
-      updatedAt: '2026-05-03T12:00:00.000Z',
-    } as ManualDayRecord;
-    const memory = createMemoryStore([createRequest()]);
-    const dependencies = createApprovalDependencies(memory.store, [
-      existingManualDay,
-    ]);
-
-    await approveEventRequest(
+      user,
       {
-        requestId: 'request-1',
-        date: '2026-05-10',
-        type: 'road_drive',
-        circuit: 'North Coast 500',
-        provider: 'Grid Stay',
-        series: '',
-        description: 'Sunday road drive.',
-        bookingUrl: '',
+        saveManualDay,
+        notifyAvailableDays: vi.fn(async () => []),
       },
-      admin,
-      dependencies,
     );
 
-    expect(dependencies.saveManualDay).not.toHaveBeenCalled();
-    expect(dependencies.notifyAvailableDays).not.toHaveBeenCalled();
+    const input = saveManualDay.mock.calls[0]?.[0];
+    expect(input?.description).toHaveLength(200);
+    expect(input?.description).toMatch(/^Sunday road drive\. Details/);
   });
 
-  it('rejects a pending request with an optional note', async () => {
-    const memory = createMemoryStore([createRequest()]);
-
-    const request = await rejectEventRequest(
-      {
-        requestId: 'request-1',
-        rejectionReason: 'Duplicate of an existing day.',
-      },
-      admin,
-      memory.store,
-    );
-
-    expect(request).toMatchObject({
-      status: 'rejected',
-      rejectionReason: 'Duplicate of an existing day.',
-      reviewedByName: 'Admin One',
-    });
-  });
-
-  it('lists recent requests newest first', async () => {
+  it('still lists older request records newest first for exports', async () => {
     const memory = createMemoryStore([
       createRequest(),
       createRequest({
@@ -330,51 +224,5 @@ describe('event request service', () => {
     await expect(listRecentEventRequests(1, memory.store)).resolves.toEqual([
       expect.objectContaining({ requestId: 'request-2' }),
     ]);
-  });
-
-  it('raises a not found response when approving a missing request', async () => {
-    const memory = createMemoryStore();
-    const dependencies = createApprovalDependencies(memory.store);
-
-    await expect(
-      approveEventRequest(
-        {
-          requestId: 'missing',
-          date: '2026-05-10',
-          type: 'road_drive',
-          circuit: 'North Coast 500',
-          provider: 'Grid Stay',
-          series: '',
-          description: 'Sunday road drive.',
-          bookingUrl: '',
-        },
-        admin,
-        dependencies,
-      ),
-    ).rejects.toMatchObject({ status: 404 });
-  });
-
-  it('creates records directly from parsed input', async () => {
-    const memory = createMemoryStore();
-
-    const request = await createEventRequest(
-      {
-        date: '2026-06-14',
-        type: 'track_day',
-        title: 'Club track day',
-        location: 'Bedford Autodrome',
-        provider: 'Caterham and Lotus 7 Club',
-        description: '',
-        bookingUrl: '',
-      },
-      user,
-      memory.store,
-    );
-
-    expect(request).toMatchObject({
-      status: 'pending',
-      type: 'track_day',
-      title: 'Club track day',
-    });
   });
 });

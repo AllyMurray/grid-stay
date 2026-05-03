@@ -12,7 +12,6 @@ import {
 import {
   IconActivityHeartbeat,
   IconAlertTriangle,
-  IconCalendarPlus,
   IconClipboardList,
   IconDownload,
   IconLock,
@@ -71,13 +70,6 @@ const adminToolGroups: AdminToolGroup[] = [
     title: 'Manage calendar data',
     description: 'Keep circuits, merges, and manually added days tidy.',
     tools: [
-      {
-        title: 'Event requests',
-        description: 'Review member suggestions before adding calendar days.',
-        href: '/dashboard/admin/event-requests',
-        label: 'Review',
-        icon: IconCalendarPlus,
-      },
       {
         title: 'Manual days',
         description:
