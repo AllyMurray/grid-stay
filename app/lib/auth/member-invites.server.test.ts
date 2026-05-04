@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MemberInviteRecord } from '~/lib/db/entities/member-invite.server';
 import type { User } from './schemas';
 
-const { canUseMemberJoinLinkForAccountCreation } = vi.hoisted(() => ({
-  canUseMemberJoinLinkForAccountCreation: vi.fn(),
-}));
+const { acceptMemberJoinLink, canUseMemberJoinLinkForAccountCreation } =
+  vi.hoisted(() => ({
+    acceptMemberJoinLink: vi.fn(),
+    canUseMemberJoinLinkForAccountCreation: vi.fn(),
+  }));
 
 vi.mock('~/lib/db/entities/member-invite.server', () => ({
   MemberInviteEntity: {
@@ -20,6 +22,7 @@ vi.mock('~/lib/db/entities/member-invite.server', () => ({
 }));
 
 vi.mock('./member-join-links.server', () => ({
+  acceptMemberJoinLink,
   canUseMemberJoinLinkForAccountCreation,
 }));
 
@@ -28,6 +31,7 @@ import {
   createAcceptedMemberInviteForUser,
   createMemberInvite,
   ensureUserMemberAccess,
+  grantMemberAccessFromJoinLink,
   type MemberInvitePersistence,
   revokeMemberInvite,
   submitMemberInvite,
@@ -83,11 +87,14 @@ function createMemoryStore(initial: MemberInviteRecord[] = []): {
 describe('member invite helpers', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    acceptMemberJoinLink.mockReset();
+    acceptMemberJoinLink.mockResolvedValue({ ok: false, reason: 'not_found' });
     canUseMemberJoinLinkForAccountCreation.mockReset();
     canUseMemberJoinLinkForAccountCreation.mockResolvedValue(false);
   });
 
   beforeEach(() => {
+    acceptMemberJoinLink.mockResolvedValue({ ok: false, reason: 'not_found' });
     canUseMemberJoinLinkForAccountCreation.mockResolvedValue(false);
   });
 
@@ -326,6 +333,37 @@ describe('member invite helpers', () => {
     expect(canUseMemberJoinLinkForAccountCreation).toHaveBeenCalledWith({
       token: 'join-token',
       now: expect.any(Date),
+    });
+  });
+
+  it('grants durable member access when a user account is created from a join link', async () => {
+    acceptMemberJoinLink.mockResolvedValue({
+      ok: true,
+      link: {
+        createdByUserId: 'admin-1',
+        createdByName: 'Admin One',
+      },
+    });
+    const memory = createMemoryStore();
+
+    await expect(
+      grantMemberAccessFromJoinLink({
+        token: 'join-token',
+        user: {
+          id: 'user-2',
+          email: 'New.Driver@Example.com',
+          name: 'New Driver',
+        },
+        store: memory.store,
+      }),
+    ).resolves.toMatchObject({ ok: true });
+
+    expect(memory.records[0]).toMatchObject({
+      inviteEmail: 'new.driver@example.com',
+      invitedByUserId: 'admin-1',
+      invitedByName: 'Admin One',
+      status: 'accepted',
+      acceptedByUserId: 'user-2',
     });
   });
 

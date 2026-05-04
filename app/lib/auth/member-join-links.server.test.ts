@@ -282,4 +282,18 @@ describe('member join link helpers', () => {
       }),
     ).toBe(token);
   });
+
+  it('ignores malformed cookie encoding when reading join-token cookies', () => {
+    expect(
+      readMemberJoinLinkTokenFromRequest({
+        request: new Request('https://gridstay.app/auth/login', {
+          headers: {
+            cookie: `grid_stay_join_token=%; other=${encodeURIComponent(
+              'safe value',
+            )}`,
+          },
+        }),
+      }),
+    ).toBeNull();
+  });
 });

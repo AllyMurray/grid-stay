@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { authApi, canCreateMemberAccountForEmail } = vi.hoisted(() => ({
+const {
+  authApi,
+  canCreateMemberAccountForEmail,
+  grantMemberAccessFromJoinLink,
+} = vi.hoisted(() => ({
   authApi: {
     listUserAccounts: vi.fn(),
     requestPasswordReset: vi.fn(),
@@ -9,6 +13,7 @@ const { authApi, canCreateMemberAccountForEmail } = vi.hoisted(() => ({
     signUpEmail: vi.fn(),
   },
   canCreateMemberAccountForEmail: vi.fn(),
+  grantMemberAccessFromJoinLink: vi.fn(),
 }));
 const { readMemberJoinLinkTokenFromRequest } = vi.hoisted(() => ({
   readMemberJoinLinkTokenFromRequest: vi.fn(),
@@ -22,6 +27,7 @@ vi.mock('./auth.server', () => ({
 
 vi.mock('./member-invites.server', () => ({
   canCreateMemberAccountForEmail,
+  grantMemberAccessFromJoinLink,
 }));
 
 vi.mock('./member-join-links.server', () => ({
@@ -80,6 +86,10 @@ describe('password auth helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    grantMemberAccessFromJoinLink.mockResolvedValue({
+      ok: true,
+      link: {},
+    });
     readMemberJoinLinkTokenFromRequest.mockReturnValue(null);
   });
 
@@ -200,7 +210,15 @@ describe('password auth helpers', () => {
   it('passes join-link cookies into the password sign-up gate', async () => {
     readMemberJoinLinkTokenFromRequest.mockReturnValue('join-token');
     canCreateMemberAccountForEmail.mockResolvedValue(true);
-    authApi.signUpEmail.mockResolvedValue(jsonResponse({ user: { id: 'u' } }));
+    authApi.signUpEmail.mockResolvedValue(
+      jsonResponse({
+        user: {
+          id: 'user-2',
+          email: 'new.driver@example.com',
+          name: 'New Driver',
+        },
+      }),
+    );
 
     await expectRedirect(
       submitPasswordSignUp(
@@ -220,6 +238,14 @@ describe('password auth helpers', () => {
     expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith({
       email: 'new.driver@example.com',
       joinToken: 'join-token',
+    });
+    expect(grantMemberAccessFromJoinLink).toHaveBeenCalledWith({
+      token: 'join-token',
+      user: {
+        id: 'user-2',
+        email: 'new.driver@example.com',
+        name: 'New Driver',
+      },
     });
   });
 

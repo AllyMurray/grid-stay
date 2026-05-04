@@ -10,7 +10,11 @@ import {
   normalizeEmail,
   normalizeMemberAccessEmail,
 } from './authorization';
-import { canUseMemberJoinLinkForAccountCreation } from './member-join-links.server';
+import {
+  acceptMemberJoinLink,
+  canUseMemberJoinLinkForAccountCreation,
+  type MemberJoinLinkLookupResult,
+} from './member-join-links.server';
 import type { User } from './schemas';
 
 const MEMBER_INVITE_SCOPE = 'member';
@@ -369,6 +373,36 @@ export async function canCreateMemberAccountForEmail({
   }
 
   return invite.status === 'pending' || invite.status === 'accepted';
+}
+
+export async function grantMemberAccessFromJoinLink({
+  token,
+  user,
+  store = memberInviteStore,
+}: {
+  token: string | null | undefined;
+  user: Pick<User, 'id' | 'email' | 'name'>;
+  store?: MemberInvitePersistence;
+}): Promise<MemberJoinLinkLookupResult> {
+  const accepted = await acceptMemberJoinLink({
+    token: token ?? '',
+    user,
+  });
+
+  if (!accepted.ok) {
+    return accepted;
+  }
+
+  await createAcceptedMemberInviteForUser({
+    user,
+    invitedBy: {
+      id: accepted.link.createdByUserId,
+      name: accepted.link.createdByName,
+    },
+    store,
+  });
+
+  return accepted;
 }
 
 export async function listMemberInvites(

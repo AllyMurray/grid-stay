@@ -3,7 +3,10 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { betterAuth } from 'better-auth';
 import { Resource } from 'sst';
 import { dynamoDBAdapter } from './dynamodb-adapter.server';
-import { canCreateMemberAccountForEmail } from './member-invites.server';
+import {
+  canCreateMemberAccountForEmail,
+  grantMemberAccessFromJoinLink,
+} from './member-invites.server';
 import { readMemberJoinLinkTokenFromRequest } from './member-join-links.server';
 import { sendPasswordResetEmail } from './password-reset-email.server';
 
@@ -16,6 +19,21 @@ const SSTResource = Resource as unknown as {
   GoogleClientId: { value: string };
   GoogleClientSecret: { value: string };
 };
+
+type DatabaseHookContext = {
+  request?: { headers?: Headers };
+  headers?: Headers;
+};
+
+function readMemberJoinLinkTokenFromAuthContext(
+  ctx: DatabaseHookContext | null,
+) {
+  return readMemberJoinLinkTokenFromRequest({
+    request: {
+      headers: ctx?.request?.headers ?? ctx?.headers ?? new Headers(),
+    },
+  });
+}
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
@@ -66,11 +84,7 @@ export const auth = betterAuth({
     user: {
       create: {
         async before(user, ctx) {
-          const joinToken = readMemberJoinLinkTokenFromRequest({
-            request: {
-              headers: ctx?.request?.headers ?? ctx?.headers ?? new Headers(),
-            },
-          });
+          const joinToken = readMemberJoinLinkTokenFromAuthContext(ctx);
           const allowed = await canCreateMemberAccountForEmail({
             email: String(user.email),
             joinToken,
@@ -81,6 +95,28 @@ export const auth = betterAuth({
           }
 
           return allowed;
+        },
+        async after(user, ctx) {
+          const joinToken = readMemberJoinLinkTokenFromAuthContext(ctx);
+          if (!joinToken || !user?.id || !user.email) {
+            return;
+          }
+
+          const result = await grantMemberAccessFromJoinLink({
+            token: joinToken,
+            user: {
+              id: String(user.id),
+              email: String(user.email),
+              name:
+                typeof user.name === 'string' ? user.name : String(user.email),
+            },
+          });
+
+          if (!result.ok) {
+            console.warn(
+              `Auth user created, but join-link member access was not granted: ${result.reason}`,
+            );
+          }
         },
       },
     },

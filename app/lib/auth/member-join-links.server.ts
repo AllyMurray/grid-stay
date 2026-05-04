@@ -203,7 +203,13 @@ function parseCookieHeader(value: string | null): Map<string, string> {
       continue;
     }
 
-    cookies.set(name, decodeURIComponent(rawValue.join('=')));
+    const encodedValue = rawValue.join('=');
+
+    try {
+      cookies.set(name, decodeURIComponent(encodedValue));
+    } catch {
+      cookies.set(name, encodedValue);
+    }
   }
 
   return cookies;
