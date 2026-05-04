@@ -4,6 +4,7 @@ import {
   IconCreditCard,
   IconLock,
   IconMessageCircle,
+  IconRoute,
   IconSparkles,
   IconUsersGroup,
 } from '@tabler/icons-react';
@@ -23,6 +24,23 @@ export interface WhatsNewEntry {
 }
 
 export const whatsNewEntries: WhatsNewEntry[] = [
+  {
+    id: 'available-days-calendar-planner',
+    title: 'Calendar and journey planner for Available Days',
+    publishedAt: '2026-05-04T10:00:00.000Z',
+    dateLabel: '4 May 2026',
+    category: 'Planning',
+    description:
+      'Available Days now has calendar and journey planner views so you can scan the season and plan runs of nearby events.',
+    highlights: [
+      'Use the Calendar tab to review filtered Available Days by month.',
+      'Build a journey plan between matching days with estimated road miles and drive time.',
+      'The planner uses the same month, race series, circuit, provider, and day type filters as the main feed.',
+    ],
+    href: '/dashboard/days?view=planner',
+    actionLabel: 'Open planner',
+    icon: IconRoute,
+  },
   {
     id: 'member-event-requests',
     title: 'Add missing events',

@@ -25,10 +25,22 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Add missing events',
+        name: 'Calendar and journey planner for Available Days',
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
+    expect(
+      screen.getByText(/build a journey plan between matching days/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days?view=planner',
+    );
+    expect(
+      screen.getByRole('heading', {
+        name: 'Add missing events',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/saved events appear/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /add an event/i })).toHaveAttribute(
       'href',
