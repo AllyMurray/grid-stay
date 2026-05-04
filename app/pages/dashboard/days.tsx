@@ -1349,15 +1349,12 @@ function JourneyPlannerPanel({
 
   return (
     <Stack gap="lg">
-      <Group justify="space-between" align="flex-end" gap="md">
-        <Stack gap={2}>
-          <Title order={3}>Journey planner</Title>
-          <Text size="sm" c="dimmed">
-            {planner.candidateCount} matching{' '}
-            {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
-            {planner.start || 'any date'} to {planner.end || 'any date'}.
-          </Text>
-        </Stack>
+      <Group justify="space-between" align="center" gap="md">
+        <Text size="sm" c="dimmed">
+          {planner.candidateCount} matching{' '}
+          {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
+          {planner.start || 'any date'} to {planner.end || 'any date'}.
+        </Text>
         {planner.status === 'stale' ? (
           <Badge color="yellow" variant="light">
             Distances need refresh

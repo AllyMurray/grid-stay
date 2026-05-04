@@ -762,6 +762,9 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('form', { name: 'Journey planner filters' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('heading', { name: 'Journey planner' }),
+    ).toHaveLength(1);
     expect(screen.getByText('Stop 1')).toBeInTheDocument();
     expect(screen.getByText('Stop 2')).toBeInTheDocument();
     expect(screen.getAllByText('92 miles').length).toBeGreaterThan(0);
