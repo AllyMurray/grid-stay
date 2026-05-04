@@ -25,10 +25,19 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Calendar and journey planner for Available Days',
+        name: 'Available Days now starts with upcoming dates',
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
+    expect(screen.getByText(/show past dates filter/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open upcoming dates/i }),
+    ).toHaveAttribute('href', '/dashboard/days');
+    expect(
+      screen.getByRole('heading', {
+        name: 'Calendar and journey planner for Available Days',
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/build a journey plan between matching days/i),
     ).toBeInTheDocument();

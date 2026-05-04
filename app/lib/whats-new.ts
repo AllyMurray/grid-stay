@@ -25,6 +25,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'available-days-upcoming-default',
+    title: 'Available Days now starts with upcoming dates',
+    publishedAt: '2026-05-04T13:00:00.000Z',
+    dateLabel: '4 May 2026',
+    category: 'Available Days',
+    description:
+      'The Available Days feed now focuses on future dates by default, with an option to bring older dates back when needed.',
+    highlights: [
+      'Past dates are hidden from the feed unless you choose to show them.',
+      'Use the Show past dates filter when you need to review older events.',
+      'Calendar, planner, pagination, and saved views preserve the past-date setting.',
+    ],
+    href: '/dashboard/days',
+    actionLabel: 'Open upcoming dates',
+    icon: IconCalendarMonth,
+  },
+  {
     id: 'available-days-calendar-planner',
     title: 'Calendar and journey planner for Available Days',
     publishedAt: '2026-05-04T10:00:00.000Z',
