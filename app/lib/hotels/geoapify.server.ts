@@ -7,7 +7,7 @@ const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
 const GEOAPIFY_ATTRIBUTION =
   'Hotel data powered by Geoapify. © OpenStreetMap contributors.';
 const ACCOMMODATION_CATEGORY_PREFIX = 'accommodation';
-const GENERIC_ACCOMMODATION_WORDS = /\b(hotel|hotels|accommodation)\b/gi;
+const GENERIC_ACCOMMODATION_WORDS = /\b(hotel|hotels|accommodation|spa)\b|&/gi;
 
 interface GeoapifyAutocompleteResult {
   place_id?: string;
@@ -31,6 +31,11 @@ interface GeoapifyPlacesResponse {
   features?: Array<{
     properties?: GeoapifyAutocompleteResult;
   }>;
+}
+
+interface PlaceFallbackSearch {
+  name: string;
+  location: string;
 }
 
 function getGeoapifyApiKey() {
@@ -66,23 +71,83 @@ function stripGenericAccommodationWords(value: string) {
   return cleanSearchText(value.replace(GENERIC_ACCOMMODATION_WORDS, ' '));
 }
 
-function getPlaceFallbackSearch(query: string) {
+function addPlaceFallbackSearch(
+  searches: PlaceFallbackSearch[],
+  search: PlaceFallbackSearch,
+) {
+  const name = cleanSearchText(search.name);
+  const location = cleanSearchText(search.location);
+
+  if (name.length < 2 || location.length < 2) {
+    return;
+  }
+
+  const key = `${name.toLowerCase()}:${location.toLowerCase()}`;
+  if (
+    searches.some(
+      (existing) =>
+        `${existing.name.toLowerCase()}:${existing.location.toLowerCase()}` ===
+        key,
+    )
+  ) {
+    return;
+  }
+
+  searches.push({ name, location });
+}
+
+function getSearchTokens(value: string) {
+  return stripGenericAccommodationWords(value)
+    .replace(/[^a-z0-9'-]+/gi, ' ')
+    .split(' ')
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function getPlaceFallbackSearches(query: string) {
+  const searches: PlaceFallbackSearch[] = [];
   const [namePart, ...locationParts] = query.split(',');
   const location = cleanSearchText(locationParts.join(','));
 
-  if (!namePart || !location) {
-    return null;
+  if (namePart && location) {
+    addPlaceFallbackSearch(searches, {
+      name: stripGenericAccommodationWords(namePart),
+      location,
+    });
+    return searches;
   }
 
-  const name = stripGenericAccommodationWords(namePart);
-  if (name.length < 2) {
-    return null;
+  const tokens = getSearchTokens(query);
+  if (tokens.length < 3) {
+    return searches;
   }
 
-  return {
-    name,
-    location,
-  };
+  if (tokens.length >= 4) {
+    addPlaceFallbackSearch(searches, {
+      name: tokens[0],
+      location: tokens.slice(-2).join(' '),
+    });
+  }
+
+  if (tokens.length >= 5) {
+    addPlaceFallbackSearch(searches, {
+      name: tokens.slice(0, 2).join(' '),
+      location: tokens.slice(-3).join(' '),
+    });
+  }
+
+  for (
+    let splitIndex = 1;
+    splitIndex < Math.min(tokens.length, 4);
+    splitIndex += 1
+  ) {
+    addPlaceFallbackSearch(searches, {
+      name: tokens.slice(0, splitIndex).join(' '),
+      location: tokens.slice(splitIndex).join(' '),
+    });
+  }
+
+  return searches.slice(0, 4);
 }
 
 function toSuggestion(result: GeoapifyAutocompleteResult): HotelSuggestion {
@@ -192,39 +257,42 @@ async function searchAccommodationByPlaceFallback(input: {
   limit: number;
   query: string;
 }) {
-  const fallback = getPlaceFallbackSearch(input.query);
-  if (!fallback) {
+  const fallbacks = getPlaceFallbackSearches(input.query);
+  if (fallbacks.length === 0) {
     return [];
   }
 
-  const places = await fetchAutocompleteResults({
-    apiKey: input.apiKey,
-    fetcher: input.fetcher,
-    limit: 3,
-    query: fallback.location,
-  });
   const suggestions: HotelSuggestion[] = [];
 
-  for (const place of places.slice(0, 3)) {
-    if (!place.place_id) {
-      continue;
-    }
-
-    const hotels = await fetchAccommodationInsidePlace({
+  for (const fallback of fallbacks) {
+    const places = await fetchAutocompleteResults({
       apiKey: input.apiKey,
       fetcher: input.fetcher,
-      limit: input.limit,
-      name: fallback.name,
-      placeId: place.place_id,
+      limit: 3,
+      query: fallback.location,
     });
-    suggestions.push(
-      ...hotels
-        .filter((result) => isAccommodation(result) && getHotelName(result))
-        .map(toSuggestion),
-    );
 
-    if (suggestions.length > 0) {
-      break;
+    for (const place of places.slice(0, 3)) {
+      if (!place.place_id) {
+        continue;
+      }
+
+      const hotels = await fetchAccommodationInsidePlace({
+        apiKey: input.apiKey,
+        fetcher: input.fetcher,
+        limit: input.limit,
+        name: fallback.name,
+        placeId: place.place_id,
+      });
+      suggestions.push(
+        ...hotels
+          .filter((result) => isAccommodation(result) && getHotelName(result))
+          .map(toSuggestion),
+      );
+
+      if (suggestions.length > 0) {
+        return dedupeSuggestions(suggestions).slice(0, input.limit);
+      }
     }
   }
 
@@ -261,6 +329,20 @@ export async function searchGeoapifyHotels(
 
   if (suggestions.length > 0) {
     return suggestions;
+  }
+
+  const broadResults = await fetchAutocompleteResults({
+    apiKey,
+    fetcher,
+    limit,
+    query: trimmedQuery,
+  });
+  const broadSuggestions = broadResults
+    .filter((result) => isAccommodation(result) && getHotelName(result))
+    .map(toSuggestion);
+
+  if (broadSuggestions.length > 0) {
+    return dedupeSuggestions(broadSuggestions);
   }
 
   return searchAccommodationByPlaceFallback({

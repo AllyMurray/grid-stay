@@ -70,6 +70,11 @@ describe('Geoapify hotel lookup', () => {
       )
       .mockResolvedValueOnce(
         Response.json({
+          results: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
           results: [
             {
               place_id: 'east-midlands-airport',
@@ -115,15 +120,87 @@ describe('Geoapify hotel lookup', () => {
       }),
     ]);
 
-    expect(fetcher).toHaveBeenCalledTimes(3);
-    expect(fetcher.mock.calls[1][0].searchParams.get('text')).toBe(
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher.mock.calls[1][0].searchParams.get('type')).toBeNull();
+    expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe(
       'East Midlands Airport',
     );
-    expect(fetcher.mock.calls[2][0].searchParams.get('filter')).toBe(
+    expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe(
       'place:east-midlands-airport',
     );
-    expect(fetcher.mock.calls[2][0].searchParams.get('name')).toBe(
+    expect(fetcher.mock.calls[3][0].searchParams.get('name')).toBe(
       'Radisson Blu',
     );
+  });
+
+  it('uses place fallback candidates for hotel searches without a comma', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          results: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          results: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          results: [
+            {
+              place_id: 'brands-hatch',
+              name: 'Brands Hatch',
+              formatted: 'Brands Hatch, Longfield, DA3 8NG, United Kingdom',
+              result_type: 'amenity',
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          features: [
+            {
+              properties: {
+                place_id: 'mercure-brands-hatch',
+                name: 'Mercure Dartford Brands Hatch Hotel & Spa',
+                formatted:
+                  'Mercure Dartford Brands Hatch Hotel & Spa, Brands Hatch, DA3 8PE, United Kingdom',
+                postcode: 'DA3 8PE',
+                country: 'United Kingdom',
+                lat: 51.3566,
+                lon: 0.2612,
+                categories: ['accommodation', 'accommodation.hotel'],
+              },
+            },
+          ],
+        }),
+      );
+
+    await expect(
+      searchGeoapifyHotels('Mercure Dartford Brands Hatch Hotel & Spa', {
+        apiKey: 'geoapify-key',
+        fetcher: fetcher as never,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        name: 'Mercure Dartford Brands Hatch Hotel & Spa',
+        postcode: 'DA3 8PE',
+        source: 'geoapify',
+        sourcePlaceId: 'mercure-brands-hatch',
+      }),
+    ]);
+
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher.mock.calls[0][0].searchParams.get('type')).toBe('amenity');
+    expect(fetcher.mock.calls[1][0].searchParams.get('type')).toBeNull();
+    expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe(
+      'Brands Hatch',
+    );
+    expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe(
+      'place:brands-hatch',
+    );
+    expect(fetcher.mock.calls[3][0].searchParams.get('name')).toBe('Mercure');
   });
 });
