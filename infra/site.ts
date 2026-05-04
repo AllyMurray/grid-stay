@@ -6,6 +6,7 @@ import {
   betterAuthSecret,
   googleClientId,
   googleClientSecret,
+  openRouteServiceApiKey,
 } from './secrets';
 
 export const site = new sst.aws.React('Site', {
@@ -16,6 +17,7 @@ export const site = new sst.aws.React('Site', {
     betterAuthSecret,
     googleClientId,
     googleClientSecret,
+    openRouteServiceApiKey,
   ],
   domain: appDomainConfig,
   environment: {

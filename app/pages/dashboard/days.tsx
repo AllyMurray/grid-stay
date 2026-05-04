@@ -15,14 +15,26 @@ import {
   Select,
   SimpleGrid,
   Stack,
+  Tabs,
   Text,
   Textarea,
   TextInput,
   Title,
   UnstyledButton,
 } from '@mantine/core';
+import {
+  Schedule,
+  type ScheduleEventData,
+  type ScheduleViewLevel,
+} from '@mantine/schedule';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { Form, Link, useFetcher, useSearchParams } from 'react-router';
+import {
+  Form,
+  Link,
+  useFetcher,
+  useNavigate,
+  useSearchParams,
+} from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import type {
@@ -34,11 +46,13 @@ import type { BookingStatus } from '~/lib/constants/enums';
 import type { CostSplittingActionResult } from '~/lib/cost-splitting/actions.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type {
+  AvailableDaysView,
   DayBookingSnapshot,
   DayRow,
   DaysFeedData,
   DaysIndexData,
 } from '~/lib/days/dashboard-feed.server';
+import type { JourneyPlannerResult } from '~/lib/days/journey-planner';
 import type {
   DaysPreferenceActionResult,
   SavedDaysFilters,
@@ -129,10 +143,40 @@ function createDaysFeedHref(
   return `/api/dashboard/days-feed?${params.toString()}`;
 }
 
+interface DaysViewState {
+  view: AvailableDaysView;
+  start?: string;
+  end?: string;
+  maxMiles?: number;
+}
+
+function appendDaysViewState(
+  params: URLSearchParams,
+  viewState?: DaysViewState,
+) {
+  if (!viewState || viewState.view === 'list') {
+    return;
+  }
+
+  params.set('view', viewState.view);
+  if (viewState.view === 'planner') {
+    if (viewState.start) {
+      params.set('start', viewState.start);
+    }
+    if (viewState.end) {
+      params.set('end', viewState.end);
+    }
+    if (viewState.maxMiles) {
+      params.set('maxMiles', String(viewState.maxMiles));
+    }
+  }
+}
+
 function createDaysIndexHref(
   filters: DaysIndexData['filters'],
   selectedDayId?: string | null,
   navigationKey?: string | null,
+  viewState?: DaysViewState,
 ): string {
   const params = new URLSearchParams();
   if (filters.month) {
@@ -156,9 +200,17 @@ function createDaysIndexHref(
   if (navigationKey) {
     params.set('nav', navigationKey);
   }
+  appendDaysViewState(params, viewState);
 
   const query = params.toString();
   return query ? `/dashboard/days?${query}` : '/dashboard/days';
+}
+
+function createDaysViewHref(
+  filters: DaysIndexData['filters'],
+  viewState: DaysViewState,
+) {
+  return createDaysIndexHref(filters, null, null, viewState);
 }
 
 function countActiveFilters(filters: DaysIndexData['filters']) {
@@ -225,6 +277,29 @@ function DaysFilterHiddenInputs({
       ))}
       <input type="hidden" name="provider" value={filters.provider} />
       <input type="hidden" name="type" value={filters.type} />
+    </>
+  );
+}
+
+function DaysViewHiddenInputs({ viewState }: { viewState: DaysViewState }) {
+  if (viewState.view === 'list') {
+    return null;
+  }
+
+  return (
+    <>
+      <input type="hidden" name="view" value={viewState.view} />
+      {viewState.view === 'planner' ? (
+        <>
+          <input type="hidden" name="start" value={viewState.start ?? ''} />
+          <input type="hidden" name="end" value={viewState.end ?? ''} />
+          <input
+            type="hidden"
+            name="maxMiles"
+            value={String(viewState.maxMiles ?? '')}
+          />
+        </>
+      ) : null}
     </>
   );
 }
@@ -958,12 +1033,14 @@ function DayListPanel({
   attendanceSummaries,
   myBookingsByDay,
   selectedDayId,
+  viewState,
 }: {
   days: DayRow[];
   filters: DaysIndexData['filters'];
   attendanceSummaries: DaysFeedData['attendanceSummaries'];
   myBookingsByDay: Record<string, DayBookingSnapshot>;
   selectedDayId: string | null;
+  viewState?: DaysViewState;
 }) {
   return (
     <Paper className="days-list-panel" p="md">
@@ -982,8 +1059,8 @@ function DayListPanel({
                 selected={selected}
                 href={
                   selected
-                    ? createDaysIndexHref(filters)
-                    : createDaysIndexHref(filters, day.dayId)
+                    ? createDaysIndexHref(filters, null, null, viewState)
+                    : createDaysIndexHref(filters, day.dayId, null, viewState)
                 }
               />
 
@@ -993,6 +1070,447 @@ function DayListPanel({
         })}
       </Stack>
     </Paper>
+  );
+}
+
+interface AvailableDayCalendarPayload {
+  dayId: string;
+}
+
+function buildAvailableDayCalendarEvents(
+  days: DayRow[],
+): ScheduleEventData<AvailableDayCalendarPayload>[] {
+  return days.map((day) => ({
+    id: day.dayId,
+    title: day.circuit,
+    start: `${day.date} 00:00:00`,
+    end: `${day.date} 23:59:59`,
+    color: typeColor(day.type),
+    variant: 'filled',
+    payload: { dayId: day.dayId },
+  }));
+}
+
+function groupDaysByDate(days: DayRow[]) {
+  const groups = new Map<string, DayRow[]>();
+
+  for (const day of [...days].sort(compareDayRows)) {
+    const current = groups.get(day.date);
+    if (current) {
+      current.push(day);
+      continue;
+    }
+
+    groups.set(day.date, [day]);
+  }
+
+  return [...groups.entries()].map(([date, items]) => ({ date, items }));
+}
+
+function DayTypeLegend() {
+  return (
+    <Group gap="xs" wrap="wrap">
+      {(['race_day', 'test_day', 'track_day'] as const).map((type) => (
+        <Badge key={type} color={typeColor(type)} variant="light">
+          {titleCase(type)}
+        </Badge>
+      ))}
+    </Group>
+  );
+}
+
+function AvailableDaysCalendarPanel({
+  days,
+  filters,
+  attendanceSummaries,
+  myBookingsByDay,
+  viewState,
+}: {
+  days: DayRow[];
+  filters: DaysIndexData['filters'];
+  attendanceSummaries: DaysFeedData['attendanceSummaries'];
+  myBookingsByDay: Record<string, DayBookingSnapshot>;
+  viewState: DaysViewState;
+}) {
+  const navigate = useNavigate();
+  const events = useMemo(() => buildAvailableDayCalendarEvents(days), [days]);
+  const groupedDays = useMemo(() => groupDaysByDate(days), [days]);
+  const [view, setView] = useState<ScheduleViewLevel>('month');
+  const [currentDate, setCurrentDate] = useState(days[0]?.date ?? '');
+  const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? '');
+  const daysForSelectedDate = selectedDate
+    ? days.filter((day) => day.date === selectedDate).sort(compareDayRows)
+    : [];
+
+  useEffect(() => {
+    setCurrentDate((current) => current || days[0]?.date || '');
+    setSelectedDate((current) => current || days[0]?.date || '');
+  }, [days]);
+
+  if (days.length === 0) {
+    return (
+      <EmptyStateCard
+        title="No days to show on the calendar"
+        description="Widen the filters to bring more race, test, and track dates back into view."
+        action={
+          <Button component={Link} to="/dashboard/days">
+            Show the full feed
+          </Button>
+        }
+      />
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      <Group justify="space-between" align="flex-end" gap="md">
+        <Stack gap={2}>
+          <Title order={3}>Calendar</Title>
+          <Text size="sm" c="dimmed">
+            {days.length} matching {days.length === 1 ? 'day' : 'days'} across{' '}
+            {groupedDays.length} {groupedDays.length === 1 ? 'date' : 'dates'}.
+          </Text>
+        </Stack>
+        <DayTypeLegend />
+      </Group>
+
+      <Box visibleFrom="sm">
+        <Schedule
+          date={currentDate}
+          onDateChange={setCurrentDate}
+          view={view}
+          onViewChange={setView}
+          defaultView="month"
+          events={events}
+          mode="static"
+          layout="default"
+          onEventClick={(event) => {
+            const dayId = String(event.payload?.dayId ?? event.id);
+            navigate(createDaysIndexHref(filters, dayId, null, viewState), {
+              preventScrollReset: true,
+            });
+          }}
+          onDayClick={(date) => setSelectedDate(date)}
+          monthViewProps={{
+            firstDayOfWeek: 1,
+            maxEventsPerDay: 4,
+          }}
+          yearViewProps={{
+            firstDayOfWeek: 1,
+          }}
+        />
+      </Box>
+
+      <Box hiddenFrom="sm">
+        <DayListPanel
+          days={days}
+          filters={filters}
+          attendanceSummaries={attendanceSummaries}
+          myBookingsByDay={myBookingsByDay}
+          selectedDayId={null}
+          viewState={viewState}
+        />
+      </Box>
+
+      {daysForSelectedDate.length > 0 ? (
+        <Stack gap="sm">
+          <Group justify="space-between" align="center">
+            <Text fw={800}>{formatDayLongDate(selectedDate)}</Text>
+            <Badge variant="light" color="brand">
+              {daysForSelectedDate.length}{' '}
+              {daysForSelectedDate.length === 1 ? 'day' : 'days'}
+            </Badge>
+          </Group>
+          <DayListPanel
+            days={daysForSelectedDate}
+            filters={filters}
+            attendanceSummaries={attendanceSummaries}
+            myBookingsByDay={myBookingsByDay}
+            selectedDayId={null}
+            viewState={viewState}
+          />
+        </Stack>
+      ) : null}
+    </Stack>
+  );
+}
+
+function formatPlannerDistance(value: number) {
+  return `${Math.round(value)} miles`;
+}
+
+function formatPlannerDuration(value: number) {
+  if (value <= 0) {
+    return 'No drive time';
+  }
+
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  if (hours === 0) {
+    return `${minutes} min`;
+  }
+
+  return minutes > 0 ? `${hours} hr ${minutes} min` : `${hours} hr`;
+}
+
+function PlannerRangeForm({
+  filters,
+  planner,
+}: {
+  filters: DaysIndexData['filters'];
+  planner: JourneyPlannerResult;
+}) {
+  return (
+    <Form method="get" aria-label="Journey planner filters">
+      <Stack gap="md">
+        <DaysFilterHiddenInputs filters={filters} />
+        <input type="hidden" name="view" value="planner" />
+        <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+          <TextInput
+            type="date"
+            name="start"
+            label="Start date"
+            defaultValue={planner.start}
+          />
+          <TextInput
+            type="date"
+            name="end"
+            label="End date"
+            defaultValue={planner.end}
+          />
+          <NumberInput
+            name="maxMiles"
+            label="Max miles between tracks"
+            defaultValue={planner.maxMiles}
+            min={25}
+            max={1000}
+            step={25}
+          />
+        </SimpleGrid>
+        <Group justify="flex-end">
+          <Button type="submit">Update planner</Button>
+        </Group>
+      </Stack>
+    </Form>
+  );
+}
+
+function PlannerCandidateList({
+  days,
+  filters,
+  viewState,
+}: {
+  days: DayRow[];
+  filters: DaysIndexData['filters'];
+  viewState: DaysViewState;
+}) {
+  if (days.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack gap="xs">
+      {days.slice(0, 8).map((day) => (
+        <Group key={day.dayId} justify="space-between" gap="md" wrap="nowrap">
+          <Stack gap={2} style={{ minWidth: 0 }}>
+            <Text fw={700} lineClamp={1}>
+              {day.circuit}
+            </Text>
+            <Text size="sm" c="dimmed" lineClamp={1}>
+              {formatDayLongDate(day.date)} • {day.provider}
+            </Text>
+          </Stack>
+          <Button
+            component={Link}
+            to={createDaysIndexHref(filters, day.dayId, null, viewState)}
+            variant="default"
+            size="xs"
+            preventScrollReset
+          >
+            View
+          </Button>
+        </Group>
+      ))}
+    </Stack>
+  );
+}
+
+function JourneyPlannerPanel({
+  planner,
+  filters,
+  viewState,
+}: {
+  planner: JourneyPlannerResult;
+  filters: DaysIndexData['filters'];
+  viewState: DaysViewState;
+}) {
+  const distanceUnavailable =
+    planner.status === 'missing' || planner.status === 'unavailable';
+
+  return (
+    <Stack gap="lg">
+      <Group justify="space-between" align="flex-end" gap="md">
+        <Stack gap={2}>
+          <Title order={3}>Journey planner</Title>
+          <Text size="sm" c="dimmed">
+            {planner.candidateCount} matching{' '}
+            {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
+            {planner.start || 'any date'} to {planner.end || 'any date'}.
+          </Text>
+        </Stack>
+        {planner.status === 'stale' ? (
+          <Badge color="yellow" variant="light">
+            Distances need refresh
+          </Badge>
+        ) : null}
+      </Group>
+
+      <PlannerRangeForm filters={filters} planner={planner} />
+
+      {planner.status === 'no_candidates' ? (
+        <EmptyStateCard
+          title="No days in that range"
+          description="Adjust the dates or widen the feed filters to bring more track dates into the planner."
+          action={
+            <Button
+              component={Link}
+              to={createDaysViewHref(filters, viewState)}
+            >
+              Reset planner
+            </Button>
+          }
+        />
+      ) : distanceUnavailable ? (
+        <Alert color="yellow" variant="light">
+          Distance matrix unavailable. Calendar and list views still work while
+          the road-distance cache is refreshed.
+        </Alert>
+      ) : planner.stops.length === 0 ? (
+        <EmptyStateCard
+          title="No connected route found"
+          description="Raise the max miles per leg or widen the date range to include more nearby tracks."
+        />
+      ) : (
+        <Stack gap="md">
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+            <DetailMetric label="Stops" value={String(planner.stops.length)} />
+            <DetailMetric
+              label="Road miles"
+              value={formatPlannerDistance(planner.totalMiles)}
+            />
+            <DetailMetric
+              label="Drive time"
+              value={formatPlannerDuration(planner.totalDurationMinutes)}
+            />
+          </SimpleGrid>
+
+          <Stack gap={0}>
+            {planner.stops.map((stop, index) => {
+              const leg = index > 0 ? planner.legs[index - 1] : null;
+
+              return (
+                <Fragment key={stop.day.dayId}>
+                  {leg ? (
+                    <Group py="xs" gap="xs">
+                      <Badge variant="light" color="gray">
+                        {formatPlannerDistance(leg.miles)}
+                      </Badge>
+                      <Text size="sm" c="dimmed">
+                        {formatPlannerDuration(leg.durationMinutes)} from{' '}
+                        {leg.fromCircuit}
+                      </Text>
+                    </Group>
+                  ) : null}
+                  <Group
+                    py="sm"
+                    justify="space-between"
+                    align="flex-start"
+                    gap="md"
+                    wrap="nowrap"
+                  >
+                    <Stack gap={4} style={{ minWidth: 0 }}>
+                      <Group gap="xs" wrap="wrap">
+                        <Badge color="brand" variant="light">
+                          Stop {index + 1}
+                        </Badge>
+                        <Badge color={typeColor(stop.day.type)} variant="light">
+                          {titleCase(stop.day.type)}
+                        </Badge>
+                        {stop.alternatives.length > 0 ? (
+                          <Badge color="gray" variant="light">
+                            {stop.alternatives.length + 1} sessions
+                          </Badge>
+                        ) : null}
+                      </Group>
+                      <Text fw={800} lineClamp={1}>
+                        {stop.day.circuit}
+                      </Text>
+                      <Text size="sm" c="dimmed" lineClamp={1}>
+                        {formatDayLongDate(stop.day.date)} • {stop.day.provider}
+                      </Text>
+                      <Text size="sm" lineClamp={2}>
+                        {getDaySessionText(stop.day)}
+                      </Text>
+                    </Stack>
+                    <Button
+                      component={Link}
+                      to={createDaysIndexHref(
+                        filters,
+                        stop.day.dayId,
+                        null,
+                        viewState,
+                      )}
+                      variant="default"
+                      size="sm"
+                      preventScrollReset
+                    >
+                      View day
+                    </Button>
+                  </Group>
+                  {index < planner.stops.length - 1 ? <Divider /> : null}
+                </Fragment>
+              );
+            })}
+          </Stack>
+        </Stack>
+      )}
+
+      {planner.unknownDistanceDays.length > 0 ? (
+        <Alert color="gray" variant="light">
+          <Stack gap="sm">
+            <Text size="sm">
+              {planner.unknownDistanceDays.length}{' '}
+              {planner.unknownDistanceDays.length === 1
+                ? 'day has'
+                : 'days have'}{' '}
+              no circuit coordinates yet.
+            </Text>
+            <PlannerCandidateList
+              days={planner.unknownDistanceDays as DayRow[]}
+              filters={filters}
+              viewState={viewState}
+            />
+          </Stack>
+        </Alert>
+      ) : null}
+
+      {planner.attribution ? (
+        <Text size="xs" c="dimmed">
+          {planner.attribution}
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
+function DetailMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack gap={2}>
+      <Text size="xs" fw={700} c="dimmed">
+        {label}
+      </Text>
+      <Text fw={800}>{value}</Text>
+    </Stack>
   );
 }
 
@@ -2666,6 +3184,15 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const savedFilterHref = data.savedFilters
     ? createDaysIndexHref(data.savedFilters)
     : null;
+  const viewState: DaysViewState = useMemo(
+    () => ({
+      view: data.view,
+      start: data.planner.start,
+      end: data.planner.end,
+      maxMiles: data.planner.maxMiles,
+    }),
+    [data.planner.end, data.planner.maxMiles, data.planner.start, data.view],
+  );
   const preferenceSubmitting = preferenceFetcher.state !== 'idle';
   const preferenceMessage = !preferenceFetcher.data
     ? null
@@ -3190,6 +3717,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
           <Form method="get" aria-label="Available days filters">
             <Stack gap="md">
+              <DaysViewHiddenInputs viewState={viewState} />
               <SimpleGrid cols={{ base: 1, sm: 2, xl: 5 }} spacing="md">
                 <Select
                   name="month"
@@ -3267,19 +3795,67 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         </Stack>
       </Paper>
 
+      <Tabs value={data.view} keepMounted={false}>
+        <Tabs.List>
+          <Tabs.Tab
+            value="list"
+            renderRoot={(props) => (
+              <Link
+                {...props}
+                to={createDaysViewHref(data.filters, { view: 'list' })}
+              />
+            )}
+          >
+            List
+          </Tabs.Tab>
+          <Tabs.Tab
+            value="calendar"
+            renderRoot={(props) => (
+              <Link
+                {...props}
+                to={createDaysViewHref(data.filters, { view: 'calendar' })}
+              />
+            )}
+          >
+            Calendar
+          </Tabs.Tab>
+          <Tabs.Tab
+            value="planner"
+            renderRoot={(props) => (
+              <Link
+                {...props}
+                to={createDaysViewHref(data.filters, viewState)}
+              />
+            )}
+          >
+            Planner
+          </Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">
           <Group justify="space-between" align="flex-end">
             <Stack gap={2}>
               <Title order={3}>
-                {selectedDayFromUrl ? 'Selected day' : 'Choose a day'}
+                {selectedDayFromUrl
+                  ? 'Selected day'
+                  : data.view === 'calendar'
+                    ? 'Calendar'
+                    : data.view === 'planner'
+                      ? 'Journey planner'
+                      : 'Choose a day'}
               </Title>
               <Text size="sm" c="dimmed">
                 {selectedDayFromUrl
                   ? selectedDayPosition
                     ? `${selectedDayPosition} of ${loadedDays.totalCount} matching days`
                     : `Showing ${orderedLoadedDays.length} of ${loadedDays.totalCount} matching days`
-                  : 'Scan the live feed, then open one day at a time to inspect the group plan and add it to your bookings.'}
+                  : data.view === 'calendar'
+                    ? 'Pick a date or open a calendar event to inspect the full day plan.'
+                    : data.view === 'planner'
+                      ? 'Build a date-range route from the matching available days.'
+                      : 'Scan the live feed, then open one day at a time to inspect the group plan and add it to your bookings.'}
               </Text>
             </Stack>
             {selectedDayFromUrl ? (
@@ -3291,6 +3867,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                       data.filters,
                       previousSelectedDay.dayId,
                       hasLoadedFullSet ? null : previousSelectedDay.dayId,
+                      viewState,
                     )}
                     variant="default"
                     preventScrollReset
@@ -3309,6 +3886,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                       data.filters,
                       nextSelectedDay.dayId,
                       hasLoadedFullSet ? null : nextSelectedDay.dayId,
+                      viewState,
                     )}
                     variant="default"
                     preventScrollReset
@@ -3322,18 +3900,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 )}
                 <Button
                   component={Link}
-                  to={createDaysIndexHref(data.filters)}
+                  to={createDaysIndexHref(data.filters, null, null, viewState)}
                   variant="default"
                   preventScrollReset
                 >
                   Back to available days
                 </Button>
               </Group>
-            ) : (
+            ) : data.view === 'list' ? (
               <Text size="sm" c="dimmed">
                 Showing {loadedDays.days.length} of {loadedDays.totalCount} days
               </Text>
-            )}
+            ) : null}
           </Group>
 
           {selectedDayFromUrl ? (
@@ -3354,6 +3932,20 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               attendanceDetails={selectedDayAttendanceDetails}
               attendanceLoading={attendanceLoading}
             />
+          ) : data.view === 'calendar' ? (
+            <AvailableDaysCalendarPanel
+              days={data.calendarDays}
+              filters={data.filters}
+              attendanceSummaries={loadedDays.attendanceSummaries}
+              myBookingsByDay={loadedDays.myBookingsByDay}
+              viewState={viewState}
+            />
+          ) : data.view === 'planner' ? (
+            <JourneyPlannerPanel
+              planner={data.planner}
+              filters={data.filters}
+              viewState={viewState}
+            />
           ) : loadedDays.days.length > 0 ? (
             <DayListPanel
               days={loadedDays.days}
@@ -3361,6 +3953,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               attendanceSummaries={loadedDays.attendanceSummaries}
               myBookingsByDay={loadedDays.myBookingsByDay}
               selectedDayId={null}
+              viewState={viewState}
             />
           ) : (
             <EmptyStateCard
@@ -3374,7 +3967,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             />
           )}
 
-          {!selectedDayFromUrl && loadedDays.nextOffset !== null ? (
+          {!selectedDayFromUrl &&
+          data.view === 'list' &&
+          loadedDays.nextOffset !== null ? (
             <Box>
               <Stack gap={4} align="center">
                 {feedFetcher.state === 'idle' ? (
@@ -3387,7 +3982,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 <div ref={loadMoreRef} style={{ height: 1 }} />
               </Stack>
             </Box>
-          ) : loadedDays.totalCount > 0 ? (
+          ) : data.view === 'list' && loadedDays.totalCount > 0 ? (
             <Text size="sm" c="dimmed" ta="center">
               All matching days are loaded.
             </Text>
