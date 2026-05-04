@@ -1,6 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MemberInviteRecord } from '~/lib/db/entities/member-invite.server';
 import type { User } from './schemas';
+
+const { canUseMemberJoinLinkForAccountCreation } = vi.hoisted(() => ({
+  canUseMemberJoinLinkForAccountCreation: vi.fn(),
+}));
 
 vi.mock('~/lib/db/entities/member-invite.server', () => ({
   MemberInviteEntity: {
@@ -15,8 +19,13 @@ vi.mock('~/lib/db/entities/member-invite.server', () => ({
   },
 }));
 
+vi.mock('./member-join-links.server', () => ({
+  canUseMemberJoinLinkForAccountCreation,
+}));
+
 import {
   canCreateMemberAccountForEmail,
+  createAcceptedMemberInviteForUser,
   createMemberInvite,
   ensureUserMemberAccess,
   type MemberInvitePersistence,
@@ -74,6 +83,12 @@ function createMemoryStore(initial: MemberInviteRecord[] = []): {
 describe('member invite helpers', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    canUseMemberJoinLinkForAccountCreation.mockReset();
+    canUseMemberJoinLinkForAccountCreation.mockResolvedValue(false);
+  });
+
+  beforeEach(() => {
+    canUseMemberJoinLinkForAccountCreation.mockResolvedValue(false);
   });
 
   it('creates normalized pending invites', async () => {
@@ -142,6 +157,29 @@ describe('member invite helpers', () => {
     expect(memory.records[0]).toMatchObject({
       status: 'accepted',
       acceptedByUserId: 'user-2',
+    });
+  });
+
+  it('creates accepted invites for users who join from a link', async () => {
+    const memory = createMemoryStore();
+
+    const invite = await createAcceptedMemberInviteForUser({
+      user: {
+        id: 'user-2',
+        email: 'New.Driver@Example.com',
+      },
+      invitedBy: inviter,
+      store: memory.store,
+      nowDate: new Date('2026-05-04T10:00:00.000Z'),
+    });
+
+    expect(invite).toMatchObject({
+      inviteEmail: 'new.driver@example.com',
+      invitedByUserId: 'user-1',
+      invitedByName: 'Driver One',
+      status: 'accepted',
+      acceptedByUserId: 'user-2',
+      acceptedAt: '2026-05-04T10:00:00.000Z',
     });
   });
 
@@ -252,26 +290,43 @@ describe('member invite helpers', () => {
     ]);
 
     await expect(
-      canCreateMemberAccountForEmail(
-        ' New.Driver@Example.com ',
-        memory.store,
-        new Date('2026-05-01T10:00:00.000Z'),
-      ),
+      canCreateMemberAccountForEmail({
+        email: ' New.Driver@Example.com ',
+        store: memory.store,
+        now: new Date('2026-05-01T10:00:00.000Z'),
+      }),
     ).resolves.toBe(true);
     await expect(
-      canCreateMemberAccountForEmail(
-        'revoked.driver@example.com',
-        memory.store,
-        new Date('2026-05-01T10:00:00.000Z'),
-      ),
+      canCreateMemberAccountForEmail({
+        email: 'revoked.driver@example.com',
+        store: memory.store,
+        now: new Date('2026-05-01T10:00:00.000Z'),
+      }),
     ).resolves.toBe(false);
     await expect(
-      canCreateMemberAccountForEmail(
-        'missing.driver@example.com',
-        memory.store,
-        new Date('2026-05-01T10:00:00.000Z'),
-      ),
+      canCreateMemberAccountForEmail({
+        email: 'missing.driver@example.com',
+        store: memory.store,
+        now: new Date('2026-05-01T10:00:00.000Z'),
+      }),
     ).resolves.toBe(false);
+  });
+
+  it('allows account creation with a valid join-link token', async () => {
+    canUseMemberJoinLinkForAccountCreation.mockResolvedValue(true);
+
+    await expect(
+      canCreateMemberAccountForEmail({
+        email: 'new.driver@example.com',
+        store: createMemoryStore().store,
+        now: new Date('2026-05-01T10:00:00.000Z'),
+        joinToken: 'join-token',
+      }),
+    ).resolves.toBe(true);
+    expect(canUseMemberJoinLinkForAccountCreation).toHaveBeenCalledWith({
+      token: 'join-token',
+      now: expect.any(Date),
+    });
   });
 
   it('allows account creation when a Gmail invite matches the Google account alias', async () => {
@@ -289,11 +344,11 @@ describe('member invite helpers', () => {
     ]);
 
     await expect(
-      canCreateMemberAccountForEmail(
-        'newdriver@gmail.com',
-        memory.store,
-        new Date('2026-05-01T10:00:00.000Z'),
-      ),
+      canCreateMemberAccountForEmail({
+        email: 'newdriver@gmail.com',
+        store: memory.store,
+        now: new Date('2026-05-01T10:00:00.000Z'),
+      }),
     ).resolves.toBe(true);
   });
 

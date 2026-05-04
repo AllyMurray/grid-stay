@@ -4,6 +4,7 @@ import { betterAuth } from 'better-auth';
 import { Resource } from 'sst';
 import { dynamoDBAdapter } from './dynamodb-adapter.server';
 import { canCreateMemberAccountForEmail } from './member-invites.server';
+import { readMemberJoinLinkTokenFromRequest } from './member-join-links.server';
 import { sendPasswordResetEmail } from './password-reset-email.server';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -64,10 +65,16 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        async before(user) {
-          const allowed = await canCreateMemberAccountForEmail(
-            String(user.email),
-          );
+        async before(user, ctx) {
+          const joinToken = readMemberJoinLinkTokenFromRequest({
+            request: {
+              headers: ctx?.request?.headers ?? ctx?.headers ?? new Headers(),
+            },
+          });
+          const allowed = await canCreateMemberAccountForEmail({
+            email: String(user.email),
+            joinToken,
+          });
 
           if (!allowed) {
             console.warn('Auth user creation rejected by member invite gate');

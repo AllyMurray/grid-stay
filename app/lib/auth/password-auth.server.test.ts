@@ -10,6 +10,9 @@ const { authApi, canCreateMemberAccountForEmail } = vi.hoisted(() => ({
   },
   canCreateMemberAccountForEmail: vi.fn(),
 }));
+const { readMemberJoinLinkTokenFromRequest } = vi.hoisted(() => ({
+  readMemberJoinLinkTokenFromRequest: vi.fn(),
+}));
 
 vi.mock('./auth.server', () => ({
   auth: {
@@ -19,6 +22,10 @@ vi.mock('./auth.server', () => ({
 
 vi.mock('./member-invites.server', () => ({
   canCreateMemberAccountForEmail,
+}));
+
+vi.mock('./member-join-links.server', () => ({
+  readMemberJoinLinkTokenFromRequest,
 }));
 
 import {
@@ -73,6 +80,7 @@ describe('password auth helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    readMemberJoinLinkTokenFromRequest.mockReturnValue(null);
   });
 
   it('signs in with email and preserves Better Auth cookies on redirect', async () => {
@@ -166,9 +174,10 @@ describe('password auth helpers', () => {
       ),
     );
 
-    expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith(
-      'new.driver@example.com',
-    );
+    expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith({
+      email: 'new.driver@example.com',
+      joinToken: null,
+    });
     expect(authApi.signUpEmail).toHaveBeenCalledWith({
       body: {
         name: 'New Driver',
@@ -186,6 +195,32 @@ describe('password auth helpers', () => {
         expect.stringMatching(/^__Secure-better-auth\.session_token=def/),
       ]),
     );
+  });
+
+  it('passes join-link cookies into the password sign-up gate', async () => {
+    readMemberJoinLinkTokenFromRequest.mockReturnValue('join-token');
+    canCreateMemberAccountForEmail.mockResolvedValue(true);
+    authApi.signUpEmail.mockResolvedValue(jsonResponse({ user: { id: 'u' } }));
+
+    await expectRedirect(
+      submitPasswordSignUp(
+        new Request('https://gridstay.app/auth/login', {
+          headers: { cookie: 'grid_stay_join_token=join-token' },
+        }),
+        createFormData({
+          firstName: 'New',
+          lastName: 'Driver',
+          email: 'new.driver@example.com',
+          password: 'password123',
+          redirectTo: '/join/abcdefghijklmnopqrstuvwxyzABCDEFGH',
+        }),
+      ),
+    );
+
+    expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith({
+      email: 'new.driver@example.com',
+      joinToken: 'join-token',
+    });
   });
 
   it('reports whether the current user already has a credential account', async () => {

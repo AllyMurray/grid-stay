@@ -62,6 +62,12 @@ export function AdminExportPage({ summary }: AdminExportPageProps) {
             </Stack>
             <Stack gap={2}>
               <Text size="xs" c="dimmed" fw={700}>
+                Join links
+              </Text>
+              <Text fw={800}>{summary.joinLinkCount}</Text>
+            </Stack>
+            <Stack gap={2}>
+              <Text size="xs" c="dimmed" fw={700}>
                 Series subscriptions
               </Text>
               <Text fw={800}>{summary.seriesSubscriptionCount}</Text>

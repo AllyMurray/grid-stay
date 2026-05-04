@@ -24,6 +24,7 @@ describe('AdminExportPage', () => {
           exportedAt: '2026-04-27T10:00:00.000Z',
           memberCount: 3,
           inviteCount: 1,
+          joinLinkCount: 1,
           bookingCount: 8,
           manualDayCount: 2,
           sharedPlanCount: 4,
@@ -48,6 +49,7 @@ describe('AdminExportPage', () => {
       screen.getByRole('heading', { name: 'Data export' }),
     ).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
+    expect(screen.getByText('Join links')).toBeInTheDocument();
     expect(screen.getByText('Calendar feeds')).toBeInTheDocument();
     expect(screen.getByText('Circuit aliases')).toBeInTheDocument();
     expect(screen.getByText('Day merges')).toBeInTheDocument();
