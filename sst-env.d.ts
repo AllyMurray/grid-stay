@@ -26,7 +26,15 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "OpenRouteServiceApiKey": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "RefreshAvailableDaysCache": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
+    "RefreshCircuitDistanceMatrix": {
       "name": string
       "type": "sst.aws.Function"
     }
