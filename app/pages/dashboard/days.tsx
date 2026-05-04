@@ -151,6 +151,7 @@ interface DaysViewState {
   start?: string;
   end?: string;
   maxMiles?: number;
+  plannerDayIds?: string[];
 }
 
 function appendDaysViewState(
@@ -171,6 +172,9 @@ function appendDaysViewState(
     }
     if (viewState.maxMiles) {
       params.set('maxMiles', String(viewState.maxMiles));
+    }
+    for (const dayId of viewState.plannerDayIds ?? []) {
+      params.append('plannerDay', dayId);
     }
   }
 }
@@ -217,6 +221,20 @@ function createDaysViewHref(
   viewState: DaysViewState,
 ) {
   return createDaysIndexHref(filters, null, null, viewState);
+}
+
+function replacePlannerSelection(
+  currentDayIds: string[] | undefined,
+  dayIdsForDate: string[],
+  nextDayId: string,
+  shouldSelect = true,
+) {
+  const dayIdsForDateSet = new Set(dayIdsForDate);
+  const remainingDayIds = (currentDayIds ?? []).filter(
+    (dayId) => !dayIdsForDateSet.has(dayId),
+  );
+
+  return shouldSelect ? [...remainingDayIds, nextDayId] : remainingDayIds;
 }
 
 function countActiveFilters(filters: DaysIndexData['filters']) {
@@ -308,6 +326,9 @@ function DaysViewHiddenInputs({ viewState }: { viewState: DaysViewState }) {
             name="maxMiles"
             value={String(viewState.maxMiles ?? '')}
           />
+          {(viewState.plannerDayIds ?? []).map((dayId) => (
+            <input key={dayId} type="hidden" name="plannerDay" value={dayId} />
+          ))}
         </>
       ) : null}
     </>
@@ -1276,6 +1297,9 @@ function PlannerRangeForm({
       <Stack gap="md">
         <DaysFilterHiddenInputs filters={filters} />
         <input type="hidden" name="view" value="planner" />
+        {(planner.selectedDayIds ?? []).map((dayId) => (
+          <input key={dayId} type="hidden" name="plannerDay" value={dayId} />
+        ))}
         <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
           <TextInput
             type="date"
@@ -1366,11 +1390,27 @@ function JourneyPlannerPanel({
           {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
           {planner.start || 'any date'} to {planner.end || 'any date'}.
         </Text>
-        {planner.status === 'stale' ? (
-          <Badge color="yellow" variant="light">
-            Distances need refresh
-          </Badge>
-        ) : null}
+        <Group gap="xs">
+          {(planner.selectedDayIds ?? []).length > 0 ? (
+            <Button
+              component={Link}
+              to={createDaysViewHref(filters, {
+                ...viewState,
+                plannerDayIds: [],
+              })}
+              variant="default"
+              size="xs"
+              preventScrollReset
+            >
+              Clear choices
+            </Button>
+          ) : null}
+          {planner.status === 'stale' ? (
+            <Badge color="yellow" variant="light">
+              Distances need refresh
+            </Badge>
+          ) : null}
+        </Group>
       </Group>
 
       <PlannerRangeForm filters={filters} planner={planner} />
@@ -1415,6 +1455,12 @@ function JourneyPlannerPanel({
           <Stack gap={0}>
             {planner.stops.map((stop, index) => {
               const leg = index > 0 ? planner.legs[index - 1] : null;
+              const optionDayIdsForDate = stop.options.map(
+                (option) => option.day.dayId,
+              );
+              const otherOptions = stop.options.filter(
+                (option) => !option.selected,
+              );
 
               return (
                 <Fragment key={stop.day.dayId}>
@@ -1423,6 +1469,11 @@ function JourneyPlannerPanel({
                       <Badge variant="light" color="gray">
                         {formatPlannerDistance(leg.miles)}
                       </Badge>
+                      {leg.exceedsMaxMiles ? (
+                        <Badge color="red" variant="light">
+                          Over max
+                        </Badge>
+                      ) : null}
                       <Text size="sm" c="dimmed">
                         {formatPlannerDuration(leg.durationMinutes)} from{' '}
                         {leg.fromCircuit}
@@ -1440,6 +1491,12 @@ function JourneyPlannerPanel({
                       <Group gap="xs" wrap="wrap">
                         <Badge color="brand" variant="light">
                           Stop {index + 1}
+                        </Badge>
+                        <Badge
+                          color={stop.selectedByUser ? 'blue' : 'green'}
+                          variant="light"
+                        >
+                          {stop.selectedByUser ? 'Selected' : 'Recommended'}
                         </Badge>
                         <Badge color={typeColor(stop.day.type)} variant="light">
                           {titleCase(stop.day.type)}
@@ -1459,6 +1516,9 @@ function JourneyPlannerPanel({
                       <Text size="sm" lineClamp={2}>
                         {getDaySessionText(stop.day)}
                       </Text>
+                      <Text size="xs" c="dimmed">
+                        {stop.recommendationReason}
+                      </Text>
                     </Stack>
                     <Button
                       component={Link}
@@ -1475,6 +1535,68 @@ function JourneyPlannerPanel({
                       View day
                     </Button>
                   </Group>
+                  {otherOptions.length > 0 ? (
+                    <Stack gap="xs" pb="sm" pl={{ base: 0, sm: 'xl' }}>
+                      <Text size="sm" fw={700}>
+                        Other options for this date
+                      </Text>
+                      {otherOptions.map((option) => (
+                        <Group
+                          key={option.day.dayId}
+                          justify="space-between"
+                          align="flex-start"
+                          gap="md"
+                          wrap="nowrap"
+                        >
+                          <Stack gap={2} style={{ minWidth: 0 }}>
+                            <Group gap="xs" wrap="wrap">
+                              <Badge
+                                color={typeColor(option.day.type)}
+                                variant="light"
+                              >
+                                {titleCase(option.day.type)}
+                              </Badge>
+                              <Badge
+                                color={option.recommended ? 'green' : 'gray'}
+                                variant="light"
+                              >
+                                {option.recommended
+                                  ? 'Recommended'
+                                  : option.reason}
+                              </Badge>
+                            </Group>
+                            <Text size="sm" fw={700} lineClamp={1}>
+                              {option.day.circuit}
+                            </Text>
+                            <Text size="xs" c="dimmed" lineClamp={1}>
+                              {option.day.provider} •{' '}
+                              {getDaySessionText(option.day)}
+                            </Text>
+                          </Stack>
+                          <Button
+                            component={Link}
+                            to={createDaysViewHref(filters, {
+                              ...viewState,
+                              plannerDayIds: replacePlannerSelection(
+                                planner.selectedDayIds,
+                                optionDayIdsForDate,
+                                option.day.dayId,
+                                !option.recommended,
+                              ),
+                            })}
+                            variant="default"
+                            size="xs"
+                            aria-label={`Use ${option.day.circuit} for ${formatDayLongDate(
+                              option.day.date,
+                            )}`}
+                            preventScrollReset
+                          >
+                            Use this
+                          </Button>
+                        </Group>
+                      ))}
+                    </Stack>
+                  ) : null}
                   {index < planner.stops.length - 1 ? <Divider /> : null}
                 </Fragment>
               );
@@ -3198,8 +3320,15 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       start: data.planner.start,
       end: data.planner.end,
       maxMiles: data.planner.maxMiles,
+      plannerDayIds: data.planner.selectedDayIds ?? [],
     }),
-    [data.planner.end, data.planner.maxMiles, data.planner.start, data.view],
+    [
+      data.planner.end,
+      data.planner.maxMiles,
+      data.planner.selectedDayIds,
+      data.planner.start,
+      data.view,
+    ],
   );
   const preferenceSubmitting = preferenceFetcher.state !== 'idle';
   const preferenceMessage = !preferenceFetcher.data
