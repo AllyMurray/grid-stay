@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grid Stay Deploy"
+  short_description: "SST deployment workflow for Grid Stay."
+  default_prompt: "Use $aws-deploy to deploy or verify a Grid Stay SST stage with the personal AWS profile."
