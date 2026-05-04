@@ -1,4 +1,5 @@
 import {
+  IconBuildingSkyscraper,
   IconCalendarMonth,
   IconCarGarage,
   IconCreditCard,
@@ -24,6 +25,24 @@ export interface WhatsNewEntry {
 }
 
 export const whatsNewEntries: WhatsNewEntry[] = [
+  {
+    id: 'hotel-catalogue-feedback',
+    title: 'Hotel lookup, feedback, and summaries',
+    publishedAt: '2026-05-04T21:00:00.000Z',
+    dateLabel: '4 May 2026',
+    category: 'Bookings',
+    description:
+      'My Bookings now has hotel search, saved hotel details, group feedback, and background summaries for parking and arrival logistics.',
+    highlights: [
+      'Find hotels with address lookup, or add a stay manually when lookup misses.',
+      'Saved hotels become reusable Grid Stay catalogue entries linked to bookings.',
+      'Members can record trailer parking, secure parking, late check-in, ratings, and notes.',
+      'Hotel review summaries refresh in the background after new feedback is saved.',
+    ],
+    href: '/dashboard/bookings',
+    actionLabel: 'Open bookings',
+    icon: IconBuildingSkyscraper,
+  },
   {
     id: 'planner-same-day-options',
     title: 'Planner now shows same-day options',

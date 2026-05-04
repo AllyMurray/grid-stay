@@ -47,6 +47,7 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
       layout: 'GP',
       provider: 'MSV',
       bookingReference: 'REF-123',
+      arrivalDateTime: '2026-05-02 20:00:00',
       description: 'GT weekend',
       accommodationName: 'Trackside Hotel',
       accommodationReference: 'HOTEL-7',
@@ -275,6 +276,7 @@ describe('listSiteMembers', () => {
         layout: 'GP',
         provider: 'MSV',
         description: 'GT weekend',
+        arrivalDateTime: '2026-05-02 20:00:00',
         accommodationName: 'Trackside Hotel',
       },
     ]);

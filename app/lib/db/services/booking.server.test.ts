@@ -294,6 +294,7 @@ describe('booking service', () => {
         bookingId: 'booking-1',
         status: 'booked',
         bookingReference: 'ABC123',
+        arrivalDateTime: '2026-05-09 20:00:00',
         accommodationName: 'The Paddock Inn',
         accommodationReference: 'HOTEL-9',
         garageBooked: true,
@@ -306,6 +307,7 @@ describe('booking service', () => {
     );
 
     expect(updated.bookingReference).toBe('ABC123');
+    expect(updated.arrivalDateTime).toBe('2026-05-09 20:00:00');
     expect(updated.accommodationReference).toBe('HOTEL-9');
     expect(updated.garageBooked).toBe(true);
     expect(updated.garageCapacity).toBe(2);
@@ -324,11 +326,35 @@ describe('booking service', () => {
       userId: user.id,
       userName: user.name,
       status: 'booked',
+      arrivalDateTime: '2026-05-09 20:00:00',
       accommodationName: 'The Paddock Inn',
     });
     expect(shared.attendees[0]).not.toHaveProperty('bookingReference');
     expect(shared.attendees[0]).not.toHaveProperty('accommodationReference');
     expect(shared.attendees[0]).not.toHaveProperty('notes');
+  });
+
+  it('falls back to legacy same-day arrival times in shared summaries', () => {
+    const shared = summarizeDayAttendances([
+      {
+        bookingId: 'booking-1',
+        userId: 'user-1',
+        userName: 'Driver One',
+        dayId: 'day-1',
+        date: '2026-05-10',
+        status: 'booked',
+        circuit: 'Snetterton',
+        provider: 'Caterham Motorsport',
+        description: 'Round 1',
+        arrivalTime: '08:00',
+        createdAt: '2026-04-01T09:00:00.000Z',
+        updatedAt: '2026-04-01T09:00:00.000Z',
+      },
+    ] as never);
+
+    expect(shared.attendees[0]).toMatchObject({
+      arrivalDateTime: '2026-05-10 08:00:00',
+    });
   });
 
   it('summarizes shared garage spaces without counting pending requests as occupied', () => {

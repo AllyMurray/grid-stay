@@ -13,6 +13,7 @@ export default [
   route('auth/reset-password', 'routes/auth/reset-password.tsx'),
   route('api/auth/*', 'routes/api.auth.$.tsx'),
   route('api/dashboard/days-feed', 'routes/api.dashboard.days-feed.tsx'),
+  route('api/hotels/search', 'routes/api.hotels.search.tsx'),
   route('calendar/:token', 'routes/calendar.$token.tsx'),
   route('join/:token', 'routes/join.$token.tsx'),
   route(

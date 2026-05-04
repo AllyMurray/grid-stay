@@ -305,6 +305,7 @@ const defaultAttendanceByDay: Record<string, DayAttendanceSummary> = {
         userId: 'user-4',
         userName: 'Driver Four',
         status: 'booked',
+        arrivalDateTime: '2026-05-06 19:30:00',
         accommodationName: 'Brands Hatch Lodge',
       },
     ],
@@ -1024,10 +1025,10 @@ describe('AvailableDaysPage', () => {
           selectedDayPlan: {
             dayId: 'day-1',
             notes: 'Meet by garage 4.',
-            dinnerPlan: 'Dinner at 19:30.',
-            carShare: 'Two spaces from hotel.',
-            checklist: 'Tickets and wristbands.',
-            costSplit: 'Settle fuel after the weekend.',
+            dinnerVenue: 'The Paddock Arms',
+            dinnerTime: '19:30',
+            dinnerHeadcount: '6',
+            dinnerNotes: 'Booking under Grid Stay.',
             updatedByName: 'Driver One',
             updatedAt: '2026-04-27T10:00:00.000Z',
           },
@@ -1049,12 +1050,16 @@ describe('AvailableDaysPage', () => {
       name: 'Shared planning note',
     });
     expect(note).toHaveDisplayValue('Meet by garage 4.');
-    expect(screen.getByLabelText('Dinner')).toHaveDisplayValue(
-      'Dinner at 19:30.',
+    expect(screen.getByLabelText('Venue')).toHaveDisplayValue(
+      'The Paddock Arms',
     );
-    expect(screen.getByLabelText('Car share')).toHaveDisplayValue(
-      'Two spaces from hotel.',
+    expect(screen.getByLabelText('Time')).toHaveDisplayValue('19:30');
+    expect(screen.getByLabelText('Dinner notes')).toHaveDisplayValue(
+      'Booking under Grid Stay.',
     );
+    expect(screen.queryByLabelText('Car share')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Checklist')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Cost split')).not.toBeInTheDocument();
     expect(screen.getByText('Updated by Driver One')).toBeInTheDocument();
 
     fireEvent.change(note, {
@@ -1067,10 +1072,10 @@ describe('AvailableDaysPage', () => {
         intent: 'saveSharedDayPlan',
         dayId: 'day-1',
         notes: 'Meet by garage 6.',
-        dinnerPlan: 'Dinner at 19:30.',
-        carShare: 'Two spaces from hotel.',
-        checklist: 'Tickets and wristbands.',
-        costSplit: 'Settle fuel after the weekend.',
+        dinnerVenue: 'The Paddock Arms',
+        dinnerTime: '19:30',
+        dinnerHeadcount: '6',
+        dinnerNotes: 'Booking under Grid Stay.',
       }),
     );
   });
@@ -1295,27 +1300,131 @@ describe('AvailableDaysPage', () => {
   });
 
   it('shows a compact roster first and expands one status group at a time', async () => {
+    const selectedDay = defaultData.days[1]!;
+
     renderWithProviders(
-      <AvailableDaysPage data={defaultData} />,
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 2,
+          selectedDayPrevious: defaultData.days[0] ?? null,
+          selectedDayNext: null,
+          selectedDaySummary:
+            defaultData.attendanceSummaries[selectedDay.dayId],
+          selectedDayAttendance: defaultAttendanceByDay[selectedDay.dayId],
+        }}
+      />,
       '/dashboard/days?day=day-2',
     );
 
     await screen.findByText('Attendee roster');
-    expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Arriving Wed 6 May, 19:30'),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(
       await screen.findByRole('button', { name: /view booked attendees/i }),
     );
 
+    expect(
+      screen.getByRole('button', { name: /hide booked attendees/i }),
+    ).toHaveAttribute('aria-expanded', 'true');
     expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
       0,
     );
 
     expect(screen.getAllByText('Brands Hatch Lodge').length).toBeGreaterThan(0);
+    expect(screen.getByText('Arriving Wed 6 May, 19:30')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
+  });
+
+  it('refreshes stale selected-day details when summary counts have changed', async () => {
+    const selectedDay = defaultData.days[0]!;
+    const updatedSummary = {
+      attendeeCount: 1,
+      accommodationNames: [],
+      garageOwnerCount: 1,
+      garageOpenSpaceCount: 1,
+    };
+    const staleAttendance: DayAttendanceSummary = {
+      attendeeCount: 0,
+      accommodationNames: [],
+      attendees: [],
+      garageOwnerCount: 0,
+      garageOpenSpaceCount: 0,
+      garageShareOptions: [],
+    };
+    const liveAttendance: DayAttendanceSummary = {
+      attendeeCount: 1,
+      accommodationNames: [],
+      attendees: [
+        {
+          bookingId: selectedDay.dayId,
+          userId: 'william',
+          userName: 'William Mulholland',
+          status: 'booked',
+          arrivalDateTime: '2026-05-02 20:00:00',
+          garageBooked: true,
+          garageCapacity: 2,
+        },
+      ],
+      garageOwnerCount: 1,
+      garageOpenSpaceCount: 1,
+      garageShareOptions: [
+        {
+          garageBookingId: selectedDay.dayId,
+          ownerUserId: 'william',
+          ownerName: 'William Mulholland',
+          ownerArrivalDateTime: '2026-05-02 20:00:00',
+          garageCapacity: 2,
+          approvedRequestCount: 0,
+          pendingRequestCount: 0,
+          openSpaceCount: 1,
+          requests: [],
+        },
+      ],
+    };
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDayPrevious: null,
+          selectedDayNext: defaultData.days[1] ?? null,
+          selectedDaySummary: updatedSummary,
+          selectedDayAttendance: staleAttendance,
+          attendanceSummaries: {
+            ...defaultData.attendanceSummaries,
+            [selectedDay.dayId]: updatedSummary,
+          },
+        }}
+      />,
+      `/dashboard/days?day=${selectedDay.dayId}`,
+      {
+        ...defaultAttendanceByDay,
+        [selectedDay.dayId]: liveAttendance,
+      },
+    );
+
+    expect(
+      await screen.findByText('1 of 1 shareable spaces open'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /view booked attendees/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getAllByText('William Mulholland').length).toBeGreaterThan(
+        1,
+      ),
+    );
   });
 
   it('shows the header action as open my booking when a trip already exists', async () => {
@@ -1389,6 +1498,7 @@ describe('AvailableDaysPage', () => {
               garageBookingId: 'booking-2',
               ownerUserId: 'user-2',
               ownerName: 'Driver Two',
+              ownerArrivalDateTime: '2026-05-02 20:00:00',
               garageLabel: 'Garage 4',
               garageCapacity: 2,
               approvedRequestCount: 0,
@@ -1405,6 +1515,10 @@ describe('AvailableDaysPage', () => {
         return { ok: true };
       },
     );
+
+    expect(
+      await screen.findByText('Arriving Sat 2 May, 20:00'),
+    ).toBeInTheDocument();
 
     fireEvent.click(
       await screen.findByRole('button', { name: /request space/i }),

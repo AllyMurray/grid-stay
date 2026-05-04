@@ -263,6 +263,32 @@ describe('member join link helpers', () => {
     });
   });
 
+  it('supplies createdAt when revoking links so secondary index keys can be updated', async () => {
+    const memory = createMemoryStore([activeLink()]);
+    const updateCalls: unknown[] = [];
+    const electroDbLikeStore: MemberJoinLinkPersistence = {
+      ...memory.store,
+      async update(input: Parameters<MemberJoinLinkPersistence['update']>[0]) {
+        updateCalls.push(input);
+        if (
+          input.changes.status &&
+          !('composite' in input && input.composite?.createdAt)
+        ) {
+          throw new Error('missing createdAt composite');
+        }
+
+        return memory.store.update(input);
+      },
+    };
+
+    await expect(
+      revokeMemberJoinLink({ tokenHash, store: electroDbLikeStore }),
+    ).resolves.toMatchObject({ status: 'revoked' });
+    expect(updateCalls[0]).toMatchObject({
+      composite: { createdAt: '2026-05-04T10:00:00.000Z' },
+    });
+  });
+
   it('builds join URLs and reads join-token cookies', () => {
     const request = new Request('https://gridstay.app/dashboard/admin/members');
     const cookie = createMemberJoinLinkCookieHeader({

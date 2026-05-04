@@ -44,6 +44,7 @@ import type {
 } from '~/lib/bookings/actions.server';
 import type { BookingStatus } from '~/lib/constants/enums';
 import type { CostSplittingActionResult } from '~/lib/cost-splitting/actions.server';
+import { formatArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type {
   AvailableDaysView,
@@ -598,11 +599,11 @@ function createLoadedDaysState(data: DaysIndexData): LoadedDaysState {
 }
 
 function createDayAttendeesHref(dayId: string) {
-  return `/api/days/${dayId}/attendees`;
+  return `/api/days/${encodeURIComponent(dayId)}/attendees`;
 }
 
 function createDayCostsHref(dayId: string) {
-  return `/api/days/${dayId}/costs`;
+  return `/api/days/${encodeURIComponent(dayId)}/costs`;
 }
 
 function getAttendanceSummary(
@@ -616,6 +617,36 @@ function getAttendanceSummary(
       garageOwnerCount: 0,
       garageOpenSpaceCount: 0,
     }
+  );
+}
+
+function getAttendanceSummaryFromDetails(
+  details: DayAttendanceDetails,
+): DayAttendanceSummaryPreview {
+  return {
+    attendeeCount: details.attendeeCount,
+    accommodationNames: details.accommodationNames,
+    garageOwnerCount: details.garageOwnerCount ?? 0,
+    garageOpenSpaceCount: details.garageOpenSpaceCount ?? 0,
+  };
+}
+
+function attendanceDetailsMatchSummary(
+  details: DayAttendanceDetails,
+  summary: DayAttendanceSummaryPreview,
+) {
+  const summaryGarageOwnerCount = summary.garageOwnerCount ?? 0;
+  const summaryGarageOpenSpaceCount = summary.garageOpenSpaceCount ?? 0;
+  const hasRequiredGarageDetails =
+    Array.isArray(details.garageShareOptions) ||
+    (summaryGarageOwnerCount === 0 && summaryGarageOpenSpaceCount === 0);
+
+  return (
+    Array.isArray(details.attendees) &&
+    hasRequiredGarageDetails &&
+    details.attendeeCount === summary.attendeeCount &&
+    (details.garageOwnerCount ?? 0) === summaryGarageOwnerCount &&
+    (details.garageOpenSpaceCount ?? 0) === summaryGarageOpenSpaceCount
   );
 }
 
@@ -1658,6 +1689,11 @@ function getAttendeeGroupPreview(attendees: SharedAttendee[]) {
   return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
 }
 
+function getArrivalDateTimeLabel(arrivalDateTime?: string) {
+  const formatted = formatArrivalDateTime(arrivalDateTime);
+  return formatted ? `Arriving ${formatted}` : null;
+}
+
 function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
   const [openGroupKey, setOpenGroupKey] = useState<BookingStatus | null>(null);
 
@@ -1710,26 +1746,39 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
               <Box className="attendee-roster-panel">
                 {group.attendees.length > 0 ? (
                   <Stack gap="xs">
-                    {group.attendees.map((attendee, attendeeIndex) => (
-                      <Fragment key={attendee.bookingId}>
-                        <Group
-                          justify="space-between"
-                          align="flex-start"
-                          gap="md"
-                        >
-                          <Text size="sm" fw={600}>
-                            {attendee.userName}
-                          </Text>
-                          <Text size="sm" c="dimmed" ta="right">
-                            {attendee.accommodationName?.trim() ||
-                              UNSHARED_STAY_LABEL}
-                          </Text>
-                        </Group>
-                        {attendeeIndex < group.attendees.length - 1 ? (
-                          <Divider />
-                        ) : null}
-                      </Fragment>
-                    ))}
+                    {group.attendees.map((attendee, attendeeIndex) => {
+                      const arrivalDateTimeLabel = getArrivalDateTimeLabel(
+                        attendee.arrivalDateTime,
+                      );
+
+                      return (
+                        <Fragment key={attendee.bookingId}>
+                          <Group
+                            justify="space-between"
+                            align="flex-start"
+                            gap="md"
+                          >
+                            <Text size="sm" fw={600}>
+                              {attendee.userName}
+                            </Text>
+                            <Stack gap={2} align="flex-end">
+                              <Text size="sm" c="dimmed" ta="right">
+                                {attendee.accommodationName?.trim() ||
+                                  UNSHARED_STAY_LABEL}
+                              </Text>
+                              {arrivalDateTimeLabel ? (
+                                <Text size="xs" c="dimmed" ta="right">
+                                  {arrivalDateTimeLabel}
+                                </Text>
+                              ) : null}
+                            </Stack>
+                          </Group>
+                          {attendeeIndex < group.attendees.length - 1 ? (
+                            <Divider />
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
                   </Stack>
                 ) : (
                   <Text size="sm" c="dimmed">
@@ -2120,6 +2169,11 @@ function GarageShareAssignments({
                     </Badge>
                   ) : null}
                 </Group>
+                {option.ownerArrivalDateTime ? (
+                  <Text size="xs" c="dimmed">
+                    {getArrivalDateTimeLabel(option.ownerArrivalDateTime)}
+                  </Text>
+                ) : null}
               </Stack>
 
               <Stack gap={4} className="shared-stay-cell">
@@ -2839,21 +2893,21 @@ function SharedPlanNoteEditor({
     fetcher.data && !fetcher.data.ok
       ? fetcher.data.fieldErrors.notes?.[0]
       : null;
-  const dinnerPlanError =
+  const dinnerVenueError =
     fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.dinnerPlan?.[0]
+      ? fetcher.data.fieldErrors.dinnerVenue?.[0]
       : null;
-  const carShareError =
+  const dinnerTimeError =
     fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.carShare?.[0]
+      ? fetcher.data.fieldErrors.dinnerTime?.[0]
       : null;
-  const checklistError =
+  const dinnerHeadcountError =
     fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.checklist?.[0]
+      ? fetcher.data.fieldErrors.dinnerHeadcount?.[0]
       : null;
-  const costSplitError =
+  const dinnerNotesError =
     fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.costSplit?.[0]
+      ? fetcher.data.fieldErrors.dinnerNotes?.[0]
       : null;
 
   return (
@@ -2880,50 +2934,59 @@ function SharedPlanNoteEditor({
           <Textarea
             name="notes"
             aria-label="Shared planning note"
-            placeholder="Meeting point, dinner booking, convoy notes..."
+            placeholder="Meeting point, convoy notes, garage location..."
             rows={4}
             maxLength={1000}
             defaultValue={plan?.notes ?? ''}
             error={noteError}
           />
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+          <Stack gap="xs">
+            <Stack gap={2}>
+              <Text fw={700}>Dinner</Text>
+              <Text size="sm" c="dimmed">
+                Add the group dinner details when there is a booking or plan.
+              </Text>
+            </Stack>
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs">
+              <TextInput
+                name="dinnerVenue"
+                label="Venue"
+                placeholder="Restaurant or pub"
+                maxLength={120}
+                defaultValue={plan?.dinnerVenue ?? ''}
+                error={dinnerVenueError}
+              />
+              <TextInput
+                name="dinnerTime"
+                label="Time"
+                type="time"
+                defaultValue={plan?.dinnerTime ?? ''}
+                error={dinnerTimeError}
+              />
+              <NumberInput
+                name="dinnerHeadcount"
+                label="Headcount"
+                placeholder="People"
+                min={1}
+                max={99}
+                allowDecimal={false}
+                allowNegative={false}
+                defaultValue={
+                  plan?.dinnerHeadcount ? Number(plan.dinnerHeadcount) : ''
+                }
+                error={dinnerHeadcountError}
+              />
+            </SimpleGrid>
             <Textarea
-              name="dinnerPlan"
-              label="Dinner"
-              placeholder="Restaurant, booking time, headcount..."
-              rows={3}
+              name="dinnerNotes"
+              label="Dinner notes"
+              placeholder="Booking name, dietary notes, deposit details..."
+              rows={2}
               maxLength={1000}
-              defaultValue={plan?.dinnerPlan ?? ''}
-              error={dinnerPlanError}
+              defaultValue={plan?.dinnerNotes ?? ''}
+              error={dinnerNotesError}
             />
-            <Textarea
-              name="carShare"
-              label="Car share"
-              placeholder="Passenger spaces, convoy timings, lifts..."
-              rows={3}
-              maxLength={1000}
-              defaultValue={plan?.carShare ?? ''}
-              error={carShareError}
-            />
-            <Textarea
-              name="checklist"
-              label="Checklist"
-              placeholder="Tickets, fuel, kit, tools..."
-              rows={3}
-              maxLength={1000}
-              defaultValue={plan?.checklist ?? ''}
-              error={checklistError}
-            />
-            <Textarea
-              name="costSplit"
-              label="Cost split"
-              placeholder="Shared costs, who paid, settlement notes..."
-              rows={3}
-              maxLength={1000}
-              defaultValue={plan?.costSplit ?? ''}
-              error={costSplitError}
-            />
-          </SimpleGrid>
+          </Stack>
           <Group justify="space-between" align="center" gap="md">
             <Text size="xs" c={formError ? 'red' : 'dimmed'}>
               {formError ?? 'Leave every field blank and save to clear it.'}
@@ -3536,9 +3599,24 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             selectedDayIndex < orderedLoadedDays.length - 1
           ? orderedLoadedDays[selectedDayIndex + 1]
           : null;
-  const selectedDayAttendanceDetails = selectedDayFromUrl
+  const selectedDaySummaryPreview = selectedDayFromUrl
+    ? getAttendanceSummary(
+        loadedDays.attendanceSummaries,
+        selectedDayFromUrl.dayId,
+      )
+    : null;
+  const cachedSelectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
     : null;
+  const selectedDayAttendanceDetails =
+    cachedSelectedDayAttendanceDetails && selectedDaySummaryPreview
+      ? attendanceDetailsMatchSummary(
+          cachedSelectedDayAttendanceDetails,
+          selectedDaySummaryPreview,
+        )
+        ? cachedSelectedDayAttendanceDetails
+        : null
+      : cachedSelectedDayAttendanceDetails;
   const hasSelectedDayCostSummary =
     selectedDayFromUrl &&
     Object.hasOwn(costSummariesByDay, selectedDayFromUrl.dayId);
@@ -3584,10 +3662,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     }
 
     const dayId = pendingAttendanceDayIdRef.current;
+    const attendance = attendanceFetcher.data;
     pendingAttendanceDayIdRef.current = null;
     setAttendanceDetailsByDay((current) => ({
       ...current,
-      [dayId]: attendanceFetcher.data!,
+      [dayId]: attendance,
+    }));
+    setLoadedDays((current) => ({
+      ...current,
+      attendanceSummaries: {
+        ...current.attendanceSummaries,
+        [dayId]: getAttendanceSummaryFromDetails(attendance),
+      },
     }));
   }, [attendanceFetcher.data]);
 
@@ -3682,10 +3768,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     }
 
     const dayId = pendingAdjacentAttendanceDayIdRef.current;
+    const attendance = adjacentAttendanceFetcher.data;
     pendingAdjacentAttendanceDayIdRef.current = null;
     setAttendanceDetailsByDay((current) => ({
       ...current,
-      [dayId]: adjacentAttendanceFetcher.data!,
+      [dayId]: attendance,
+    }));
+    setLoadedDays((current) => ({
+      ...current,
+      attendanceSummaries: {
+        ...current.attendanceSummaries,
+        [dayId]: getAttendanceSummaryFromDetails(attendance),
+      },
     }));
   }, [adjacentAttendanceFetcher.data]);
 
@@ -4063,10 +4157,13 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           {selectedDayFromUrl ? (
             <DayDetailPanel
               day={selectedDayFromUrl}
-              summary={getAttendanceSummary(
-                loadedDays.attendanceSummaries,
-                selectedDayFromUrl.dayId,
-              )}
+              summary={
+                selectedDaySummaryPreview ??
+                getAttendanceSummary(
+                  loadedDays.attendanceSummaries,
+                  selectedDayFromUrl.dayId,
+                )
+              }
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
               series={selectedDaySeries ?? undefined}
               sharedPlan={

@@ -21,8 +21,10 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1042.0",
     "@aws-sdk/client-dynamodb": "^3.956.0",
     "@aws-sdk/client-sesv2": "^3.1041.0",
+    "@aws-sdk/client-sqs": "^3.1042.0",
     "@aws-sdk/lib-dynamodb": "^3.956.0",
     "@mantine/core": "^9.1.1",
     "@mantine/dates": "^9.1.1",

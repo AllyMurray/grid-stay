@@ -26,12 +26,28 @@ vi.mock('~/lib/db/services/series-subscription.server', () => ({
   })),
 }));
 
+vi.mock('~/lib/db/services/hotel.server', () => ({
+  createOrUpdateHotelFromSelection: vi.fn(async () => null),
+  getHotelById: vi.fn(),
+  upsertHotelReview: vi.fn(),
+}));
+
+vi.mock('~/lib/hotels/summary-queue.server', () => ({
+  queueHotelSummaryRefreshSafely: vi.fn(async () => ({ queued: true })),
+}));
+
 import type { AvailableDay } from '~/lib/days/types';
+import {
+  getHotelById,
+  upsertHotelReview,
+} from '~/lib/db/services/hotel.server';
+import { queueHotelSummaryRefreshSafely } from '~/lib/hotels/summary-queue.server';
 import {
   submitBookingDelete,
   submitBookingUpdate,
   submitBulkRaceSeriesBooking,
   submitCreateBooking,
+  submitHotelReview,
   submitSharedStaySelection,
 } from './actions.server';
 
@@ -208,6 +224,83 @@ describe('booking action helpers', () => {
     }
     expect(result.formError).toBe('Could not save this booking yet.');
     expect(result.fieldErrors.notes?.[0]).toBeDefined();
+  });
+
+  it('resolves a selected hotel before updating the booking', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('status', 'booked');
+    formData.set('hotelName', 'Radisson Blu Hotel, East Midlands Airport');
+    formData.set('hotelAddress', 'Herald Way, Derby');
+    formData.set('hotelSource', 'geoapify');
+    formData.set('hotelSourcePlaceId', 'geoapify-place-1');
+    formData.set('accommodationName', '');
+    formData.set('garageBooked', 'false');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+    const resolveHotel = vi.fn(async () => ({
+      hotelId: 'hotel-1',
+      name: 'Radisson Blu Hotel, East Midlands Airport',
+    }));
+
+    const result = await submitBookingUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+      resolveHotel as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(resolveHotel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hotelName: 'Radisson Blu Hotel, East Midlands Airport',
+        hotelSource: 'geoapify',
+      }),
+      user.id,
+    );
+    expect(saveBooking).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        bookingId: 'booking-1',
+        hotelId: 'hotel-1',
+        accommodationName: 'Radisson Blu Hotel, East Midlands Airport',
+      }),
+    );
+  });
+
+  it('saves hotel feedback against an existing hotel', async () => {
+    vi.mocked(getHotelById).mockResolvedValue({
+      hotelId: 'hotel-1',
+      name: 'Trackside Hotel',
+    } as never);
+    vi.mocked(upsertHotelReview).mockResolvedValue({
+      hotelId: 'hotel-1',
+      reviewId: user.id,
+    } as never);
+
+    const formData = new FormData();
+    formData.set('hotelId', 'hotel-1');
+    formData.set('rating', '5');
+    formData.set('trailerParking', 'good');
+    formData.set('secureParking', 'yes');
+    formData.set('lateCheckIn', 'limited');
+    formData.set('parkingNotes', 'Plenty of room for trailers.');
+    formData.set('generalNotes', 'Easy drive to the circuit.');
+
+    const result = await submitHotelReview(formData, user);
+
+    expect(result).toEqual({ ok: true });
+    expect(upsertHotelReview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hotelId: 'hotel-1',
+        trailerParking: 'good',
+        parkingNotes: 'Plenty of room for trailers.',
+      }),
+      user,
+    );
+    expect(queueHotelSummaryRefreshSafely).toHaveBeenCalledWith('hotel-1');
   });
 
   it('passes the booking id through when deleting a booking', async () => {

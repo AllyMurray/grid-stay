@@ -41,6 +41,7 @@ export interface MemberJoinLinkPersistence {
   update(input: {
     tokenHash: string;
     changes: Partial<MemberJoinLinkRecord>;
+    composite?: Partial<MemberJoinLinkRecord>;
   }): Promise<MemberJoinLinkRecord>;
   getByTokenHash(input: {
     tokenHash: string;
@@ -110,13 +111,21 @@ export const memberJoinLinkStore: MemberJoinLinkPersistence = {
     await MemberJoinLinkEntity.create(item).go({ response: 'none' });
     return item;
   },
-  async update({ tokenHash, changes }) {
-    const updated = await MemberJoinLinkEntity.patch({
+  async update({ tokenHash, changes, composite }) {
+    const patch = MemberJoinLinkEntity.patch({
       tokenHash,
       linkScope: MEMBER_JOIN_LINK_SCOPE,
-    })
-      .set(changes)
-      .go({ response: 'all_new' });
+    });
+
+    if (composite) {
+      const updated = await patch
+        .composite(composite)
+        .set(changes)
+        .go({ response: 'all_new' });
+      return updated.data;
+    }
+
+    const updated = await patch.set(changes).go({ response: 'all_new' });
     return updated.data;
   },
   async getByTokenHash({ tokenHash }) {
@@ -519,6 +528,9 @@ export async function revokeMemberJoinLink({
   const now = new Date().toISOString();
   return store.update({
     tokenHash,
+    composite: {
+      createdAt: existing.createdAt,
+    },
     changes: {
       status: 'revoked',
       revokedAt: now,

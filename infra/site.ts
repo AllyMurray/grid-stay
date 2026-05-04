@@ -2,8 +2,10 @@ import { authTable } from './auth-database';
 import { table } from './database';
 import { appDomainConfig, appName } from './domain';
 import { email } from './email';
+import { hotelSummaryQueue } from './hotel-summary';
 import {
   betterAuthSecret,
+  geoapifyApiKey,
   googleClientId,
   googleClientSecret,
   openRouteServiceApiKey,
@@ -18,6 +20,8 @@ export const site = new sst.aws.React('Site', {
     googleClientId,
     googleClientSecret,
     openRouteServiceApiKey,
+    geoapifyApiKey,
+    hotelSummaryQueue,
   ],
   domain: appDomainConfig,
   environment: {

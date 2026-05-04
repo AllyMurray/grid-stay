@@ -20,12 +20,18 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
+import { DateTimePicker } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertCircle,
+  IconBuildingSkyscraper,
+  IconClock,
   IconLock,
+  IconMapPin,
   IconRoad,
   IconSearch,
+  IconSparkles,
+  IconStar,
   IconUsers,
 } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -33,18 +39,75 @@ import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import { TripStatusSummary } from '~/components/layout/trip-status-summary';
-import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
+import type {
+  BookingEditorActionResult,
+  HotelReviewActionResult,
+} from '~/lib/bookings/actions.server';
+import {
+  formatArrivalDateTime,
+  resolveArrivalDateTime,
+} from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { UserGarageShareRequest } from '~/lib/db/services/garage-sharing.server';
+import type {
+  HotelInsight,
+  HotelSuggestion,
+} from '~/lib/db/services/hotel.server';
 import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface MyBookingsPageProps {
   bookings: BookingRecord[];
   garageShareRequests?: UserGarageShareRequest[];
+  hotelInsights?: Record<string, HotelInsight>;
 }
 
 type BookingFilter = 'all' | BookingRecord['status'];
+
+interface HotelSearchResponse {
+  suggestions: HotelSuggestion[];
+  providerAvailable: boolean;
+  providerError: string | null;
+}
+
+function hotelFromBooking(booking: BookingRecord): HotelSuggestion | null {
+  if (!booking.accommodationName?.trim()) {
+    return null;
+  }
+
+  return {
+    hotelId: booking.hotelId,
+    name: booking.accommodationName.trim(),
+    source: 'manual',
+  };
+}
+
+function hotelFromInsight(insight?: HotelInsight): HotelSuggestion | null {
+  if (!insight) {
+    return null;
+  }
+
+  return {
+    hotelId: insight.hotel.hotelId,
+    name: insight.hotel.name,
+    address: insight.hotel.address,
+    postcode: insight.hotel.postcode,
+    country: insight.hotel.country,
+    latitude: insight.hotel.latitude,
+    longitude: insight.hotel.longitude,
+    source: insight.hotel.source,
+    sourcePlaceId: insight.hotel.sourcePlaceId,
+    attribution: insight.hotel.attribution,
+  };
+}
+
+function getHotelAddressLine(hotel?: HotelSuggestion | null) {
+  return [hotel?.address, hotel?.postcode].filter(Boolean).join(' • ');
+}
+
+function getRatingLabel(value?: number) {
+  return value ? `${value}/5` : 'No rating yet';
+}
 
 function titleCase(value: string) {
   return value
@@ -64,8 +127,16 @@ function bookingColor(status: BookingRecord['status']) {
 }
 
 function bookingSharedSummary(booking: BookingRecord) {
-  if (booking.accommodationName) {
-    return booking.accommodationName;
+  const arrivalDateTime = resolveArrivalDateTime(booking);
+  const parts = [
+    booking.accommodationName,
+    arrivalDateTime
+      ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}`
+      : undefined,
+  ].filter((part): part is string => Boolean(part));
+
+  if (parts.length > 0) {
+    return parts.join(' • ');
   }
 
   if (booking.status === 'cancelled') {
@@ -200,6 +271,7 @@ function matchesBookingQuery(booking: BookingRecord, query: string) {
     booking.date,
     booking.description,
     booking.accommodationName,
+    resolveArrivalDateTime(booking),
     booking.garageLabel,
     booking.bookingReference,
   ].some((field) => field?.toLowerCase().includes(value));
@@ -387,8 +459,455 @@ function GarageShareRequestList({
   );
 }
 
+function HotelSelector({
+  booking,
+  insight,
+  fieldErrors,
+}: {
+  booking: BookingRecord;
+  insight?: HotelInsight;
+  fieldErrors?: Partial<
+    Record<
+      | 'accommodationName'
+      | 'hotelId'
+      | 'hotelName'
+      | 'hotelAddress'
+      | 'hotelPostcode'
+      | 'hotelCountry'
+      | 'hotelLatitude'
+      | 'hotelLongitude'
+      | 'hotelSource'
+      | 'hotelSourcePlaceId'
+      | 'hotelAttribution',
+      string[] | undefined
+    >
+  >;
+}) {
+  const initialHotel = hotelFromInsight(insight) ?? hotelFromBooking(booking);
+  const [searchOpened, { close: closeSearch, open: openSearch }] =
+    useDisclosure(false);
+  const searchFetcher = useFetcher<HotelSearchResponse>();
+  const [query, setQuery] = useState(booking.accommodationName ?? '');
+  const [selectedHotel, setSelectedHotel] = useState<HotelSuggestion | null>(
+    initialHotel,
+  );
+  const [hotelName, setHotelName] = useState(initialHotel?.name ?? '');
+  const [hotelAddress, setHotelAddress] = useState(
+    getHotelAddressLine(initialHotel),
+  );
+
+  const searchResults = searchFetcher.data?.suggestions ?? [];
+  const isSearching = searchFetcher.state !== 'idle';
+  const providerError = searchFetcher.data?.providerError;
+  const hotelSource = selectedHotel?.source ?? 'manual';
+
+  const runSearch = () => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      return;
+    }
+
+    searchFetcher.load(`/api/hotels/search?q=${encodeURIComponent(trimmed)}`);
+  };
+
+  const selectHotel = (hotel: HotelSuggestion) => {
+    setSelectedHotel(hotel);
+    setHotelName(hotel.name);
+    setHotelAddress(getHotelAddressLine(hotel));
+    setQuery(hotel.name);
+    closeSearch();
+  };
+
+  const clearSelectedHotel = () => {
+    setSelectedHotel(null);
+  };
+
+  return (
+    <>
+      <Modal opened={searchOpened} onClose={closeSearch} title="Find hotel">
+        <Stack gap="md">
+          <Group align="flex-end" gap="sm">
+            <TextInput
+              label="Hotel search"
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  runSearch();
+                }
+              }}
+              leftSection={<IconSearch size={16} />}
+              placeholder="Radisson Blu East Midlands"
+              style={{ flex: 1 }}
+            />
+            <Button
+              type="button"
+              onClick={runSearch}
+              loading={isSearching}
+              disabled={query.trim().length < 2}
+            >
+              Search
+            </Button>
+          </Group>
+
+          {providerError ? (
+            <Alert color="yellow" icon={<IconAlertCircle size={18} />}>
+              Hotel lookup is not available right now. You can still add the
+              hotel manually.
+            </Alert>
+          ) : null}
+
+          {searchResults.length > 0 ? (
+            <Stack gap="xs">
+              {searchResults.map((hotel) => (
+                <UnstyledButton
+                  key={[
+                    hotel.hotelId,
+                    hotel.source,
+                    hotel.sourcePlaceId,
+                    hotel.name,
+                  ].join(':')}
+                  type="button"
+                  className="hotel-search-result"
+                  onClick={() => selectHotel(hotel)}
+                >
+                  <Group gap="sm" align="flex-start" wrap="nowrap">
+                    <ThemeIcon
+                      size={32}
+                      radius="sm"
+                      color="blue"
+                      variant="light"
+                    >
+                      <IconBuildingSkyscraper size={18} />
+                    </ThemeIcon>
+                    <Stack gap={2}>
+                      <Text fw={700}>{hotel.name}</Text>
+                      {getHotelAddressLine(hotel) ? (
+                        <Text size="sm" c="dimmed">
+                          {getHotelAddressLine(hotel)}
+                        </Text>
+                      ) : null}
+                      <Badge size="xs" variant="light">
+                        {hotel.hotelId ? 'Grid Stay hotel' : 'Geoapify result'}
+                      </Badge>
+                    </Stack>
+                  </Group>
+                </UnstyledButton>
+              ))}
+            </Stack>
+          ) : searchFetcher.data ? (
+            <Text size="sm" c="dimmed">
+              No hotel lookup matches yet. Add the hotel manually below.
+            </Text>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Search by hotel name, then pick the matching address.
+            </Text>
+          )}
+
+          <Group justify="space-between" wrap="wrap">
+            <Text size="xs" c="dimmed">
+              Hotel data powered by Geoapify. © OpenStreetMap contributors.
+            </Text>
+            <Button
+              type="button"
+              variant="default"
+              onClick={() => {
+                clearSelectedHotel();
+                closeSearch();
+              }}
+            >
+              Add manually
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Stack gap="sm">
+        <input
+          type="hidden"
+          name="hotelId"
+          value={selectedHotel?.hotelId ?? ''}
+        />
+        <input type="hidden" name="hotelName" value={hotelName} />
+        <input type="hidden" name="hotelSource" value={hotelSource} />
+        <input
+          type="hidden"
+          name="hotelSourcePlaceId"
+          value={selectedHotel?.sourcePlaceId ?? ''}
+        />
+        <input
+          type="hidden"
+          name="hotelPostcode"
+          value={selectedHotel?.postcode ?? ''}
+        />
+        <input
+          type="hidden"
+          name="hotelCountry"
+          value={selectedHotel?.country ?? ''}
+        />
+        <input
+          type="hidden"
+          name="hotelLatitude"
+          value={selectedHotel?.latitude ?? ''}
+        />
+        <input
+          type="hidden"
+          name="hotelLongitude"
+          value={selectedHotel?.longitude ?? ''}
+        />
+        <input
+          type="hidden"
+          name="hotelAttribution"
+          value={selectedHotel?.attribution ?? ''}
+        />
+
+        <TextInput
+          name="accommodationName"
+          label={
+            <BookingFieldLabel
+              label="Hotel or stay"
+              visibility="Visible to the group"
+              visibilityColor="blue.6"
+            />
+          }
+          description="Search for a hotel with address details, or type a stay name manually."
+          value={hotelName}
+          onChange={(event) => {
+            setHotelName(event.currentTarget.value);
+            clearSelectedHotel();
+          }}
+          error={
+            fieldErrors?.accommodationName?.[0] ??
+            fieldErrors?.hotelName?.[0] ??
+            fieldErrors?.hotelId?.[0]
+          }
+          maxLength={120}
+          rightSectionWidth={112}
+          rightSection={
+            <Button type="button" size="compact-xs" onClick={openSearch}>
+              Find hotel
+            </Button>
+          }
+        />
+
+        <TextInput
+          name="hotelAddress"
+          label="Address"
+          description="Optional, but useful once the hotel is in the shared catalogue."
+          value={hotelAddress}
+          onChange={(event) => setHotelAddress(event.currentTarget.value)}
+          error={fieldErrors?.hotelAddress?.[0]}
+          maxLength={240}
+          leftSection={<IconMapPin size={16} />}
+        />
+
+        {selectedHotel ? (
+          <Paper withBorder p="sm" radius="md">
+            <Group gap="sm" align="flex-start" wrap="nowrap">
+              <ThemeIcon size={32} radius="sm" color="blue" variant="light">
+                <IconBuildingSkyscraper size={18} />
+              </ThemeIcon>
+              <Stack gap={2}>
+                <Group gap="xs" wrap="wrap">
+                  <Text size="sm" fw={700}>
+                    {selectedHotel.name}
+                  </Text>
+                  <Badge size="xs" color="blue" variant="light">
+                    {selectedHotel.hotelId ? 'Saved hotel' : 'Will be saved'}
+                  </Badge>
+                </Group>
+                {hotelAddress ? (
+                  <Text size="sm" c="dimmed">
+                    {hotelAddress}
+                  </Text>
+                ) : null}
+                {selectedHotel.attribution ? (
+                  <Text size="xs" c="dimmed">
+                    {selectedHotel.attribution}
+                  </Text>
+                ) : null}
+              </Stack>
+            </Group>
+          </Paper>
+        ) : null}
+      </Stack>
+    </>
+  );
+}
+
+function HotelFeedbackPanel({
+  booking,
+  insight,
+}: {
+  booking: BookingRecord;
+  insight?: HotelInsight;
+}) {
+  const reviewFetcher = useFetcher<HotelReviewActionResult>();
+  const isSavingReview = reviewFetcher.state !== 'idle';
+  const formError =
+    reviewFetcher.data && !reviewFetcher.data.ok
+      ? reviewFetcher.data.formError
+      : null;
+  const fieldErrors =
+    reviewFetcher.data && !reviewFetcher.data.ok
+      ? reviewFetcher.data.fieldErrors
+      : undefined;
+  const myReview = insight?.reviews.find(
+    (review) => review.userId === booking.userId,
+  );
+
+  return (
+    <Paper
+      className="shell-card booking-editor-panel"
+      p={{ base: 'md', sm: 'lg' }}
+    >
+      <Stack gap="md">
+        <BookingSectionHeading
+          icon={<IconSparkles size={16} />}
+          title="Hotel feedback"
+          description="Capture the details that matter to the group, especially parking and arrival logistics."
+          color="blue"
+        />
+
+        {!booking.hotelId || !insight ? (
+          <Alert color="blue" icon={<IconBuildingSkyscraper size={18} />}>
+            Save a hotel from the stay section first, then add parking and
+            arrival feedback for the group.
+          </Alert>
+        ) : (
+          <>
+            <Paper withBorder p="sm" radius="md">
+              <Group justify="space-between" align="flex-start" gap="md">
+                <Stack gap={4}>
+                  <Text fw={700}>{insight.hotel.name}</Text>
+                  {insight.hotel.address ? (
+                    <Text size="sm" c="dimmed">
+                      {insight.hotel.address}
+                    </Text>
+                  ) : null}
+                  <Text size="sm">{insight.summary}</Text>
+                  <Badge size="xs" variant="light" color="blue">
+                    {insight.summarySource === 'bedrock'
+                      ? 'AI summary'
+                      : 'Review summary'}
+                  </Badge>
+                </Stack>
+                <Stack gap={2} align="flex-end">
+                  <Group gap={4}>
+                    <IconStar size={16} />
+                    <Text fw={700}>
+                      {getRatingLabel(insight.averageRating)}
+                    </Text>
+                  </Group>
+                  <Text size="xs" c="dimmed">
+                    {insight.reviewCount}{' '}
+                    {insight.reviewCount === 1 ? 'review' : 'reviews'}
+                  </Text>
+                </Stack>
+              </Group>
+            </Paper>
+
+            <reviewFetcher.Form method="post">
+              <input type="hidden" name="intent" value="saveHotelReview" />
+              <input type="hidden" name="hotelId" value={booking.hotelId} />
+              <Stack gap="md">
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                  <NumberInput
+                    name="rating"
+                    label="Overall rating"
+                    description="Optional group usefulness rating."
+                    min={1}
+                    max={5}
+                    defaultValue={myReview?.rating}
+                    error={fieldErrors?.rating?.[0]}
+                  />
+                  <Select
+                    name="trailerParking"
+                    label="Trailer parking"
+                    defaultValue={myReview?.trailerParking ?? 'unknown'}
+                    data={[
+                      { value: 'unknown', label: 'Not sure' },
+                      { value: 'good', label: 'Good' },
+                      { value: 'limited', label: 'Limited' },
+                      { value: 'none', label: 'None' },
+                    ]}
+                    error={fieldErrors?.trailerParking?.[0]}
+                  />
+                  <Select
+                    name="secureParking"
+                    label="Secure parking"
+                    defaultValue={myReview?.secureParking ?? 'unknown'}
+                    data={[
+                      { value: 'unknown', label: 'Not sure' },
+                      { value: 'yes', label: 'Yes' },
+                      { value: 'mixed', label: 'Mixed' },
+                      { value: 'no', label: 'No' },
+                    ]}
+                    error={fieldErrors?.secureParking?.[0]}
+                  />
+                  <Select
+                    name="lateCheckIn"
+                    label="Late check-in"
+                    defaultValue={myReview?.lateCheckIn ?? 'unknown'}
+                    data={[
+                      { value: 'unknown', label: 'Not sure' },
+                      { value: 'yes', label: 'Yes' },
+                      { value: 'limited', label: 'Limited' },
+                      { value: 'no', label: 'No' },
+                    ]}
+                    error={fieldErrors?.lateCheckIn?.[0]}
+                  />
+                </SimpleGrid>
+
+                <Textarea
+                  name="parkingNotes"
+                  label="Parking notes"
+                  description="Trailer room, car park access, lighting, barriers, or anything awkward."
+                  minRows={2}
+                  defaultValue={myReview?.parkingNotes ?? ''}
+                  error={fieldErrors?.parkingNotes?.[0]}
+                  maxLength={500}
+                />
+                <Textarea
+                  name="generalNotes"
+                  label="General hotel notes"
+                  description="Food, check-in, noise, distance to circuit, or other group-relevant notes."
+                  minRows={3}
+                  defaultValue={myReview?.generalNotes ?? ''}
+                  error={fieldErrors?.generalNotes?.[0]}
+                  maxLength={1000}
+                />
+
+                {formError ? (
+                  <Alert color="red" icon={<IconAlertCircle size={18} />}>
+                    {formError}
+                  </Alert>
+                ) : null}
+
+                <Group justify="flex-end">
+                  <Button
+                    type="submit"
+                    name="intent"
+                    value="saveHotelReview"
+                    loading={isSavingReview}
+                  >
+                    Save hotel feedback
+                  </Button>
+                </Group>
+              </Stack>
+            </reviewFetcher.Form>
+          </>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
 function BookingEditorPanel({
   booking,
+  hotelInsight,
   garageShareRequests,
   selectedIndex,
   totalBookings,
@@ -398,6 +917,7 @@ function BookingEditorPanel({
   onSelectNext,
 }: {
   booking: BookingRecord;
+  hotelInsight?: HotelInsight;
   selectedIndex: number;
   totalBookings: number;
   hasPrevious: boolean;
@@ -414,6 +934,7 @@ function BookingEditorPanel({
   const deleteFetcher = useFetcher<BookingEditorActionResult>();
   const isSaving = saveFetcher.state !== 'idle';
   const isDeleting = deleteFetcher.state !== 'idle';
+  const arrivalDateTime = resolveArrivalDateTime(booking);
   const fieldErrors =
     saveFetcher.data && !saveFetcher.data.ok
       ? saveFetcher.data.fieldErrors
@@ -565,27 +1086,34 @@ function BookingEditorPanel({
                 <BookingSectionHeading
                   icon={<IconUsers size={16} />}
                   title="Shared with the group"
-                  description="The stay name is the part everyone coordinating this weekend can see."
+                  description="The hotel or stay and arrival time are visible to everyone coordinating this day."
                   color="blue"
                 />
-                <TextInput
-                  name="accommodationName"
+                <HotelSelector
+                  booking={booking}
+                  insight={hotelInsight}
+                  fieldErrors={fieldErrors}
+                />
+                <DateTimePicker
+                  name="arrivalDateTime"
                   label={
                     <BookingFieldLabel
-                      label="Accommodation name"
+                      label="Arrival"
                       visibility="Visible to the group"
                       visibilityColor="blue.6"
                     />
                   }
-                  description="Use the same stay name the rest of the group is working from."
-                  defaultValue={booking.accommodationName ?? ''}
-                  error={fieldErrors?.accommodationName?.[0]}
-                  maxLength={120}
+                  leftSection={<IconClock size={16} />}
+                  description="Optional paddock or venue arrival date and time."
+                  valueFormat="ddd D MMM YYYY, HH:mm"
+                  defaultValue={arrivalDateTime}
+                  defaultDate={arrivalDateTime ?? booking.date}
+                  defaultTimeValue="19:00"
+                  clearable
+                  error={fieldErrors?.arrivalDateTime?.[0]}
                 />
                 <Text size="sm" c="dimmed">
-                  {booking.accommodationName
-                    ? `${booking.accommodationName} is the current shared stay name for this trip.`
-                    : 'Add the accommodation name once the group has settled on a stay.'}
+                  Add only details you are happy for other members to see.
                 </Text>
               </Stack>
             </SimpleGrid>
@@ -699,7 +1227,7 @@ function BookingEditorPanel({
                     visibility="Visible only to you"
                   />
                 }
-                description="Keep arrival notes, reminders, or anything else you do not want in the shared plan."
+                description="Keep reminders or anything else you do not want in the shared plan."
                 minRows={4}
                 defaultValue={booking.notes ?? ''}
                 error={fieldErrors?.notes?.[0]}
@@ -734,6 +1262,7 @@ function BookingEditorPanel({
           </Stack>
         </saveFetcher.Form>
       </Paper>
+      <HotelFeedbackPanel booking={booking} insight={hotelInsight} />
     </>
   );
 }
@@ -741,6 +1270,7 @@ function BookingEditorPanel({
 export function MyBookingsPage({
   bookings,
   garageShareRequests = [],
+  hotelInsights = {},
 }: MyBookingsPageProps) {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     bookings[0]?.bookingId ?? null,
@@ -962,6 +1492,11 @@ export function MyBookingsPage({
               <BookingEditorPanel
                 key={selectedBooking.bookingId}
                 booking={selectedBooking}
+                hotelInsight={
+                  selectedBooking.hotelId
+                    ? hotelInsights[selectedBooking.hotelId]
+                    : undefined
+                }
                 garageShareRequests={garageShareRequests}
                 selectedIndex={selectedIndex}
                 totalBookings={filteredBookings.length}

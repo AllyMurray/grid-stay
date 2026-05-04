@@ -157,6 +157,8 @@ function mergePrivateBookingFields(
     description: targetDay.description,
     status: target.status === 'cancelled' ? source.status : target.status,
     bookingReference: target.bookingReference ?? source.bookingReference,
+    arrivalDateTime: target.arrivalDateTime ?? source.arrivalDateTime,
+    arrivalTime: target.arrivalTime ?? source.arrivalTime,
     accommodationName: target.accommodationName ?? source.accommodationName,
     accommodationReference:
       target.accommodationReference ?? source.accommodationReference,

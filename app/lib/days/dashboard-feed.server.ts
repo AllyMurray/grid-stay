@@ -1,4 +1,5 @@
 import type { User } from '~/lib/auth/schemas';
+import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import {
   listAttendanceByDay,
@@ -52,6 +53,8 @@ export interface DayBookingSnapshot {
   bookingId: string;
   userId: string;
   status: 'booked' | 'maybe' | 'cancelled';
+  arrivalDateTime?: string;
+  arrivalTime?: string;
   accommodationName?: string;
   garageBooked?: boolean;
   garageCapacity?: number;
@@ -604,6 +607,7 @@ export async function loadDaysIndex(
               bookingId: booking.bookingId,
               userId: booking.userId,
               status: booking.status,
+              arrivalDateTime: resolveArrivalDateTime(booking),
               accommodationName: booking.accommodationName,
               garageBooked: booking.garageBooked,
               garageCapacity: booking.garageCapacity,

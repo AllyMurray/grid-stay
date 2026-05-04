@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BOOKING_STATUS_VALUES } from '~/lib/constants/enums';
+import { HotelSelectionSchema } from './hotel';
 
 export const AvailableDayTypeSchema = z.enum([
   'race_day',
@@ -59,10 +60,23 @@ const GarageCapacitySchema = z.preprocess(
   z.coerce.number().int().min(1).max(20).default(2),
 );
 
+const ArrivalDateTimeSchema = z.preprocess(
+  (value) => (value === '' || value == null ? undefined : value),
+  z
+    .string()
+    .regex(
+      /^\d{4}-\d{2}-\d{2}[ T]([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/,
+      'Use a date and time like 2026-05-05 20:00.',
+    )
+    .optional(),
+);
+
 export const UpdateBookingSchema = z.object({
   bookingId: z.string().min(1),
   status: BookingStatusSchema,
   bookingReference: z.string().trim().max(120).optional().default(''),
+  arrivalDateTime: ArrivalDateTimeSchema,
+  ...HotelSelectionSchema.shape,
   accommodationName: z.string().trim().max(120).optional().default(''),
   accommodationReference: z.string().trim().max(120).optional().default(''),
   garageBooked: GarageBookedSchema,

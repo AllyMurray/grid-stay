@@ -10,8 +10,14 @@ import {
   ensureBookingsForDays,
   updateBooking,
 } from '~/lib/db/services/booking.server';
+import {
+  createOrUpdateHotelFromSelection,
+  getHotelById,
+  upsertHotelReview,
+} from '~/lib/db/services/hotel.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { upsertSeriesSubscription } from '~/lib/db/services/series-subscription.server';
+import { queueHotelSummaryRefreshSafely } from '~/lib/hotels/summary-queue.server';
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
@@ -27,6 +33,7 @@ import {
   SharedStaySelectionRequestSchema,
   UpdateBookingSchema,
 } from '~/lib/schemas/booking';
+import { HotelReviewSchema } from '~/lib/schemas/hotel';
 
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
@@ -56,6 +63,24 @@ export type BookingEditorActionResult =
 
 export type UpdateBookingActionResult = BookingEditorActionResult;
 export type DeleteBookingActionResult = BookingEditorActionResult;
+
+export type HotelReviewActionResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<
+        | 'hotelId'
+        | 'rating'
+        | 'trailerParking'
+        | 'secureParking'
+        | 'lateCheckIn'
+        | 'parkingNotes'
+        | 'generalNotes'
+      >;
+    };
 
 export type SharedStaySelectionActionResult =
   | {
@@ -285,6 +310,7 @@ export async function submitBookingUpdate(
   formData: FormData,
   userId: string,
   saveBooking: typeof updateBooking = updateBooking,
+  resolveHotel: typeof createOrUpdateHotelFromSelection = createOrUpdateHotelFromSelection,
 ): Promise<UpdateBookingActionResult> {
   const parsed = UpdateBookingSchema.safeParse(Object.fromEntries(formData));
 
@@ -296,7 +322,42 @@ export async function submitBookingUpdate(
     };
   }
 
-  await saveBooking(userId, parsed.data);
+  const hotel = await resolveHotel(parsed.data, userId);
+  await saveBooking(userId, {
+    ...parsed.data,
+    hotelId: hotel?.hotelId,
+    accommodationName: hotel?.name ?? parsed.data.accommodationName,
+  });
+  return { ok: true };
+}
+
+export async function submitHotelReview(
+  formData: FormData,
+  user: User,
+): Promise<HotelReviewActionResult> {
+  const parsed = HotelReviewSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save this hotel feedback yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const hotel = await getHotelById(parsed.data.hotelId);
+  if (!hotel) {
+    return {
+      ok: false,
+      formError: 'Choose or save a hotel before adding feedback.',
+      fieldErrors: {
+        hotelId: ['Choose or save a hotel before adding feedback.'],
+      },
+    };
+  }
+
+  await upsertHotelReview(parsed.data, user);
+  await queueHotelSummaryRefreshSafely(parsed.data.hotelId);
   return { ok: true };
 }
 

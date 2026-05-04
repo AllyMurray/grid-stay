@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { z } from 'zod';
+import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
 import type { CreateBookingInput } from '~/lib/schemas/booking';
@@ -66,6 +67,8 @@ export interface MemberBookedDay {
   circuitKnown?: boolean;
   provider: string;
   description: string;
+  arrivalDateTime?: string;
+  arrivalTime?: string;
   accommodationName?: string;
 }
 
@@ -185,6 +188,8 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
     return null;
   }
 
+  const arrivalDateTime = resolveArrivalDateTime(booking);
+
   return {
     dayId: booking.dayId,
     date: booking.date,
@@ -199,6 +204,7 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
       : {}),
     provider: booking.provider,
     description: booking.description,
+    ...(arrivalDateTime ? { arrivalDateTime } : {}),
     ...(booking.accommodationName
       ? { accommodationName: booking.accommodationName }
       : {}),

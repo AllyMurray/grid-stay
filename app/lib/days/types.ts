@@ -31,6 +31,8 @@ export interface SharedAttendee {
   userId: string;
   userName: string;
   status: BookingStatus;
+  arrivalDateTime?: string;
+  arrivalTime?: string;
   accommodationName?: string;
   garageBooked?: boolean;
   garageCapacity?: number;
@@ -54,6 +56,8 @@ export interface GarageShareOption {
   garageBookingId: string;
   ownerUserId: string;
   ownerName: string;
+  ownerArrivalDateTime?: string;
+  ownerArrivalTime?: string;
   garageLabel?: string;
   garageCapacity: number;
   approvedRequestCount: number;

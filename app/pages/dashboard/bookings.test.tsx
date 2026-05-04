@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import type { HotelInsight } from '~/lib/db/services/hotel.server';
 import { theme } from '~/theme';
 import { MyBookingsPage } from './bookings';
 
@@ -34,6 +35,7 @@ const booking: BookingRecord = {
   circuit: 'Silverstone',
   provider: 'MSV',
   bookingReference: 'REF-123',
+  arrivalDateTime: '2026-05-02 20:00:00',
   description: 'GT weekend',
   accommodationName: 'Trackside Hotel',
   accommodationReference: 'HOTEL-7',
@@ -52,6 +54,45 @@ const secondBooking: BookingRecord = {
   accommodationName: 'Paddock Lodge',
   accommodationReference: 'LODGE-9',
   notes: 'Arriving late',
+};
+
+const hotelInsight: HotelInsight = {
+  hotel: {
+    hotelId: 'hotel-1',
+    hotelScope: 'hotel',
+    normalizedName: 'trackside hotel',
+    sourceKey: 'manual:trackside hotel',
+    name: 'Trackside Hotel',
+    address: '1 Circuit Road, Towcester',
+    source: 'manual',
+    createdByUserId: 'user-1',
+    updatedByUserId: 'user-1',
+    createdAt: '2026-04-01T10:00:00.000Z',
+    updatedAt: '2026-04-01T10:00:00.000Z',
+  },
+  reviewCount: 1,
+  averageRating: 5,
+  summary:
+    'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
+  summarySource: 'bedrock',
+  summaryGeneratedAt: '2026-04-01T10:05:00.000Z',
+  reviews: [
+    {
+      hotelId: 'hotel-1',
+      reviewId: 'user-1',
+      reviewScope: 'hotel-review',
+      userId: 'user-1',
+      userName: 'Driver One',
+      rating: 5,
+      trailerParking: 'good',
+      secureParking: 'yes',
+      lateCheckIn: 'limited',
+      parkingNotes: 'Plenty of room for trailers.',
+      generalNotes: 'Easy drive to the circuit.',
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-04-01T10:00:00.000Z',
+    },
+  ],
 };
 
 describe('MyBookingsPage', () => {
@@ -73,14 +114,92 @@ describe('MyBookingsPage', () => {
       screen.getByRole('button', { name: /donington park/i }),
     ).toBeVisible();
     expect(screen.getByText('Shared with the group')).toBeInTheDocument();
+    expect(screen.getByText('Hotel feedback')).toBeInTheDocument();
     expect(screen.getByText('Garage sharing')).toBeInTheDocument();
     expect(screen.getByText('Private to you')).toBeInTheDocument();
     expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(
       0,
     );
     expect(screen.getByDisplayValue('REF-123')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Trackside Hotel')).toBeInTheDocument();
+    expect(screen.getByText('Sat 2 May 2026, 20:00')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue(
+      'Trackside Hotel',
+    );
     expect(screen.getByRole('button', { name: /save changes/i })).toBeVisible();
+  });
+
+  it('renders saved hotel insight and review fields', () => {
+    renderWithProviders(
+      <MyBookingsPage
+        bookings={[{ ...booking, hotelId: 'hotel-1' }]}
+        hotelInsights={{ 'hotel-1': hotelInsight }}
+      />,
+    );
+
+    expect(
+      screen.getAllByText('1 Circuit Road, Towcester').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('5/5')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('Plenty of room for trailers.'),
+    ).toBeInTheDocument();
+  });
+
+  it('submits the shared arrival time when saving a booking', async () => {
+    const user = userEvent.setup();
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <MyBookingsPage bookings={[booking]} />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return { ok: true };
+      },
+    );
+
+    await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          intent: 'updateBooking',
+          bookingId: 'booking-1',
+          arrivalDateTime: '2026-05-02 20:00:00',
+          accommodationName: 'Trackside Hotel',
+        }),
+      ),
+    );
+  });
+
+  it('opens an empty arrival picker on the event month', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MyBookingsPage
+        bookings={[
+          {
+            ...booking,
+            date: '2026-09-12',
+            arrivalDateTime: undefined,
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /arrival/i }));
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-dates-dropdown]')).toBeTruthy(),
+    );
+    const dropdown = document.querySelector(
+      '[data-dates-dropdown]',
+    ) as HTMLElement;
+    expect(within(dropdown).getByText('September 2026')).toBeInTheDocument();
   });
 
   it('renders garage requests for the selected booking', () => {
@@ -184,7 +303,9 @@ describe('MyBookingsPage', () => {
     await user.click(screen.getByRole('button', { name: /donington park/i }));
 
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Paddock Lodge')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue(
+      'Paddock Lodge',
+    );
     expect(screen.queryByDisplayValue('REF-123')).not.toBeInTheDocument();
   });
 

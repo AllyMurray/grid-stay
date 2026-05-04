@@ -29,6 +29,7 @@ export default $config({
     await import("./infra/email");
     await import("./infra/available-days-cache");
     await import("./infra/circuit-distance-matrix");
+    await import("./infra/hotel-summary");
     await import("./infra/site");
   },
 });
