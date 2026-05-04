@@ -704,6 +704,23 @@ describe('AvailableDaysPage', () => {
     ).toHaveAttribute('href', expect.stringContaining('view=calendar'));
   });
 
+  it('links the view tabs to their matching views', () => {
+    renderWithProviders(<AvailableDaysPage data={defaultData} />);
+
+    expect(screen.getByRole('tab', { name: 'List' })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
+    expect(screen.getByRole('tab', { name: 'Calendar' })).toHaveAttribute(
+      'href',
+      '/dashboard/days?view=calendar',
+    );
+    expect(screen.getByRole('tab', { name: 'Planner' })).toHaveAttribute(
+      'href',
+      '/dashboard/days?view=planner&start=2026-05-01&end=2026-05-31&maxMiles=180',
+    );
+  });
+
   it('renders a journey planner route with road-distance attribution', () => {
     renderWithProviders(
       <AvailableDaysPage

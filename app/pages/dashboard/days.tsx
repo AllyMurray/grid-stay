@@ -3824,7 +3824,10 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             renderRoot={(props) => (
               <Link
                 {...props}
-                to={createDaysViewHref(data.filters, viewState)}
+                to={createDaysViewHref(data.filters, {
+                  ...viewState,
+                  view: 'planner',
+                })}
               />
             )}
           >

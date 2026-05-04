@@ -9,7 +9,7 @@ export const DEFAULT_JOURNEY_MAX_MILES = 180;
 export interface JourneyPlannerDay {
   dayId: string;
   date: string;
-  type: 'race_day' | 'test_day' | 'track_day';
+  type: 'race_day' | 'test_day' | 'track_day' | 'road_drive';
   circuit: string;
   circuitId?: string;
   circuitName?: string;
