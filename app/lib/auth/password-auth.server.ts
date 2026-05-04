@@ -7,6 +7,7 @@ import {
   cloneHeadersPreservingSetCookie,
 } from './cookies.server';
 import { canCreateMemberAccountForEmail } from './member-invites.server';
+import { readMemberJoinLinkTokenFromRequest } from './member-join-links.server';
 import {
   PASSWORD_MIN_LENGTH,
   type PasswordAuthActionData,
@@ -177,7 +178,12 @@ export async function submitPasswordSignUp(
     });
   }
 
-  if (!(await canCreateMemberAccountForEmail(parsed.data.email))) {
+  if (
+    !(await canCreateMemberAccountForEmail({
+      email: parsed.data.email,
+      joinToken: readMemberJoinLinkTokenFromRequest({ request }),
+    }))
+  ) {
     return errorResponse({
       intent: 'passwordSignUp',
       formError:

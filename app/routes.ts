@@ -14,6 +14,7 @@ export default [
   route('api/auth/*', 'routes/api.auth.$.tsx'),
   route('api/dashboard/days-feed', 'routes/api.dashboard.days-feed.tsx'),
   route('calendar/:token', 'routes/calendar.$token.tsx'),
+  route('join/:token', 'routes/join.$token.tsx'),
   route(
     'api/days/:dayId/attendees',
     'routes/dashboard/days.$dayId.attendees.tsx',

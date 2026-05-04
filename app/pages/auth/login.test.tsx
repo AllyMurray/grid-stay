@@ -127,12 +127,12 @@ describe('LoginPage', () => {
     renderLoginPage({
       redirectTo: '/dashboard',
       authError:
-        'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.',
+        'Google could not create an account for that address. Check the invited email or join link, or use password sign-up.',
     });
 
     expect(
       screen.getByText(
-        'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.',
+        'Google could not create an account for that address. Check the invited email or join link, or use password sign-up.',
       ),
     ).toBeVisible();
   });

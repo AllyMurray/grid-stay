@@ -1,4 +1,5 @@
 import { listMemberInvites } from '~/lib/auth/member-invites.server';
+import { listMemberJoinLinks } from '~/lib/auth/member-join-links.server';
 import {
   type AdminMemberDirectoryEntry,
   listAdminSiteMembers,
@@ -43,6 +44,7 @@ import { whatsNewViewStore } from '~/lib/db/services/whats-new-view.server';
 export interface AdminExportDependencies {
   loadMembers?: typeof listAdminSiteMembers;
   loadMemberInvites?: typeof listMemberInvites;
+  loadMemberJoinLinks?: typeof listMemberJoinLinks;
   loadBookings?: typeof listMyBookings;
   loadAvailableDaysSnapshot?: typeof getAvailableDaysSnapshot;
   loadManualDays?: typeof listManagedManualDays;
@@ -68,10 +70,11 @@ export interface AdminCalendarFeedExport
 }
 
 export interface AdminDataExport {
-  exportVersion: 7;
+  exportVersion: 8;
   exportedAt: string;
   members: AdminMemberDirectoryEntry[];
   memberInvites: Awaited<ReturnType<typeof listMemberInvites>>;
+  memberJoinLinks: Awaited<ReturnType<typeof listMemberJoinLinks>>;
   bookings: BookingRecord[];
   manualDays: ManualDayRecord[];
   sharedDayPlans: DayPlanRecord[];
@@ -94,6 +97,7 @@ export interface AdminDataExportSummary {
   exportedAt: string;
   memberCount: number;
   inviteCount: number;
+  joinLinkCount: number;
   bookingCount: number;
   manualDayCount: number;
   sharedPlanCount: number;
@@ -127,6 +131,8 @@ export async function createAdminDataExport(
 ): Promise<AdminDataExport> {
   const loadMembers = dependencies.loadMembers ?? listAdminSiteMembers;
   const loadMemberInvites = dependencies.loadMemberInvites ?? listMemberInvites;
+  const loadMemberJoinLinks =
+    dependencies.loadMemberJoinLinks ?? listMemberJoinLinks;
   const loadBookings = dependencies.loadBookings ?? listMyBookings;
   const loadAvailableDaysSnapshot =
     dependencies.loadAvailableDaysSnapshot ?? getAvailableDaysSnapshot;
@@ -161,6 +167,7 @@ export async function createAdminDataExport(
   const [
     members,
     memberInvites,
+    memberJoinLinks,
     availableDaysSnapshot,
     manualDays,
     dayPlans,
@@ -177,6 +184,7 @@ export async function createAdminDataExport(
   ] = await Promise.all([
     loadMembers(),
     loadMemberInvites(),
+    loadMemberJoinLinks(),
     loadAvailableDaysSnapshot(),
     loadManualDays(),
     loadSharedDayPlans(),
@@ -199,10 +207,11 @@ export async function createAdminDataExport(
     ]);
 
   return {
-    exportVersion: 7,
+    exportVersion: 8,
     exportedAt,
     members,
     memberInvites,
+    memberJoinLinks,
     bookings: bookingsByMember.flat(),
     manualDays,
     sharedDayPlans: dayPlans,
@@ -229,6 +238,7 @@ export function summarizeAdminDataExport(
     exportedAt: dataExport.exportedAt,
     memberCount: dataExport.members.length,
     inviteCount: dataExport.memberInvites.length,
+    joinLinkCount: dataExport.memberJoinLinks.length,
     bookingCount: dataExport.bookings.length,
     manualDayCount: dataExport.manualDays.length,
     sharedPlanCount: dataExport.sharedDayPlans.length,

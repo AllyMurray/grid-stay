@@ -112,7 +112,7 @@ describe('auth login route', () => {
 
     expect(await response.json()).toEqual({
       authError:
-        'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.',
+        'Google could not create an account for that address. Check the invited email or join link, or use password sign-up.',
       redirectTo: '/dashboard/days',
     });
   });
