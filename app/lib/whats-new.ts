@@ -25,6 +25,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'planner-same-day-options',
+    title: 'Planner now shows same-day options',
+    publishedAt: '2026-05-04T14:00:00.000Z',
+    dateLabel: '4 May 2026',
+    category: 'Planning',
+    description:
+      'Journey planner recommendations now show the other events available on the same date.',
+    highlights: [
+      'Recommended stops are labelled directly in the planner route.',
+      'Other same-date events appear under the recommended stop for comparison.',
+      'Recommendations still prioritise the most stops, then the lowest road miles.',
+    ],
+    href: '/dashboard/days?view=planner',
+    actionLabel: 'Open planner',
+    icon: IconRoute,
+  },
+  {
     id: 'available-days-upcoming-default',
     title: 'Available Days now starts with upcoming dates',
     publishedAt: '2026-05-04T13:00:00.000Z',
