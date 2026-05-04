@@ -330,7 +330,7 @@ describe('days dashboard feed', () => {
         role: 'member',
       },
       new URL(
-        'https://gridstay.app/dashboard/days?view=planner&start=2026-06-01&end=2026-06-30&maxMiles=100',
+        'https://gridstay.app/dashboard/days?view=planner&start=2026-06-01&end=2026-06-30&maxMiles=100&plannerDay=day-1',
       ),
     );
 
@@ -343,11 +343,13 @@ describe('days dashboard feed', () => {
       'day-1',
       'day-2',
     ]);
+    expect(data.planner.selectedDayIds).toEqual([]);
+    expect(data.planner.stops[0]?.selectedByUser).toBe(false);
     expect(data.planner.totalMiles).toBe(55);
     expect(loadCircuitDistanceMatrix).toHaveBeenCalledOnce();
   });
 
-  it('defaults the planner range to the next matching day instead of a past feed month', async () => {
+  it('defaults the planner range to a three-day window from the next matching day', async () => {
     vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
       refreshedAt: '2026-04-17T09:30:00.000Z',
       errors: [],
@@ -406,7 +408,7 @@ describe('days dashboard feed', () => {
     );
 
     expect(data.planner.start).toBe('2026-06-08');
-    expect(data.planner.end).toBe('2026-06-30');
+    expect(data.planner.end).toBe('2026-06-11');
     expect(data.planner.candidateCount).toBe(2);
   });
 

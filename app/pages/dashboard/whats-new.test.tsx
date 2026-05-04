@@ -25,10 +25,21 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Available Days now starts with upcoming dates',
+        name: 'Planner now shows same-day options',
       }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Latest')).toHaveLength(1);
+    expect(
+      screen.getByText(/other same-date events appear/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /open planner/i })[0],
+    ).toHaveAttribute('href', '/dashboard/days?view=planner');
+    expect(
+      screen.getByRole('heading', {
+        name: 'Available Days now starts with upcoming dates',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/show past dates filter/i)).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open upcoming dates/i }),
@@ -41,10 +52,6 @@ describe('WhatsNewPage', () => {
     expect(
       screen.getByText(/build a journey plan between matching days/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open planner/i })).toHaveAttribute(
-      'href',
-      '/dashboard/days?view=planner',
-    );
     expect(
       screen.getByRole('heading', {
         name: 'Add missing events',

@@ -85,6 +85,12 @@ export const CIRCUIT_LOCATIONS: CircuitLocation[] = [
     longitude: 0.9456,
   },
   {
+    circuitId: 'spa-francorchamps',
+    name: 'Spa-Francorchamps',
+    latitude: 50.43722,
+    longitude: 5.97139,
+  },
+  {
     circuitId: 'thruxton',
     name: 'Thruxton',
     latitude: 51.2109,

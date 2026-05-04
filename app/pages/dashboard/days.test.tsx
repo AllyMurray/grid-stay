@@ -767,8 +767,46 @@ describe('AvailableDaysPage', () => {
             candidateCount: 2,
             unknownDistanceDays: [],
             stops: [
-              { day: defaultData.days[0]!, alternatives: [] },
-              { day: defaultData.days[1]!, alternatives: [] },
+              {
+                day: defaultData.days[0]!,
+                alternatives: [],
+                recommendationReason:
+                  'Recommended to maximise route stops, then minimise road miles.',
+                options: [
+                  {
+                    day: defaultData.days[0]!,
+                    selected: true,
+                    recommended: true,
+                    reason: 'Same circuit option',
+                  },
+                  {
+                    day: {
+                      ...defaultData.days[0]!,
+                      dayId: 'same-date-option',
+                      circuit: 'Donington Park',
+                      provider: 'Option Provider',
+                      description: 'Alternative same-day track day',
+                    },
+                    selected: false,
+                    recommended: false,
+                    reason: 'Alternative circuit on this date',
+                  },
+                ],
+              },
+              {
+                day: defaultData.days[1]!,
+                alternatives: [],
+                recommendationReason:
+                  'Keeps the route within the max miles per leg.',
+                options: [
+                  {
+                    day: defaultData.days[1]!,
+                    selected: true,
+                    recommended: true,
+                    reason: 'Same circuit option',
+                  },
+                ],
+              },
             ],
             legs: [
               {
@@ -798,8 +836,115 @@ describe('AvailableDaysPage', () => {
     ).toHaveLength(1);
     expect(screen.getByText('Stop 1')).toBeInTheDocument();
     expect(screen.getByText('Stop 2')).toBeInTheDocument();
+    expect(screen.getAllByText('Recommended')).toHaveLength(2);
+    expect(screen.getByText('Other options for this date')).toBeInTheDocument();
+    expect(screen.getByText('Donington Park')).toBeInTheDocument();
+    expect(
+      screen.getByText('Alternative circuit on this date'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /use donington park for/i }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('plannerDay=same-date-option'),
+    );
     expect(screen.getAllByText('92 miles').length).toBeGreaterThan(0);
     expect(screen.getByText(/openrouteservice\.org/i)).toBeInTheDocument();
+  });
+
+  it('shows selected planner swaps without hiding the recommended option', () => {
+    const selectedOption = {
+      ...defaultData.days[0]!,
+      dayId: 'same-date-option',
+      circuit: 'Donington Park',
+      provider: 'Option Provider',
+      description: 'Alternative same-day track day',
+    };
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'planner',
+          calendarDays: defaultData.days,
+          planner: {
+            status: 'ready',
+            start: '2026-05-01',
+            end: '2026-05-31',
+            maxMiles: 80,
+            selectedDayIds: ['same-date-option'],
+            candidateCount: 2,
+            unknownDistanceDays: [],
+            stops: [
+              {
+                day: selectedOption,
+                alternatives: [],
+                selectedByUser: true,
+                recommendationReason:
+                  'Selected by you. Other stops stay fixed while route miles update around this option.',
+                options: [
+                  {
+                    day: defaultData.days[0]!,
+                    selected: false,
+                    recommended: true,
+                    reason: 'Alternative circuit on this date',
+                  },
+                  {
+                    day: selectedOption,
+                    selected: true,
+                    recommended: false,
+                    reason: 'Same circuit option',
+                  },
+                ],
+              },
+              {
+                day: defaultData.days[1]!,
+                alternatives: [],
+                recommendationReason:
+                  'Keeps the route within the max miles per leg.',
+                options: [
+                  {
+                    day: defaultData.days[1]!,
+                    selected: true,
+                    recommended: true,
+                    reason: 'Same circuit option',
+                  },
+                ],
+              },
+            ],
+            legs: [
+              {
+                fromDayId: 'same-date-option',
+                toDayId: 'day-2',
+                fromCircuit: 'Donington Park',
+                toCircuit: 'Brands Hatch',
+                miles: 92,
+                durationMinutes: 110,
+                exceedsMaxMiles: true,
+              },
+            ],
+            totalMiles: 92,
+            totalDurationMinutes: 110,
+            attribution: 'ORS attribution',
+          },
+        }}
+      />,
+      '/dashboard/days?view=planner&plannerDay=same-date-option',
+    );
+
+    expect(screen.getByText('Selected')).toBeInTheDocument();
+    expect(screen.getByText('Over max')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(defaultData.days[0]!.circuit).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('Recommended').length).toBeGreaterThan(0);
+
+    const recommendedLink = screen.getByRole('link', {
+      name: /use silverstone for/i,
+    });
+    expect(recommendedLink.getAttribute('href') ?? '').not.toContain(
+      'plannerDay=',
+    );
   });
 
   it('shows a planner fallback when distances are unavailable', () => {

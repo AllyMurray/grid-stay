@@ -46,6 +46,7 @@ import type {
 } from './types';
 
 export const DAYS_PAGE_SIZE = 30;
+const DEFAULT_PLANNER_WINDOW_DAYS = 3;
 
 export interface DayBookingSnapshot {
   bookingId: string;
@@ -232,14 +233,14 @@ function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function endOfMonth(month: string) {
-  const [year, monthIndex] = month.split('-').map(Number);
-  if (!year || !monthIndex) {
+function addDays(date: string, days: number) {
+  const [year, monthIndex, day] = date.split('-').map(Number);
+  if (!year || !monthIndex || !day) {
     return '';
   }
 
-  const date = new Date(Date.UTC(year, monthIndex, 0));
-  return date.toISOString().slice(0, 10);
+  const nextDate = new Date(Date.UTC(year, monthIndex - 1, day + days));
+  return nextDate.toISOString().slice(0, 10);
 }
 
 function getTodayDate() {
@@ -260,7 +261,11 @@ function getPlannerRange(url: URL, filteredDays: AvailableDay[]) {
   const startParam = url.searchParams.get('start')?.trim() ?? '';
   const endParam = url.searchParams.get('end')?.trim() ?? '';
   const start = isIsoDate(startParam) ? startParam : defaultStart;
-  let end = isIsoDate(endParam) ? endParam : endOfMonth(start.slice(0, 7));
+  let end = isIsoDate(endParam)
+    ? endParam
+    : start
+      ? addDays(start, DEFAULT_PLANNER_WINDOW_DAYS)
+      : '';
 
   if (start && end && end < start) {
     end = start;
@@ -280,6 +285,17 @@ function getMaxMiles(url: URL) {
   }
 
   return Math.min(Math.max(parsed, 25), 1000);
+}
+
+function getPlannerSelectedDayIds(url: URL) {
+  return [
+    ...new Set(
+      url.searchParams
+        .getAll('plannerDay')
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function getCircuitFilters(url: URL): string[] {
@@ -517,6 +533,7 @@ export async function loadDaysIndex(
     {
       ...plannerRange,
       maxMiles,
+      selectedDayIds: getPlannerSelectedDayIds(url),
     },
     distanceResult,
   );
