@@ -4,6 +4,7 @@ import {
   listAttendanceByDay,
   listMyBookings,
 } from '~/lib/db/services/booking.server';
+import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import {
   type EventCostSummary,
   loadEventCostSummary,
@@ -20,6 +21,11 @@ import {
   normalizeCircuitName,
 } from './aggregation.server';
 import { applyDayMerges, type DayMergeRule } from './day-merges';
+import {
+  buildJourneyPlannerResult,
+  DEFAULT_JOURNEY_MAX_MILES,
+  type JourneyPlannerResult,
+} from './journey-planner';
 import { canCreateManualDays } from './manual-days.server';
 import {
   getSavedDaysFilters,
@@ -56,10 +62,17 @@ export interface DayRow {
   date: string;
   type: 'race_day' | 'test_day' | 'track_day';
   circuit: string;
+  circuitId?: string;
+  circuitName?: string;
+  layout?: string;
+  circuitKnown?: boolean;
   provider: string;
   description: string;
   bookingUrl?: string;
+  availability?: string;
 }
+
+export type AvailableDaysView = 'list' | 'calendar' | 'planner';
 
 export interface DaysFilters {
   month: string;
@@ -89,6 +102,9 @@ export interface DaysIndexData extends DaysFeedData {
     id: string;
     name: string;
   };
+  view: AvailableDaysView;
+  calendarDays: DayRow[];
+  planner: JourneyPlannerResult;
   filters: DaysFilters;
   refreshedAt: string;
   canCreateManualDays: boolean;
@@ -123,9 +139,14 @@ function toDayRow(day: AvailableDay): DayRow {
     date: day.date,
     type: day.type,
     circuit: day.circuit,
+    circuitId: day.circuitId,
+    circuitName: day.circuitName,
+    layout: day.layout,
+    circuitKnown: day.circuitKnown,
     provider: day.provider,
     description: day.description,
     bookingUrl: day.bookingUrl,
+    availability: day.source.metadata?.availability,
   };
 }
 
@@ -192,6 +213,60 @@ function getOffset(value: string | null): number {
 function getSelectedDayId(url: URL): string | null {
   const selectedDayId = url.searchParams.get('day')?.trim() ?? '';
   return selectedDayId || null;
+}
+
+function getView(url: URL): AvailableDaysView {
+  switch (url.searchParams.get('view')?.trim()) {
+    case 'calendar':
+      return 'calendar';
+    case 'planner':
+      return 'planner';
+    default:
+      return 'list';
+  }
+}
+
+function isIsoDate(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function endOfMonth(month: string) {
+  const [year, monthIndex] = month.split('-').map(Number);
+  if (!year || !monthIndex) {
+    return '';
+  }
+
+  const date = new Date(Date.UTC(year, monthIndex, 0));
+  return date.toISOString().slice(0, 10);
+}
+
+function getPlannerRange(url: URL, filteredDays: AvailableDay[]) {
+  const firstMonth = filteredDays[0]?.date.slice(0, 7) ?? '';
+  const defaultStart = firstMonth ? `${firstMonth}-01` : '';
+  const defaultEnd = firstMonth ? endOfMonth(firstMonth) : '';
+  const startParam = url.searchParams.get('start')?.trim() ?? '';
+  const endParam = url.searchParams.get('end')?.trim() ?? '';
+  const start = isIsoDate(startParam) ? startParam : defaultStart;
+  let end = isIsoDate(endParam) ? endParam : defaultEnd;
+
+  if (start && end && end < start) {
+    end = start;
+  }
+
+  return { start, end };
+}
+
+function getMaxMiles(url: URL) {
+  const parsed = Number.parseInt(
+    url.searchParams.get('maxMiles')?.trim() ?? '',
+    10,
+  );
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_JOURNEY_MAX_MILES;
+  }
+
+  return Math.min(Math.max(parsed, 25), 1000);
 }
 
 function getCircuitFilters(url: URL): string[] {
@@ -365,6 +440,7 @@ export async function loadDaysIndex(
   url: URL,
 ): Promise<DaysIndexData> {
   const selectedDayId = getSelectedDayId(url);
+  const view = getView(url);
   const [
     {
       allDays,
@@ -388,6 +464,36 @@ export async function loadDaysIndex(
     myBookings.map((booking) => booking.dayId),
   );
   const page = await loadDaysFeedPage(filteredDays, filters, 0);
+  const fullSummaries =
+    view === 'calendar' || view === 'planner'
+      ? await dayAttendanceSummaryStore.getByDayIds(
+          filteredDays.map((day) => day.dayId),
+        )
+      : null;
+  const attendanceSummaries = fullSummaries
+    ? Object.fromEntries(
+        filteredDays.map((day) => [
+          day.dayId,
+          combineAttendanceOverviews([fullSummaries.get(day.dayId)]),
+        ]),
+      )
+    : page.attendanceSummaries;
+  const plannerRange = getPlannerRange(url, filteredDays);
+  const maxMiles = getMaxMiles(url);
+  const calendarDays =
+    view === 'calendar' || view === 'planner' ? filteredDays.map(toDayRow) : [];
+  const distanceResult =
+    view === 'planner'
+      ? await loadCircuitDistanceMatrix()
+      : { status: 'missing' as const, matrix: null };
+  const planner = buildJourneyPlannerResult(
+    filteredDays.map(toDayRow),
+    {
+      ...plannerRange,
+      maxMiles,
+    },
+    distanceResult,
+  );
   const visibleDayIds = new Set(filteredDays.map((day) => day.dayId));
   const selectedDayRecord = selectedDayId
     ? (filteredDays.find((day) => day.dayId === selectedDayId) ?? null)
@@ -425,10 +531,14 @@ export async function loadDaysIndex(
 
   return {
     ...page,
+    attendanceSummaries,
     currentUser: {
       id: user.id,
       name: user.name ?? 'You',
     },
+    view,
+    calendarDays,
+    planner,
     filters,
     refreshedAt,
     canCreateManualDays: canCreateManualDays(user),

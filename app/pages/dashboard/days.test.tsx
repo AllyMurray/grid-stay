@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
   DaysFeedData,
   DaysIndexData,
@@ -10,6 +10,43 @@ import type { DayAttendanceSummary } from '~/lib/days/types';
 import type { EventCostSummary } from '~/lib/db/services/cost-splitting.server';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
+
+vi.mock('@mantine/schedule', async () => {
+  const actual =
+    await vi.importActual<typeof import('@mantine/schedule')>(
+      '@mantine/schedule',
+    );
+
+  return {
+    ...actual,
+    Schedule: ({
+      events = [],
+      onEventClick,
+      onDayClick,
+    }: {
+      events?: Array<{ id: string; title: string }>;
+      onEventClick?: (event: { id: string }, reactEvent: Event) => void;
+      onDayClick?: (date: string) => void;
+    }) => (
+      <div data-testid="available-days-calendar">
+        {events.map((event) => (
+          <button
+            key={event.id}
+            type="button"
+            onClick={(reactEvent) =>
+              onEventClick?.(event, reactEvent.nativeEvent)
+            }
+          >
+            {event.title}
+          </button>
+        ))}
+        <button type="button" onClick={() => onDayClick?.('2026-05-07')}>
+          Select 7 May
+        </button>
+      </div>
+    ),
+  };
+});
 
 function renderWithProviders(
   ui: React.ReactElement,
@@ -152,6 +189,21 @@ const defaultData: DaysIndexData = {
     id: 'user-1',
     name: 'Driver One',
   },
+  view: 'list',
+  calendarDays: [],
+  planner: {
+    status: 'missing',
+    start: '2026-05-01',
+    end: '2026-05-31',
+    maxMiles: 180,
+    candidateCount: 0,
+    unknownDistanceDays: [],
+    stops: [],
+    legs: [],
+    totalMiles: 0,
+    totalDurationMinutes: 0,
+    attribution: null,
+  },
   filterKey: '',
   offset: 0,
   totalCount: 2,
@@ -196,6 +248,9 @@ const defaultData: DaysIndexData = {
       date: '2026-05-03',
       type: 'race_day',
       circuit: 'Silverstone',
+      circuitId: 'silverstone',
+      circuitName: 'Silverstone',
+      circuitKnown: true,
       provider: 'MSV',
       description: 'GT weekend',
     },
@@ -204,6 +259,9 @@ const defaultData: DaysIndexData = {
       date: '2026-05-07',
       type: 'track_day',
       circuit: 'Brands Hatch',
+      circuitId: 'brands-hatch',
+      circuitName: 'Brands Hatch',
+      circuitKnown: true,
       provider: 'Focus Trackdays',
       description: 'Open pit lane',
       bookingUrl: 'https://example.com/brands-hatch/book',
@@ -545,6 +603,99 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', '/dashboard/days');
+  });
+
+  it('renders the calendar view and opens details from a calendar event', async () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'calendar',
+          calendarDays: defaultData.days,
+          attendanceSummaries: defaultData.attendanceSummaries,
+        }}
+      />,
+      '/dashboard/days?view=calendar',
+    );
+
+    expect(screen.getByTestId('available-days-calendar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Silverstone' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Brands Hatch' }));
+
+    expect(
+      await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
+    ).not.toHaveLength(0);
+    expect(
+      screen.getByRole('link', { name: /back to available days/i }),
+    ).toHaveAttribute('href', expect.stringContaining('view=calendar'));
+  });
+
+  it('renders a journey planner route with road-distance attribution', () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'planner',
+          calendarDays: defaultData.days,
+          planner: {
+            status: 'ready',
+            start: '2026-05-01',
+            end: '2026-05-31',
+            maxMiles: 180,
+            candidateCount: 2,
+            unknownDistanceDays: [],
+            stops: [
+              { day: defaultData.days[0]!, alternatives: [] },
+              { day: defaultData.days[1]!, alternatives: [] },
+            ],
+            legs: [
+              {
+                fromDayId: 'day-1',
+                toDayId: 'day-2',
+                fromCircuit: 'Silverstone',
+                toCircuit: 'Brands Hatch',
+                miles: 92,
+                durationMinutes: 110,
+              },
+            ],
+            totalMiles: 92,
+            totalDurationMinutes: 110,
+            attribution:
+              '© openrouteservice.org by HeiGIT | Map data © OpenStreetMap contributors',
+          },
+        }}
+      />,
+      '/dashboard/days?view=planner',
+    );
+
+    expect(
+      screen.getByRole('form', { name: 'Journey planner filters' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Stop 1')).toBeInTheDocument();
+    expect(screen.getByText('Stop 2')).toBeInTheDocument();
+    expect(screen.getAllByText('92 miles').length).toBeGreaterThan(0);
+    expect(screen.getByText(/openrouteservice\.org/i)).toBeInTheDocument();
+  });
+
+  it('shows a planner fallback when distances are unavailable', () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'planner',
+          calendarDays: defaultData.days,
+          planner: {
+            ...defaultData.planner,
+            status: 'unavailable',
+            candidateCount: 2,
+          },
+        }}
+      />,
+      '/dashboard/days?view=planner',
+    );
+
+    expect(screen.getByText(/distance matrix unavailable/i)).toBeVisible();
   });
 
   it('shows bulk series actions for race days with a linked series', () => {

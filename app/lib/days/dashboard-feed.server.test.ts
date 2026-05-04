@@ -30,6 +30,10 @@ vi.mock('~/lib/db/services/cost-splitting.server', () => ({
   })),
 }));
 
+vi.mock('~/lib/db/services/circuit-distance-matrix.server', () => ({
+  loadCircuitDistanceMatrix: vi.fn(),
+}));
+
 vi.mock('~/lib/days/series.server', async () => {
   const actual =
     await vi.importActual<typeof import('./series.server')>('./series.server');
@@ -53,6 +57,7 @@ import {
   listAttendanceByDay,
   listMyBookings,
 } from '~/lib/db/services/booking.server';
+import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { loadDaysIndex } from './dashboard-feed.server';
@@ -71,6 +76,11 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listMyBookings).mockReset();
     vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockReset();
+    vi.mocked(loadCircuitDistanceMatrix).mockReset();
+    vi.mocked(loadCircuitDistanceMatrix).mockResolvedValue({
+      status: 'missing',
+      matrix: null,
+    });
     vi.mocked(getSavedDaysFilters).mockReset();
     vi.mocked(getSavedDaysFilters).mockResolvedValue(null);
     vi.mocked(getSharedDayPlan).mockReset();
@@ -135,6 +145,11 @@ describe('days dashboard feed', () => {
     expect('errors' in data).toBe(false);
     expect(data.totalCount).toBe(2);
     expect(data.days.map((day) => day.dayId)).toEqual(['race:1', 'manual:1']);
+    expect(data.days[1]).toMatchObject({
+      circuitId: 'donington-park',
+      circuitName: 'Donington Park',
+      circuitKnown: true,
+    });
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);
     expect(data.providerOptions).toEqual(['Caterham Motorsport']);
   });
@@ -179,6 +194,85 @@ describe('days dashboard feed', () => {
       notifyOnNewMatches: true,
       externalChannel: '',
     });
+  });
+
+  it('loads planner rows and journey state for the planner view', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'day-1',
+          date: '2026-06-08',
+          type: 'track_day',
+          circuit: 'Silverstone',
+          provider: 'Provider One',
+          description: 'Open pit lane',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'source-one',
+          },
+        },
+        {
+          dayId: 'day-2',
+          date: '2026-06-09',
+          type: 'track_day',
+          circuit: 'Donington Park',
+          provider: 'Provider Two',
+          description: 'Open pit lane',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'source-two',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+    vi.mocked(loadCircuitDistanceMatrix).mockResolvedValue({
+      status: 'ready',
+      matrix: {
+        provider: 'openrouteservice',
+        profile: 'driving-car',
+        updatedAt: '2026-05-01T10:00:00.000Z',
+        circuitIds: ['silverstone', 'donington-park'],
+        attribution: 'ORS attribution',
+        distances: {
+          silverstone: {
+            'donington-park': { miles: 55, durationMinutes: 70 },
+          },
+          'donington-park': {
+            silverstone: { miles: 55, durationMinutes: 70 },
+          },
+        },
+      },
+    });
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL(
+        'https://gridstay.app/dashboard/days?view=planner&start=2026-06-01&end=2026-06-30&maxMiles=100',
+      ),
+    );
+
+    expect(data.view).toBe('planner');
+    expect(data.calendarDays.map((day) => day.dayId)).toEqual([
+      'day-1',
+      'day-2',
+    ]);
+    expect(data.planner.stops.map((stop) => stop.day.dayId)).toEqual([
+      'day-1',
+      'day-2',
+    ]);
+    expect(data.planner.totalMiles).toBe(55);
+    expect(loadCircuitDistanceMatrix).toHaveBeenCalledOnce();
   });
 
   it('loads the selected day shared planning note', async () => {
