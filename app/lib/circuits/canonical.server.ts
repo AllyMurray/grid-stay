@@ -91,6 +91,11 @@ const CIRCUIT_CATALOG: CircuitCatalogEntry[] = [
     aliases: ['Sntterton'],
   },
   {
+    id: 'spa-francorchamps',
+    name: 'Spa-Francorchamps',
+    aliases: ['Circuit de Spa-Francorchamps', 'Spa Francorchamps', 'Spa'],
+  },
+  {
     id: 'thruxton',
     name: 'Thruxton',
     aliases: ['Thruxton Circuit'],

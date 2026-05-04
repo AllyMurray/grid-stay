@@ -24,6 +24,16 @@ describe('resolveCanonicalCircuit', () => {
       layout: '300',
       known: true,
     });
+    expect(resolveCanonicalCircuit('Circuit de Spa-Francorchamps')).toEqual({
+      circuitId: 'spa-francorchamps',
+      circuitName: 'Spa-Francorchamps',
+      known: true,
+    });
+    expect(resolveCanonicalCircuit('Spa')).toEqual({
+      circuitId: 'spa-francorchamps',
+      circuitName: 'Spa-Francorchamps',
+      known: true,
+    });
   });
 
   it('prefers an explicit layout over a parsed layout', () => {
