@@ -65,6 +65,22 @@ describe('available-days preferences', () => {
     });
   });
 
+  it('normalizes the saved show-past view flag from form data', () => {
+    const formData = new FormData();
+    formData.set('showPast', 'true');
+
+    expect(getSavedDaysFiltersFromFormData(formData)).toEqual({
+      month: '',
+      series: '',
+      circuits: [],
+      provider: '',
+      type: '',
+      showPast: true,
+      notifyOnNewMatches: false,
+      externalChannel: '',
+    });
+  });
+
   it('creates a separate preference record for non-empty filters', async () => {
     const store = createStore();
 
@@ -76,6 +92,7 @@ describe('available-days preferences', () => {
         circuits: ['Sntterton 300', 'Brands Hatch Indy'],
         provider: 'Caterham Motorsport',
         type: 'race_day',
+        showPast: true,
         notifyOnNewMatches: true,
         externalChannel: '',
       },
@@ -88,6 +105,7 @@ describe('available-days preferences', () => {
       circuits: ['Brands Hatch', 'Snetterton'],
       provider: 'Caterham Motorsport',
       type: 'race_day',
+      showPast: true,
       notifyOnNewMatches: true,
       externalChannel: '',
     });
@@ -100,6 +118,7 @@ describe('available-days preferences', () => {
         circuits: ['Brands Hatch', 'Snetterton'],
         provider: 'Caterham Motorsport',
         dayType: 'race_day',
+        showPast: true,
         notifyOnNewMatches: true,
         externalChannel: undefined,
       }),

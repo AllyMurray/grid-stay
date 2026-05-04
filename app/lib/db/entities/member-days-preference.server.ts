@@ -23,6 +23,7 @@ export const MemberDaysPreferenceEntity = new Entity(
       dayType: {
         type: ['race_day', 'test_day', 'track_day', 'road_drive'] as const,
       },
+      showPast: { type: 'boolean' },
       notifyOnNewMatches: { type: 'boolean' },
       externalChannel: {
         type: ['email', 'whatsapp'] as const,

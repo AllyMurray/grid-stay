@@ -721,6 +721,37 @@ describe('AvailableDaysPage', () => {
     );
   });
 
+  it('shows and preserves the past-date feed toggle', () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          filters: {
+            ...defaultData.filters,
+            showPast: true,
+          },
+        }}
+      />,
+      '/dashboard/days?showPast=true',
+    );
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Show past dates' }),
+    ).toBeChecked();
+    expect(screen.getByRole('tab', { name: 'List' })).toHaveAttribute(
+      'href',
+      '/dashboard/days?showPast=true',
+    );
+    expect(screen.getByRole('tab', { name: 'Calendar' })).toHaveAttribute(
+      'href',
+      '/dashboard/days?showPast=true&view=calendar',
+    );
+    expect(screen.getByRole('tab', { name: 'Planner' })).toHaveAttribute(
+      'href',
+      '/dashboard/days?showPast=true&view=planner&start=2026-05-01&end=2026-05-31&maxMiles=180',
+    );
+  });
+
   it('renders a journey planner route with road-distance attribution', () => {
     renderWithProviders(
       <AvailableDaysPage

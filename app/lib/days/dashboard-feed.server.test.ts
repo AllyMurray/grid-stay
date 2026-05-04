@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
@@ -65,7 +65,13 @@ import { getSavedDaysFilters } from './preferences.server';
 import { getSharedDayPlan } from './shared-plan.server';
 
 describe('days dashboard feed', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-04T12:00:00.000Z'));
     vi.mocked(getAvailableDaysSnapshot).mockReset();
     vi.mocked(listManualDays).mockReset();
     vi.mocked(listAttendanceByDay).mockReset();
@@ -196,6 +202,72 @@ describe('days dashboard feed', () => {
     });
   });
 
+  it('hides past days by default and restores them with the show-past flag', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'past-day',
+          date: '2026-04-10',
+          type: 'track_day',
+          circuit: 'Brands Hatch',
+          provider: 'Past Provider',
+          description: 'Already happened',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'past-source',
+          },
+        },
+        {
+          dayId: 'future-day',
+          date: '2026-06-08',
+          type: 'track_day',
+          circuit: 'Silverstone',
+          provider: 'Future Provider',
+          description: 'Open pit lane',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'future-source',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+
+    const defaultData = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days'),
+    );
+    const showPastData = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days?showPast=true'),
+    );
+
+    expect(defaultData.days.map((day) => day.dayId)).toEqual(['future-day']);
+    expect(defaultData.totalCount).toBe(1);
+    expect(defaultData.monthOptions).toEqual(['2026-06']);
+    expect(showPastData.days.map((day) => day.dayId)).toEqual([
+      'past-day',
+      'future-day',
+    ]);
+    expect(showPastData.totalCount).toBe(2);
+    expect(showPastData.filters.showPast).toBe(true);
+    expect(showPastData.monthOptions).toEqual(['2026-04', '2026-06']);
+  });
+
   it('loads planner rows and journey state for the planner view', async () => {
     vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
       refreshedAt: '2026-04-17T09:30:00.000Z',
@@ -273,6 +345,69 @@ describe('days dashboard feed', () => {
     ]);
     expect(data.planner.totalMiles).toBe(55);
     expect(loadCircuitDistanceMatrix).toHaveBeenCalledOnce();
+  });
+
+  it('defaults the planner range to the next matching day instead of a past feed month', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'past-day',
+          date: '2026-04-10',
+          type: 'track_day',
+          circuit: 'Brands Hatch',
+          provider: 'Past Provider',
+          description: 'Already happened',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'past-source',
+          },
+        },
+        {
+          dayId: 'future-day-1',
+          date: '2026-06-08',
+          type: 'track_day',
+          circuit: 'Silverstone',
+          provider: 'Provider One',
+          description: 'Open pit lane',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'source-one',
+          },
+        },
+        {
+          dayId: 'future-day-2',
+          date: '2026-06-09',
+          type: 'track_day',
+          circuit: 'Donington Park',
+          provider: 'Provider Two',
+          description: 'Open pit lane',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'source-two',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
+      new Map(),
+    );
+
+    const data = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days?view=planner'),
+    );
+
+    expect(data.planner.start).toBe('2026-06-08');
+    expect(data.planner.end).toBe('2026-06-30');
+    expect(data.planner.candidateCount).toBe(2);
   });
 
   it('loads the selected day shared planning note', async () => {

@@ -45,7 +45,8 @@ export function hasSavedDaysFilters(filters: SavedDaysFilters | null): boolean {
         filters.series ||
         filters.circuits.length > 0 ||
         filters.provider ||
-        filters.type),
+        filters.type ||
+        filters.showPast),
   );
 }
 
@@ -55,10 +56,12 @@ export function sanitizeSavedDaysFilters(input: {
   circuits?: readonly string[] | null;
   provider?: string | null;
   type?: string | null;
+  showPast?: boolean | null;
   notifyOnNewMatches?: boolean | null;
   externalChannel?: string | null;
 }): SavedDaysFilters {
   const notifyOnNewMatches = Boolean(input.notifyOnNewMatches);
+  const showPast = Boolean(input.showPast);
 
   return {
     month: normalizeText(input.month ?? ''),
@@ -72,6 +75,7 @@ export function sanitizeSavedDaysFilters(input: {
     ].sort(),
     provider: normalizeText(input.provider ?? ''),
     type: parseSavedType(normalizeText(input.type ?? '')),
+    ...(showPast ? { showPast } : {}),
     notifyOnNewMatches,
     externalChannel: '',
   };
@@ -91,6 +95,7 @@ export function getSavedDaysFiltersFromFormData(
       .filter(Boolean),
     provider: normalizeText(formData.get('provider')),
     type: normalizeText(formData.get('type')),
+    showPast: normalizeText(formData.get('showPast')) === 'true',
     notifyOnNewMatches: notifyValue === 'on' || notifyValue === 'true',
   });
 }
@@ -101,6 +106,7 @@ export function getSavedDaysFiltersFromRecord(input: {
   circuits?: readonly string[] | null;
   provider?: string | null;
   type?: string | null;
+  showPast?: boolean;
   notifyOnNewMatches?: boolean;
   externalChannel?: string;
 }): SavedDaysFilters {
@@ -110,6 +116,7 @@ export function getSavedDaysFiltersFromRecord(input: {
     circuits: input.circuits,
     provider: input.provider,
     type: input.type,
+    showPast: input.showPast,
     notifyOnNewMatches: input.notifyOnNewMatches,
     externalChannel: input.externalChannel,
   });
@@ -130,6 +137,7 @@ export async function getSavedDaysFilters(
     circuits: record.circuits,
     provider: record.provider,
     type: record.dayType,
+    showPast: record.showPast,
     notifyOnNewMatches: record.notifyOnNewMatches,
     externalChannel: record.externalChannel,
   });
@@ -156,6 +164,7 @@ export async function saveSavedDaysFilters(
     circuits: sanitized.circuits,
     provider: sanitized.provider,
     dayType: sanitized.type || undefined,
+    showPast: sanitized.showPast || undefined,
     notifyOnNewMatches: sanitized.notifyOnNewMatches,
     externalChannel: undefined,
     updatedAt: now,

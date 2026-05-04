@@ -80,6 +80,7 @@ export interface DaysFilters {
   circuits: string[];
   provider: string;
   type: '' | AvailableDayType;
+  showPast?: boolean;
 }
 
 export interface RaceSeriesFilterOption {
@@ -241,14 +242,25 @@ function endOfMonth(month: string) {
   return date.toISOString().slice(0, 10);
 }
 
+function getTodayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getDefaultPlannerStart(filteredDays: AvailableDay[]) {
+  const today = getTodayDate();
+  return (
+    filteredDays.find((day) => day.date >= today)?.date ??
+    filteredDays[0]?.date ??
+    ''
+  );
+}
+
 function getPlannerRange(url: URL, filteredDays: AvailableDay[]) {
-  const firstMonth = filteredDays[0]?.date.slice(0, 7) ?? '';
-  const defaultStart = firstMonth ? `${firstMonth}-01` : '';
-  const defaultEnd = firstMonth ? endOfMonth(firstMonth) : '';
+  const defaultStart = getDefaultPlannerStart(filteredDays);
   const startParam = url.searchParams.get('start')?.trim() ?? '';
   const endParam = url.searchParams.get('end')?.trim() ?? '';
   const start = isIsoDate(startParam) ? startParam : defaultStart;
-  let end = isIsoDate(endParam) ? endParam : defaultEnd;
+  let end = isIsoDate(endParam) ? endParam : endOfMonth(start.slice(0, 7));
 
   if (start && end && end < start) {
     end = start;
@@ -280,12 +292,17 @@ function getCircuitFilters(url: URL): string[] {
 }
 
 function getFilters(url: URL): DaysFilters {
+  const showPast = ['1', 'true', 'on'].includes(
+    url.searchParams.get('showPast')?.trim() ?? '',
+  );
+
   return {
     month: url.searchParams.get('month')?.trim() ?? '',
     series: url.searchParams.get('series')?.trim() ?? '',
     circuits: getCircuitFilters(url),
     provider: url.searchParams.get('provider')?.trim() ?? '',
     type: parseType(url.searchParams.get('type')?.trim() ?? '') ?? '',
+    ...(showPast ? { showPast } : {}),
   };
 }
 
@@ -305,6 +322,9 @@ export function createDaysFilterKey(filters: DaysFilters): string {
   }
   if (filters.type) {
     params.set('type', filters.type);
+  }
+  if (filters.showPast) {
+    params.set('showPast', 'true');
   }
 
   return params.toString();
@@ -370,7 +390,10 @@ async function loadFilteredDays(url: URL) {
   const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
     .map(normalizeAvailableDayCircuit)
     .sort(compareAvailableDays);
-  const filteredDays = filterAvailableDays(allDays, {
+  const dateScopedDays = filters.showPast
+    ? allDays
+    : allDays.filter((day) => day.date >= getTodayDate());
+  const filteredDays = filterAvailableDays(dateScopedDays, {
     month: filters.month || undefined,
     series: filters.series || undefined,
     circuits: filters.circuits,
@@ -385,11 +408,13 @@ async function loadFilteredDays(url: URL) {
     refreshedAt: snapshot?.refreshedAt ?? '',
     filteredDays,
     monthOptions: [
-      ...new Set(allDays.map((day) => day.date.slice(0, 7))),
+      ...new Set(dateScopedDays.map((day) => day.date.slice(0, 7))),
     ].sort(),
-    seriesOptions: listRaceSeriesOptions(allDays),
-    circuitOptions: listCircuitOptions(allDays),
-    providerOptions: [...new Set(allDays.map((day) => day.provider))].sort(),
+    seriesOptions: listRaceSeriesOptions(dateScopedDays),
+    circuitOptions: listCircuitOptions(dateScopedDays),
+    providerOptions: [
+      ...new Set(dateScopedDays.map((day) => day.provider)),
+    ].sort(),
   };
 }
 

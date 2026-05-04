@@ -138,6 +138,9 @@ function createDaysFeedHref(
   if (filters.type) {
     params.set('type', filters.type);
   }
+  if (filters.showPast) {
+    params.set('showPast', 'true');
+  }
   params.set('offset', String(offset));
 
   return `/api/dashboard/days-feed?${params.toString()}`;
@@ -194,6 +197,9 @@ function createDaysIndexHref(
   if (filters.type) {
     params.set('type', filters.type);
   }
+  if (filters.showPast) {
+    params.set('showPast', 'true');
+  }
   if (selectedDayId) {
     params.set('day', selectedDayId);
   }
@@ -219,7 +225,8 @@ function countActiveFilters(filters: DaysIndexData['filters']) {
     (filters.series ? 1 : 0) +
     (filters.circuits.length > 0 ? 1 : 0) +
     (filters.provider ? 1 : 0) +
-    (filters.type ? 1 : 0)
+    (filters.type ? 1 : 0) +
+    (filters.showPast ? 1 : 0)
   );
 }
 
@@ -277,6 +284,9 @@ function DaysFilterHiddenInputs({
       ))}
       <input type="hidden" name="provider" value={filters.provider} />
       <input type="hidden" name="type" value={filters.type} />
+      {filters.showPast ? (
+        <input type="hidden" name="showPast" value="true" />
+      ) : null}
     </>
   );
 }
@@ -321,6 +331,7 @@ function formatSavedFilterSummary(
     filters.circuits.length > 0 ? filters.circuits.join(', ') : null,
     filters.provider || null,
     filters.type ? titleCase(filters.type) : null,
+    filters.showPast ? 'Past dates' : null,
   ].filter(Boolean);
 
   return parts.join(' • ') || 'No filters saved';
@@ -3784,7 +3795,13 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 />
               </SimpleGrid>
 
-              <Group justify="flex-end">
+              <Group justify="space-between" align="center" wrap="wrap">
+                <Checkbox
+                  name="showPast"
+                  value="true"
+                  label="Show past dates"
+                  defaultChecked={Boolean(data.filters.showPast)}
+                />
                 <Button type="submit">Apply filters</Button>
               </Group>
             </Stack>
