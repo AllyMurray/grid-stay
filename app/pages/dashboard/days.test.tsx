@@ -1342,6 +1342,40 @@ describe('AvailableDaysPage', () => {
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
 
+  it('shows initials on booked and maybe roster groups', async () => {
+    const selectedDay = defaultData.days[0]!;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDayPrevious: null,
+          selectedDayNext: defaultData.days[1] ?? null,
+          selectedDaySummary:
+            defaultData.attendanceSummaries[selectedDay.dayId],
+          selectedDayAttendance: defaultAttendanceByDay[selectedDay.dayId],
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+    );
+
+    await screen.findByText('Attendee roster');
+
+    expect(
+      screen.getByRole('img', { name: /1 booked attendee: Driver One/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: /1 maybe attendee: Driver Two/i }),
+    ).toBeVisible();
+    expect(screen.getByText('DO')).toBeVisible();
+    expect(screen.getByText('DT')).toBeVisible();
+    expect(
+      screen.queryByRole('img', { name: /cancelled attendee/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('refreshes stale selected-day details when summary counts have changed', async () => {
     const selectedDay = defaultData.days[0]!;
     const updatedSummary = {

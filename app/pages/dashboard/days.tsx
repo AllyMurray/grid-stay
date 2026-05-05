@@ -1,6 +1,7 @@
 import {
   Alert,
   Anchor,
+  Avatar,
   Badge,
   Box,
   Button,
@@ -85,6 +86,20 @@ function titleCase(value: string) {
   return value
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return '?';
+  }
+
+  const first = parts[0] ?? '';
+  const last = parts.length > 1 ? (parts.at(-1) ?? '') : '';
+  const initials = `${first.charAt(0)}${last.charAt(0) || first.charAt(1)}`;
+
+  return initials.toUpperCase();
 }
 
 function compareDayRows(left: DayRow, right: DayRow) {
@@ -1694,6 +1709,59 @@ function getArrivalDateTimeLabel(arrivalDateTime?: string) {
   return formatted ? `Arriving ${formatted}` : null;
 }
 
+function AttendeeInitialsGroup({
+  attendees,
+  status,
+}: {
+  attendees: SharedAttendee[];
+  status: BookingStatus;
+}) {
+  const visibleAttendees = attendees.slice(0, 4);
+  const remainingCount = attendees.length - visibleAttendees.length;
+
+  if (attendees.length === 0) {
+    return null;
+  }
+
+  return (
+    <Group
+      gap={0}
+      wrap="nowrap"
+      className="attendee-initials-group"
+      role="img"
+      aria-label={`${attendees.length} ${status} ${
+        attendees.length === 1 ? 'attendee' : 'attendees'
+      }: ${attendees.map((attendee) => attendee.userName).join(', ')}`}
+    >
+      {visibleAttendees.map((attendee) => (
+        <Avatar
+          key={attendee.bookingId}
+          aria-hidden="true"
+          className="attendee-initial-avatar"
+          color={bookingColor(status)}
+          radius="xl"
+          size={28}
+          variant="filled"
+        >
+          {getInitials(attendee.userName)}
+        </Avatar>
+      ))}
+      {remainingCount > 0 ? (
+        <Avatar
+          aria-hidden="true"
+          className="attendee-initial-avatar"
+          color={bookingColor(status)}
+          radius="xl"
+          size={28}
+          variant="light"
+        >
+          +{remainingCount}
+        </Avatar>
+      ) : null}
+    </Group>
+  );
+}
+
 function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
   const [openGroupKey, setOpenGroupKey] = useState<BookingStatus | null>(null);
 
@@ -1701,6 +1769,7 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
     <Stack gap={0}>
       {groups.map((group, index) => {
         const isOpen = openGroupKey === group.key;
+        const showInitials = group.key === 'booked' || group.key === 'maybe';
 
         return (
           <Fragment key={group.key}>
@@ -1717,23 +1786,36 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
               }
             >
               <Group justify="space-between" align="flex-start" gap="md">
-                <Stack gap={6} className="attendee-roster-summary">
-                  <Group gap="xs" wrap="wrap">
-                    <Badge
-                      variant="light"
-                      color={bookingColor(group.key)}
-                      size="sm"
-                    >
-                      {group.label}
-                    </Badge>
-                    <Text size="sm" fw={700}>
-                      {group.attendees.length}
+                <Group
+                  gap="sm"
+                  align="center"
+                  wrap="nowrap"
+                  className="attendee-roster-summary"
+                >
+                  {showInitials ? (
+                    <AttendeeInitialsGroup
+                      attendees={group.attendees}
+                      status={group.key}
+                    />
+                  ) : null}
+                  <Stack gap={6} className="attendee-roster-summary-copy">
+                    <Group gap="xs" wrap="wrap">
+                      <Badge
+                        variant="light"
+                        color={bookingColor(group.key)}
+                        size="sm"
+                      >
+                        {group.label}
+                      </Badge>
+                      <Text size="sm" fw={700}>
+                        {group.attendees.length}
+                      </Text>
+                    </Group>
+                    <Text size="sm" c="dimmed" lineClamp={1}>
+                      {getAttendeeGroupPreview(group.attendees)}
                     </Text>
-                  </Group>
-                  <Text size="sm" c="dimmed" lineClamp={1}>
-                    {getAttendeeGroupPreview(group.attendees)}
-                  </Text>
-                </Stack>
+                  </Stack>
+                </Group>
                 <Text size="sm" fw={700} c={isOpen ? 'brand.7' : 'dimmed'}>
                   <span className="row-toggle-label">
                     {isOpen ? 'Hide' : 'View'}
