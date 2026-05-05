@@ -1,4 +1,8 @@
 import type { User } from '~/lib/auth/schemas';
+import {
+  hasBookedAccommodation,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import { normalizeAvailableDayCircuit } from '~/lib/days/aggregation.server';
 import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
@@ -194,7 +198,7 @@ export async function submitSharedStaySelection(
   if (!parsed.success) {
     return {
       ok: false,
-      formError: 'Could not save this shared stay yet.',
+      formError: 'Could not save this accommodation yet.',
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -322,11 +326,20 @@ export async function submitBookingUpdate(
     };
   }
 
-  const hotel = await resolveHotel(parsed.data, userId);
-  await saveBooking(userId, {
+  const bookingUpdate = {
     ...parsed.data,
+    accommodationStatus: resolveAccommodationStatus(parsed.data),
+  };
+  const accommodationBooked = hasBookedAccommodation(bookingUpdate);
+  const hotel = accommodationBooked
+    ? await resolveHotel(bookingUpdate, userId)
+    : null;
+  await saveBooking(userId, {
+    ...bookingUpdate,
     hotelId: hotel?.hotelId,
-    accommodationName: hotel?.name ?? parsed.data.accommodationName,
+    accommodationName: accommodationBooked
+      ? (hotel?.name ?? bookingUpdate.accommodationName)
+      : '',
   });
   return { ok: true };
 }

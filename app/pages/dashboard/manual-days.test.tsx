@@ -66,7 +66,7 @@ describe('ManualDaysPage', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Manual Days' }),
+      screen.getByRole('heading', { name: 'Manual days' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Add a manual day' }),

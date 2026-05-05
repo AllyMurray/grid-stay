@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ACCOMMODATION_STATUS_VALUES } from '~/lib/bookings/accommodation';
 import { BOOKING_STATUS_VALUES } from '~/lib/constants/enums';
 import { HotelSelectionSchema } from './hotel';
 
@@ -10,6 +11,7 @@ export const AvailableDayTypeSchema = z.enum([
 ]);
 
 export const BookingStatusSchema = z.enum(BOOKING_STATUS_VALUES);
+export const AccommodationStatusSchema = z.enum(ACCOMMODATION_STATUS_VALUES);
 
 export const CreateBookingSchema = z.object({
   dayId: z.string().min(1),
@@ -71,21 +73,42 @@ const ArrivalDateTimeSchema = z.preprocess(
     .optional(),
 );
 
-export const UpdateBookingSchema = z.object({
-  bookingId: z.string().min(1),
-  status: BookingStatusSchema,
-  bookingReference: z.string().trim().max(120).optional().default(''),
-  arrivalDateTime: ArrivalDateTimeSchema,
-  ...HotelSelectionSchema.shape,
-  accommodationName: z.string().trim().max(120).optional().default(''),
-  accommodationReference: z.string().trim().max(120).optional().default(''),
-  garageBooked: GarageBookedSchema,
-  garageCapacity: GarageCapacitySchema,
-  garageLabel: z.string().trim().max(120).optional().default(''),
-  garageCostTotalPence: OptionalMoneySchema,
-  garageCostCurrency: z.string().trim().length(3).optional().or(z.literal('')),
-  notes: z.string().trim().max(1000).optional().default(''),
-});
+export const UpdateBookingSchema = z
+  .object({
+    bookingId: z.string().min(1),
+    status: BookingStatusSchema,
+    bookingReference: z.string().trim().max(120).optional().default(''),
+    arrivalDateTime: ArrivalDateTimeSchema,
+    accommodationStatus: AccommodationStatusSchema.optional(),
+    ...HotelSelectionSchema.shape,
+    accommodationName: z.string().trim().max(120).optional().default(''),
+    accommodationReference: z.string().trim().max(120).optional().default(''),
+    garageBooked: GarageBookedSchema,
+    garageCapacity: GarageCapacitySchema,
+    garageLabel: z.string().trim().max(120).optional().default(''),
+    garageCostTotalPence: OptionalMoneySchema,
+    garageCostCurrency: z
+      .string()
+      .trim()
+      .length(3)
+      .optional()
+      .or(z.literal('')),
+    notes: z.string().trim().max(1000).optional().default(''),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.accommodationStatus === 'booked' &&
+      !value.hotelId?.trim() &&
+      !value.hotelName?.trim() &&
+      !value.accommodationName?.trim()
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['accommodationName'],
+        message: 'Add the hotel or stay name, or choose a different plan.',
+      });
+    }
+  });
 
 export const DeleteBookingSchema = z.object({
   bookingId: z.string().min(1),

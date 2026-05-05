@@ -78,7 +78,11 @@ describe('whats new view service', () => {
     } as WhatsNewViewRecord);
     const put = vi.spyOn(store, 'put');
 
-    await markWhatsNewViewed('user-1', { store }, '2026-05-03T12:00:00.000Z');
+    await markWhatsNewViewed(
+      'user-1',
+      { store, entries },
+      '2026-05-03T12:00:00.000Z',
+    );
 
     expect(put).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -87,6 +91,35 @@ describe('whats new view service', () => {
         lastViewedAt: '2026-05-03T12:00:00.000Z',
         createdAt: '2026-05-01T10:00:00.000Z',
         updatedAt: '2026-05-03T12:00:00.000Z',
+      }),
+    );
+  });
+
+  it('clears entries displayed on the page even when their published time is later than the visit time', async () => {
+    const store = createMemoryStore();
+    const put = vi.spyOn(store, 'put');
+    const futureEntries = [
+      {
+        id: 'future-entry',
+        title: 'Future entry',
+        publishedAt: '2026-05-05T14:00:00.000Z',
+      },
+    ] as WhatsNewEntry[];
+
+    await markWhatsNewViewed(
+      'user-1',
+      { store, entries: futureEntries },
+      '2026-05-05T09:00:00.000Z',
+    );
+
+    await expect(
+      countNewWhatsNewEntries('user-1', { store, entries: futureEntries }),
+    ).resolves.toBe(0);
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lastViewedAt: '2026-05-05T14:00:00.000Z',
+        createdAt: '2026-05-05T09:00:00.000Z',
+        updatedAt: '2026-05-05T09:00:00.000Z',
       }),
     );
   });

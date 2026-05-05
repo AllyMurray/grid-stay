@@ -1,3 +1,4 @@
+import type { AccommodationStatus } from '~/lib/bookings/accommodation';
 import type { BookingStatus } from '~/lib/constants/enums';
 
 export type AvailableDayType =
@@ -33,6 +34,7 @@ export interface SharedAttendee {
   status: BookingStatus;
   arrivalDateTime?: string;
   arrivalTime?: string;
+  accommodationStatus?: AccommodationStatus;
   accommodationName?: string;
   garageBooked?: boolean;
   garageCapacity?: number;

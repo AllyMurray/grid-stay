@@ -60,7 +60,10 @@ import {
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
-import { loadDaysIndex } from './dashboard-feed.server';
+import {
+  loadDaysIndex,
+  loadUpcomingAvailableDaysOverview,
+} from './dashboard-feed.server';
 import { getSavedDaysFilters } from './preferences.server';
 import { getSharedDayPlan } from './shared-plan.server';
 
@@ -158,6 +161,64 @@ describe('days dashboard feed', () => {
     });
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);
     expect(data.providerOptions).toEqual(['Caterham Motorsport']);
+  });
+
+  it('loads overview available days from the same future merged source', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'past:1',
+          date: '2026-05-01',
+          type: 'track_day',
+          circuit: 'Past Circuit',
+          provider: 'MSV',
+          description: 'Past day',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'MSV',
+          },
+        },
+        {
+          dayId: 'future:1',
+          date: '2026-05-10',
+          type: 'track_day',
+          circuit: 'Sntterton 300',
+          provider: 'MSV',
+          description: 'Future day',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'MSV',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([
+      {
+        dayId: 'manual:1',
+        date: '2026-05-05',
+        type: 'road_drive',
+        circuit: 'North Coast',
+        provider: 'Grid Stay',
+        description: 'Group drive',
+        source: {
+          sourceType: 'manual',
+          sourceName: 'manual',
+        },
+      },
+    ]);
+
+    const overview = await loadUpcomingAvailableDaysOverview();
+
+    expect(overview.days.map((day) => day.dayId)).toEqual([
+      'manual:1',
+      'future:1',
+    ]);
+    expect(overview.days.map((day) => day.circuit)).toEqual([
+      'North Coast',
+      'Snetterton',
+    ]);
   });
 
   it('returns saved available-days filters for the signed-in member', async () => {

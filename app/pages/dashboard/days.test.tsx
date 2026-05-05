@@ -1487,7 +1487,7 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
 
-  it('offers saved shared stays as direct actions in the selected-day view', async () => {
+  it('offers saved accommodation as direct actions in the selected-day view', async () => {
     renderWithProviders(
       <AvailableDaysPage data={defaultData} />,
       '/dashboard/days?day=day-1',
@@ -1497,10 +1497,10 @@ describe('AvailableDaysPage', () => {
       await screen.findByRole('button', { name: /join stay/i }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Your state').length).toBeGreaterThan(0);
-    expect(screen.getByText('Not in your plan')).toBeInTheDocument();
+    expect(screen.getAllByText('Not in your plan').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
     expect(
-      screen.getByText('Wait for someone to name the stay.'),
+      screen.getByText('No accommodation to join yet.'),
     ).toBeInTheDocument();
   });
 

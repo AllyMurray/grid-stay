@@ -23,6 +23,7 @@ const baseProps: MemberDaysPageProps = {
       provider: 'MSV',
       description: 'GT weekend',
       arrivalDateTime: '2026-05-02 20:00:00',
+      accommodationStatus: 'booked',
       accommodationName: 'Trackside Hotel',
     },
     {
@@ -33,6 +34,7 @@ const baseProps: MemberDaysPageProps = {
       circuit: 'Donington Park',
       provider: 'MSV Car Trackdays',
       description: 'Track evening',
+      accommodationStatus: 'not_required',
     },
   ],
   myBookingsByDay: {
@@ -82,7 +84,10 @@ describe('MemberDaysPage', () => {
     expect(screen.getByText(/Sun, 3 May 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Race day/)).toBeInTheDocument();
     expect(
-      screen.getByText('Shared stay: Trackside Hotel'),
+      screen.getByText('Accommodation: Trackside Hotel'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Accommodation: No hotel needed'),
     ).toBeInTheDocument();
     expect(screen.getByText('Arrival: Sat 2 May, 20:00')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add as maybe' })).toBeVisible();

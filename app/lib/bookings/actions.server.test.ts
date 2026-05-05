@@ -230,6 +230,7 @@ describe('booking action helpers', () => {
     const formData = new FormData();
     formData.set('bookingId', 'booking-1');
     formData.set('status', 'booked');
+    formData.set('accommodationStatus', 'booked');
     formData.set('hotelName', 'Radisson Blu Hotel, East Midlands Airport');
     formData.set('hotelAddress', 'Herald Way, Derby');
     formData.set('hotelSource', 'geoapify');
@@ -264,8 +265,108 @@ describe('booking action helpers', () => {
       user.id,
       expect.objectContaining({
         bookingId: 'booking-1',
+        accommodationStatus: 'booked',
         hotelId: 'hotel-1',
         accommodationName: 'Radisson Blu Hotel, East Midlands Airport',
+      }),
+    );
+  });
+
+  it('does not resolve hotel data when accommodation is not needed', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('status', 'booked');
+    formData.set('accommodationStatus', 'not_required');
+    formData.set('hotelName', 'Old Hotel');
+    formData.set('accommodationName', 'Old Hotel');
+    formData.set('garageBooked', 'false');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+    const resolveHotel = vi.fn();
+
+    const result = await submitBookingUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+      resolveHotel as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(resolveHotel).not.toHaveBeenCalled();
+    expect(saveBooking).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        bookingId: 'booking-1',
+        accommodationStatus: 'not_required',
+        hotelId: undefined,
+        accommodationName: '',
+      }),
+    );
+  });
+
+  it('stores track stays without resolving hotel data', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('status', 'booked');
+    formData.set('accommodationStatus', 'staying_at_track');
+    formData.set('hotelName', 'Old Hotel');
+    formData.set('accommodationName', 'Old Hotel');
+    formData.set('garageBooked', 'false');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+    const resolveHotel = vi.fn();
+
+    const result = await submitBookingUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+      resolveHotel as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(resolveHotel).not.toHaveBeenCalled();
+    expect(saveBooking).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        bookingId: 'booking-1',
+        accommodationStatus: 'staying_at_track',
+        hotelId: undefined,
+        accommodationName: '',
+      }),
+    );
+  });
+
+  it('keeps legacy hotel submissions as booked accommodation when the status field is missing', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('status', 'booked');
+    formData.set('accommodationName', 'Legacy Hotel');
+    formData.set('garageBooked', 'false');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+    const resolveHotel = vi.fn(async () => null);
+
+    const result = await submitBookingUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+      resolveHotel as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(resolveHotel).toHaveBeenCalled();
+    expect(saveBooking).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        bookingId: 'booking-1',
+        accommodationStatus: 'booked',
+        accommodationName: 'Legacy Hotel',
       }),
     );
   });
@@ -332,7 +433,7 @@ describe('booking action helpers', () => {
     expect(result.fieldErrors.bookingId?.[0]).toBeDefined();
   });
 
-  it('passes the selected shared stay through when joining from available days', async () => {
+  it('passes the selected accommodation through when joining from available days', async () => {
     const formData = new FormData();
     formData.set('dayId', 'day-1');
     formData.set('date', '2026-05-10');
@@ -365,7 +466,7 @@ describe('booking action helpers', () => {
     );
   });
 
-  it('returns field errors instead of throwing for an invalid shared stay payload', async () => {
+  it('returns field errors instead of throwing for an invalid accommodation payload', async () => {
     const formData = new FormData();
     formData.set('dayId', 'day-1');
     formData.set('date', '2026-05-10');
@@ -382,7 +483,7 @@ describe('booking action helpers', () => {
     if (result.ok) {
       throw new Error('Expected validation failure');
     }
-    expect(result.formError).toBe('Could not save this shared stay yet.');
+    expect(result.formError).toBe('Could not save this accommodation yet.');
     expect(result.fieldErrors.accommodationName?.[0]).toBeDefined();
   });
 

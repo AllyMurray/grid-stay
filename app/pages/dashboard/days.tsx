@@ -38,6 +38,12 @@ import {
 } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
+import {
+  type AccommodationStatus,
+  getAccommodationPlanSummary,
+  hasBookedAccommodation,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import type {
   BulkRaceSeriesBookingActionResult,
   CreateBookingActionResult,
@@ -79,8 +85,6 @@ import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/action
 export interface AvailableDaysPageProps {
   data: DaysIndexData;
 }
-
-const UNSHARED_STAY_LABEL = 'No shared stay yet';
 
 function titleCase(value: string) {
   return value
@@ -579,6 +583,7 @@ interface AttendeeStatusGroup {
 
 interface SharedStayGroup {
   label: string;
+  accommodationStatus: AccommodationStatus;
   attendees: SharedAttendee[];
 }
 
@@ -671,7 +676,7 @@ function getAttendanceLabel(summary: DayAttendanceSummaryPreview) {
 
 function getAccommodationLabel(summary: DayAttendanceSummaryPreview) {
   if (summary.accommodationNames.length === 0) {
-    return 'No shared stay added yet';
+    return 'No accommodation added yet';
   }
 
   return summary.accommodationNames.join(', ');
@@ -734,7 +739,7 @@ function getMyPlanSharedStay(booking?: DayBookingSnapshot) {
     return 'No booking yet';
   }
 
-  return booking.accommodationName?.trim() || 'No stay selected';
+  return getAccommodationPlanSummary(booking);
 }
 
 function getMyPlanGarage(booking?: DayBookingSnapshot) {
@@ -787,7 +792,7 @@ function groupAttendeesBySharedStay(
       continue;
     }
 
-    const label = attendee.accommodationName?.trim() || UNSHARED_STAY_LABEL;
+    const label = getAccommodationPlanSummary(attendee);
     const current = groups.get(label);
 
     if (current) {
@@ -798,20 +803,26 @@ function groupAttendeesBySharedStay(
     groups.set(label, [attendee]);
   }
 
+  const statusOrder: Record<AccommodationStatus, number> = {
+    booked: 0,
+    looking: 1,
+    staying_at_track: 2,
+    not_required: 3,
+    unknown: 4,
+  };
+
   return [...groups.entries()]
-    .sort(([left], [right]) => {
-      if (left === UNSHARED_STAY_LABEL) {
-        return 1;
-      }
-      if (right === UNSHARED_STAY_LABEL) {
-        return -1;
-      }
-      return left.localeCompare(right);
-    })
     .map(([label, groupAttendees]) => ({
       label,
+      accommodationStatus: resolveAccommodationStatus(groupAttendees[0]!),
       attendees: groupAttendees,
-    }));
+    }))
+    .sort((left, right) => {
+      const statusCompare =
+        statusOrder[left.accommodationStatus] -
+        statusOrder[right.accommodationStatus];
+      return statusCompare || left.label.localeCompare(right.label);
+    });
 }
 
 function DayBookingAction({
@@ -1845,8 +1856,7 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
                             </Text>
                             <Stack gap={2} align="flex-end">
                               <Text size="sm" c="dimmed" ta="right">
-                                {attendee.accommodationName?.trim() ||
-                                  UNSHARED_STAY_LABEL}
+                                {getAccommodationPlanSummary(attendee)}
                               </Text>
                               {arrivalDateTimeLabel ? (
                                 <Text size="xs" c="dimmed" ta="right">
@@ -1936,7 +1946,7 @@ function SharedStayAction({
 
 function getSharedStayState(
   booking: DayBookingSnapshot | undefined,
-  accommodationName: string,
+  group: SharedStayGroup,
 ) {
   if (!booking) {
     return {
@@ -1952,14 +1962,29 @@ function getSharedStayState(
     };
   }
 
-  if (booking.accommodationName?.trim() === accommodationName) {
+  if (group.accommodationStatus !== 'booked') {
+    return resolveAccommodationStatus(booking) === group.accommodationStatus
+      ? {
+          label: 'Same plan',
+          color: 'green' as const,
+        }
+      : {
+          label: getAccommodationPlanSummary(booking),
+          color: 'gray' as const,
+        };
+  }
+
+  if (
+    hasBookedAccommodation(booking) &&
+    booking.accommodationName?.trim() === group.label
+  ) {
     return {
       label: 'Current stay',
       color: 'green' as const,
     };
   }
 
-  if (booking.accommodationName?.trim()) {
+  if (hasBookedAccommodation(booking) && booking.accommodationName?.trim()) {
     return {
       label: 'On another stay',
       color: 'yellow' as const,
@@ -1967,9 +1992,23 @@ function getSharedStayState(
   }
 
   return {
-    label: 'No stay selected',
+    label: getAccommodationPlanSummary(booking),
     color: 'gray' as const,
   };
+}
+
+function getSharedStayActionText(status: AccommodationStatus) {
+  switch (status) {
+    case 'not_required':
+      return 'No accommodation action needed.';
+    case 'staying_at_track':
+      return 'Track stay noted.';
+    case 'looking':
+    case 'unknown':
+      return 'No accommodation to join yet.';
+    case 'booked':
+      return '';
+  }
 }
 
 function SharedStayAssignments({
@@ -2010,26 +2049,17 @@ function SharedStayAssignments({
 
       <Stack gap={0}>
         {groups.map((group, index) => {
-          const state =
-            group.label === UNSHARED_STAY_LABEL
-              ? {
-                  label:
-                    booking?.status === 'cancelled'
-                      ? 'Cancelled'
-                      : booking?.accommodationName?.trim()
-                        ? 'On another stay'
-                        : 'No stay selected',
-                  color: 'gray' as const,
-                }
-              : getSharedStayState(booking, group.label);
+          const state = getSharedStayState(booking, group);
 
           return (
             <Fragment key={group.label}>
               <Box
                 className="shared-stay-row"
                 data-current={
-                  group.label !== UNSHARED_STAY_LABEL &&
+                  group.accommodationStatus === 'booked' &&
                   booking?.status !== 'cancelled' &&
+                  booking &&
+                  hasBookedAccommodation(booking) &&
                   booking?.accommodationName?.trim() === group.label
                     ? 'true'
                     : undefined
@@ -2100,9 +2130,9 @@ function SharedStayAssignments({
                   >
                     Action
                   </Text>
-                  {group.label === UNSHARED_STAY_LABEL ? (
+                  {group.accommodationStatus !== 'booked' ? (
                     <Text size="sm" c="dimmed" ta="right">
-                      Wait for someone to name the stay.
+                      {getSharedStayActionText(group.accommodationStatus)}
                     </Text>
                   ) : (
                     <SharedStayAction
@@ -3184,7 +3214,7 @@ function DayDetailContent({
             </Box>
             <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
-                Shared stay
+                Accommodation
               </Text>
               <Text
                 size="sm"
@@ -3226,7 +3256,7 @@ function DayDetailContent({
             </Box>
             <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
-                Saved stays
+                Accommodation plans
               </Text>
               <Text size="sm" fw={700} className="selected-day-summary-value">
                 {getSavedStayCountLabel(summary.accommodationNames.length)}
@@ -3345,9 +3375,9 @@ function DayDetailContent({
       <Stack gap="sm">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
-            <Text fw={700}>Shared stay</Text>
+            <Text fw={700}>Accommodation</Text>
             <Text size="sm" c="dimmed">
-              See who is attached to each shared stay name, then copy one into
+              See who is attached to each hotel or stay name, then copy one into
               your booking without leaving this page.
             </Text>
           </Stack>
@@ -3360,7 +3390,7 @@ function DayDetailContent({
           <Group gap="sm">
             <Loader size="sm" color="brand" />
             <Text size="sm" c="dimmed">
-              Loading shared stay assignments
+              Loading accommodation assignments
             </Text>
           </Group>
         ) : attendanceDetails ? (
@@ -3371,7 +3401,7 @@ function DayDetailContent({
           />
         ) : (
           <Text size="sm" c="dimmed">
-            Shared stay assignments are not available yet.
+            Accommodation assignments are not available yet.
           </Text>
         )}
       </Stack>
@@ -3880,7 +3910,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       <PageHeader
         eyebrow="Shared schedule"
         title="Available Days"
-        description="Open one live date at a time to review the group plan, shared stay, and your next trip action."
+        description="Open one live date at a time to review the group plan, accommodation, and your next trip action."
         meta={
           <AvailableDaysHeaderMeta
             totalCount={loadedDays.totalCount}

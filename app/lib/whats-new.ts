@@ -26,6 +26,74 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'track-stay-accommodation',
+    title: 'Track stays can be shared',
+    publishedAt: '2026-05-05T16:12:00.000Z',
+    dateLabel: '5 May 2026',
+    category: 'Bookings',
+    description:
+      'Accommodation plans now include staying at the track for camping, campervans, tentboxes, and paddock overnight stays.',
+    highlights: [
+      'Choose Staying at the track from the accommodation plan in My Bookings.',
+      'The plan is visible to other members coordinating the same day.',
+      'Track stays do not require a hotel lookup, hotel name, or hotel reference.',
+    ],
+    href: '/dashboard/bookings?view=manage',
+    actionLabel: 'Update accommodation',
+    icon: IconBuildingSkyscraper,
+  },
+  {
+    id: 'bookings-schedule-views',
+    title: 'Schedule views moved into My Bookings',
+    publishedAt: '2026-05-05T14:00:00.000Z',
+    dateLabel: '5 May 2026',
+    category: 'Bookings',
+    description:
+      'My Bookings now brings upcoming trips, calendar sync, the trip calendar, and private booking edits together on one page.',
+    highlights: [
+      'Upcoming trips is the default view so the next dates are immediately visible.',
+      'Calendar view stays available from the same page when you need a month view.',
+      'Manage keeps the full editor for accommodation, arrival, garage, and private details.',
+    ],
+    href: '/dashboard/bookings',
+    actionLabel: 'Open My Bookings',
+    icon: IconCalendarMonth,
+  },
+  {
+    id: 'group-calendar',
+    title: 'Group calendar for shared plans',
+    publishedAt: '2026-05-05T09:00:00.000Z',
+    dateLabel: '5 May 2026',
+    category: 'Members',
+    description:
+      'The new Group Calendar shows where members are booked or maybe across a month without opening each profile.',
+    highlights: [
+      'Review the month view to find dates where members have shared plans.',
+      'Filter booked and maybe statuses, or select specific people to focus the totals.',
+      'Open a date to see each event and the matching member roster.',
+    ],
+    href: '/dashboard/group-calendar',
+    actionLabel: 'Open group calendar',
+    icon: IconUsersGroup,
+  },
+  {
+    id: 'accommodation-plan-status',
+    title: 'Mark when no hotel is needed',
+    publishedAt: '2026-05-04T22:00:00.000Z',
+    dateLabel: '4 May 2026',
+    category: 'Bookings',
+    description:
+      'Bookings now separate the accommodation plan from the hotel details, so one-day trips can be marked clearly without adding a stay.',
+    highlights: [
+      'Set a trip to not set, no hotel needed, staying at the track, need a hotel, or hotel booked.',
+      'Hotel search, references, and feedback only appear when a hotel is actually booked.',
+      'Available Days, My Bookings, Members, and Overview now show the accommodation plan consistently.',
+    ],
+    href: '/dashboard/bookings',
+    actionLabel: 'Open bookings',
+    icon: IconBuildingSkyscraper,
+  },
+  {
     id: 'hotel-catalogue-feedback',
     title: 'Hotel lookup, feedback, and summaries',
     publishedAt: '2026-05-04T21:00:00.000Z',
@@ -164,19 +232,19 @@ export const whatsNewEntries: WhatsNewEntry[] = [
   },
   {
     id: 'upcoming-schedule',
-    title: 'Schedule starts with what is ahead',
+    title: 'My Bookings starts with what is ahead',
     publishedAt: '2026-05-03T10:00:00.000Z',
     dateLabel: '3 May 2026',
-    category: 'Schedule',
+    category: 'Bookings',
     description:
-      'The Schedule page now focuses on upcoming booked and maybe trips, while My Bookings remains the full trip history.',
+      'The upcoming view focuses on booked and maybe trips, while Manage keeps the full trip history.',
     highlights: [
-      'Past and cancelled trips stay available in My Bookings.',
-      'Schedule totals now match the trips shown on that page.',
+      'Past and cancelled trips stay available in Manage.',
+      'Trip totals now match the trips shown in the current view.',
       'The empty state links straight back to the full booking list.',
     ],
-    href: '/dashboard/schedule',
-    actionLabel: 'Open schedule',
+    href: '/dashboard/bookings',
+    actionLabel: 'Open My Bookings',
     icon: IconCalendarMonth,
   },
   {
@@ -222,7 +290,7 @@ export const whatsNewEntries: WhatsNewEntry[] = [
     description:
       'Dashboard headers now use compact summaries so mobile screens get to the working content faster.',
     highlights: [
-      'Available Days, Members, Schedule, My Bookings, and Overview use tighter summaries.',
+      'Available Days, Members, My Bookings, and Overview use tighter summaries.',
       'Large stacked stat pills were removed from key mobile pages.',
       'Navigation remains available from the dashboard menu.',
     ],
@@ -238,4 +306,24 @@ export function countWhatsNewEntriesAfter(
 ) {
   return entries.filter((entry) => !viewedAt || entry.publishedAt > viewedAt)
     .length;
+}
+
+export function getLatestWhatsNewPublishedAt(
+  entries: WhatsNewEntry[] = whatsNewEntries,
+) {
+  return entries.reduce<string | undefined>(
+    (latest, entry) =>
+      !latest || entry.publishedAt > latest ? entry.publishedAt : latest,
+    undefined,
+  );
+}
+
+export function resolveWhatsNewViewedAt(
+  viewedAt: string,
+  entries: WhatsNewEntry[] = whatsNewEntries,
+) {
+  const latestPublishedAt = getLatestWhatsNewPublishedAt(entries);
+  return latestPublishedAt && latestPublishedAt > viewedAt
+    ? latestPublishedAt
+    : viewedAt;
 }

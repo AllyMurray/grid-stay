@@ -19,6 +19,7 @@ const members = [
       date: '2026-05-03',
       circuit: 'Silverstone',
       provider: 'MSV',
+      accommodationStatus: 'booked' as const,
       accommodationName: 'Trackside Hotel',
     },
   },

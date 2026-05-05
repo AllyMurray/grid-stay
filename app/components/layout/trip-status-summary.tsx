@@ -4,22 +4,22 @@ export interface TripStatusSummaryProps {
   totalCount: number;
   confirmedCount: number;
   maybeCount: number;
-  sharedStayCount: number;
+  accommodationCount: number;
 }
 
 function formatTripsTracked(value: number) {
   return `${value} ${value === 1 ? 'trip' : 'trips'} tracked`;
 }
 
-function formatSharedStayCount(value: number) {
-  return `${value} ${value === 1 ? 'shared stay' : 'shared stays'}`;
+function formatAccommodationCount(value: number) {
+  return `${value} with accommodation`;
 }
 
 export function TripStatusSummary({
   totalCount,
   confirmedCount,
   maybeCount,
-  sharedStayCount,
+  accommodationCount,
 }: TripStatusSummaryProps) {
   const statusTotal = confirmedCount + maybeCount;
   const confirmedWidth =
@@ -58,7 +58,7 @@ export function TripStatusSummary({
           {maybeCount} maybe
         </Text>
         <Text size="xs" c="dimmed">
-          {formatSharedStayCount(sharedStayCount)}
+          {formatAccommodationCount(accommodationCount)}
         </Text>
       </Group>
     </Stack>

@@ -111,9 +111,9 @@ describe('DashboardLayoutRoute', () => {
       'Log out',
       'Overview',
       'Available Days',
-      'Schedule',
-      'Members',
       'My Bookings',
+      'Group Calendar',
+      'Members',
       'Notifications',
       'Feedback',
       "What's New",
@@ -139,7 +139,7 @@ describe('DashboardLayoutRoute', () => {
       '/dashboard/admin',
     );
     expect(
-      within(drawer).queryByRole('link', { name: 'Manual Days' }),
+      within(drawer).queryByRole('link', { name: 'Manual days' }),
     ).not.toBeInTheDocument();
     expect(
       within(drawer).queryByRole('link', { name: 'Feed Status' }),

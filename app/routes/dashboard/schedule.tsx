@@ -1,37 +1,25 @@
-import { useLoaderData } from 'react-router';
+import { redirect } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
 import {
   buildCalendarFeedUrl,
   ensureCalendarFeedForUser,
-  getActiveCalendarFeedForUser,
   getCalendarFeedOptions,
   parseCalendarFeedOptionsFromFormData,
   regenerateCalendarFeedForUser,
   saveCalendarFeedOptionsForUser,
 } from '~/lib/calendar/feed.server';
-import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import { listMyBookings } from '~/lib/db/services/booking.server';
-import { BookingSchedulePage } from '~/pages/dashboard/schedule';
 import type { Route } from './+types/schedule';
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { user, headers } = await requireUser(request);
-  const [bookings, calendarFeed] = await Promise.all([
-    listMyBookings(user.id),
-    getActiveCalendarFeedForUser(user.id),
-  ]);
+  const { headers } = await requireUser(request);
+  const url = new URL(request.url);
+  const view = url.searchParams.get('view');
 
-  return Response.json(
-    {
-      bookings,
-      calendarFeedExists: Boolean(calendarFeed),
-      calendarFeedUrl: calendarFeed?.token
-        ? buildCalendarFeedUrl(request, calendarFeed.token)
-        : null,
-      calendarFeedTokenHint: calendarFeed?.tokenHint ?? null,
-      calendarFeedOptions: getCalendarFeedOptions(calendarFeed),
-    },
+  return redirect(
+    view === 'calendar'
+      ? '/dashboard/bookings?view=calendar'
+      : '/dashboard/bookings',
     { headers },
   );
 }
@@ -96,20 +84,5 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function BookingScheduleRoute() {
-  const data = useLoaderData<typeof loader>() as {
-    bookings: BookingRecord[];
-    calendarFeedExists: boolean;
-    calendarFeedUrl: string | null;
-    calendarFeedTokenHint: string | null;
-    calendarFeedOptions: ReturnType<typeof getCalendarFeedOptions>;
-  };
-  return (
-    <BookingSchedulePage
-      bookings={data.bookings}
-      calendarFeedExists={data.calendarFeedExists}
-      calendarFeedUrl={data.calendarFeedUrl}
-      calendarFeedTokenHint={data.calendarFeedTokenHint}
-      calendarFeedOptions={data.calendarFeedOptions}
-    />
-  );
+  return null;
 }

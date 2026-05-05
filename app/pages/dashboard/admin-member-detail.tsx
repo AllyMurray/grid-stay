@@ -28,6 +28,10 @@ import type {
   AdminMemberProfile,
   AdminSeriesOption,
 } from '~/lib/admin/member-management.server';
+import {
+  getAccommodationPlanSummary,
+  hasBookedAccommodation,
+} from '~/lib/bookings/accommodation';
 import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface AdminMemberDetailPageProps {
@@ -105,8 +109,7 @@ function MemberBookings({ profile }: { profile: AdminMemberProfile }) {
                     <Text size="sm">{booking.description}</Text>
 
                     <Text size="sm" c="dimmed">
-                      Stay •{' '}
-                      {booking.accommodationName ?? 'No shared stay added yet'}
+                      Accommodation • {getAccommodationPlanSummary(booking)}
                     </Text>
                   </Stack>
                 </Group>
@@ -410,6 +413,7 @@ export function AdminMemberDetailPage({
   );
   const sharedStays = new Set(
     activeBookings
+      .filter(hasBookedAccommodation)
       .map((booking) => booking.accommodationName?.trim())
       .filter((name): name is string => Boolean(name)),
   );
@@ -436,7 +440,7 @@ export function AdminMemberDetailPage({
               { label: 'Upcoming', value: profile.bookings.length },
               { label: 'Active', value: activeBookings.length },
               { label: 'Series', value: profile.subscriptions.length },
-              { label: 'Shared stays', value: sharedStays.size },
+              { label: 'Accommodations', value: sharedStays.size },
             ]}
           />
         }

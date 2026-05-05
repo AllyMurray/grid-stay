@@ -295,6 +295,7 @@ describe('booking service', () => {
         status: 'booked',
         bookingReference: 'ABC123',
         arrivalDateTime: '2026-05-09 20:00:00',
+        accommodationStatus: 'booked',
         accommodationName: 'The Paddock Inn',
         accommodationReference: 'HOTEL-9',
         garageBooked: true,
@@ -328,6 +329,7 @@ describe('booking service', () => {
       status: 'booked',
       arrivalDateTime: '2026-05-09 20:00:00',
       accommodationName: 'The Paddock Inn',
+      accommodationStatus: 'booked',
     });
     expect(shared.attendees[0]).not.toHaveProperty('bookingReference');
     expect(shared.attendees[0]).not.toHaveProperty('accommodationReference');
@@ -354,6 +356,106 @@ describe('booking service', () => {
 
     expect(shared.attendees[0]).toMatchObject({
       arrivalDateTime: '2026-05-10 08:00:00',
+    });
+  });
+
+  it('stores explicit no-hotel plans without treating stale hotel fields as accommodation', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'booked',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      accommodationStatus: 'booked',
+      accommodationName: 'Old Hotel',
+      accommodationReference: 'HOTEL-9',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    const updated = await updateBooking(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        status: 'booked',
+        bookingReference: '',
+        arrivalDateTime: undefined,
+        accommodationStatus: 'not_required',
+        accommodationName: 'Old Hotel',
+        accommodationReference: 'HOTEL-9',
+        garageBooked: false,
+        garageCapacity: 2,
+        garageLabel: '',
+        notes: '',
+      },
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(updated.accommodationStatus).toBe('not_required');
+    expect(updated.accommodationName).toBeUndefined();
+    expect(updated.accommodationReference).toBeUndefined();
+
+    const shared = summarizeDayAttendances(memory.items as never);
+    expect(shared.accommodationNames).toEqual([]);
+    expect(shared.attendees[0]).toMatchObject({
+      accommodationStatus: 'not_required',
+    });
+  });
+
+  it('stores track stays without treating stale hotel fields as booked accommodation', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      userImage: user.picture,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'booked',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      accommodationStatus: 'booked',
+      accommodationName: 'Old Hotel',
+      accommodationReference: 'HOTEL-9',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    const updated = await updateBooking(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        status: 'booked',
+        bookingReference: '',
+        arrivalDateTime: undefined,
+        accommodationStatus: 'staying_at_track',
+        accommodationName: 'Old Hotel',
+        accommodationReference: 'HOTEL-9',
+        garageBooked: false,
+        garageCapacity: 2,
+        garageLabel: '',
+        notes: '',
+      },
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(updated.accommodationStatus).toBe('staying_at_track');
+    expect(updated.accommodationName).toBeUndefined();
+    expect(updated.accommodationReference).toBeUndefined();
+
+    const shared = summarizeDayAttendances(memory.items as never);
+    expect(shared.accommodationNames).toEqual([]);
+    expect(shared.attendees[0]).toMatchObject({
+      accommodationStatus: 'staying_at_track',
     });
   });
 
@@ -462,6 +564,7 @@ describe('booking service', () => {
         bookingId: existing.bookingId,
         status: 'maybe',
         bookingReference: '',
+        accommodationStatus: 'unknown',
         accommodationName: '',
         accommodationReference: '',
         garageBooked: false,
@@ -483,7 +586,7 @@ describe('booking service', () => {
     );
   });
 
-  it('creates a booking with the chosen shared stay when none exists yet', async () => {
+  it('creates a booking with the chosen accommodation when none exists yet', async () => {
     const memory = createMemoryStore();
 
     const created = await applySharedStaySelection(
@@ -510,7 +613,7 @@ describe('booking service', () => {
     });
   });
 
-  it('updates an existing cancelled booking when a shared stay is selected', async () => {
+  it('updates an existing cancelled booking when accommodation is selected', async () => {
     const memory = createMemoryStore();
     memory.items.push({
       bookingId: 'booking-1',

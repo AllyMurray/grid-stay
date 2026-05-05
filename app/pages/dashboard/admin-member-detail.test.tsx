@@ -26,6 +26,7 @@ const profile: AdminMemberProfile = {
       circuit: 'Snetterton',
       provider: 'Caterham Motorsport',
       description: 'Round 1',
+      accommodationStatus: 'booked',
       accommodationName: 'Trackside Hotel',
       bookingReference: 'PRIVATE-REF',
       accommodationReference: 'PRIVATE-HOTEL',

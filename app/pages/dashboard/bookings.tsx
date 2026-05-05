@@ -9,6 +9,7 @@ import {
   NumberInput,
   Paper,
   ScrollArea,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
@@ -35,14 +36,25 @@ import {
   IconUsers,
 } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { Link, useFetcher } from 'react-router';
+import { Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import { TripStatusSummary } from '~/components/layout/trip-status-summary';
+import {
+  ACCOMMODATION_STATUS_DESCRIPTIONS,
+  ACCOMMODATION_STATUS_LABELS,
+  ACCOMMODATION_STATUS_VALUES,
+  type AccommodationStatus,
+  getAccommodationPlanSummary,
+  hasArrangedAccommodation,
+  hasBookedAccommodation,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import type {
   BookingEditorActionResult,
   HotelReviewActionResult,
 } from '~/lib/bookings/actions.server';
+import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import {
   formatArrivalDateTime,
   resolveArrivalDateTime,
@@ -55,14 +67,29 @@ import type {
   HotelSuggestion,
 } from '~/lib/db/services/hotel.server';
 import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
+import { BookingSchedulePanel } from './schedule';
 
 export interface MyBookingsPageProps {
   bookings: BookingRecord[];
   garageShareRequests?: UserGarageShareRequest[];
   hotelInsights?: Record<string, HotelInsight>;
+  calendarFeedExists?: boolean;
+  calendarFeedUrl?: string | null;
+  calendarFeedTokenHint?: string | null;
+  calendarFeedOptions?: CalendarFeedOptions;
+  today?: string;
 }
 
 type BookingFilter = 'all' | BookingRecord['status'];
+type MyBookingsView = 'upcoming' | 'calendar' | 'manage';
+
+function parseBookingsView(value: string | null): MyBookingsView {
+  if (value === 'calendar' || value === 'manage') {
+    return value;
+  }
+
+  return 'upcoming';
+}
 
 interface HotelSearchResponse {
   suggestions: HotelSuggestion[];
@@ -71,7 +98,7 @@ interface HotelSearchResponse {
 }
 
 function hotelFromBooking(booking: BookingRecord): HotelSuggestion | null {
-  if (!booking.accommodationName?.trim()) {
+  if (!hasBookedAccommodation(booking) || !booking.accommodationName?.trim()) {
     return null;
   }
 
@@ -128,8 +155,11 @@ function bookingColor(status: BookingRecord['status']) {
 
 function bookingSharedSummary(booking: BookingRecord) {
   const arrivalDateTime = resolveArrivalDateTime(booking);
+  const accommodationStatus = resolveAccommodationStatus(booking);
   const parts = [
-    booking.accommodationName,
+    booking.status === 'cancelled' && accommodationStatus === 'unknown'
+      ? undefined
+      : getAccommodationPlanSummary(booking),
     arrivalDateTime
       ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}`
       : undefined,
@@ -140,7 +170,7 @@ function bookingSharedSummary(booking: BookingRecord) {
   }
 
   if (booking.status === 'cancelled') {
-    return 'No shared stay on this trip';
+    return 'No accommodation plan on this trip';
   }
 
   return 'No accommodation shared yet';
@@ -271,6 +301,7 @@ function matchesBookingQuery(booking: BookingRecord, query: string) {
     booking.date,
     booking.description,
     booking.accommodationName,
+    getAccommodationPlanSummary(booking),
     resolveArrivalDateTime(booking),
     booking.garageLabel,
     booking.bookingReference,
@@ -462,12 +493,17 @@ function GarageShareRequestList({
 function HotelSelector({
   booking,
   insight,
+  accommodationStatus,
+  onAccommodationStatusChange,
   fieldErrors,
 }: {
   booking: BookingRecord;
   insight?: HotelInsight;
+  accommodationStatus: AccommodationStatus;
+  onAccommodationStatusChange: (status: AccommodationStatus) => void;
   fieldErrors?: Partial<
     Record<
+      | 'accommodationStatus'
       | 'accommodationName'
       | 'hotelId'
       | 'hotelName'
@@ -500,6 +536,7 @@ function HotelSelector({
   const isSearching = searchFetcher.state !== 'idle';
   const providerError = searchFetcher.data?.providerError;
   const hotelSource = selectedHotel?.source ?? 'manual';
+  const showHotelFields = accommodationStatus === 'booked';
 
   const runSearch = () => {
     const trimmed = query.trim();
@@ -627,83 +664,114 @@ function HotelSelector({
       <Stack gap="sm">
         <input
           type="hidden"
-          name="hotelId"
-          value={selectedHotel?.hotelId ?? ''}
+          name="accommodationStatus"
+          value={accommodationStatus}
         />
-        <input type="hidden" name="hotelName" value={hotelName} />
-        <input type="hidden" name="hotelSource" value={hotelSource} />
-        <input
-          type="hidden"
-          name="hotelSourcePlaceId"
-          value={selectedHotel?.sourcePlaceId ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelPostcode"
-          value={selectedHotel?.postcode ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelCountry"
-          value={selectedHotel?.country ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelLatitude"
-          value={selectedHotel?.latitude ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelLongitude"
-          value={selectedHotel?.longitude ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelAttribution"
-          value={selectedHotel?.attribution ?? ''}
-        />
-
-        <TextInput
-          name="accommodationName"
+        <Select
           label={
             <BookingFieldLabel
-              label="Hotel or stay"
+              label="Accommodation plan"
               visibility="Visible to the group"
               visibilityColor="blue.6"
             />
           }
-          description="Search for a hotel with address details, or type a stay name manually."
-          value={hotelName}
-          onChange={(event) => {
-            setHotelName(event.currentTarget.value);
-            clearSelectedHotel();
+          description={ACCOMMODATION_STATUS_DESCRIPTIONS[accommodationStatus]}
+          value={accommodationStatus}
+          onChange={(value) => {
+            onAccommodationStatusChange(
+              (value as AccommodationStatus | null) ?? 'unknown',
+            );
           }}
-          error={
-            fieldErrors?.accommodationName?.[0] ??
-            fieldErrors?.hotelName?.[0] ??
-            fieldErrors?.hotelId?.[0]
-          }
-          maxLength={120}
-          rightSectionWidth={112}
-          rightSection={
-            <Button type="button" size="compact-xs" onClick={openSearch}>
-              Find hotel
-            </Button>
-          }
+          data={ACCOMMODATION_STATUS_VALUES.map((value) => ({
+            value,
+            label: ACCOMMODATION_STATUS_LABELS[value],
+          }))}
+          error={fieldErrors?.accommodationStatus?.[0]}
         />
 
-        <TextInput
-          name="hotelAddress"
-          label="Address"
-          description="Optional, but useful once the hotel is in the shared catalogue."
-          value={hotelAddress}
-          onChange={(event) => setHotelAddress(event.currentTarget.value)}
-          error={fieldErrors?.hotelAddress?.[0]}
-          maxLength={240}
-          leftSection={<IconMapPin size={16} />}
-        />
+        {showHotelFields ? (
+          <>
+            <input
+              type="hidden"
+              name="hotelId"
+              value={selectedHotel?.hotelId ?? ''}
+            />
+            <input type="hidden" name="hotelName" value={hotelName} />
+            <input type="hidden" name="hotelSource" value={hotelSource} />
+            <input
+              type="hidden"
+              name="hotelSourcePlaceId"
+              value={selectedHotel?.sourcePlaceId ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelPostcode"
+              value={selectedHotel?.postcode ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelCountry"
+              value={selectedHotel?.country ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelLatitude"
+              value={selectedHotel?.latitude ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelLongitude"
+              value={selectedHotel?.longitude ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelAttribution"
+              value={selectedHotel?.attribution ?? ''}
+            />
 
-        {selectedHotel ? (
+            <TextInput
+              name="accommodationName"
+              label={
+                <BookingFieldLabel
+                  label="Hotel or stay"
+                  visibility="Visible to the group"
+                  visibilityColor="blue.6"
+                />
+              }
+              description="Search for a hotel with address details, or type a stay name manually."
+              value={hotelName}
+              onChange={(event) => {
+                setHotelName(event.currentTarget.value);
+                clearSelectedHotel();
+              }}
+              error={
+                fieldErrors?.accommodationName?.[0] ??
+                fieldErrors?.hotelName?.[0] ??
+                fieldErrors?.hotelId?.[0]
+              }
+              maxLength={120}
+              rightSectionWidth={112}
+              rightSection={
+                <Button type="button" size="compact-xs" onClick={openSearch}>
+                  Find hotel
+                </Button>
+              }
+            />
+
+            <TextInput
+              name="hotelAddress"
+              label="Address"
+              description="Optional, but useful once the hotel is in the shared catalogue."
+              value={hotelAddress}
+              onChange={(event) => setHotelAddress(event.currentTarget.value)}
+              error={fieldErrors?.hotelAddress?.[0]}
+              maxLength={240}
+              leftSection={<IconMapPin size={16} />}
+            />
+          </>
+        ) : null}
+
+        {showHotelFields && selectedHotel ? (
           <Paper withBorder p="sm" radius="md">
             <Group gap="sm" align="flex-start" wrap="nowrap">
               <ThemeIcon size={32} radius="sm" color="blue" variant="light">
@@ -935,6 +1003,9 @@ function BookingEditorPanel({
   const isSaving = saveFetcher.state !== 'idle';
   const isDeleting = deleteFetcher.state !== 'idle';
   const arrivalDateTime = resolveArrivalDateTime(booking);
+  const [accommodationStatus, setAccommodationStatus] =
+    useState<AccommodationStatus>(() => resolveAccommodationStatus(booking));
+  const accommodationBooked = accommodationStatus === 'booked';
   const fieldErrors =
     saveFetcher.data && !saveFetcher.data.ok
       ? saveFetcher.data.fieldErrors
@@ -1086,12 +1157,14 @@ function BookingEditorPanel({
                 <BookingSectionHeading
                   icon={<IconUsers size={16} />}
                   title="Shared with the group"
-                  description="The hotel or stay and arrival time are visible to everyone coordinating this day."
+                  description="The accommodation plan and arrival time are visible to everyone coordinating this day."
                   color="blue"
                 />
                 <HotelSelector
                   booking={booking}
                   insight={hotelInsight}
+                  accommodationStatus={accommodationStatus}
+                  onAccommodationStatusChange={setAccommodationStatus}
                   fieldErrors={fieldErrors}
                 />
                 <DateTimePicker
@@ -1204,19 +1277,21 @@ function BookingEditorPanel({
                   error={fieldErrors?.bookingReference?.[0]}
                   maxLength={120}
                 />
-                <TextInput
-                  name="accommodationReference"
-                  label={
-                    <BookingFieldLabel
-                      label="Accommodation reference"
-                      visibility="Visible only to you"
-                    />
-                  }
-                  description="Useful for the hotel confirmation, booking id, or door code."
-                  defaultValue={booking.accommodationReference ?? ''}
-                  error={fieldErrors?.accommodationReference?.[0]}
-                  maxLength={120}
-                />
+                {accommodationBooked ? (
+                  <TextInput
+                    name="accommodationReference"
+                    label={
+                      <BookingFieldLabel
+                        label="Accommodation reference"
+                        visibility="Visible only to you"
+                      />
+                    }
+                    description="Useful for the hotel confirmation, booking id, or door code."
+                    defaultValue={booking.accommodationReference ?? ''}
+                    error={fieldErrors?.accommodationReference?.[0]}
+                    maxLength={120}
+                  />
+                ) : null}
               </SimpleGrid>
 
               <Textarea
@@ -1262,7 +1337,9 @@ function BookingEditorPanel({
           </Stack>
         </saveFetcher.Form>
       </Paper>
-      <HotelFeedbackPanel booking={booking} insight={hotelInsight} />
+      {accommodationBooked ? (
+        <HotelFeedbackPanel booking={booking} insight={hotelInsight} />
+      ) : null}
     </>
   );
 }
@@ -1271,7 +1348,14 @@ export function MyBookingsPage({
   bookings,
   garageShareRequests = [],
   hotelInsights = {},
+  calendarFeedExists = false,
+  calendarFeedUrl = null,
+  calendarFeedTokenHint = null,
+  calendarFeedOptions,
+  today,
 }: MyBookingsPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeView = parseBookingsView(searchParams.get('view'));
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     bookings[0]?.bookingId ?? null,
   );
@@ -1283,11 +1367,9 @@ export function MyBookingsPage({
   const maybeCount = bookings.filter(
     (booking) => booking.status === 'maybe',
   ).length;
-  const sharedStayCount = new Set(
-    bookings
-      .map((booking) => booking.accommodationName?.trim())
-      .filter((name): name is string => Boolean(name)),
-  ).size;
+  const accommodationPlanCount = bookings.filter(
+    hasArrangedAccommodation,
+  ).length;
   const sortedBookings = useMemo(
     () => [...bookings].sort(sortBookings),
     [bookings],
@@ -1340,18 +1422,31 @@ export function MyBookingsPage({
     setSelectedBookingId(filteredBookings[0].bookingId);
   }, [filteredBookings, selectedBookingId]);
 
+  const handleViewChange = (value: string) => {
+    const nextView = value as MyBookingsView;
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (nextView === 'upcoming') {
+      nextParams.delete('view');
+    } else {
+      nextParams.set('view', nextView);
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  };
+
   return (
     <Stack gap="xl">
       <PageHeader
         eyebrow="Private trip details"
         title="My Bookings"
-        description="Keep shared stay names aligned with the group while references and notes stay on your side."
+        description="Review upcoming trips, sync your calendar, and manage private booking details in one place."
         meta={
           <TripStatusSummary
             totalCount={bookings.length}
             confirmedCount={bookedCount}
             maybeCount={maybeCount}
-            sharedStayCount={sharedStayCount}
+            accommodationCount={accommodationPlanCount}
           />
         }
         actions={
@@ -1372,156 +1467,187 @@ export function MyBookingsPage({
           }
         />
       ) : (
-        <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
-          <Grid.Col span={{ base: 12, lg: 4 }}>
-            <Paper
-              className="shell-card booking-list-panel"
-              p={{ base: 'sm', sm: 'md' }}
-            >
-              <Stack gap="md">
-                <Group justify="space-between" align="flex-end">
-                  <Stack gap={2}>
-                    <Title order={3}>Trips</Title>
-                    <Text size="sm" c="dimmed">
-                      Choose a booking to review or edit.
-                    </Text>
-                  </Stack>
-                  <Text size="sm" fw={700} c="dimmed">
-                    {filteredBookings.length} shown
-                  </Text>
-                </Group>
+        <>
+          <SegmentedControl
+            aria-label="My bookings view"
+            value={activeView}
+            onChange={handleViewChange}
+            data={[
+              { label: 'Upcoming', value: 'upcoming' },
+              { label: 'Calendar', value: 'calendar' },
+              { label: 'Manage', value: 'manage' },
+            ]}
+            w={{ base: '100%', sm: 'auto' }}
+          />
 
-                <Grid gap="sm">
-                  <Grid.Col span={{ base: 12, sm: 7, lg: 12, xl: 7 }}>
-                    <TextInput
-                      aria-label="Search trips"
-                      placeholder="Search circuit, provider, stay, or reference"
-                      value={searchQuery}
-                      onChange={(event) =>
-                        setSearchQuery(event.currentTarget.value)
-                      }
-                      leftSection={<IconSearch size={16} />}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 5, lg: 12, xl: 5 }}>
-                    <Select
-                      aria-label="Filter trips by status"
-                      comboboxProps={{ withinPortal: false }}
-                      value={statusFilter}
-                      onChange={(value) =>
-                        setStatusFilter(
-                          (value as BookingFilter | null) ?? 'all',
-                        )
-                      }
-                      data={[
-                        { value: 'all', label: 'All statuses' },
-                        { value: 'booked', label: 'Booked' },
-                        { value: 'maybe', label: 'Maybe' },
-                        { value: 'cancelled', label: 'Cancelled' },
-                      ]}
-                    />
-                  </Grid.Col>
-                </Grid>
-
-                <ScrollArea.Autosize
-                  offsetScrollbars
-                  className="booking-list-scroll"
+          {activeView === 'upcoming' || activeView === 'calendar' ? (
+            <BookingSchedulePanel
+              bookings={bookings}
+              displayMode={activeView === 'calendar' ? 'calendar' : 'list'}
+              showDisplayModeControl={false}
+              manageBookingsHref="/dashboard/bookings?view=manage"
+              calendarFeedExists={calendarFeedExists}
+              calendarFeedUrl={calendarFeedUrl}
+              calendarFeedTokenHint={calendarFeedTokenHint}
+              calendarFeedOptions={calendarFeedOptions}
+              today={today}
+            />
+          ) : (
+            <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
+              <Grid.Col span={{ base: 12, lg: 4 }}>
+                <Paper
+                  className="shell-card booking-list-panel"
+                  p={{ base: 'sm', sm: 'md' }}
                 >
-                  {filteredBookings.length > 0 ? (
-                    <Stack gap="lg">
-                      {bookingSections.map((section) => (
-                        <Stack key={section.label} gap="xs">
-                          <Text
-                            size="sm"
-                            fw={700}
-                            c="dimmed"
-                            className="booking-section-label"
-                          >
-                            {section.label}
-                          </Text>
-                          <Stack gap={0}>
-                            {section.items.map((booking, index) => (
-                              <div key={booking.bookingId}>
-                                <BookingListItem
-                                  booking={booking}
-                                  active={
-                                    booking.bookingId ===
-                                    selectedBooking?.bookingId
-                                  }
-                                  onSelect={() =>
-                                    setSelectedBookingId(booking.bookingId)
-                                  }
-                                />
-                                {index < section.items.length - 1 ? (
-                                  <Divider />
-                                ) : null}
-                              </div>
-                            ))}
-                          </Stack>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Stack gap="sm" py="sm">
-                      <Text fw={700}>No trips match that view</Text>
-                      <Text size="sm" c="dimmed">
-                        Clear the search or widen the status filter to bring
-                        more bookings back into the list.
+                  <Stack gap="md">
+                    <Group justify="space-between" align="flex-end">
+                      <Stack gap={2}>
+                        <Title order={3}>Trips</Title>
+                        <Text size="sm" c="dimmed">
+                          Choose a booking to review or edit.
+                        </Text>
+                      </Stack>
+                      <Text size="sm" fw={700} c="dimmed">
+                        {filteredBookings.length} shown
                       </Text>
-                      <Group>
-                        <Button
-                          type="button"
-                          variant="default"
-                          onClick={() => {
-                            setSearchQuery('');
-                            setStatusFilter('all');
-                          }}
-                        >
-                          Clear filters
-                        </Button>
-                      </Group>
-                    </Stack>
-                  )}
-                </ScrollArea.Autosize>
-              </Stack>
-            </Paper>
-          </Grid.Col>
+                    </Group>
 
-          <Grid.Col span={{ base: 12, lg: 8 }}>
-            {selectedBooking ? (
-              <BookingEditorPanel
-                key={selectedBooking.bookingId}
-                booking={selectedBooking}
-                hotelInsight={
-                  selectedBooking.hotelId
-                    ? hotelInsights[selectedBooking.hotelId]
-                    : undefined
-                }
-                garageShareRequests={garageShareRequests}
-                selectedIndex={selectedIndex}
-                totalBookings={filteredBookings.length}
-                hasPrevious={selectedIndex > 0}
-                hasNext={
-                  selectedIndex >= 0 &&
-                  selectedIndex < filteredBookings.length - 1
-                }
-                onSelectPrevious={() =>
-                  setSelectedBookingId(
-                    filteredBookings[Math.max(0, selectedIndex - 1)]
-                      ?.bookingId ?? selectedBooking.bookingId,
-                  )
-                }
-                onSelectNext={() =>
-                  setSelectedBookingId(
-                    filteredBookings[
-                      Math.min(filteredBookings.length - 1, selectedIndex + 1)
-                    ]?.bookingId ?? selectedBooking.bookingId,
-                  )
-                }
-              />
-            ) : null}
-          </Grid.Col>
-        </Grid>
+                    <Grid gap="sm">
+                      <Grid.Col span={{ base: 12, sm: 7, lg: 12, xl: 7 }}>
+                        <TextInput
+                          aria-label="Search trips"
+                          placeholder="Search circuit, provider, stay, or reference"
+                          value={searchQuery}
+                          onChange={(event) =>
+                            setSearchQuery(event.currentTarget.value)
+                          }
+                          leftSection={<IconSearch size={16} />}
+                        />
+                      </Grid.Col>
+                      <Grid.Col span={{ base: 12, sm: 5, lg: 12, xl: 5 }}>
+                        <Select
+                          aria-label="Filter trips by status"
+                          comboboxProps={{ withinPortal: false }}
+                          value={statusFilter}
+                          onChange={(value) =>
+                            setStatusFilter(
+                              (value as BookingFilter | null) ?? 'all',
+                            )
+                          }
+                          data={[
+                            { value: 'all', label: 'All statuses' },
+                            { value: 'booked', label: 'Booked' },
+                            { value: 'maybe', label: 'Maybe' },
+                            { value: 'cancelled', label: 'Cancelled' },
+                          ]}
+                        />
+                      </Grid.Col>
+                    </Grid>
+
+                    <ScrollArea.Autosize
+                      offsetScrollbars
+                      className="booking-list-scroll"
+                    >
+                      {filteredBookings.length > 0 ? (
+                        <Stack gap="lg">
+                          {bookingSections.map((section) => (
+                            <Stack key={section.label} gap="xs">
+                              <Text
+                                size="sm"
+                                fw={700}
+                                c="dimmed"
+                                className="booking-section-label"
+                              >
+                                {section.label}
+                              </Text>
+                              <Stack gap={0}>
+                                {section.items.map((booking, index) => (
+                                  <div key={booking.bookingId}>
+                                    <BookingListItem
+                                      booking={booking}
+                                      active={
+                                        booking.bookingId ===
+                                        selectedBooking?.bookingId
+                                      }
+                                      onSelect={() =>
+                                        setSelectedBookingId(booking.bookingId)
+                                      }
+                                    />
+                                    {index < section.items.length - 1 ? (
+                                      <Divider />
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </Stack>
+                            </Stack>
+                          ))}
+                        </Stack>
+                      ) : (
+                        <Stack gap="sm" py="sm">
+                          <Text fw={700}>No trips match that view</Text>
+                          <Text size="sm" c="dimmed">
+                            Clear the search or widen the status filter to bring
+                            more bookings back into the list.
+                          </Text>
+                          <Group>
+                            <Button
+                              type="button"
+                              variant="default"
+                              onClick={() => {
+                                setSearchQuery('');
+                                setStatusFilter('all');
+                              }}
+                            >
+                              Clear filters
+                            </Button>
+                          </Group>
+                        </Stack>
+                      )}
+                    </ScrollArea.Autosize>
+                  </Stack>
+                </Paper>
+              </Grid.Col>
+
+              <Grid.Col span={{ base: 12, lg: 8 }}>
+                {selectedBooking ? (
+                  <BookingEditorPanel
+                    key={selectedBooking.bookingId}
+                    booking={selectedBooking}
+                    hotelInsight={
+                      selectedBooking.hotelId
+                        ? hotelInsights[selectedBooking.hotelId]
+                        : undefined
+                    }
+                    garageShareRequests={garageShareRequests}
+                    selectedIndex={selectedIndex}
+                    totalBookings={filteredBookings.length}
+                    hasPrevious={selectedIndex > 0}
+                    hasNext={
+                      selectedIndex >= 0 &&
+                      selectedIndex < filteredBookings.length - 1
+                    }
+                    onSelectPrevious={() =>
+                      setSelectedBookingId(
+                        filteredBookings[Math.max(0, selectedIndex - 1)]
+                          ?.bookingId ?? selectedBooking.bookingId,
+                      )
+                    }
+                    onSelectNext={() =>
+                      setSelectedBookingId(
+                        filteredBookings[
+                          Math.min(
+                            filteredBookings.length - 1,
+                            selectedIndex + 1,
+                          )
+                        ]?.bookingId ?? selectedBooking.bookingId,
+                      )
+                    }
+                  />
+                ) : null}
+              </Grid.Col>
+            </Grid>
+          )}
+        </>
       )}
     </Stack>
   );
