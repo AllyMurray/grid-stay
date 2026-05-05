@@ -19,7 +19,11 @@ import type {
   CreateBookingInput,
   DeleteBookingInput,
   SharedStaySelectionInput,
+  UpdateBookingGarageInput,
   UpdateBookingInput,
+  UpdateBookingPrivateInput,
+  UpdateBookingStayInput,
+  UpdateBookingTripInput,
 } from '~/lib/schemas/booking';
 import { BookingEntity, type BookingRecord } from '../entities/booking.server';
 import type { DayAttendanceOverview } from './day-attendance-summary.server';
@@ -445,6 +449,108 @@ export async function updateBooking(
   });
   await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);
   return updated;
+}
+
+export async function updateBookingTrip(
+  userId: string,
+  input: UpdateBookingTripInput,
+  store: BookingPersistence = bookingStore,
+  summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+): Promise<BookingRecord> {
+  const existing = await store.getByUser(userId, input.bookingId);
+  if (!existing) {
+    throw new Response('Booking not found', { status: 404 });
+  }
+
+  const updated = await store.update(userId, input.bookingId, {
+    status: input.status,
+    userName: existing.userName,
+    updatedAt: new Date().toISOString(),
+  });
+  await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);
+  return updated;
+}
+
+export async function updateBookingStay(
+  userId: string,
+  input: UpdateBookingStayInput,
+  store: BookingPersistence = bookingStore,
+  summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+): Promise<BookingRecord> {
+  const existing = await store.getByUser(userId, input.bookingId);
+  if (!existing) {
+    throw new Response('Booking not found', { status: 404 });
+  }
+
+  const accommodationStatus = resolveAccommodationStatus(input);
+  const accommodationBooked = hasBookedAccommodation({
+    ...input,
+    accommodationStatus,
+  });
+  const updated = await store.update(userId, input.bookingId, {
+    userName: existing.userName,
+    arrivalDateTime: normalizeArrivalDateTime(input.arrivalDateTime),
+    arrivalTime: undefined,
+    accommodationStatus,
+    hotelId: accommodationBooked ? sanitizeOptional(input.hotelId) : undefined,
+    accommodationName: accommodationBooked
+      ? sanitizeOptional(input.accommodationName)
+      : undefined,
+    updatedAt: new Date().toISOString(),
+  });
+  await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);
+  return updated;
+}
+
+export async function updateBookingGarage(
+  userId: string,
+  input: UpdateBookingGarageInput,
+  store: BookingPersistence = bookingStore,
+  summaryStore: BookingSummaryPersistence = dayAttendanceSummaryStore,
+): Promise<BookingRecord> {
+  const existing = await store.getByUser(userId, input.bookingId);
+  if (!existing) {
+    throw new Response('Booking not found', { status: 404 });
+  }
+
+  const updated = await store.update(userId, input.bookingId, {
+    userName: existing.userName,
+    garageBooked: input.garageBooked,
+    garageCapacity: input.garageBooked ? input.garageCapacity : undefined,
+    garageLabel: input.garageBooked
+      ? sanitizeOptional(input.garageLabel)
+      : undefined,
+    garageCostTotalPence:
+      input.garageBooked && input.garageCostTotalPence !== undefined
+        ? input.garageCostTotalPence
+        : undefined,
+    garageCostCurrency:
+      input.garageBooked && input.garageCostCurrency
+        ? input.garageCostCurrency
+        : undefined,
+    updatedAt: new Date().toISOString(),
+  });
+  await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);
+  return updated;
+}
+
+export async function updateBookingPrivate(
+  userId: string,
+  input: UpdateBookingPrivateInput,
+  store: BookingPersistence = bookingStore,
+): Promise<BookingRecord> {
+  const existing = await store.getByUser(userId, input.bookingId);
+  if (!existing) {
+    throw new Response('Booking not found', { status: 404 });
+  }
+
+  return store.update(userId, input.bookingId, {
+    userName: existing.userName,
+    bookingReference: sanitizeOptional(input.bookingReference),
+    accommodationReference: sanitizeOptional(input.accommodationReference),
+    notes: sanitizeOptional(input.notes),
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export async function deleteBooking(

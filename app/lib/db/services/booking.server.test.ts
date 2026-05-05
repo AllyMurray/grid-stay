@@ -57,6 +57,8 @@ import {
   listMyBookings,
   summarizeDayAttendances,
   updateBooking,
+  updateBookingPrivate,
+  updateBookingStay,
 } from './booking.server';
 
 function createMemoryStore() {
@@ -334,6 +336,80 @@ describe('booking service', () => {
     expect(shared.attendees[0]).not.toHaveProperty('bookingReference');
     expect(shared.attendees[0]).not.toHaveProperty('accommodationReference');
     expect(shared.attendees[0]).not.toHaveProperty('notes');
+  });
+
+  it('updates stay details without requiring private fields', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'booked',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      bookingReference: 'REF-123',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    const updated = await updateBookingStay(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        arrivalDateTime: '2026-05-09 20:00:00',
+        hotelId: 'hotel-1',
+        accommodationName: 'The Paddock Inn',
+      },
+      memory.store as never,
+      memory.summaryStore as never,
+    );
+
+    expect(updated.bookingReference).toBe('REF-123');
+    expect(updated.hotelId).toBe('hotel-1');
+    expect(updated.accommodationName).toBe('The Paddock Inn');
+    expect(updated.arrivalDateTime).toBe('2026-05-09 20:00:00');
+    expect(memory.summaries.get('day-1')).toMatchObject({
+      attendeeCount: 1,
+      accommodationNames: ['The Paddock Inn'],
+    });
+  });
+
+  it('updates private details without refreshing shared summaries', async () => {
+    const memory = createMemoryStore();
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      dayId: 'day-1',
+      date: '2026-05-10',
+      status: 'booked',
+      circuit: 'Snetterton',
+      provider: 'Caterham Motorsport',
+      description: 'Round 1',
+      accommodationName: 'The Paddock Inn',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    const updated = await updateBookingPrivate(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        bookingReference: 'REF-123',
+        accommodationReference: 'HOTEL-9',
+        notes: 'Quiet room',
+      },
+      memory.store as never,
+    );
+
+    expect(updated.accommodationName).toBe('The Paddock Inn');
+    expect(updated.bookingReference).toBe('REF-123');
+    expect(updated.accommodationReference).toBe('HOTEL-9');
+    expect(updated.notes).toBe('Quiet room');
+    expect(memory.summaries.size).toBe(0);
   });
 
   it('falls back to legacy same-day arrival times in shared summaries', () => {

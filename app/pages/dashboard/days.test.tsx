@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   DaysFeedData,
   DaysIndexData,
@@ -10,6 +10,18 @@ import type { DayAttendanceSummary } from '~/lib/days/types';
 import type { EventCostSummary } from '~/lib/db/services/cost-splitting.server';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
+
+const useMediaQueryMock = vi.fn(() => false);
+
+vi.mock('@mantine/hooks', async () => {
+  const actual =
+    await vi.importActual<typeof import('@mantine/hooks')>('@mantine/hooks');
+
+  return {
+    ...actual,
+    useMediaQuery: () => useMediaQueryMock(),
+  };
+});
 
 vi.mock('@mantine/schedule', async () => {
   const actual =
@@ -313,6 +325,11 @@ const defaultAttendanceByDay: Record<string, DayAttendanceSummary> = {
 };
 
 describe('AvailableDaysPage', () => {
+  beforeEach(() => {
+    useMediaQueryMock.mockReset();
+    useMediaQueryMock.mockReturnValue(false);
+  });
+
   it('renders the live schedule from props', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
@@ -703,6 +720,28 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByRole('link', { name: /back to available days/i }),
     ).toHaveAttribute('href', expect.stringContaining('view=calendar'));
+  });
+
+  it('renders the day list instead of the calendar below the desktop breakpoint', () => {
+    useMediaQueryMock.mockReturnValue(true);
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'calendar',
+          calendarDays: defaultData.days,
+          attendanceSummaries: defaultData.attendanceSummaries,
+        }}
+      />,
+      '/dashboard/days?view=calendar',
+    );
+
+    expect(
+      screen.queryByTestId('available-days-calendar'),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
 
   it('links the view tabs to their matching views', () => {

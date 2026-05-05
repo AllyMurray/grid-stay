@@ -73,42 +73,87 @@ const ArrivalDateTimeSchema = z.preprocess(
     .optional(),
 );
 
-export const UpdateBookingSchema = z
-  .object({
-    bookingId: z.string().min(1),
-    status: BookingStatusSchema,
-    bookingReference: z.string().trim().max(120).optional().default(''),
-    arrivalDateTime: ArrivalDateTimeSchema,
-    accommodationStatus: AccommodationStatusSchema.optional(),
-    ...HotelSelectionSchema.shape,
-    accommodationName: z.string().trim().max(120).optional().default(''),
-    accommodationReference: z.string().trim().max(120).optional().default(''),
-    garageBooked: GarageBookedSchema,
-    garageCapacity: GarageCapacitySchema,
-    garageLabel: z.string().trim().max(120).optional().default(''),
-    garageCostTotalPence: OptionalMoneySchema,
-    garageCostCurrency: z
-      .string()
-      .trim()
-      .length(3)
-      .optional()
-      .or(z.literal('')),
-    notes: z.string().trim().max(1000).optional().default(''),
-  })
-  .superRefine((value, ctx) => {
-    if (
-      value.accommodationStatus === 'booked' &&
-      !value.hotelId?.trim() &&
-      !value.hotelName?.trim() &&
-      !value.accommodationName?.trim()
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['accommodationName'],
-        message: 'Add the hotel or stay name, or choose a different plan.',
-      });
-    }
-  });
+const UpdateBookingBaseSchema = z.object({
+  bookingId: z.string().min(1),
+  status: BookingStatusSchema,
+  bookingReference: z.string().trim().max(120).optional().default(''),
+  arrivalDateTime: ArrivalDateTimeSchema,
+  accommodationStatus: AccommodationStatusSchema.optional(),
+  ...HotelSelectionSchema.shape,
+  accommodationName: z.string().trim().max(120).optional().default(''),
+  accommodationReference: z.string().trim().max(120).optional().default(''),
+  garageBooked: GarageBookedSchema,
+  garageCapacity: GarageCapacitySchema,
+  garageLabel: z.string().trim().max(120).optional().default(''),
+  garageCostTotalPence: OptionalMoneySchema,
+  garageCostCurrency: z.string().trim().length(3).optional().or(z.literal('')),
+  notes: z.string().trim().max(1000).optional().default(''),
+});
+
+function validateBookedAccommodation(
+  value: {
+    accommodationStatus?: string;
+    hotelId?: string;
+    hotelName?: string;
+    accommodationName?: string;
+  },
+  ctx: z.RefinementCtx,
+) {
+  if (
+    value.accommodationStatus === 'booked' &&
+    !value.hotelId?.trim() &&
+    !value.hotelName?.trim() &&
+    !value.accommodationName?.trim()
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['accommodationName'],
+      message: 'Add the hotel or stay name, or choose a different plan.',
+    });
+  }
+}
+
+export const UpdateBookingSchema = UpdateBookingBaseSchema.superRefine(
+  validateBookedAccommodation,
+);
+
+export const UpdateBookingTripSchema = UpdateBookingBaseSchema.pick({
+  bookingId: true,
+  status: true,
+});
+
+export const UpdateBookingStaySchema = UpdateBookingBaseSchema.pick({
+  bookingId: true,
+  arrivalDateTime: true,
+  accommodationStatus: true,
+  hotelId: true,
+  hotelName: true,
+  hotelAddress: true,
+  hotelPostcode: true,
+  hotelCountry: true,
+  hotelLatitude: true,
+  hotelLongitude: true,
+  hotelSource: true,
+  hotelSourcePlaceId: true,
+  hotelAttribution: true,
+  accommodationName: true,
+}).superRefine(validateBookedAccommodation);
+
+export const UpdateBookingGarageSchema = UpdateBookingBaseSchema.pick({
+  bookingId: true,
+  garageBooked: true,
+  garageCapacity: true,
+  garageLabel: true,
+  garageCostTotalPence: true,
+  garageCostCurrency: true,
+});
+
+export const UpdateBookingPrivateSchema = UpdateBookingBaseSchema.pick({
+  bookingId: true,
+  bookingReference: true,
+  accommodationReference: true,
+  notes: true,
+});
 
 export const DeleteBookingSchema = z.object({
   bookingId: z.string().min(1),
@@ -128,4 +173,12 @@ export type BulkRaceSeriesBookingInput = z.infer<
   typeof BulkRaceSeriesBookingSchema
 >;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
+export type UpdateBookingTripInput = z.infer<typeof UpdateBookingTripSchema>;
+export type UpdateBookingStayInput = z.infer<typeof UpdateBookingStaySchema>;
+export type UpdateBookingGarageInput = z.infer<
+  typeof UpdateBookingGarageSchema
+>;
+export type UpdateBookingPrivateInput = z.infer<
+  typeof UpdateBookingPrivateSchema
+>;
 export type DeleteBookingInput = z.infer<typeof DeleteBookingSchema>;

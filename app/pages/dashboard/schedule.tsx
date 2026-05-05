@@ -16,7 +16,7 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
   Schedule,
   type ScheduleEventData,
@@ -707,10 +707,14 @@ export function BookingSchedulePanel({
   calendarFeedOptions = defaultCalendarFeedOptions,
   today = new Date().toISOString().slice(0, 10),
 }: BookingSchedulePanelProps) {
+  const isCompactCalendar = useMediaQuery('(max-width: 62em)', false, {
+    getInitialValueInEffect: false,
+  });
   const [syncOpened, syncHandlers] = useDisclosure(false);
   const [internalDisplayMode, setInternalDisplayMode] =
     useState<ScheduleDisplayMode>('list');
   const displayMode = controlledDisplayMode ?? internalDisplayMode;
+  const visibleDisplayMode = isCompactCalendar ? 'list' : displayMode;
   const sortedBookings = useMemo(
     () => [...bookings].sort(sortBookings),
     [bookings],
@@ -831,7 +835,7 @@ export function BookingSchedulePanel({
             </Button>
           </Group>
 
-          {displayMode === 'list' ? (
+          {visibleDisplayMode === 'list' ? (
             <ScheduleListView
               bookings={scheduleBookings}
               selectedBookingId={selectedBookingId}

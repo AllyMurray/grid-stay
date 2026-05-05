@@ -13,6 +13,10 @@ import {
   deleteBooking,
   ensureBookingsForDays,
   updateBooking,
+  updateBookingGarage,
+  updateBookingPrivate,
+  updateBookingStay,
+  updateBookingTrip,
 } from '~/lib/db/services/booking.server';
 import {
   createOrUpdateHotelFromSelection,
@@ -28,14 +32,22 @@ import type {
   CreateBookingRequestInput,
   DeleteBookingInput,
   SharedStaySelectionRequestInput,
+  UpdateBookingGarageInput,
   UpdateBookingInput,
+  UpdateBookingPrivateInput,
+  UpdateBookingStayInput,
+  UpdateBookingTripInput,
 } from '~/lib/schemas/booking';
 import {
   BulkRaceSeriesBookingSchema,
   CreateBookingRequestSchema,
   DeleteBookingSchema,
   SharedStaySelectionRequestSchema,
+  UpdateBookingGarageSchema,
+  UpdateBookingPrivateSchema,
   UpdateBookingSchema,
+  UpdateBookingStaySchema,
+  UpdateBookingTripSchema,
 } from '~/lib/schemas/booking';
 import { HotelReviewSchema } from '~/lib/schemas/hotel';
 
@@ -53,6 +65,10 @@ export type CreateBookingActionResult =
 
 type BookingEditorFieldName =
   | keyof UpdateBookingInput
+  | keyof UpdateBookingTripInput
+  | keyof UpdateBookingStayInput
+  | keyof UpdateBookingGarageInput
+  | keyof UpdateBookingPrivateInput
   | keyof DeleteBookingInput;
 
 export type BookingEditorActionResult =
@@ -67,6 +83,10 @@ export type BookingEditorActionResult =
 
 export type UpdateBookingActionResult = BookingEditorActionResult;
 export type DeleteBookingActionResult = BookingEditorActionResult;
+export type UpdateBookingTripActionResult = BookingEditorActionResult;
+export type UpdateBookingStayActionResult = BookingEditorActionResult;
+export type UpdateBookingGarageActionResult = BookingEditorActionResult;
+export type UpdateBookingPrivateActionResult = BookingEditorActionResult;
 
 export type HotelReviewActionResult =
   | {
@@ -341,6 +361,105 @@ export async function submitBookingUpdate(
       ? (hotel?.name ?? bookingUpdate.accommodationName)
       : '',
   });
+  return { ok: true };
+}
+
+export async function submitBookingTripUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingTrip = updateBookingTrip,
+): Promise<UpdateBookingTripActionResult> {
+  const parsed = UpdateBookingTripSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save trip details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await saveBooking(userId, parsed.data);
+  return { ok: true };
+}
+
+export async function submitBookingStayUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingStay = updateBookingStay,
+  resolveHotel: typeof createOrUpdateHotelFromSelection = createOrUpdateHotelFromSelection,
+): Promise<UpdateBookingStayActionResult> {
+  const parsed = UpdateBookingStaySchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save stay details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const bookingUpdate = {
+    ...parsed.data,
+    accommodationStatus: resolveAccommodationStatus(parsed.data),
+  };
+  const accommodationBooked = hasBookedAccommodation(bookingUpdate);
+  const hotel = accommodationBooked
+    ? await resolveHotel(bookingUpdate, userId)
+    : null;
+  await saveBooking(userId, {
+    ...bookingUpdate,
+    hotelId: hotel?.hotelId,
+    accommodationName: accommodationBooked
+      ? (hotel?.name ?? bookingUpdate.accommodationName)
+      : '',
+  });
+  return { ok: true };
+}
+
+export async function submitBookingGarageUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingGarage = updateBookingGarage,
+): Promise<UpdateBookingGarageActionResult> {
+  const parsed = UpdateBookingGarageSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save garage details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await saveBooking(userId, parsed.data);
+  return { ok: true };
+}
+
+export async function submitBookingPrivateUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingPrivate = updateBookingPrivate,
+): Promise<UpdateBookingPrivateActionResult> {
+  const parsed = UpdateBookingPrivateSchema.safeParse(
+    Object.fromEntries(formData),
+  );
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save private details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await saveBooking(userId, parsed.data);
   return { ok: true };
 }
 

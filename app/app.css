@@ -451,11 +451,24 @@ html[data-mantine-color-scheme='dark'] .day-card {
 }
 
 .booking-list-scroll {
-  max-height: min(42vh, 360px);
+  max-height: none;
 }
 
 .booking-section-label {
   padding-top: 0.25rem;
+}
+
+.booking-section-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: 0.75rem;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.98) 70%,
+    rgba(255, 255, 255, 0)
+  );
 }
 
 .page-header-actions {
@@ -711,6 +724,14 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
   background: rgba(255, 111, 143, 0.08);
 }
 
+html[data-mantine-color-scheme='dark'] .booking-section-actions {
+  background: linear-gradient(
+    to top,
+    rgba(22, 27, 32, 0.98) 70%,
+    rgba(22, 27, 32, 0)
+  );
+}
+
 @media (min-width: 62em) {
   .dashboard-brand-title {
     font-size: 1.75rem;
@@ -740,6 +761,12 @@ html[data-mantine-color-scheme='dark'] .shared-stay-row[data-current='true'] {
 
   .booking-list-scroll {
     max-height: 560px;
+  }
+
+  .booking-section-actions {
+    position: static;
+    padding-bottom: 0;
+    background: transparent;
   }
 
   .auth-login-stage {
