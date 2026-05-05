@@ -304,22 +304,6 @@ html[data-mantine-color-scheme='dark'] .day-card {
   min-width: 0;
 }
 
-.attendee-initials-group {
-  flex: 0 0 auto;
-  padding-left: 0.25rem;
-}
-
-.attendee-initial-avatar {
-  border: 2px solid var(--mantine-color-body);
-  box-shadow: 0 1px 2px rgba(16, 20, 24, 0.12);
-  font-size: 0.65rem;
-  font-weight: 800;
-}
-
-.attendee-initial-avatar + .attendee-initial-avatar {
-  margin-left: -0.45rem;
-}
-
 .attendee-roster-panel {
   padding: 0 0.75rem 0.85rem;
 }
@@ -573,6 +557,27 @@ html[data-mantine-color-scheme='dark'] .day-card {
 
 .group-calendar-count-label {
   display: none;
+}
+
+.group-calendar-status-summary {
+  min-width: 0;
+}
+
+.group-calendar-initials-group {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.group-calendar-initial-avatar {
+  flex: 0 0 auto;
+  border: 2px solid var(--mantine-color-body);
+  box-shadow: 0 1px 2px rgba(16, 20, 24, 0.12);
+  font-size: 0.52rem;
+  font-weight: 800;
+}
+
+.group-calendar-initial-avatar + .group-calendar-initial-avatar {
+  margin-left: -0.35rem;
 }
 
 .group-calendar-track-list {

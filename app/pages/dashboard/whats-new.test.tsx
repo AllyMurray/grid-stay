@@ -25,6 +25,17 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
+        name: 'Group Calendar shows attendee initials',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/booked and maybe summaries show member initials/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /open group calendar/i })[0],
+    ).toHaveAttribute('href', '/dashboard/group-calendar');
+    expect(
+      screen.getByRole('heading', {
         name: 'Schedule views moved into My Bookings',
       }),
     ).toBeInTheDocument();
@@ -40,10 +51,10 @@ describe('WhatsNewPage', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/open a date to see each event/i),
+      screen.getByText(/month cells show circuit and layout names/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /open group calendar/i }),
+      screen.getAllByRole('link', { name: /open group calendar/i })[1],
     ).toHaveAttribute('href', '/dashboard/group-calendar');
     expect(
       screen.getByRole('heading', {

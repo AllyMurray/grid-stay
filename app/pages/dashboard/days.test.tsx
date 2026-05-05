@@ -1342,7 +1342,7 @@ describe('AvailableDaysPage', () => {
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
 
-  it('shows initials on booked and maybe roster groups', async () => {
+  it('does not duplicate member initials on roster groups with full names', async () => {
     const selectedDay = defaultData.days[0]!;
 
     renderWithProviders(
@@ -1364,13 +1364,13 @@ describe('AvailableDaysPage', () => {
     await screen.findByText('Attendee roster');
 
     expect(
-      screen.getByRole('img', { name: /1 booked attendee: Driver One/i }),
-    ).toBeVisible();
+      screen.queryByRole('img', { name: /1 booked attendee: Driver One/i }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: /1 maybe attendee: Driver Two/i }),
-    ).toBeVisible();
-    expect(screen.getByText('DO')).toBeVisible();
-    expect(screen.getByText('DT')).toBeVisible();
+      screen.queryByRole('img', { name: /1 maybe attendee: Driver Two/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('DO')).not.toBeInTheDocument();
+    expect(screen.queryByText('DT')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('img', { name: /cancelled attendee/i }),
     ).not.toBeInTheDocument();

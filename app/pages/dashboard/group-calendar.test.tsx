@@ -123,6 +123,14 @@ describe('GroupCalendarPage', () => {
     expect(
       within(dayButton).getByText('Oulton Park International'),
     ).toBeInTheDocument();
+    expect(
+      within(dayButton).getByRole('img', { name: /booked: ally murray/i }),
+    ).toHaveTextContent('AM');
+    expect(
+      within(dayButton).getByRole('img', {
+        name: /maybe: driver two, tim george/i,
+      }),
+    ).toHaveTextContent('DTTG');
     await user.click(dayButton);
 
     const drawer = await screen.findByRole('dialog', {

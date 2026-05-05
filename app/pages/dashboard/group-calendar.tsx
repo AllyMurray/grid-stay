@@ -55,6 +55,7 @@ interface MonthCell {
 const visibleStatusOptions: VisibleStatus[] = ['booked', 'maybe'];
 const weekDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const maxVisibleCircuitLabels = 2;
+const maxVisibleAttendeeInitials = 4;
 
 function formatMonthTitle(value: string) {
   return formatDateOnly(value, {
@@ -91,6 +92,24 @@ function formatDayType(type: GroupCalendarEvent['type']) {
 
 function statusColor(status: VisibleStatus) {
   return status === 'booked' ? 'green' : 'yellow';
+}
+
+function statusLabel(status: VisibleStatus) {
+  return status === 'booked' ? 'Booked' : 'Maybe';
+}
+
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return '?';
+  }
+
+  const first = parts[0] ?? '';
+  const last = parts.length > 1 ? (parts.at(-1) ?? '') : '';
+  const initials = `${first.charAt(0)}${last.charAt(0) || first.charAt(1)}`;
+
+  return initials.toUpperCase();
 }
 
 function getCircuitLabel(event: GroupCalendarEvent) {
@@ -165,6 +184,27 @@ function groupEventsByDate(events: FilteredCalendarEvent[]) {
   return groups;
 }
 
+function getAttendeesForStatus(
+  events: FilteredCalendarEvent[],
+  status: VisibleStatus,
+) {
+  const attendees: GroupCalendarAttendee[] = [];
+  const seenUserIds = new Set<string>();
+
+  for (const event of events) {
+    for (const attendee of event.filteredAttendees) {
+      if (attendee.status !== status || seenUserIds.has(attendee.userId)) {
+        continue;
+      }
+
+      attendees.push(attendee);
+      seenUserIds.add(attendee.userId);
+    }
+  }
+
+  return attendees;
+}
+
 function getDayCellLabel(date: string, events: FilteredCalendarEvent[]) {
   if (events.length === 0) {
     return `${formatLongDate(date)}: no member plans`;
@@ -182,6 +222,85 @@ function getDayCellLabel(date: string, events: FilteredCalendarEvent[]) {
   const eventLabel = events.length === 1 ? 'event' : 'events';
 
   return `${formatLongDate(date)}: ${events.length} ${eventLabel}, ${bookedCount} booked, ${maybeCount} maybe, tracks: ${circuitLabels.join(', ')}`;
+}
+
+function CalendarInitialsGroup({
+  attendees,
+  status,
+}: {
+  attendees: GroupCalendarAttendee[];
+  status: VisibleStatus;
+}) {
+  if (attendees.length === 0) {
+    return null;
+  }
+
+  const visibleAttendees = attendees.slice(0, maxVisibleAttendeeInitials);
+  const remainingCount = attendees.length - visibleAttendees.length;
+
+  return (
+    <Group
+      gap={0}
+      wrap="nowrap"
+      className="group-calendar-initials-group"
+      role="img"
+      aria-label={`${statusLabel(status)}: ${attendees
+        .map((attendee) => attendee.userName)
+        .join(', ')}`}
+    >
+      {visibleAttendees.map((attendee) => (
+        <Avatar
+          key={attendee.userId}
+          aria-hidden="true"
+          className="group-calendar-initial-avatar"
+          color={statusColor(status)}
+          radius="xl"
+          size={22}
+          variant="filled"
+        >
+          {getInitials(attendee.userName)}
+        </Avatar>
+      ))}
+      {remainingCount > 0 ? (
+        <Avatar
+          aria-hidden="true"
+          className="group-calendar-initial-avatar"
+          color={statusColor(status)}
+          radius="xl"
+          size={22}
+          variant="light"
+        >
+          +{remainingCount}
+        </Avatar>
+      ) : null}
+    </Group>
+  );
+}
+
+function CalendarStatusSummary({
+  attendees,
+  count,
+  status,
+}: {
+  attendees: GroupCalendarAttendee[];
+  count: number;
+  status: VisibleStatus;
+}) {
+  if (count === 0) {
+    return null;
+  }
+
+  return (
+    <Group gap={4} wrap="nowrap" className="group-calendar-status-summary">
+      <Badge color={statusColor(status)} size="xs">
+        {count}
+      </Badge>
+      <Text size="xs" className="group-calendar-count-label">
+        {status}
+      </Text>
+      <CalendarInitialsGroup attendees={attendees} status={status} />
+    </Group>
+  );
 }
 
 function AttendeeList({
@@ -314,6 +433,8 @@ function CalendarDayCell({
     (count, event) => count + event.filteredMaybeCount,
     0,
   );
+  const bookedAttendees = getAttendeesForStatus(events, 'booked');
+  const maybeAttendees = getAttendeesForStatus(events, 'maybe');
   const hasEvents = events.length > 0;
   const circuitLabels = getCircuitLabels(events);
   const visibleCircuitLabels = circuitLabels.slice(0, maxVisibleCircuitLabels);
@@ -366,26 +487,16 @@ function CalendarDayCell({
               ) : null}
             </Stack>
 
-            {bookedCount > 0 ? (
-              <Group gap={4} wrap="nowrap">
-                <Badge color="green" size="xs">
-                  {bookedCount}
-                </Badge>
-                <Text size="xs" className="group-calendar-count-label">
-                  booked
-                </Text>
-              </Group>
-            ) : null}
-            {maybeCount > 0 ? (
-              <Group gap={4} wrap="nowrap">
-                <Badge color="yellow" size="xs">
-                  {maybeCount}
-                </Badge>
-                <Text size="xs" className="group-calendar-count-label">
-                  maybe
-                </Text>
-              </Group>
-            ) : null}
+            <CalendarStatusSummary
+              attendees={bookedAttendees}
+              count={bookedCount}
+              status="booked"
+            />
+            <CalendarStatusSummary
+              attendees={maybeAttendees}
+              count={maybeCount}
+              status="maybe"
+            />
           </Stack>
         ) : null}
       </Stack>

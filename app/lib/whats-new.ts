@@ -26,6 +26,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'group-calendar-initials',
+    title: 'Group Calendar shows attendee initials',
+    publishedAt: '2026-05-05T22:45:00.000Z',
+    dateLabel: '5 May 2026',
+    category: 'Members',
+    description:
+      'Group Calendar month cells now show compact initials for booked and maybe members, so shared plans are easier to scan without opening every date.',
+    highlights: [
+      'Booked and maybe summaries show member initials directly in each active calendar date.',
+      'Full names, arrival times, and accommodation details remain in the date drawer.',
+      'People and status filters update the visible initials as well as the counts.',
+    ],
+    href: '/dashboard/group-calendar',
+    actionLabel: 'Open group calendar',
+    icon: IconUsersGroup,
+  },
+  {
     id: 'track-stay-accommodation',
     title: 'Track stays can be shared',
     publishedAt: '2026-05-05T16:12:00.000Z',
@@ -66,11 +83,11 @@ export const whatsNewEntries: WhatsNewEntry[] = [
     dateLabel: '5 May 2026',
     category: 'Members',
     description:
-      'The new Group Calendar shows where members are booked or maybe across a month without opening each profile.',
+      'The new Group Calendar shows who is booked or maybe across a month, with track context directly in each active date.',
     highlights: [
-      'Review the month view to find dates where members have shared plans.',
-      'Filter booked and maybe statuses, or select specific people to focus the totals.',
-      'Open a date to see each event and the matching member roster.',
+      'Month cells show circuit and layout names alongside booked and maybe counts.',
+      'Leave people blank to show everyone, or select the members you want to focus on.',
+      'Open a date to review each event, the matching roster, arrival times, and accommodation plans.',
     ],
     href: '/dashboard/group-calendar',
     actionLabel: 'Open group calendar',
