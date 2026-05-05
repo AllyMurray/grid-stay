@@ -7,6 +7,10 @@ vi.mock('~/lib/db/services/booking.server', () => ({
   deleteBooking: vi.fn(),
   ensureBookingsForDays: vi.fn(),
   updateBooking: vi.fn(),
+  updateBookingGarage: vi.fn(),
+  updateBookingPrivate: vi.fn(),
+  updateBookingStay: vi.fn(),
+  updateBookingTrip: vi.fn(),
 }));
 
 vi.mock('~/lib/db/services/available-days-cache.server', () => ({
@@ -44,6 +48,10 @@ import {
 import { queueHotelSummaryRefreshSafely } from '~/lib/hotels/summary-queue.server';
 import {
   submitBookingDelete,
+  submitBookingGarageUpdate,
+  submitBookingPrivateUpdate,
+  submitBookingStayUpdate,
+  submitBookingTripUpdate,
   submitBookingUpdate,
   submitBulkRaceSeriesBooking,
   submitCreateBooking,
@@ -268,6 +276,118 @@ describe('booking action helpers', () => {
         accommodationName: 'Radisson Blu Hotel, East Midlands Airport',
       }),
     );
+  });
+
+  it('saves only trip fields through the trip section action', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('status', 'maybe');
+    formData.set('notes', 'Should not be parsed by this action');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+
+    const result = await submitBookingTripUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveBooking).toHaveBeenCalledWith(user.id, {
+      bookingId: 'booking-1',
+      status: 'maybe',
+    });
+  });
+
+  it('resolves a selected hotel through the stay section action', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('arrivalDateTime', '2026-05-09 20:00:00');
+    formData.set('hotelName', 'Radisson Blu Hotel, East Midlands Airport');
+    formData.set('hotelAddress', 'Herald Way, Derby');
+    formData.set('hotelSource', 'geoapify');
+    formData.set('hotelSourcePlaceId', 'geoapify-place-1');
+    formData.set('accommodationName', '');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+    const resolveHotel = vi.fn(async () => ({
+      hotelId: 'hotel-1',
+      name: 'Radisson Blu Hotel, East Midlands Airport',
+    }));
+
+    const result = await submitBookingStayUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+      resolveHotel as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveBooking).toHaveBeenCalledWith(
+      user.id,
+      expect.objectContaining({
+        bookingId: 'booking-1',
+        hotelId: 'hotel-1',
+        accommodationName: 'Radisson Blu Hotel, East Midlands Airport',
+      }),
+    );
+  });
+
+  it('saves only garage fields through the garage section action', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('garageBooked', 'true');
+    formData.set('garageCapacity', '3');
+    formData.set('garageLabel', 'Garage 4');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+
+    const result = await submitBookingGarageUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveBooking).toHaveBeenCalledWith(user.id, {
+      bookingId: 'booking-1',
+      garageBooked: true,
+      garageCapacity: 3,
+      garageLabel: 'Garage 4',
+    });
+  });
+
+  it('saves only private fields through the private section action', async () => {
+    const formData = new FormData();
+    formData.set('bookingId', 'booking-1');
+    formData.set('bookingReference', 'REF-123');
+    formData.set('accommodationReference', 'HOTEL-7');
+    formData.set('notes', 'Quiet room');
+    formData.set('status', 'cancelled');
+
+    const saveBooking = vi.fn(async () => ({
+      bookingId: 'booking-1',
+    }));
+
+    const result = await submitBookingPrivateUpdate(
+      formData,
+      user.id,
+      saveBooking as never,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(saveBooking).toHaveBeenCalledWith(user.id, {
+      bookingId: 'booking-1',
+      bookingReference: 'REF-123',
+      accommodationReference: 'HOTEL-7',
+      notes: 'Quiet room',
+    });
   });
 
   it('saves hotel feedback against an existing hotel', async () => {

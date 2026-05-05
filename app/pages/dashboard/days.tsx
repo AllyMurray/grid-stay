@@ -22,6 +22,7 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   Schedule,
   type ScheduleEventData,
@@ -1196,6 +1197,9 @@ function AvailableDaysCalendarPanel({
   viewState: DaysViewState;
 }) {
   const navigate = useNavigate();
+  const isCompactCalendar = useMediaQuery('(max-width: 62em)', false, {
+    getInitialValueInEffect: false,
+  });
   const events = useMemo(() => buildAvailableDayCalendarEvents(days), [days]);
   const groupedDays = useMemo(() => groupDaysByDate(days), [days]);
   const [view, setView] = useState<ScheduleViewLevel>('month');
@@ -1237,7 +1241,7 @@ function AvailableDaysCalendarPanel({
         <DayTypeLegend />
       </Group>
 
-      <Box visibleFrom="sm">
+      {!isCompactCalendar ? (
         <Schedule
           date={currentDate}
           onDateChange={setCurrentDate}
@@ -1262,9 +1266,7 @@ function AvailableDaysCalendarPanel({
             firstDayOfWeek: 1,
           }}
         />
-      </Box>
-
-      <Box hiddenFrom="sm">
+      ) : (
         <DayListPanel
           days={days}
           filters={filters}
@@ -1273,9 +1275,9 @@ function AvailableDaysCalendarPanel({
           selectedDayId={null}
           viewState={viewState}
         />
-      </Box>
+      )}
 
-      {daysForSelectedDate.length > 0 ? (
+      {!isCompactCalendar && daysForSelectedDate.length > 0 ? (
         <Stack gap="sm">
           <Group justify="space-between" align="center">
             <Text fw={800}>{formatDayLongDate(selectedDate)}</Text>

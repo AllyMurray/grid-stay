@@ -57,6 +57,10 @@ export default [
     route('dashboard/whats-new', 'routes/dashboard/whats-new.tsx'),
     route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
+    route(
+      'dashboard/hotels/:hotelId/feedback',
+      'routes/dashboard/hotels.$hotelId.feedback.tsx',
+    ),
     route('dashboard/members', 'routes/dashboard/members.tsx'),
     route(
       'dashboard/members/:memberId',

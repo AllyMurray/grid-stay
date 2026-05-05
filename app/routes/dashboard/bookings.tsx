@@ -2,6 +2,10 @@ import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
 import {
   submitBookingDelete,
+  submitBookingGarageUpdate,
+  submitBookingPrivateUpdate,
+  submitBookingStayUpdate,
+  submitBookingTripUpdate,
   submitBookingUpdate,
   submitHotelReview,
 } from '~/lib/bookings/actions.server';
@@ -46,11 +50,19 @@ export async function action({ request }: Route.ActionArgs) {
   const result =
     intent === 'deleteBooking'
       ? await submitBookingDelete(formData, user.id)
-      : intent === 'updateGarageShareRequest'
-        ? await submitGarageShareDecision(formData, user)
-        : intent === 'saveHotelReview'
-          ? await submitHotelReview(formData, user)
-          : await submitBookingUpdate(formData, user.id);
+      : intent === 'updateBookingTrip'
+        ? await submitBookingTripUpdate(formData, user.id)
+        : intent === 'updateBookingStay'
+          ? await submitBookingStayUpdate(formData, user.id)
+          : intent === 'updateBookingGarage'
+            ? await submitBookingGarageUpdate(formData, user.id)
+            : intent === 'updateBookingPrivate'
+              ? await submitBookingPrivateUpdate(formData, user.id)
+              : intent === 'updateGarageShareRequest'
+                ? await submitGarageShareDecision(formData, user)
+                : intent === 'saveHotelReview'
+                  ? await submitHotelReview(formData, user)
+                  : await submitBookingUpdate(formData, user.id);
 
   if (result.ok) {
     await recordAppEventSafely({
@@ -58,19 +70,35 @@ export async function action({ request }: Route.ActionArgs) {
       action:
         intent === 'deleteBooking'
           ? 'booking.deleted'
-          : intent === 'updateGarageShareRequest'
-            ? 'garageShare.updated'
-            : intent === 'saveHotelReview'
-              ? 'hotelReview.updated'
-              : 'booking.updated',
+          : intent === 'updateBookingTrip'
+            ? 'booking.tripUpdated'
+            : intent === 'updateBookingStay'
+              ? 'booking.stayUpdated'
+              : intent === 'updateBookingGarage'
+                ? 'booking.garageUpdated'
+                : intent === 'updateBookingPrivate'
+                  ? 'booking.privateUpdated'
+                  : intent === 'updateGarageShareRequest'
+                    ? 'garageShare.updated'
+                    : intent === 'saveHotelReview'
+                      ? 'hotelReview.updated'
+                      : 'booking.updated',
       message:
         intent === 'deleteBooking'
           ? 'Booking deleted.'
-          : intent === 'updateGarageShareRequest'
-            ? 'Garage share request updated.'
-            : intent === 'saveHotelReview'
-              ? 'Hotel feedback updated.'
-              : 'Booking updated.',
+          : intent === 'updateBookingTrip'
+            ? 'Booking trip details updated.'
+            : intent === 'updateBookingStay'
+              ? 'Booking stay details updated.'
+              : intent === 'updateBookingGarage'
+                ? 'Booking garage details updated.'
+                : intent === 'updateBookingPrivate'
+                  ? 'Booking private details updated.'
+                  : intent === 'updateGarageShareRequest'
+                    ? 'Garage share request updated.'
+                    : intent === 'saveHotelReview'
+                      ? 'Hotel feedback updated.'
+                      : 'Booking updated.',
       actor: { userId: user.id, name: user.name },
       subject: {
         type:

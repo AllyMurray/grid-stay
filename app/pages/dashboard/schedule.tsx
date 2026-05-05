@@ -476,7 +476,7 @@ export function BookingSchedulePage({
   calendarFeedOptions = defaultCalendarFeedOptions,
   today = new Date().toISOString().slice(0, 10),
 }: BookingSchedulePageProps) {
-  const isMobile = useMediaQuery('(max-width: 48em)', false, {
+  const isMobile = useMediaQuery('(max-width: 62em)', false, {
     getInitialValueInEffect: false,
   });
   const [syncOpened, syncHandlers] = useDisclosure(false);

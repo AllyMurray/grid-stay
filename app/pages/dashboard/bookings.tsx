@@ -13,6 +13,7 @@ import {
   SimpleGrid,
   Stack,
   Switch,
+  Tabs,
   Text,
   Textarea,
   TextInput,
@@ -21,7 +22,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
   IconAlertCircle,
   IconBuildingSkyscraper,
@@ -30,19 +31,20 @@ import {
   IconMapPin,
   IconRoad,
   IconSearch,
-  IconSparkles,
-  IconStar,
   IconUsers,
 } from '@tabler/icons-react';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { Link, useFetcher } from 'react-router';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import { TripStatusSummary } from '~/components/layout/trip-status-summary';
-import type {
-  BookingEditorActionResult,
-  HotelReviewActionResult,
-} from '~/lib/bookings/actions.server';
+import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import {
   formatArrivalDateTime,
   resolveArrivalDateTime,
@@ -63,6 +65,14 @@ export interface MyBookingsPageProps {
 }
 
 type BookingFilter = 'all' | BookingRecord['status'];
+type BookingEditorTab = 'trip' | 'stay' | 'garage' | 'private';
+
+const bookingEditorTabs: BookingEditorTab[] = [
+  'trip',
+  'stay',
+  'garage',
+  'private',
+];
 
 interface HotelSearchResponse {
   suggestions: HotelSuggestion[];
@@ -737,216 +747,255 @@ function HotelSelector({
   );
 }
 
-function HotelFeedbackPanel({
-  booking,
-  insight,
+function SectionSaveFooter({
+  dirty,
+  saved,
+  isSaving,
+  label,
 }: {
-  booking: BookingRecord;
-  insight?: HotelInsight;
+  dirty: boolean;
+  saved: boolean;
+  isSaving: boolean;
+  label: string;
 }) {
-  const reviewFetcher = useFetcher<HotelReviewActionResult>();
-  const isSavingReview = reviewFetcher.state !== 'idle';
-  const formError =
-    reviewFetcher.data && !reviewFetcher.data.ok
-      ? reviewFetcher.data.formError
-      : null;
-  const fieldErrors =
-    reviewFetcher.data && !reviewFetcher.data.ok
-      ? reviewFetcher.data.fieldErrors
-      : undefined;
-  const myReview = insight?.reviews.find(
-    (review) => review.userId === booking.userId,
-  );
-
   return (
-    <Paper
-      className="shell-card booking-editor-panel"
-      p={{ base: 'md', sm: 'lg' }}
+    <Group
+      justify="space-between"
+      wrap="wrap"
+      className="booking-section-actions"
     >
-      <Stack gap="md">
-        <BookingSectionHeading
-          icon={<IconSparkles size={16} />}
-          title="Hotel feedback"
-          description="Capture the details that matter to the group, especially parking and arrival logistics."
-          color="blue"
-        />
-
-        {!booking.hotelId || !insight ? (
-          <Alert color="blue" icon={<IconBuildingSkyscraper size={18} />}>
-            Save a hotel from the stay section first, then add parking and
-            arrival feedback for the group.
-          </Alert>
-        ) : (
-          <>
-            <Paper withBorder p="sm" radius="md">
-              <Group justify="space-between" align="flex-start" gap="md">
-                <Stack gap={4}>
-                  <Text fw={700}>{insight.hotel.name}</Text>
-                  {insight.hotel.address ? (
-                    <Text size="sm" c="dimmed">
-                      {insight.hotel.address}
-                    </Text>
-                  ) : null}
-                  <Text size="sm">{insight.summary}</Text>
-                  <Badge size="xs" variant="light" color="blue">
-                    {insight.summarySource === 'bedrock'
-                      ? 'AI summary'
-                      : 'Review summary'}
-                  </Badge>
-                </Stack>
-                <Stack gap={2} align="flex-end">
-                  <Group gap={4}>
-                    <IconStar size={16} />
-                    <Text fw={700}>
-                      {getRatingLabel(insight.averageRating)}
-                    </Text>
-                  </Group>
-                  <Text size="xs" c="dimmed">
-                    {insight.reviewCount}{' '}
-                    {insight.reviewCount === 1 ? 'review' : 'reviews'}
-                  </Text>
-                </Stack>
-              </Group>
-            </Paper>
-
-            <reviewFetcher.Form method="post">
-              <input type="hidden" name="intent" value="saveHotelReview" />
-              <input type="hidden" name="hotelId" value={booking.hotelId} />
-              <Stack gap="md">
-                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                  <NumberInput
-                    name="rating"
-                    label="Overall rating"
-                    description="Optional group usefulness rating."
-                    min={1}
-                    max={5}
-                    defaultValue={myReview?.rating}
-                    error={fieldErrors?.rating?.[0]}
-                  />
-                  <Select
-                    name="trailerParking"
-                    label="Trailer parking"
-                    defaultValue={myReview?.trailerParking ?? 'unknown'}
-                    data={[
-                      { value: 'unknown', label: 'Not sure' },
-                      { value: 'good', label: 'Good' },
-                      { value: 'limited', label: 'Limited' },
-                      { value: 'none', label: 'None' },
-                    ]}
-                    error={fieldErrors?.trailerParking?.[0]}
-                  />
-                  <Select
-                    name="secureParking"
-                    label="Secure parking"
-                    defaultValue={myReview?.secureParking ?? 'unknown'}
-                    data={[
-                      { value: 'unknown', label: 'Not sure' },
-                      { value: 'yes', label: 'Yes' },
-                      { value: 'mixed', label: 'Mixed' },
-                      { value: 'no', label: 'No' },
-                    ]}
-                    error={fieldErrors?.secureParking?.[0]}
-                  />
-                  <Select
-                    name="lateCheckIn"
-                    label="Late check-in"
-                    defaultValue={myReview?.lateCheckIn ?? 'unknown'}
-                    data={[
-                      { value: 'unknown', label: 'Not sure' },
-                      { value: 'yes', label: 'Yes' },
-                      { value: 'limited', label: 'Limited' },
-                      { value: 'no', label: 'No' },
-                    ]}
-                    error={fieldErrors?.lateCheckIn?.[0]}
-                  />
-                </SimpleGrid>
-
-                <Textarea
-                  name="parkingNotes"
-                  label="Parking notes"
-                  description="Trailer room, car park access, lighting, barriers, or anything awkward."
-                  minRows={2}
-                  defaultValue={myReview?.parkingNotes ?? ''}
-                  error={fieldErrors?.parkingNotes?.[0]}
-                  maxLength={500}
-                />
-                <Textarea
-                  name="generalNotes"
-                  label="General hotel notes"
-                  description="Food, check-in, noise, distance to circuit, or other group-relevant notes."
-                  minRows={3}
-                  defaultValue={myReview?.generalNotes ?? ''}
-                  error={fieldErrors?.generalNotes?.[0]}
-                  maxLength={1000}
-                />
-
-                {formError ? (
-                  <Alert color="red" icon={<IconAlertCircle size={18} />}>
-                    {formError}
-                  </Alert>
-                ) : null}
-
-                <Group justify="flex-end">
-                  <Button
-                    type="submit"
-                    name="intent"
-                    value="saveHotelReview"
-                    loading={isSavingReview}
-                  >
-                    Save hotel feedback
-                  </Button>
-                </Group>
-              </Stack>
-            </reviewFetcher.Form>
-          </>
-        )}
-      </Stack>
-    </Paper>
+      <Text size="sm" c={dirty ? 'brand.7' : saved ? 'green.7' : 'dimmed'}>
+        {dirty ? 'Unsaved changes' : saved ? 'Saved' : 'No changes yet'}
+      </Text>
+      <Button type="submit" loading={isSaving}>
+        {label}
+      </Button>
+    </Group>
   );
 }
 
-function BookingEditorPanel({
+function BookingSectionStatus({ formError }: { formError?: string | null }) {
+  return formError ? (
+    <Alert color="red" icon={<IconAlertCircle size={18} />}>
+      {formError}
+    </Alert>
+  ) : null;
+}
+
+function useSectionDirtyState(
+  fetcher: { state: string; data?: BookingEditorActionResult },
+  onDirtyChange: (dirty: boolean) => void,
+) {
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    onDirtyChange(dirty);
+  }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.ok) {
+      setDirty(false);
+    }
+  }, [fetcher.data, fetcher.state]);
+
+  return {
+    dirty,
+    markDirty: () => setDirty(true),
+    saved: fetcher.state === 'idle' && fetcher.data?.ok === true && !dirty,
+  };
+}
+
+function TripSectionForm({
+  booking,
+  onDirtyChange,
+}: {
+  booking: BookingRecord;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const fetcher = useFetcher<BookingEditorActionResult>();
+  const { dirty, markDirty, saved } = useSectionDirtyState(
+    fetcher,
+    onDirtyChange,
+  );
+  const isSaving = fetcher.state !== 'idle';
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
+  return (
+    <fetcher.Form method="post" onChange={markDirty}>
+      <input type="hidden" name="bookingId" value={booking.bookingId} />
+      <input type="hidden" name="intent" value="updateBookingTrip" />
+      <Stack gap="md" className="booking-editor-section">
+        <BookingSectionHeading
+          icon={<IconRoad size={16} />}
+          title="Trip plan"
+          description="Keep the status current before changing the rest of the booking."
+          color="brand"
+        />
+        <Select
+          name="status"
+          label={
+            <BookingFieldLabel
+              label="Status"
+              visibility="Affects your trip plan"
+              visibilityColor="brand.7"
+            />
+          }
+          description="Use booked, maybe, or cancelled to keep this trip current."
+          defaultValue={booking.status}
+          data={[
+            { value: 'booked', label: 'Booked' },
+            { value: 'maybe', label: 'Maybe' },
+            { value: 'cancelled', label: 'Cancelled' },
+          ]}
+          error={fieldErrors?.status?.[0]}
+        />
+        <BookingSectionStatus formError={formError} />
+        <SectionSaveFooter
+          dirty={dirty}
+          saved={saved}
+          isSaving={isSaving}
+          label="Save trip"
+        />
+      </Stack>
+    </fetcher.Form>
+  );
+}
+
+function StaySectionForm({
   booking,
   hotelInsight,
-  garageShareRequests,
-  selectedIndex,
-  totalBookings,
-  hasPrevious,
-  hasNext,
-  onSelectPrevious,
-  onSelectNext,
+  onDirtyChange,
 }: {
   booking: BookingRecord;
   hotelInsight?: HotelInsight;
-  selectedIndex: number;
-  totalBookings: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
-  onSelectPrevious: () => void;
-  onSelectNext: () => void;
-  garageShareRequests: UserGarageShareRequest[];
+  onDirtyChange: (dirty: boolean) => void;
 }) {
-  const [
-    deleteModalOpened,
-    { close: closeDeleteModal, open: openDeleteModal },
-  ] = useDisclosure(false);
-  const saveFetcher = useFetcher<BookingEditorActionResult>();
-  const deleteFetcher = useFetcher<BookingEditorActionResult>();
-  const isSaving = saveFetcher.state !== 'idle';
-  const isDeleting = deleteFetcher.state !== 'idle';
+  const fetcher = useFetcher<BookingEditorActionResult>();
+  const { dirty, markDirty, saved } = useSectionDirtyState(
+    fetcher,
+    onDirtyChange,
+  );
+  const isSaving = fetcher.state !== 'idle';
   const arrivalDateTime = resolveArrivalDateTime(booking);
   const fieldErrors =
-    saveFetcher.data && !saveFetcher.data.ok
-      ? saveFetcher.data.fieldErrors
-      : undefined;
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
   const formError =
-    saveFetcher.data && !saveFetcher.data.ok
-      ? saveFetcher.data.formError
-      : null;
-  const deleteFormError =
-    deleteFetcher.data && !deleteFetcher.data.ok
-      ? deleteFetcher.data.formError
-      : null;
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
+  return (
+    <fetcher.Form method="post" onChange={markDirty}>
+      <input type="hidden" name="bookingId" value={booking.bookingId} />
+      <input type="hidden" name="intent" value="updateBookingStay" />
+      <Stack gap="md" className="booking-editor-section">
+        <BookingSectionHeading
+          icon={<IconUsers size={16} />}
+          title="Stay and arrival"
+          description="The hotel or stay and arrival time are visible to everyone coordinating this day."
+          color="blue"
+        />
+        <HotelSelector
+          booking={booking}
+          insight={hotelInsight}
+          fieldErrors={fieldErrors}
+        />
+        <DateTimePicker
+          name="arrivalDateTime"
+          label={
+            <BookingFieldLabel
+              label="Arrival"
+              visibility="Visible to the group"
+              visibilityColor="blue.6"
+            />
+          }
+          leftSection={<IconClock size={16} />}
+          description="Optional paddock or venue arrival date and time."
+          valueFormat="ddd D MMM YYYY, HH:mm"
+          defaultValue={arrivalDateTime}
+          defaultDate={arrivalDateTime ?? booking.date}
+          defaultTimeValue="19:00"
+          clearable
+          error={fieldErrors?.arrivalDateTime?.[0]}
+        />
+
+        {booking.hotelId && hotelInsight ? (
+          <Paper withBorder p="sm" radius="md">
+            <Group justify="space-between" align="flex-start" gap="md">
+              <Stack gap={4} style={{ minWidth: 0 }}>
+                <Text fw={700}>{hotelInsight.hotel.name}</Text>
+                {hotelInsight.hotel.address ? (
+                  <Text size="sm" c="dimmed">
+                    {hotelInsight.hotel.address}
+                  </Text>
+                ) : null}
+                <Text size="sm">{hotelInsight.summary}</Text>
+                <Group gap="xs" wrap="wrap">
+                  <Badge size="xs" variant="light" color="blue">
+                    {hotelInsight.summarySource === 'bedrock'
+                      ? 'AI summary'
+                      : 'Review summary'}
+                  </Badge>
+                  <Badge size="xs" variant="light" color="gray">
+                    {getRatingLabel(hotelInsight.averageRating)}
+                  </Badge>
+                  <Badge size="xs" variant="light" color="gray">
+                    {hotelInsight.reviewCount}{' '}
+                    {hotelInsight.reviewCount === 1 ? 'review' : 'reviews'}
+                  </Badge>
+                </Group>
+              </Stack>
+              <Button
+                component={Link}
+                to={`/dashboard/hotels/${booking.hotelId}/feedback?booking=${booking.bookingId}`}
+                variant="default"
+              >
+                Hotel feedback
+              </Button>
+            </Group>
+          </Paper>
+        ) : (
+          <Alert color="blue" icon={<IconBuildingSkyscraper size={18} />}>
+            Save a hotel from this section first, then add parking and arrival
+            feedback for the group.
+          </Alert>
+        )}
+
+        <Text size="sm" c="dimmed">
+          Add only details you are happy for other members to see.
+        </Text>
+        <BookingSectionStatus formError={formError} />
+        <SectionSaveFooter
+          dirty={dirty}
+          saved={saved}
+          isSaving={isSaving}
+          label="Save stay"
+        />
+      </Stack>
+    </fetcher.Form>
+  );
+}
+
+function GarageSectionForm({
+  booking,
+  garageShareRequests,
+  onDirtyChange,
+}: {
+  booking: BookingRecord;
+  garageShareRequests: UserGarageShareRequest[];
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const fetcher = useFetcher<BookingEditorActionResult>();
+  const { dirty, markDirty, saved } = useSectionDirtyState(
+    fetcher,
+    onDirtyChange,
+  );
+  const isSaving = fetcher.state !== 'idle';
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const incomingGarageRequests = garageShareRequests.filter(
     (request) =>
       request.isIncoming &&
@@ -960,11 +1009,251 @@ function BookingEditorPanel({
         request.dayId === booking.dayId),
   );
 
+  return (
+    <fetcher.Form method="post" onChange={markDirty}>
+      <input type="hidden" name="bookingId" value={booking.bookingId} />
+      <input type="hidden" name="intent" value="updateBookingGarage" />
+      <Stack gap="md" className="booking-editor-section">
+        <BookingSectionHeading
+          icon={<IconUsers size={16} />}
+          title="Garage sharing"
+          description="Garage availability is visible to active attendees for this day."
+          color="orange"
+        />
+        <Switch
+          name="garageBooked"
+          value="true"
+          label={
+            <BookingFieldLabel
+              label="Garage booked"
+              visibility="Visible to the group"
+              visibilityColor="orange.7"
+            />
+          }
+          description="Turn this on when you have a garage and can share spare space."
+          defaultChecked={Boolean(booking.garageBooked)}
+        />
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <NumberInput
+            name="garageCapacity"
+            label={
+              <BookingFieldLabel
+                label="Garage capacity"
+                visibility="Includes your car"
+                visibilityColor="orange.7"
+              />
+            }
+            description="Most garages hold two cars."
+            defaultValue={booking.garageCapacity ?? 2}
+            min={1}
+            max={20}
+            error={fieldErrors?.garageCapacity?.[0]}
+          />
+          <TextInput
+            name="garageLabel"
+            label={
+              <BookingFieldLabel
+                label="Garage label"
+                visibility="Visible to the group"
+                visibilityColor="orange.7"
+              />
+            }
+            description="Optional garage number, block, or note."
+            defaultValue={booking.garageLabel ?? ''}
+            error={fieldErrors?.garageLabel?.[0]}
+            maxLength={120}
+          />
+        </SimpleGrid>
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <GarageShareRequestList
+            title="Requests to my garage"
+            emptyText="No one has asked to share this garage yet."
+            requests={incomingGarageRequests}
+          />
+          <GarageShareRequestList
+            title="My garage requests"
+            emptyText="You have not asked to share another garage for this trip."
+            requests={outgoingGarageRequests}
+          />
+        </SimpleGrid>
+        <BookingSectionStatus formError={formError} />
+        <SectionSaveFooter
+          dirty={dirty}
+          saved={saved}
+          isSaving={isSaving}
+          label="Save garage"
+        />
+      </Stack>
+    </fetcher.Form>
+  );
+}
+
+function PrivateSectionForm({
+  booking,
+  onDirtyChange,
+}: {
+  booking: BookingRecord;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  const fetcher = useFetcher<BookingEditorActionResult>();
+  const { dirty, markDirty, saved } = useSectionDirtyState(
+    fetcher,
+    onDirtyChange,
+  );
+  const isSaving = fetcher.state !== 'idle';
+  const fieldErrors =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+
+  return (
+    <fetcher.Form method="post" onChange={markDirty}>
+      <input type="hidden" name="bookingId" value={booking.bookingId} />
+      <input type="hidden" name="intent" value="updateBookingPrivate" />
+      <Stack gap="md" className="booking-editor-section">
+        <BookingSectionHeading
+          icon={<IconLock size={16} />}
+          title="Private to you"
+          description="References and notes stay on your side and do not appear in the shared plan."
+          color="gray"
+        />
+        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <TextInput
+            name="bookingReference"
+            label={
+              <BookingFieldLabel
+                label="Booking reference"
+                visibility="Visible only to you"
+              />
+            }
+            description="Store the confirmation code or internal reference here."
+            defaultValue={booking.bookingReference ?? ''}
+            error={fieldErrors?.bookingReference?.[0]}
+            maxLength={120}
+          />
+          <TextInput
+            name="accommodationReference"
+            label={
+              <BookingFieldLabel
+                label="Accommodation reference"
+                visibility="Visible only to you"
+              />
+            }
+            description="Useful for the hotel confirmation, booking id, or door code."
+            defaultValue={booking.accommodationReference ?? ''}
+            error={fieldErrors?.accommodationReference?.[0]}
+            maxLength={120}
+          />
+        </SimpleGrid>
+
+        <Textarea
+          name="notes"
+          label={
+            <BookingFieldLabel
+              label="Private notes"
+              visibility="Visible only to you"
+            />
+          }
+          description="Keep reminders or anything else you do not want in the shared plan."
+          minRows={4}
+          defaultValue={booking.notes ?? ''}
+          error={fieldErrors?.notes?.[0]}
+          maxLength={1000}
+        />
+        <BookingSectionStatus formError={formError} />
+        <SectionSaveFooter
+          dirty={dirty}
+          saved={saved}
+          isSaving={isSaving}
+          label="Save private details"
+        />
+      </Stack>
+    </fetcher.Form>
+  );
+}
+
+function BookingEditorPanel({
+  booking,
+  hotelInsight,
+  garageShareRequests,
+  selectedIndex,
+  totalBookings,
+  hasPrevious,
+  hasNext,
+  onSelectPrevious,
+  onSelectNext,
+  onBackToTrips,
+  onDirtyChange,
+  showBackToTrips = false,
+}: {
+  booking: BookingRecord;
+  hotelInsight?: HotelInsight;
+  selectedIndex: number;
+  totalBookings: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onSelectPrevious: () => void;
+  onSelectNext: () => void;
+  onBackToTrips?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  showBackToTrips?: boolean;
+  garageShareRequests: UserGarageShareRequest[];
+}) {
+  const [
+    deleteModalOpened,
+    { close: closeDeleteModal, open: openDeleteModal },
+  ] = useDisclosure(false);
+  const deleteFetcher = useFetcher<BookingEditorActionResult>();
+  const isDeleting = deleteFetcher.state !== 'idle';
+  const [activeTab, setActiveTab] = useState<BookingEditorTab>('trip');
+  const [dirtyTabs, setDirtyTabs] = useState<Record<BookingEditorTab, boolean>>(
+    {
+      trip: false,
+      stay: false,
+      garage: false,
+      private: false,
+    },
+  );
+  const deleteFormError =
+    deleteFetcher.data && !deleteFetcher.data.ok
+      ? deleteFetcher.data.formError
+      : null;
+  const hasDirtyChanges = bookingEditorTabs.some((tab) => dirtyTabs[tab]);
+
+  const setTabDirty = useCallback((tab: BookingEditorTab, dirty: boolean) => {
+    setDirtyTabs((current) =>
+      current[tab] === dirty ? current : { ...current, [tab]: dirty },
+    );
+  }, []);
+
   useEffect(() => {
     if (deleteFetcher.state === 'idle' && deleteFetcher.data?.ok) {
       closeDeleteModal();
     }
   }, [closeDeleteModal, deleteFetcher.data, deleteFetcher.state]);
+
+  useEffect(() => {
+    onDirtyChange?.(hasDirtyChanges);
+  }, [hasDirtyChanges, onDirtyChange]);
+
+  const confirmDiscardActiveTab = () =>
+    !dirtyTabs[activeTab] ||
+    window.confirm('Discard unsaved changes in this section?');
+
+  const changeTab = (value: string | null) => {
+    if (!value || value === activeTab) {
+      return;
+    }
+
+    if (!confirmDiscardActiveTab()) {
+      return;
+    }
+
+    if (dirtyTabs[activeTab]) {
+      setTabDirty(activeTab, false);
+    }
+    setActiveTab(value as BookingEditorTab);
+  };
 
   return (
     <>
@@ -1009,260 +1298,107 @@ function BookingEditorPanel({
         className="shell-card booking-editor-panel"
         p={{ base: 'md', sm: 'lg' }}
       >
-        <saveFetcher.Form method="post">
-          <input type="hidden" name="bookingId" value={booking.bookingId} />
-          <Stack gap="lg">
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={4}>
-                <Text size="sm" fw={700} c="brand.7">
-                  Editing trip {selectedIndex + 1} of {totalBookings}
-                </Text>
-                <Title order={2}>{booking.circuit}</Title>
-                <Text size="sm" c="dimmed">
-                  {booking.date} • {booking.provider}
-                </Text>
-                <Text size="sm">
-                  {booking.description || 'No extra details'}
-                </Text>
-              </Stack>
-              <Stack gap="sm" align="flex-end">
-                <Badge color={bookingColor(booking.status)} size="lg">
-                  {titleCase(booking.status)}
-                </Badge>
-                <Group gap="xs">
+        <Stack gap="lg">
+          <Group justify="space-between" align="flex-start">
+            <Stack gap={4}>
+              {showBackToTrips && onBackToTrips ? (
+                <Group>
                   <Button
                     type="button"
-                    size="compact-sm"
                     variant="default"
-                    onClick={onSelectPrevious}
-                    disabled={!hasPrevious}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
                     size="compact-sm"
-                    variant="default"
-                    onClick={onSelectNext}
-                    disabled={!hasNext}
+                    onClick={onBackToTrips}
                   >
-                    Next
+                    Back to trips
                   </Button>
                 </Group>
-              </Stack>
-            </Group>
-
-            <Divider />
-
-            <SimpleGrid cols={{ base: 1, xl: 2 }} spacing="xl">
-              <Stack gap="md" className="booking-editor-section">
-                <BookingSectionHeading
-                  icon={<IconRoad size={16} />}
-                  title="Trip plan"
-                  description="Keep the status current before you lock in the rest of the trip."
-                  color="brand"
-                />
-                <Select
-                  name="status"
-                  label={
-                    <BookingFieldLabel
-                      label="Status"
-                      visibility="Affects your trip plan"
-                      visibilityColor="brand.7"
-                    />
-                  }
-                  description="Use booked, maybe, or cancelled to keep this trip current."
-                  defaultValue={booking.status}
-                  data={[
-                    { value: 'booked', label: 'Booked' },
-                    { value: 'maybe', label: 'Maybe' },
-                    { value: 'cancelled', label: 'Cancelled' },
-                  ]}
-                  error={fieldErrors?.status?.[0]}
-                />
-              </Stack>
-
-              <Stack gap="md" className="booking-editor-section">
-                <BookingSectionHeading
-                  icon={<IconUsers size={16} />}
-                  title="Shared with the group"
-                  description="The hotel or stay and arrival time are visible to everyone coordinating this day."
-                  color="blue"
-                />
-                <HotelSelector
-                  booking={booking}
-                  insight={hotelInsight}
-                  fieldErrors={fieldErrors}
-                />
-                <DateTimePicker
-                  name="arrivalDateTime"
-                  label={
-                    <BookingFieldLabel
-                      label="Arrival"
-                      visibility="Visible to the group"
-                      visibilityColor="blue.6"
-                    />
-                  }
-                  leftSection={<IconClock size={16} />}
-                  description="Optional paddock or venue arrival date and time."
-                  valueFormat="ddd D MMM YYYY, HH:mm"
-                  defaultValue={arrivalDateTime}
-                  defaultDate={arrivalDateTime ?? booking.date}
-                  defaultTimeValue="19:00"
-                  clearable
-                  error={fieldErrors?.arrivalDateTime?.[0]}
-                />
-                <Text size="sm" c="dimmed">
-                  Add only details you are happy for other members to see.
-                </Text>
-              </Stack>
-            </SimpleGrid>
-
-            <Stack gap="md" className="booking-editor-section">
-              <BookingSectionHeading
-                icon={<IconUsers size={16} />}
-                title="Garage sharing"
-                description="Garage availability is visible to active attendees for this day."
-                color="orange"
-              />
-              <Switch
-                name="garageBooked"
-                value="true"
-                label={
-                  <BookingFieldLabel
-                    label="Garage booked"
-                    visibility="Visible to the group"
-                    visibilityColor="orange.7"
-                  />
-                }
-                description="Turn this on when you have a garage and can share spare space."
-                defaultChecked={Boolean(booking.garageBooked)}
-              />
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <NumberInput
-                  name="garageCapacity"
-                  label={
-                    <BookingFieldLabel
-                      label="Garage capacity"
-                      visibility="Includes your car"
-                      visibilityColor="orange.7"
-                    />
-                  }
-                  description="Most garages hold two cars."
-                  defaultValue={booking.garageCapacity ?? 2}
-                  min={1}
-                  max={20}
-                  error={fieldErrors?.garageCapacity?.[0]}
-                />
-                <TextInput
-                  name="garageLabel"
-                  label={
-                    <BookingFieldLabel
-                      label="Garage label"
-                      visibility="Visible to the group"
-                      visibilityColor="orange.7"
-                    />
-                  }
-                  description="Optional garage number, block, or note."
-                  defaultValue={booking.garageLabel ?? ''}
-                  error={fieldErrors?.garageLabel?.[0]}
-                  maxLength={120}
-                />
-              </SimpleGrid>
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <GarageShareRequestList
-                  title="Requests to my garage"
-                  emptyText="No one has asked to share this garage yet."
-                  requests={incomingGarageRequests}
-                />
-                <GarageShareRequestList
-                  title="My garage requests"
-                  emptyText="You have not asked to share another garage for this trip."
-                  requests={outgoingGarageRequests}
-                />
-              </SimpleGrid>
+              ) : null}
+              <Text size="sm" fw={700} c="brand.7">
+                Editing trip {selectedIndex + 1} of {totalBookings}
+              </Text>
+              <Title order={2}>{booking.circuit}</Title>
+              <Text size="sm" c="dimmed">
+                {booking.date} • {booking.provider}
+              </Text>
+              <Text size="sm">{booking.description || 'No extra details'}</Text>
             </Stack>
-
-            <Stack gap="md" className="booking-editor-section">
-              <BookingSectionHeading
-                icon={<IconLock size={16} />}
-                title="Private to you"
-                description="References and notes stay on your side and do not appear in the shared plan."
-                color="gray"
-              />
-              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-                <TextInput
-                  name="bookingReference"
-                  label={
-                    <BookingFieldLabel
-                      label="Booking reference"
-                      visibility="Visible only to you"
-                    />
-                  }
-                  description="Store the confirmation code or internal reference here."
-                  defaultValue={booking.bookingReference ?? ''}
-                  error={fieldErrors?.bookingReference?.[0]}
-                  maxLength={120}
-                />
-                <TextInput
-                  name="accommodationReference"
-                  label={
-                    <BookingFieldLabel
-                      label="Accommodation reference"
-                      visibility="Visible only to you"
-                    />
-                  }
-                  description="Useful for the hotel confirmation, booking id, or door code."
-                  defaultValue={booking.accommodationReference ?? ''}
-                  error={fieldErrors?.accommodationReference?.[0]}
-                  maxLength={120}
-                />
-              </SimpleGrid>
-
-              <Textarea
-                name="notes"
-                label={
-                  <BookingFieldLabel
-                    label="Private notes"
-                    visibility="Visible only to you"
-                  />
-                }
-                description="Keep reminders or anything else you do not want in the shared plan."
-                minRows={4}
-                defaultValue={booking.notes ?? ''}
-                error={fieldErrors?.notes?.[0]}
-                maxLength={1000}
-              />
+            <Stack gap="sm" align="flex-end">
+              <Badge color={bookingColor(booking.status)} size="lg">
+                {titleCase(booking.status)}
+              </Badge>
+              <Group gap="xs">
+                <Button
+                  type="button"
+                  size="compact-sm"
+                  variant="default"
+                  onClick={onSelectPrevious}
+                  disabled={!hasPrevious}
+                >
+                  Previous
+                </Button>
+                <Button
+                  type="button"
+                  size="compact-sm"
+                  variant="default"
+                  onClick={onSelectNext}
+                  disabled={!hasNext}
+                >
+                  Next
+                </Button>
+              </Group>
             </Stack>
+          </Group>
 
-            {formError ? (
-              <Alert color="red" icon={<IconAlertCircle size={18} />}>
-                {formError}
-              </Alert>
-            ) : null}
+          <Divider />
 
-            <Group justify="space-between" wrap="wrap">
-              <Button
-                type="button"
-                color="red"
-                variant="subtle"
-                onClick={openDeleteModal}
-              >
-                Delete booking
-              </Button>
-              <Button
-                type="submit"
-                name="intent"
-                value="updateBooking"
-                loading={isSaving}
-              >
-                Save changes
-              </Button>
-            </Group>
-          </Stack>
-        </saveFetcher.Form>
+          <Tabs value={activeTab} onChange={changeTab} keepMounted={false}>
+            <Tabs.List grow>
+              <Tabs.Tab value="trip">Trip</Tabs.Tab>
+              <Tabs.Tab value="stay">Stay</Tabs.Tab>
+              <Tabs.Tab value="garage">Garage</Tabs.Tab>
+              <Tabs.Tab value="private">Private</Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="trip" pt="md">
+              <TripSectionForm
+                booking={booking}
+                onDirtyChange={(dirty) => setTabDirty('trip', dirty)}
+              />
+            </Tabs.Panel>
+            <Tabs.Panel value="stay" pt="md">
+              <StaySectionForm
+                booking={booking}
+                hotelInsight={hotelInsight}
+                onDirtyChange={(dirty) => setTabDirty('stay', dirty)}
+              />
+            </Tabs.Panel>
+            <Tabs.Panel value="garage" pt="md">
+              <GarageSectionForm
+                booking={booking}
+                garageShareRequests={garageShareRequests}
+                onDirtyChange={(dirty) => setTabDirty('garage', dirty)}
+              />
+            </Tabs.Panel>
+            <Tabs.Panel value="private" pt="md">
+              <PrivateSectionForm
+                booking={booking}
+                onDirtyChange={(dirty) => setTabDirty('private', dirty)}
+              />
+            </Tabs.Panel>
+          </Tabs>
+
+          <Group justify="space-between" wrap="wrap">
+            <Button
+              type="button"
+              color="red"
+              variant="subtle"
+              onClick={openDeleteModal}
+            >
+              Delete booking
+            </Button>
+          </Group>
+        </Stack>
       </Paper>
-      <HotelFeedbackPanel booking={booking} insight={hotelInsight} />
     </>
   );
 }
@@ -1272,11 +1408,17 @@ export function MyBookingsPage({
   garageShareRequests = [],
   hotelInsights = {},
 }: MyBookingsPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedBookingParam = searchParams.get('booking');
+  const isCompact = useMediaQuery('(max-width: 62em)', false, {
+    getInitialValueInEffect: false,
+  });
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
-    bookings[0]?.bookingId ?? null,
+    selectedBookingParam ?? bookings[0]?.bookingId ?? null,
   );
   const [statusFilter, setStatusFilter] = useState<BookingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasEditorDirtyChanges, setHasEditorDirtyChanges] = useState(false);
   const bookedCount = bookings.filter(
     (booking) => booking.status === 'booked',
   ).length;
@@ -1321,10 +1463,64 @@ export function MyBookingsPage({
         (booking) => booking.bookingId === selectedBooking.bookingId,
       )
     : -1;
+  const editorOpen = !isCompact || Boolean(selectedBookingParam);
+
+  const updateSelectedBookingParam = useCallback(
+    (bookingId: string | null) => {
+      const nextParams = new URLSearchParams(searchParams);
+      if (bookingId) {
+        nextParams.set('booking', bookingId);
+      } else {
+        nextParams.delete('booking');
+      }
+
+      setSearchParams(nextParams, { preventScrollReset: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const confirmDiscardEditor = useCallback(
+    () =>
+      !hasEditorDirtyChanges ||
+      window.confirm('Discard unsaved changes for this booking?'),
+    [hasEditorDirtyChanges],
+  );
+
+  const selectBooking = useCallback(
+    (bookingId: string) => {
+      if (!confirmDiscardEditor()) {
+        return;
+      }
+
+      setHasEditorDirtyChanges(false);
+      setSelectedBookingId(bookingId);
+      updateSelectedBookingParam(bookingId);
+    },
+    [confirmDiscardEditor, updateSelectedBookingParam],
+  );
+
+  const closeCompactEditor = useCallback(() => {
+    if (!confirmDiscardEditor()) {
+      return;
+    }
+
+    setHasEditorDirtyChanges(false);
+    updateSelectedBookingParam(null);
+  }, [confirmDiscardEditor, updateSelectedBookingParam]);
 
   useEffect(() => {
     if (filteredBookings.length === 0) {
       setSelectedBookingId(null);
+      return;
+    }
+
+    if (
+      selectedBookingParam &&
+      filteredBookings.some(
+        (booking) => booking.bookingId === selectedBookingParam,
+      )
+    ) {
+      setSelectedBookingId(selectedBookingParam);
       return;
     }
 
@@ -1338,7 +1534,169 @@ export function MyBookingsPage({
     }
 
     setSelectedBookingId(filteredBookings[0].bookingId);
-  }, [filteredBookings, selectedBookingId]);
+  }, [filteredBookings, selectedBookingId, selectedBookingParam]);
+
+  useEffect(() => {
+    if (!hasEditorDirtyChanges) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasEditorDirtyChanges]);
+
+  const bookingListBody =
+    filteredBookings.length > 0 ? (
+      <Stack gap="lg">
+        {bookingSections.map((section) => (
+          <Stack key={section.label} gap="xs">
+            <Text
+              size="sm"
+              fw={700}
+              c="dimmed"
+              className="booking-section-label"
+            >
+              {section.label}
+            </Text>
+            <Stack gap={0}>
+              {section.items.map((booking, index) => (
+                <div key={booking.bookingId}>
+                  <BookingListItem
+                    booking={booking}
+                    active={
+                      editorOpen &&
+                      booking.bookingId === selectedBooking?.bookingId
+                    }
+                    onSelect={() => selectBooking(booking.bookingId)}
+                  />
+                  {index < section.items.length - 1 ? <Divider /> : null}
+                </div>
+              ))}
+            </Stack>
+          </Stack>
+        ))}
+      </Stack>
+    ) : (
+      <Stack gap="sm" py="sm">
+        <Text fw={700}>No trips match that view</Text>
+        <Text size="sm" c="dimmed">
+          Clear the search or widen the status filter to bring more bookings
+          back into the list.
+        </Text>
+        <Group>
+          <Button
+            type="button"
+            variant="default"
+            onClick={() => {
+              setSearchQuery('');
+              setStatusFilter('all');
+            }}
+          >
+            Clear filters
+          </Button>
+        </Group>
+      </Stack>
+    );
+
+  const bookingListPanel = (
+    <Paper
+      className="shell-card booking-list-panel"
+      p={{ base: 'sm', sm: 'md' }}
+    >
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-end">
+          <Stack gap={2}>
+            <Title order={3}>Trips</Title>
+            <Text size="sm" c="dimmed">
+              Choose a booking to review or edit.
+            </Text>
+          </Stack>
+          <Text size="sm" fw={700} c="dimmed">
+            {filteredBookings.length} shown
+          </Text>
+        </Group>
+
+        <Grid gap="sm">
+          <Grid.Col span={{ base: 12, sm: 7, lg: 12, xl: 7 }}>
+            <TextInput
+              aria-label="Search trips"
+              placeholder="Search circuit, provider, stay, or reference"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.currentTarget.value)}
+              leftSection={<IconSearch size={16} />}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 5, lg: 12, xl: 5 }}>
+            <Select
+              aria-label="Filter trips by status"
+              comboboxProps={{ withinPortal: false }}
+              value={statusFilter}
+              onChange={(value) =>
+                setStatusFilter((value as BookingFilter | null) ?? 'all')
+              }
+              data={[
+                { value: 'all', label: 'All statuses' },
+                { value: 'booked', label: 'Booked' },
+                { value: 'maybe', label: 'Maybe' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ]}
+            />
+          </Grid.Col>
+        </Grid>
+
+        {isCompact ? (
+          bookingListBody
+        ) : (
+          <ScrollArea.Autosize offsetScrollbars className="booking-list-scroll">
+            {bookingListBody}
+          </ScrollArea.Autosize>
+        )}
+      </Stack>
+    </Paper>
+  );
+
+  const editorPanel = selectedBooking ? (
+    <BookingEditorPanel
+      key={selectedBooking.bookingId}
+      booking={selectedBooking}
+      hotelInsight={
+        selectedBooking.hotelId
+          ? hotelInsights[selectedBooking.hotelId]
+          : undefined
+      }
+      garageShareRequests={garageShareRequests}
+      selectedIndex={selectedIndex}
+      totalBookings={filteredBookings.length}
+      hasPrevious={selectedIndex > 0}
+      hasNext={
+        selectedIndex >= 0 && selectedIndex < filteredBookings.length - 1
+      }
+      onSelectPrevious={() => {
+        const previousBooking =
+          filteredBookings[Math.max(0, selectedIndex - 1)];
+        if (previousBooking) {
+          selectBooking(previousBooking.bookingId);
+        }
+      }}
+      onSelectNext={() => {
+        const nextBooking =
+          filteredBookings[
+            Math.min(filteredBookings.length - 1, selectedIndex + 1)
+          ];
+        if (nextBooking) {
+          selectBooking(nextBooking.bookingId);
+        }
+      }}
+      showBackToTrips={isCompact}
+      onBackToTrips={closeCompactEditor}
+      onDirtyChange={setHasEditorDirtyChanges}
+    />
+  ) : null;
 
   return (
     <Stack gap="xl">
@@ -1371,156 +1729,15 @@ export function MyBookingsPage({
             </Button>
           }
         />
+      ) : isCompact && editorOpen && selectedBooking ? (
+        editorPanel
       ) : (
         <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
-          <Grid.Col span={{ base: 12, lg: 4 }}>
-            <Paper
-              className="shell-card booking-list-panel"
-              p={{ base: 'sm', sm: 'md' }}
-            >
-              <Stack gap="md">
-                <Group justify="space-between" align="flex-end">
-                  <Stack gap={2}>
-                    <Title order={3}>Trips</Title>
-                    <Text size="sm" c="dimmed">
-                      Choose a booking to review or edit.
-                    </Text>
-                  </Stack>
-                  <Text size="sm" fw={700} c="dimmed">
-                    {filteredBookings.length} shown
-                  </Text>
-                </Group>
+          <Grid.Col span={{ base: 12, lg: 4 }}>{bookingListPanel}</Grid.Col>
 
-                <Grid gap="sm">
-                  <Grid.Col span={{ base: 12, sm: 7, lg: 12, xl: 7 }}>
-                    <TextInput
-                      aria-label="Search trips"
-                      placeholder="Search circuit, provider, stay, or reference"
-                      value={searchQuery}
-                      onChange={(event) =>
-                        setSearchQuery(event.currentTarget.value)
-                      }
-                      leftSection={<IconSearch size={16} />}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 5, lg: 12, xl: 5 }}>
-                    <Select
-                      aria-label="Filter trips by status"
-                      comboboxProps={{ withinPortal: false }}
-                      value={statusFilter}
-                      onChange={(value) =>
-                        setStatusFilter(
-                          (value as BookingFilter | null) ?? 'all',
-                        )
-                      }
-                      data={[
-                        { value: 'all', label: 'All statuses' },
-                        { value: 'booked', label: 'Booked' },
-                        { value: 'maybe', label: 'Maybe' },
-                        { value: 'cancelled', label: 'Cancelled' },
-                      ]}
-                    />
-                  </Grid.Col>
-                </Grid>
-
-                <ScrollArea.Autosize
-                  offsetScrollbars
-                  className="booking-list-scroll"
-                >
-                  {filteredBookings.length > 0 ? (
-                    <Stack gap="lg">
-                      {bookingSections.map((section) => (
-                        <Stack key={section.label} gap="xs">
-                          <Text
-                            size="sm"
-                            fw={700}
-                            c="dimmed"
-                            className="booking-section-label"
-                          >
-                            {section.label}
-                          </Text>
-                          <Stack gap={0}>
-                            {section.items.map((booking, index) => (
-                              <div key={booking.bookingId}>
-                                <BookingListItem
-                                  booking={booking}
-                                  active={
-                                    booking.bookingId ===
-                                    selectedBooking?.bookingId
-                                  }
-                                  onSelect={() =>
-                                    setSelectedBookingId(booking.bookingId)
-                                  }
-                                />
-                                {index < section.items.length - 1 ? (
-                                  <Divider />
-                                ) : null}
-                              </div>
-                            ))}
-                          </Stack>
-                        </Stack>
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Stack gap="sm" py="sm">
-                      <Text fw={700}>No trips match that view</Text>
-                      <Text size="sm" c="dimmed">
-                        Clear the search or widen the status filter to bring
-                        more bookings back into the list.
-                      </Text>
-                      <Group>
-                        <Button
-                          type="button"
-                          variant="default"
-                          onClick={() => {
-                            setSearchQuery('');
-                            setStatusFilter('all');
-                          }}
-                        >
-                          Clear filters
-                        </Button>
-                      </Group>
-                    </Stack>
-                  )}
-                </ScrollArea.Autosize>
-              </Stack>
-            </Paper>
-          </Grid.Col>
-
-          <Grid.Col span={{ base: 12, lg: 8 }}>
-            {selectedBooking ? (
-              <BookingEditorPanel
-                key={selectedBooking.bookingId}
-                booking={selectedBooking}
-                hotelInsight={
-                  selectedBooking.hotelId
-                    ? hotelInsights[selectedBooking.hotelId]
-                    : undefined
-                }
-                garageShareRequests={garageShareRequests}
-                selectedIndex={selectedIndex}
-                totalBookings={filteredBookings.length}
-                hasPrevious={selectedIndex > 0}
-                hasNext={
-                  selectedIndex >= 0 &&
-                  selectedIndex < filteredBookings.length - 1
-                }
-                onSelectPrevious={() =>
-                  setSelectedBookingId(
-                    filteredBookings[Math.max(0, selectedIndex - 1)]
-                      ?.bookingId ?? selectedBooking.bookingId,
-                  )
-                }
-                onSelectNext={() =>
-                  setSelectedBookingId(
-                    filteredBookings[
-                      Math.min(filteredBookings.length - 1, selectedIndex + 1)
-                    ]?.bookingId ?? selectedBooking.bookingId,
-                  )
-                }
-              />
-            ) : null}
-          </Grid.Col>
+          {!isCompact ? (
+            <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col>
+          ) : null}
         </Grid>
       )}
     </Stack>

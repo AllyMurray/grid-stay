@@ -87,6 +87,43 @@ export const UpdateBookingSchema = z.object({
   notes: z.string().trim().max(1000).optional().default(''),
 });
 
+export const UpdateBookingTripSchema = UpdateBookingSchema.pick({
+  bookingId: true,
+  status: true,
+});
+
+export const UpdateBookingStaySchema = UpdateBookingSchema.pick({
+  bookingId: true,
+  arrivalDateTime: true,
+  hotelId: true,
+  hotelName: true,
+  hotelAddress: true,
+  hotelPostcode: true,
+  hotelCountry: true,
+  hotelLatitude: true,
+  hotelLongitude: true,
+  hotelSource: true,
+  hotelSourcePlaceId: true,
+  hotelAttribution: true,
+  accommodationName: true,
+});
+
+export const UpdateBookingGarageSchema = UpdateBookingSchema.pick({
+  bookingId: true,
+  garageBooked: true,
+  garageCapacity: true,
+  garageLabel: true,
+  garageCostTotalPence: true,
+  garageCostCurrency: true,
+});
+
+export const UpdateBookingPrivateSchema = UpdateBookingSchema.pick({
+  bookingId: true,
+  bookingReference: true,
+  accommodationReference: true,
+  notes: true,
+});
+
 export const DeleteBookingSchema = z.object({
   bookingId: z.string().min(1),
 });
@@ -105,4 +142,12 @@ export type BulkRaceSeriesBookingInput = z.infer<
   typeof BulkRaceSeriesBookingSchema
 >;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
+export type UpdateBookingTripInput = z.infer<typeof UpdateBookingTripSchema>;
+export type UpdateBookingStayInput = z.infer<typeof UpdateBookingStaySchema>;
+export type UpdateBookingGarageInput = z.infer<
+  typeof UpdateBookingGarageSchema
+>;
+export type UpdateBookingPrivateInput = z.infer<
+  typeof UpdateBookingPrivateSchema
+>;
 export type DeleteBookingInput = z.infer<typeof DeleteBookingSchema>;
