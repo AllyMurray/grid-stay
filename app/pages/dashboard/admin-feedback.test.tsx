@@ -83,6 +83,33 @@ describe('AdminFeedbackPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('collapses done feedback until the admin expands it', async () => {
+    const user = userEvent.setup();
+    renderAdminFeedbackPage([
+      createFeedback({
+        feedbackId: 'feedback-active',
+        title: 'Active request',
+        message: 'This still needs attention.',
+      }),
+      createFeedback({
+        feedbackId: 'feedback-done',
+        status: 'closed',
+        title: 'Completed request',
+        message: 'This has already been handled.',
+      }),
+    ]);
+
+    expect(screen.getByText('Active request')).toBeVisible();
+    expect(screen.queryByText('Completed request')).not.toBeInTheDocument();
+    expect(screen.getByText('Done feedback')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Show done' }));
+
+    expect(screen.getByText('Completed request')).toBeVisible();
+    expect(screen.getByText('This has already been handled.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Hide done' })).toBeVisible();
+  });
+
   it('renders an empty state when no feedback has been submitted', () => {
     renderAdminFeedbackPage([]);
 

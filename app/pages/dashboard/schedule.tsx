@@ -7,11 +7,14 @@ import {
   Group,
   Modal,
   Paper,
+  ScrollArea,
+  SegmentedControl,
   SimpleGrid,
   Stack,
   Text,
   TextInput,
   Title,
+  UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -20,11 +23,16 @@ import {
   type ScheduleViewLevel,
 } from '@mantine/schedule';
 import dayjs from 'dayjs';
-import { useEffect, useMemo, useState } from 'react';
+import { type UIEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import { TripStatusSummary } from '~/components/layout/trip-status-summary';
+import {
+  getAccommodationPlanSummary,
+  hasArrangedAccommodation,
+  hasBookedAccommodation,
+} from '~/lib/bookings/accommodation';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -59,6 +67,19 @@ const defaultCalendarFeedOptions: CalendarFeedOptions = {
   includeMaybe: true,
   includeStay: true,
 };
+
+const SCHEDULE_LIST_BATCH_SIZE = 7;
+const SCHEDULE_CALENDAR_VIEWS: ScheduleViewLevel[] = ['week', 'month', 'year'];
+const calendarViewSelectProps = { views: SCHEDULE_CALENDAR_VIEWS };
+
+export type ScheduleDisplayMode = 'list' | 'calendar';
+
+export interface BookingSchedulePanelProps extends BookingSchedulePageProps {
+  displayMode?: ScheduleDisplayMode;
+  onDisplayModeChange?: (mode: ScheduleDisplayMode) => void;
+  showDisplayModeControl?: boolean;
+  manageBookingsHref?: string;
+}
 
 interface ScheduleBookingEventPayload {
   bookingId: string;
@@ -183,14 +204,10 @@ function groupBookingsByMonth(bookings: BookingRecord[]) {
   return [...groups.entries()].map(([label, items]) => ({ label, items }));
 }
 
-function getSharedStayLabel(booking: BookingRecord) {
-  if (booking.accommodationName?.trim()) {
-    return booking.accommodationName;
-  }
-
+function getAccommodationLabel(booking: BookingRecord) {
   return booking.status === 'cancelled'
-    ? 'No shared stay on this trip'
-    : 'No shared stay added yet';
+    ? 'No accommodation plan on this trip'
+    : getAccommodationPlanSummary(booking);
 }
 
 function getReferenceLabel(booking: BookingRecord) {
@@ -297,7 +314,7 @@ function CalendarSyncModal({
             onChange={(event) => setIncludeMaybe(event.currentTarget.checked)}
           />
           <Checkbox
-            label="Include shared stay names"
+            label="Include accommodation details"
             checked={includeStay}
             onChange={(event) => setIncludeStay(event.currentTarget.checked)}
           />
@@ -402,8 +419,85 @@ function CalendarSyncModal({
   );
 }
 
-function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
-  const sections = groupBookingsByMonth(bookings);
+function ScheduleListRow({
+  booking,
+  selected,
+  onSelect,
+}: {
+  booking: BookingRecord;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <UnstyledButton
+      className="schedule-list-row"
+      data-selected={selected ? 'true' : undefined}
+      onClick={onSelect}
+      aria-label={`Select ${booking.circuit} on ${formatLongDate(
+        booking.date,
+      )}`}
+    >
+      <Group align="flex-start" gap="md" wrap="nowrap">
+        <Stack gap={2} className="schedule-mobile-date">
+          <Text fw={800}>{formatShortDate(booking.date)}</Text>
+          <Text size="xs" c="dimmed">
+            {booking.provider}
+          </Text>
+        </Stack>
+
+        <Stack gap={4} className="schedule-mobile-summary">
+          <Group gap="xs" wrap="wrap">
+            <Text fw={700}>{booking.circuit}</Text>
+            <Badge
+              color={bookingColor(booking.status)}
+              variant={bookingVariant(booking.status)}
+              size="sm"
+            >
+              {titleCase(booking.status)}
+            </Badge>
+          </Group>
+          {booking.description ? (
+            <Text size="sm" c="dimmed">
+              {booking.description}
+            </Text>
+          ) : null}
+          <Text size="sm">{getAccommodationLabel(booking)}</Text>
+        </Stack>
+      </Group>
+    </UnstyledButton>
+  );
+}
+
+function ScheduleListView({
+  bookings,
+  selectedBookingId,
+  onSelectBooking,
+}: {
+  bookings: BookingRecord[];
+  selectedBookingId: string | null;
+  onSelectBooking: (bookingId: string) => void;
+}) {
+  const [visibleCount, setVisibleCount] = useState(SCHEDULE_LIST_BATCH_SIZE);
+  const visibleBookings = bookings.slice(0, visibleCount);
+  const sections = groupBookingsByMonth(visibleBookings);
+  const hasMore = visibleCount < bookings.length;
+
+  const loadMore = () => {
+    setVisibleCount((current) =>
+      Math.min(current + SCHEDULE_LIST_BATCH_SIZE, bookings.length),
+    );
+  };
+
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    if (!hasMore) {
+      return;
+    }
+
+    const { scrollHeight, scrollTop, clientHeight } = event.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 96) {
+      loadMore();
+    }
+  };
 
   return (
     <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
@@ -412,74 +506,215 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
           <Stack gap={2}>
             <Title order={3}>Upcoming trips</Title>
             <Text size="sm" c="dimmed">
-              A simple month-by-month view of the trips still ahead.
+              Showing {visibleBookings.length} of {bookings.length} upcoming
+              trips. Scroll to load the next 7.
             </Text>
           </Stack>
           <ScheduleLegend />
         </Group>
 
-        {sections.map((section) => (
-          <Stack key={section.label} gap="xs">
-            <Text size="sm" fw={700} c="dimmed">
-              {section.label}
-            </Text>
-            <Stack gap={0}>
-              {section.items.map((booking, index) => (
-                <div key={booking.bookingId}>
-                  <Group
-                    align="flex-start"
-                    gap="md"
-                    className="schedule-mobile-row"
-                  >
-                    <Stack gap={2} className="schedule-mobile-date">
-                      <Text fw={800}>{formatShortDate(booking.date)}</Text>
-                      <Text size="xs" c="dimmed">
-                        {booking.provider}
-                      </Text>
-                    </Stack>
-
-                    <Stack gap={4} className="schedule-mobile-summary">
-                      <Group gap="xs" wrap="wrap">
-                        <Text fw={700}>{booking.circuit}</Text>
-                        <Badge
-                          color={bookingColor(booking.status)}
-                          variant={bookingVariant(booking.status)}
-                          size="sm"
-                        >
-                          {titleCase(booking.status)}
-                        </Badge>
-                      </Group>
-                      {booking.description ? (
-                        <Text size="sm" c="dimmed">
-                          {booking.description}
-                        </Text>
-                      ) : null}
-                      <Text size="sm">{getSharedStayLabel(booking)}</Text>
-                    </Stack>
-                  </Group>
-                  {index < section.items.length - 1 ? <Divider /> : null}
-                </div>
-              ))}
-            </Stack>
+        <ScrollArea.Autosize
+          mah={{ base: 520, sm: 640 }}
+          type="auto"
+          scrollbars="y"
+          offsetScrollbars
+          viewportProps={{
+            onScroll: handleScroll,
+          }}
+        >
+          <Stack gap="lg" pr="sm">
+            {sections.map((section) => (
+              <Stack key={section.label} gap="xs">
+                <Text size="sm" fw={700} c="dimmed">
+                  {section.label}
+                </Text>
+                <Stack gap={0}>
+                  {section.items.map((booking, index) => (
+                    <div key={booking.bookingId}>
+                      <ScheduleListRow
+                        booking={booking}
+                        selected={booking.bookingId === selectedBookingId}
+                        onSelect={() => onSelectBooking(booking.bookingId)}
+                      />
+                      {index < section.items.length - 1 ? <Divider /> : null}
+                    </div>
+                  ))}
+                </Stack>
+              </Stack>
+            ))}
           </Stack>
-        ))}
+        </ScrollArea.Autosize>
+
+        {hasMore ? (
+          <Button type="button" variant="default" onClick={loadMore}>
+            Load next 7 trips
+          </Button>
+        ) : (
+          <Text size="sm" c="dimmed">
+            All upcoming trips loaded.
+          </Text>
+        )}
       </Stack>
     </Paper>
   );
 }
 
-export function BookingSchedulePage({
+function SelectedBookingSummary({
+  booking,
+  manageBookingsHref,
+}: {
+  booking: BookingRecord;
+  manageBookingsHref: string;
+}) {
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start" gap="md">
+          <Stack gap={4}>
+            <Text size="sm" fw={700} c="brand.7">
+              Selected trip
+            </Text>
+            <Title order={3}>{booking.circuit}</Title>
+            <Text size="sm" c="dimmed">
+              {formatLongDate(booking.date)} • {booking.provider}
+            </Text>
+            {booking.description ? (
+              <Text size="sm">{booking.description}</Text>
+            ) : null}
+          </Stack>
+
+          <Group gap="xs" wrap="wrap" justify="flex-end">
+            <Badge
+              color={bookingColor(booking.status)}
+              variant={bookingVariant(booking.status)}
+              size="lg"
+            >
+              {titleCase(booking.status)}
+            </Badge>
+            <Button component={Link} to={manageBookingsHref} variant="default">
+              Manage in My Bookings
+            </Button>
+          </Group>
+        </Group>
+
+        <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
+          <DetailField
+            label="Accommodation"
+            value={getAccommodationLabel(booking)}
+          />
+          <DetailField
+            label="Booking reference"
+            value={getReferenceLabel(booking)}
+          />
+          {hasBookedAccommodation(booking) ? (
+            <DetailField
+              label="Hotel reference"
+              value={
+                booking.accommodationReference?.trim() ||
+                'No hotel reference saved'
+              }
+            />
+          ) : null}
+          <DetailField
+            label="Notes"
+            value={booking.notes?.trim() || 'No private notes saved'}
+          />
+        </SimpleGrid>
+      </Stack>
+    </Paper>
+  );
+}
+
+function CalendarView({
+  currentDate,
+  view,
+  events,
   bookings,
+  onDateChange,
+  onViewChange,
+  onSelectBooking,
+}: {
+  currentDate: string;
+  view: ScheduleViewLevel;
+  events: ScheduleEventData<ScheduleBookingEventPayload>[];
+  bookings: BookingRecord[];
+  onDateChange: (date: string) => void;
+  onViewChange: (view: ScheduleViewLevel) => void;
+  onSelectBooking: (bookingId: string) => void;
+}) {
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-end" gap="md">
+          <Stack gap={2}>
+            <Title order={3}>Calendar</Title>
+            <Text size="sm" c="dimmed">
+              Week, month, and year views are available for checking where your
+              trips land in the season.
+            </Text>
+          </Stack>
+          <ScheduleLegend />
+        </Group>
+
+        <Schedule
+          date={currentDate}
+          onDateChange={onDateChange}
+          view={view}
+          onViewChange={onViewChange}
+          defaultView="month"
+          events={events}
+          mode="static"
+          layout="default"
+          onEventClick={(event) =>
+            onSelectBooking(String(event.payload?.bookingId ?? event.id))
+          }
+          onDayClick={(date) => {
+            const bookingForDay = bookings.find(
+              (booking) => booking.date === date,
+            );
+
+            if (bookingForDay) {
+              onSelectBooking(bookingForDay.bookingId);
+            }
+          }}
+          weekViewProps={{
+            viewSelectProps: calendarViewSelectProps,
+          }}
+          monthViewProps={{
+            firstDayOfWeek: 1,
+            maxEventsPerDay: 4,
+            viewSelectProps: calendarViewSelectProps,
+          }}
+          yearViewProps={{
+            firstDayOfWeek: 1,
+            viewSelectProps: calendarViewSelectProps,
+          }}
+        />
+      </Stack>
+    </Paper>
+  );
+}
+
+export function BookingSchedulePanel({
+  bookings,
+  displayMode: controlledDisplayMode,
+  onDisplayModeChange,
+  showDisplayModeControl = true,
+  manageBookingsHref = '/dashboard/bookings?view=manage',
   calendarFeedExists = false,
   calendarFeedUrl = null,
   calendarFeedTokenHint = null,
   calendarFeedOptions = defaultCalendarFeedOptions,
   today = new Date().toISOString().slice(0, 10),
-}: BookingSchedulePageProps) {
-  const isMobile = useMediaQuery('(max-width: 62em)', false, {
+}: BookingSchedulePanelProps) {
+  const isCompactCalendar = useMediaQuery('(max-width: 62em)', false, {
     getInitialValueInEffect: false,
   });
   const [syncOpened, syncHandlers] = useDisclosure(false);
+  const [internalDisplayMode, setInternalDisplayMode] =
+    useState<ScheduleDisplayMode>('list');
+  const displayMode = controlledDisplayMode ?? internalDisplayMode;
+  const visibleDisplayMode = isCompactCalendar ? 'list' : displayMode;
   const sortedBookings = useMemo(
     () => [...bookings].sort(sortBookings),
     [bookings],
@@ -488,15 +723,6 @@ export function BookingSchedulePage({
     () => filterUpcomingScheduleBookings(sortedBookings, today),
     [sortedBookings, today],
   );
-  const confirmedCount = scheduleBookings.filter(
-    (booking) => booking.status === 'booked',
-  ).length;
-  const maybeCount = scheduleBookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
-  const sharedStayCount = scheduleBookings.filter((booking) =>
-    Boolean(booking.accommodationName?.trim()),
-  ).length;
   const scheduleEvents = useMemo(
     () => buildScheduleEvents(scheduleBookings),
     [scheduleBookings],
@@ -540,8 +766,19 @@ export function BookingSchedulePage({
       (booking) => booking.bookingId === selectedBookingId,
     ) ?? null;
 
+  const handleCalendarViewChange = (nextView: ScheduleViewLevel) => {
+    setView(nextView === 'day' ? 'week' : nextView);
+  };
+  const handleDisplayModeChange = (nextMode: ScheduleDisplayMode) => {
+    if (controlledDisplayMode === undefined) {
+      setInternalDisplayMode(nextMode);
+    }
+
+    onDisplayModeChange?.(nextMode);
+  };
+
   return (
-    <Stack gap="xl">
+    <Stack gap="lg">
       <CalendarSyncModal
         opened={syncOpened}
         onClose={syncHandlers.close}
@@ -550,30 +787,6 @@ export function BookingSchedulePage({
         initialTokenHint={calendarFeedTokenHint}
         initialOptions={calendarFeedOptions}
       />
-      <PageHeader
-        eyebrow="Trip calendar"
-        title="Schedule"
-        description="See your upcoming trips at a glance, then jump into My Bookings whenever you need the full history or private details."
-        meta={
-          <TripStatusSummary
-            totalCount={scheduleBookings.length}
-            confirmedCount={confirmedCount}
-            maybeCount={maybeCount}
-            sharedStayCount={sharedStayCount}
-          />
-        }
-        actions={
-          <Group gap="sm" wrap="wrap">
-            <Button type="button" variant="default" onClick={syncHandlers.open}>
-              Sync calendar
-            </Button>
-            <Button component={Link} to="/dashboard/bookings" variant="default">
-              View all bookings
-            </Button>
-          </Group>
-        }
-      />
-
       {scheduleBookings.length === 0 ? (
         <EmptyStateCard
           title={
@@ -589,9 +802,7 @@ export function BookingSchedulePage({
           action={
             <Button
               component={Link}
-              to={
-                bookings.length > 0 ? '/dashboard/bookings' : '/dashboard/days'
-              }
+              to={bookings.length > 0 ? manageBookingsHref : '/dashboard/days'}
             >
               {bookings.length > 0
                 ? 'View all bookings'
@@ -599,122 +810,120 @@ export function BookingSchedulePage({
             </Button>
           }
         />
-      ) : isMobile ? (
-        <MobileBookingList bookings={scheduleBookings} />
       ) : (
         <>
-          <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
-            <Stack gap="md">
-              <Group justify="space-between" align="flex-end" gap="md">
-                <Stack gap={2}>
-                  <Title order={3}>Calendar</Title>
-                  <Text size="sm" c="dimmed">
-                    Month and year views work best for whole-day bookings, so
-                    this page stays focused on upcoming trips rather than editor
-                    controls.
-                  </Text>
-                </Stack>
-                <ScheduleLegend />
-              </Group>
-
-              <Schedule
-                date={currentDate}
-                onDateChange={setCurrentDate}
-                view={view}
-                onViewChange={setView}
-                defaultView="month"
-                events={scheduleEvents}
-                mode="static"
-                layout="default"
-                onEventClick={(event) =>
-                  setSelectedBookingId(
-                    String(event.payload?.bookingId ?? event.id),
-                  )
+          <Group
+            justify={showDisplayModeControl ? 'space-between' : 'flex-start'}
+            gap="sm"
+            wrap="wrap"
+          >
+            {showDisplayModeControl ? (
+              <SegmentedControl
+                value={displayMode}
+                onChange={(value) =>
+                  handleDisplayModeChange(value as ScheduleDisplayMode)
                 }
-                onDayClick={(date) => {
-                  const bookingForDay = scheduleBookings.find(
-                    (booking) => booking.date === date,
-                  );
-
-                  if (bookingForDay) {
-                    setSelectedBookingId(bookingForDay.bookingId);
-                  }
-                }}
-                monthViewProps={{
-                  firstDayOfWeek: 1,
-                  maxEventsPerDay: 4,
-                }}
-                yearViewProps={{
-                  firstDayOfWeek: 1,
-                }}
+                data={[
+                  { label: 'List', value: 'list' },
+                  { label: 'Calendar', value: 'calendar' },
+                ]}
+                w={{ base: '100%', sm: 'auto' }}
               />
-            </Stack>
-          </Paper>
+            ) : null}
+            <Button type="button" variant="default" onClick={syncHandlers.open}>
+              Sync calendar
+            </Button>
+          </Group>
+
+          {visibleDisplayMode === 'list' ? (
+            <ScheduleListView
+              bookings={scheduleBookings}
+              selectedBookingId={selectedBookingId}
+              onSelectBooking={setSelectedBookingId}
+            />
+          ) : (
+            <CalendarView
+              currentDate={currentDate}
+              view={view}
+              events={scheduleEvents}
+              bookings={scheduleBookings}
+              onDateChange={setCurrentDate}
+              onViewChange={handleCalendarViewChange}
+              onSelectBooking={setSelectedBookingId}
+            />
+          )}
 
           {selectedBooking ? (
-            <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
-              <Stack gap="md">
-                <Group justify="space-between" align="flex-start" gap="md">
-                  <Stack gap={4}>
-                    <Text size="sm" fw={700} c="brand.7">
-                      Selected trip
-                    </Text>
-                    <Title order={3}>{selectedBooking.circuit}</Title>
-                    <Text size="sm" c="dimmed">
-                      {formatLongDate(selectedBooking.date)} •{' '}
-                      {selectedBooking.provider}
-                    </Text>
-                    {selectedBooking.description ? (
-                      <Text size="sm">{selectedBooking.description}</Text>
-                    ) : null}
-                  </Stack>
-
-                  <Group gap="xs" wrap="wrap" justify="flex-end">
-                    <Badge
-                      color={bookingColor(selectedBooking.status)}
-                      variant={bookingVariant(selectedBooking.status)}
-                      size="lg"
-                    >
-                      {titleCase(selectedBooking.status)}
-                    </Badge>
-                    <Button
-                      component={Link}
-                      to="/dashboard/bookings"
-                      variant="default"
-                    >
-                      Manage in My Bookings
-                    </Button>
-                  </Group>
-                </Group>
-
-                <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
-                  <DetailField
-                    label="Shared stay"
-                    value={getSharedStayLabel(selectedBooking)}
-                  />
-                  <DetailField
-                    label="Booking reference"
-                    value={getReferenceLabel(selectedBooking)}
-                  />
-                  <DetailField
-                    label="Accommodation reference"
-                    value={
-                      selectedBooking.accommodationReference?.trim() ||
-                      'No accommodation reference saved'
-                    }
-                  />
-                  <DetailField
-                    label="Notes"
-                    value={
-                      selectedBooking.notes?.trim() || 'No private notes saved'
-                    }
-                  />
-                </SimpleGrid>
-              </Stack>
-            </Paper>
+            <SelectedBookingSummary
+              booking={selectedBooking}
+              manageBookingsHref={manageBookingsHref}
+            />
           ) : null}
         </>
       )}
+    </Stack>
+  );
+}
+
+export function BookingSchedulePage({
+  bookings,
+  calendarFeedExists = false,
+  calendarFeedUrl = null,
+  calendarFeedTokenHint = null,
+  calendarFeedOptions = defaultCalendarFeedOptions,
+  today = new Date().toISOString().slice(0, 10),
+}: BookingSchedulePageProps) {
+  const sortedBookings = useMemo(
+    () => [...bookings].sort(sortBookings),
+    [bookings],
+  );
+  const scheduleBookings = useMemo(
+    () => filterUpcomingScheduleBookings(sortedBookings, today),
+    [sortedBookings, today],
+  );
+  const confirmedCount = scheduleBookings.filter(
+    (booking) => booking.status === 'booked',
+  ).length;
+  const maybeCount = scheduleBookings.filter(
+    (booking) => booking.status === 'maybe',
+  ).length;
+  const accommodationCount = scheduleBookings.filter(
+    hasArrangedAccommodation,
+  ).length;
+
+  return (
+    <Stack gap="xl">
+      <PageHeader
+        eyebrow="Trip calendar"
+        title="Schedule"
+        description="See your upcoming trips at a glance, then jump into My Bookings whenever you need the full history or private details."
+        meta={
+          <TripStatusSummary
+            totalCount={scheduleBookings.length}
+            confirmedCount={confirmedCount}
+            maybeCount={maybeCount}
+            accommodationCount={accommodationCount}
+          />
+        }
+        actions={
+          <Button
+            component={Link}
+            to="/dashboard/bookings?view=manage"
+            variant="default"
+          >
+            View all bookings
+          </Button>
+        }
+      />
+
+      <BookingSchedulePanel
+        bookings={bookings}
+        calendarFeedExists={calendarFeedExists}
+        calendarFeedUrl={calendarFeedUrl}
+        calendarFeedTokenHint={calendarFeedTokenHint}
+        calendarFeedOptions={calendarFeedOptions}
+        today={today}
+      />
     </Stack>
   );
 }

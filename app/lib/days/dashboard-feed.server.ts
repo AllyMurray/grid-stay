@@ -1,4 +1,8 @@
 import type { User } from '~/lib/auth/schemas';
+import {
+  type AccommodationStatus,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import {
@@ -55,6 +59,7 @@ export interface DayBookingSnapshot {
   status: 'booked' | 'maybe' | 'cancelled';
   arrivalDateTime?: string;
   arrivalTime?: string;
+  accommodationStatus?: AccommodationStatus;
   accommodationName?: string;
   garageBooked?: boolean;
   garageCapacity?: number;
@@ -437,6 +442,28 @@ async function loadFilteredDays(url: URL) {
   };
 }
 
+export async function loadUpcomingAvailableDaysOverview() {
+  const [snapshot, manualDays, dayMerges] = await Promise.all([
+    getAvailableDaysSnapshot(),
+    listManualDays(),
+    loadDayMergesSafely(),
+  ]);
+  const raw = snapshot ?? {
+    days: [],
+    errors: EMPTY_ERRORS,
+  };
+  const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
+    .map(normalizeAvailableDayCircuit)
+    .sort(compareAvailableDays);
+  const today = getTodayDate();
+  const upcomingDays = allDays.filter((day) => day.date >= today);
+
+  return {
+    days: upcomingDays,
+    refreshedAt: snapshot?.refreshedAt ?? '',
+  };
+}
+
 async function loadDayMergesSafely(): Promise<DayMergeRule[]> {
   try {
     if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
@@ -608,6 +635,7 @@ export async function loadDaysIndex(
               userId: booking.userId,
               status: booking.status,
               arrivalDateTime: resolveArrivalDateTime(booking),
+              accommodationStatus: resolveAccommodationStatus(booking),
               accommodationName: booking.accommodationName,
               garageBooked: booking.garageBooked,
               garageCapacity: booking.garageCapacity,

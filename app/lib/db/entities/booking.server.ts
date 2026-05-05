@@ -34,6 +34,15 @@ export const BookingEntity = new Entity(
       arrivalTime: { type: 'string' },
       description: { type: 'string', required: true },
       hotelId: { type: 'string' },
+      accommodationStatus: {
+        type: [
+          'unknown',
+          'not_required',
+          'staying_at_track',
+          'looking',
+          'booked',
+        ] as const,
+      },
       accommodationName: { type: 'string' },
       accommodationReference: { type: 'string' },
       garageBooked: { type: 'boolean' },

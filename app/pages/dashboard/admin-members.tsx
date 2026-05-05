@@ -32,6 +32,7 @@ import type {
   MemberJoinLinkSummary,
 } from '~/lib/auth/member-join-links.server';
 import type { AdminMemberDirectoryEntry } from '~/lib/auth/members.server';
+import { getAccommodationPlanSummary } from '~/lib/bookings/accommodation';
 import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface AdminMembersPageProps {
@@ -58,6 +59,7 @@ function matchesMember(member: AdminMemberDirectoryEntry, query: string) {
     member.nextTrip?.circuit,
     member.nextTrip?.provider,
     member.nextTrip?.accommodationName,
+    member.nextTrip ? getAccommodationPlanSummary(member.nextTrip) : undefined,
   ].some((field) => field?.toLowerCase().includes(value));
 }
 
@@ -340,7 +342,9 @@ function MemberManagementRow({
               </Text>
               <Text size="xs" c="dimmed">
                 {member.sharedStayCount}{' '}
-                {member.sharedStayCount === 1 ? 'shared stay' : 'shared stays'}
+                {member.sharedStayCount === 1
+                  ? 'accommodation'
+                  : 'accommodations'}
               </Text>
             </Group>
           </Stack>
@@ -382,7 +386,7 @@ export function AdminMembersPage({
             items={[
               { label: 'Members', value: members.length },
               { label: 'With trips', value: membersWithTrips.length },
-              { label: 'Shared stays', value: totalSharedStays },
+              { label: 'Accommodations', value: totalSharedStays },
             ]}
           />
         }
@@ -394,7 +398,7 @@ export function AdminMembersPage({
         <Stack gap="md">
           <TextInput
             label="Search members"
-            placeholder="Search by name, email, circuit, or stay"
+            placeholder="Search by name, email, circuit, or accommodation"
             value={query}
             onChange={(event) => setQuery(event.currentTarget.value)}
             leftSection={<IconSearch size={16} />}
@@ -413,7 +417,7 @@ export function AdminMembersPage({
             <Stack gap={4} align="center" py="xl">
               <Text fw={700}>No members match that search</Text>
               <Text size="sm" c="dimmed" ta="center">
-                Try a different name, email, trip, or stay.
+                Try a different name, email, trip, or accommodation.
               </Text>
             </Stack>
           )}

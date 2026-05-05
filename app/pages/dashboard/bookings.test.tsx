@@ -23,8 +23,11 @@ vi.mock('@mantine/hooks', async () => {
 function renderWithProviders(
   ui: React.ReactElement,
   action?: (args: ActionFunctionArgs) => Promise<unknown>,
-  initialEntry = '/',
+  initialEntries: string[] | string = ['/?view=manage'],
 ) {
+  const entries = Array.isArray(initialEntries)
+    ? initialEntries
+    : [initialEntries];
   const Stub = createRoutesStub([
     {
       path: '/',
@@ -33,7 +36,7 @@ function renderWithProviders(
     },
   ]);
 
-  return render(<Stub initialEntries={[initialEntry]} />);
+  return render(<Stub initialEntries={entries} />);
 }
 
 const booking: BookingRecord = {
@@ -115,6 +118,28 @@ describe('MyBookingsPage', () => {
     vi.restoreAllMocks();
   });
 
+  it('renders the upcoming schedule view by default', () => {
+    renderWithProviders(
+      <MyBookingsPage bookings={[booking, secondBooking]} today="2026-05-01" />,
+      undefined,
+      ['/'],
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'My Bookings' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Upcoming trips' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /sync calendar/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: /manage in my bookings/i }),
+    ).toHaveAttribute('href', '/dashboard/bookings?view=manage');
+  });
+
   it('renders booking editor tabs directly from page props', async () => {
     const user = userEvent.setup();
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);
@@ -128,7 +153,7 @@ describe('MyBookingsPage', () => {
     expect(
       screen.getByRole('img', { name: '1 confirmed, 1 maybe' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('2 shared stays')).toBeInTheDocument();
+    expect(screen.getByText('2 with accommodation')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /donington park/i }),
@@ -208,11 +233,92 @@ describe('MyBookingsPage', () => {
         expect.objectContaining({
           intent: 'updateBookingStay',
           bookingId: 'booking-1',
+          accommodationStatus: 'booked',
           arrivalDateTime: '2026-05-02 20:00:00',
           accommodationName: 'Trackside Hotel',
         }),
       ),
     );
+  });
+
+  it('lets a user mark that no hotel is needed', async () => {
+    const user = userEvent.setup();
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <MyBookingsPage bookings={[booking]} />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return { ok: true };
+      },
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Stay' }));
+    const accommodationPlan = screen.getByRole('combobox', {
+      name: /accommodation plan/i,
+    });
+    expect(accommodationPlan).toHaveValue('Hotel booked');
+
+    await user.click(accommodationPlan);
+    await user.keyboard('{ArrowUp}{ArrowUp}{ArrowUp}{Enter}');
+
+    expect(
+      screen.queryByRole('textbox', { name: /hotel or stay/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /save stay/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          intent: 'updateBookingStay',
+          bookingId: 'booking-1',
+          accommodationStatus: 'not_required',
+        }),
+      ),
+    );
+    expect(submitted).not.toHaveProperty('accommodationName');
+  });
+
+  it('lets a user mark that they are staying at the track', async () => {
+    const user = userEvent.setup();
+    let submitted: Record<string, FormDataEntryValue> | null = null;
+
+    renderWithProviders(
+      <MyBookingsPage bookings={[booking]} />,
+      async ({ request }) => {
+        submitted = Object.fromEntries(await request.formData());
+        return { ok: true };
+      },
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Stay' }));
+    const accommodationPlan = screen.getByRole('combobox', {
+      name: /accommodation plan/i,
+    });
+
+    await user.click(accommodationPlan);
+    await user.keyboard('{ArrowUp}{ArrowUp}{Enter}');
+
+    expect(
+      screen.queryByRole('textbox', { name: /hotel or stay/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/camping, campervan, tentbox/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /save stay/i }));
+
+    await waitFor(() =>
+      expect(submitted).toEqual(
+        expect.objectContaining({
+          intent: 'updateBookingStay',
+          bookingId: 'booking-1',
+          accommodationStatus: 'staying_at_track',
+        }),
+      ),
+    );
+    expect(submitted).not.toHaveProperty('accommodationName');
   });
 
   it('opens an empty arrival picker on the event month', async () => {

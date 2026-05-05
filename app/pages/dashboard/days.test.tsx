@@ -1381,6 +1381,40 @@ describe('AvailableDaysPage', () => {
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
 
+  it('does not duplicate member initials on roster groups with full names', async () => {
+    const selectedDay = defaultData.days[0]!;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDayPrevious: null,
+          selectedDayNext: defaultData.days[1] ?? null,
+          selectedDaySummary:
+            defaultData.attendanceSummaries[selectedDay.dayId],
+          selectedDayAttendance: defaultAttendanceByDay[selectedDay.dayId],
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+    );
+
+    await screen.findByText('Attendee roster');
+
+    expect(
+      screen.queryByRole('img', { name: /1 booked attendee: Driver One/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: /1 maybe attendee: Driver Two/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('DO')).not.toBeInTheDocument();
+    expect(screen.queryByText('DT')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: /cancelled attendee/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('refreshes stale selected-day details when summary counts have changed', async () => {
     const selectedDay = defaultData.days[0]!;
     const updatedSummary = {
@@ -1492,7 +1526,7 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
 
-  it('offers saved shared stays as direct actions in the selected-day view', async () => {
+  it('offers saved accommodation as direct actions in the selected-day view', async () => {
     renderWithProviders(
       <AvailableDaysPage data={defaultData} />,
       '/dashboard/days?day=day-1',
@@ -1502,10 +1536,10 @@ describe('AvailableDaysPage', () => {
       await screen.findByRole('button', { name: /join stay/i }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Your state').length).toBeGreaterThan(0);
-    expect(screen.getByText('Not in your plan')).toBeInTheDocument();
+    expect(screen.getAllByText('Not in your plan').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
     expect(
-      screen.getByText('Wait for someone to name the stay.'),
+      screen.getByText('No accommodation to join yet.'),
     ).toBeInTheDocument();
   });
 

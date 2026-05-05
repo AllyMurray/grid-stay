@@ -9,6 +9,7 @@ import {
   NumberInput,
   Paper,
   ScrollArea,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
@@ -44,7 +45,18 @@ import { Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import { TripStatusSummary } from '~/components/layout/trip-status-summary';
+import {
+  ACCOMMODATION_STATUS_DESCRIPTIONS,
+  ACCOMMODATION_STATUS_LABELS,
+  ACCOMMODATION_STATUS_VALUES,
+  type AccommodationStatus,
+  getAccommodationPlanSummary,
+  hasArrangedAccommodation,
+  hasBookedAccommodation,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
+import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import {
   formatArrivalDateTime,
   resolveArrivalDateTime,
@@ -57,11 +69,17 @@ import type {
   HotelSuggestion,
 } from '~/lib/db/services/hotel.server';
 import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
+import { BookingSchedulePanel } from './schedule';
 
 export interface MyBookingsPageProps {
   bookings: BookingRecord[];
   garageShareRequests?: UserGarageShareRequest[];
   hotelInsights?: Record<string, HotelInsight>;
+  calendarFeedExists?: boolean;
+  calendarFeedUrl?: string | null;
+  calendarFeedTokenHint?: string | null;
+  calendarFeedOptions?: CalendarFeedOptions;
+  today?: string;
 }
 
 type BookingFilter = 'all' | BookingRecord['status'];
@@ -74,6 +92,16 @@ const bookingEditorTabs: BookingEditorTab[] = [
   'private',
 ];
 
+type MyBookingsView = 'upcoming' | 'calendar' | 'manage';
+
+function parseBookingsView(value: string | null): MyBookingsView {
+  if (value === 'calendar' || value === 'manage') {
+    return value;
+  }
+
+  return 'upcoming';
+}
+
 interface HotelSearchResponse {
   suggestions: HotelSuggestion[];
   providerAvailable: boolean;
@@ -81,7 +109,7 @@ interface HotelSearchResponse {
 }
 
 function hotelFromBooking(booking: BookingRecord): HotelSuggestion | null {
-  if (!booking.accommodationName?.trim()) {
+  if (!hasBookedAccommodation(booking) || !booking.accommodationName?.trim()) {
     return null;
   }
 
@@ -138,8 +166,11 @@ function bookingColor(status: BookingRecord['status']) {
 
 function bookingSharedSummary(booking: BookingRecord) {
   const arrivalDateTime = resolveArrivalDateTime(booking);
+  const accommodationStatus = resolveAccommodationStatus(booking);
   const parts = [
-    booking.accommodationName,
+    booking.status === 'cancelled' && accommodationStatus === 'unknown'
+      ? undefined
+      : getAccommodationPlanSummary(booking),
     arrivalDateTime
       ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}`
       : undefined,
@@ -150,7 +181,7 @@ function bookingSharedSummary(booking: BookingRecord) {
   }
 
   if (booking.status === 'cancelled') {
-    return 'No shared stay on this trip';
+    return 'No accommodation plan on this trip';
   }
 
   return 'No accommodation shared yet';
@@ -281,6 +312,7 @@ function matchesBookingQuery(booking: BookingRecord, query: string) {
     booking.date,
     booking.description,
     booking.accommodationName,
+    getAccommodationPlanSummary(booking),
     resolveArrivalDateTime(booking),
     booking.garageLabel,
     booking.bookingReference,
@@ -472,12 +504,17 @@ function GarageShareRequestList({
 function HotelSelector({
   booking,
   insight,
+  accommodationStatus,
+  onAccommodationStatusChange,
   fieldErrors,
 }: {
   booking: BookingRecord;
   insight?: HotelInsight;
+  accommodationStatus: AccommodationStatus;
+  onAccommodationStatusChange: (status: AccommodationStatus) => void;
   fieldErrors?: Partial<
     Record<
+      | 'accommodationStatus'
       | 'accommodationName'
       | 'hotelId'
       | 'hotelName'
@@ -510,6 +547,7 @@ function HotelSelector({
   const isSearching = searchFetcher.state !== 'idle';
   const providerError = searchFetcher.data?.providerError;
   const hotelSource = selectedHotel?.source ?? 'manual';
+  const showHotelFields = accommodationStatus === 'booked';
 
   const runSearch = () => {
     const trimmed = query.trim();
@@ -637,83 +675,114 @@ function HotelSelector({
       <Stack gap="sm">
         <input
           type="hidden"
-          name="hotelId"
-          value={selectedHotel?.hotelId ?? ''}
+          name="accommodationStatus"
+          value={accommodationStatus}
         />
-        <input type="hidden" name="hotelName" value={hotelName} />
-        <input type="hidden" name="hotelSource" value={hotelSource} />
-        <input
-          type="hidden"
-          name="hotelSourcePlaceId"
-          value={selectedHotel?.sourcePlaceId ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelPostcode"
-          value={selectedHotel?.postcode ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelCountry"
-          value={selectedHotel?.country ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelLatitude"
-          value={selectedHotel?.latitude ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelLongitude"
-          value={selectedHotel?.longitude ?? ''}
-        />
-        <input
-          type="hidden"
-          name="hotelAttribution"
-          value={selectedHotel?.attribution ?? ''}
-        />
-
-        <TextInput
-          name="accommodationName"
+        <Select
           label={
             <BookingFieldLabel
-              label="Hotel or stay"
+              label="Accommodation plan"
               visibility="Visible to the group"
               visibilityColor="blue.6"
             />
           }
-          description="Search for a hotel with address details, or type a stay name manually."
-          value={hotelName}
-          onChange={(event) => {
-            setHotelName(event.currentTarget.value);
-            clearSelectedHotel();
+          description={ACCOMMODATION_STATUS_DESCRIPTIONS[accommodationStatus]}
+          value={accommodationStatus}
+          onChange={(value) => {
+            onAccommodationStatusChange(
+              (value as AccommodationStatus | null) ?? 'unknown',
+            );
           }}
-          error={
-            fieldErrors?.accommodationName?.[0] ??
-            fieldErrors?.hotelName?.[0] ??
-            fieldErrors?.hotelId?.[0]
-          }
-          maxLength={120}
-          rightSectionWidth={112}
-          rightSection={
-            <Button type="button" size="compact-xs" onClick={openSearch}>
-              Find hotel
-            </Button>
-          }
+          data={ACCOMMODATION_STATUS_VALUES.map((value) => ({
+            value,
+            label: ACCOMMODATION_STATUS_LABELS[value],
+          }))}
+          error={fieldErrors?.accommodationStatus?.[0]}
         />
 
-        <TextInput
-          name="hotelAddress"
-          label="Address"
-          description="Optional, but useful once the hotel is in the shared catalogue."
-          value={hotelAddress}
-          onChange={(event) => setHotelAddress(event.currentTarget.value)}
-          error={fieldErrors?.hotelAddress?.[0]}
-          maxLength={240}
-          leftSection={<IconMapPin size={16} />}
-        />
+        {showHotelFields ? (
+          <>
+            <input
+              type="hidden"
+              name="hotelId"
+              value={selectedHotel?.hotelId ?? ''}
+            />
+            <input type="hidden" name="hotelName" value={hotelName} />
+            <input type="hidden" name="hotelSource" value={hotelSource} />
+            <input
+              type="hidden"
+              name="hotelSourcePlaceId"
+              value={selectedHotel?.sourcePlaceId ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelPostcode"
+              value={selectedHotel?.postcode ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelCountry"
+              value={selectedHotel?.country ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelLatitude"
+              value={selectedHotel?.latitude ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelLongitude"
+              value={selectedHotel?.longitude ?? ''}
+            />
+            <input
+              type="hidden"
+              name="hotelAttribution"
+              value={selectedHotel?.attribution ?? ''}
+            />
 
-        {selectedHotel ? (
+            <TextInput
+              name="accommodationName"
+              label={
+                <BookingFieldLabel
+                  label="Hotel or stay"
+                  visibility="Visible to the group"
+                  visibilityColor="blue.6"
+                />
+              }
+              description="Search for a hotel with address details, or type a stay name manually."
+              value={hotelName}
+              onChange={(event) => {
+                setHotelName(event.currentTarget.value);
+                clearSelectedHotel();
+              }}
+              error={
+                fieldErrors?.accommodationName?.[0] ??
+                fieldErrors?.hotelName?.[0] ??
+                fieldErrors?.hotelId?.[0]
+              }
+              maxLength={120}
+              rightSectionWidth={112}
+              rightSection={
+                <Button type="button" size="compact-xs" onClick={openSearch}>
+                  Find hotel
+                </Button>
+              }
+            />
+
+            <TextInput
+              name="hotelAddress"
+              label="Address"
+              description="Optional, but useful once the hotel is in the shared catalogue."
+              value={hotelAddress}
+              onChange={(event) => setHotelAddress(event.currentTarget.value)}
+              error={fieldErrors?.hotelAddress?.[0]}
+              maxLength={240}
+              leftSection={<IconMapPin size={16} />}
+            />
+          </>
+        ) : null}
+
+        {showHotelFields && selectedHotel ? (
           <Paper withBorder p="sm" radius="md">
             <Group gap="sm" align="flex-start" wrap="nowrap">
               <ThemeIcon size={32} radius="sm" color="blue" variant="light">
@@ -880,6 +949,9 @@ function StaySectionForm({
   );
   const isSaving = fetcher.state !== 'idle';
   const arrivalDateTime = resolveArrivalDateTime(booking);
+  const [accommodationStatus, setAccommodationStatus] =
+    useState<AccommodationStatus>(() => resolveAccommodationStatus(booking));
+  const accommodationBooked = accommodationStatus === 'booked';
   const fieldErrors =
     fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
   const formError =
@@ -899,6 +971,8 @@ function StaySectionForm({
         <HotelSelector
           booking={booking}
           insight={hotelInsight}
+          accommodationStatus={accommodationStatus}
+          onAccommodationStatusChange={setAccommodationStatus}
           fieldErrors={fieldErrors}
         />
         <DateTimePicker
@@ -920,7 +994,7 @@ function StaySectionForm({
           error={fieldErrors?.arrivalDateTime?.[0]}
         />
 
-        {booking.hotelId && hotelInsight ? (
+        {accommodationBooked && booking.hotelId && hotelInsight ? (
           <Paper withBorder p="sm" radius="md">
             <Group justify="space-between" align="flex-start" gap="md">
               <Stack gap={4} style={{ minWidth: 0 }}>
@@ -955,12 +1029,12 @@ function StaySectionForm({
               </Button>
             </Group>
           </Paper>
-        ) : (
+        ) : accommodationBooked ? (
           <Alert color="blue" icon={<IconBuildingSkyscraper size={18} />}>
             Save a hotel from this section first, then add parking and arrival
             feedback for the group.
           </Alert>
-        )}
+        ) : null}
 
         <Text size="sm" c="dimmed">
           Add only details you are happy for other members to see.
@@ -1407,9 +1481,17 @@ export function MyBookingsPage({
   bookings,
   garageShareRequests = [],
   hotelInsights = {},
+  calendarFeedExists = false,
+  calendarFeedUrl = null,
+  calendarFeedTokenHint = null,
+  calendarFeedOptions,
+  today,
 }: MyBookingsPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedBookingParam = searchParams.get('booking');
+  const activeView = selectedBookingParam
+    ? 'manage'
+    : parseBookingsView(searchParams.get('view'));
   const isCompact = useMediaQuery('(max-width: 62em)', false, {
     getInitialValueInEffect: false,
   });
@@ -1425,11 +1507,9 @@ export function MyBookingsPage({
   const maybeCount = bookings.filter(
     (booking) => booking.status === 'maybe',
   ).length;
-  const sharedStayCount = new Set(
-    bookings
-      .map((booking) => booking.accommodationName?.trim())
-      .filter((name): name is string => Boolean(name)),
-  ).size;
+  const accommodationPlanCount = bookings.filter(
+    hasArrangedAccommodation,
+  ).length;
   const sortedBookings = useMemo(
     () => [...bookings].sort(sortBookings),
     [bookings],
@@ -1463,15 +1543,18 @@ export function MyBookingsPage({
         (booking) => booking.bookingId === selectedBooking.bookingId,
       )
     : -1;
-  const editorOpen = !isCompact || Boolean(selectedBookingParam);
+  const editorOpen =
+    activeView === 'manage' && (!isCompact || Boolean(selectedBookingParam));
 
   const updateSelectedBookingParam = useCallback(
     (bookingId: string | null) => {
       const nextParams = new URLSearchParams(searchParams);
       if (bookingId) {
         nextParams.set('booking', bookingId);
+        nextParams.delete('view');
       } else {
         nextParams.delete('booking');
+        nextParams.set('view', 'manage');
       }
 
       setSearchParams(nextParams, { preventScrollReset: true });
@@ -1698,18 +1781,37 @@ export function MyBookingsPage({
     />
   ) : null;
 
+  const handleViewChange = (value: string) => {
+    const nextView = value as MyBookingsView;
+    if (nextView !== activeView && !confirmDiscardEditor()) {
+      return;
+    }
+
+    setHasEditorDirtyChanges(false);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('booking');
+
+    if (nextView === 'upcoming') {
+      nextParams.delete('view');
+    } else {
+      nextParams.set('view', nextView);
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  };
+
   return (
     <Stack gap="xl">
       <PageHeader
         eyebrow="Private trip details"
         title="My Bookings"
-        description="Keep shared stay names aligned with the group while references and notes stay on your side."
+        description="Review upcoming trips, sync your calendar, and manage private booking details in one place."
         meta={
           <TripStatusSummary
             totalCount={bookings.length}
             confirmedCount={bookedCount}
             maybeCount={maybeCount}
-            sharedStayCount={sharedStayCount}
+            accommodationCount={accommodationPlanCount}
           />
         }
         actions={
@@ -1729,16 +1831,47 @@ export function MyBookingsPage({
             </Button>
           }
         />
-      ) : isCompact && editorOpen && selectedBooking ? (
+      ) : activeView === 'manage' &&
+        isCompact &&
+        editorOpen &&
+        selectedBooking ? (
         editorPanel
       ) : (
-        <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
-          <Grid.Col span={{ base: 12, lg: 4 }}>{bookingListPanel}</Grid.Col>
+        <>
+          <SegmentedControl
+            aria-label="My bookings view"
+            value={activeView}
+            onChange={handleViewChange}
+            data={[
+              { label: 'Upcoming', value: 'upcoming' },
+              { label: 'Calendar', value: 'calendar' },
+              { label: 'Manage', value: 'manage' },
+            ]}
+            w={{ base: '100%', sm: 'auto' }}
+          />
 
-          {!isCompact ? (
-            <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col>
-          ) : null}
-        </Grid>
+          {activeView === 'upcoming' || activeView === 'calendar' ? (
+            <BookingSchedulePanel
+              bookings={bookings}
+              displayMode={activeView === 'calendar' ? 'calendar' : 'list'}
+              showDisplayModeControl={false}
+              manageBookingsHref="/dashboard/bookings?view=manage"
+              calendarFeedExists={calendarFeedExists}
+              calendarFeedUrl={calendarFeedUrl}
+              calendarFeedTokenHint={calendarFeedTokenHint}
+              calendarFeedOptions={calendarFeedOptions}
+              today={today}
+            />
+          ) : (
+            <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
+              <Grid.Col span={{ base: 12, lg: 4 }}>{bookingListPanel}</Grid.Col>
+
+              {!isCompact ? (
+                <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col>
+              ) : null}
+            </Grid>
+          )}
+        </>
       )}
     </Stack>
   );

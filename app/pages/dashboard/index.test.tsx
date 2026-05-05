@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
-import type { AvailableDay } from '~/lib/days/types';
+import type { AvailableDay, DayAttendanceSummary } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
 import { DashboardIndexPage } from './index';
@@ -41,11 +41,40 @@ const upcomingBooking: BookingRecord = {
   provider: 'MSV',
   bookingReference: 'REF-123',
   description: 'GT weekend',
+  accommodationStatus: 'booked',
   accommodationName: 'Trackside Hotel',
   accommodationReference: 'HOTEL-7',
   notes: 'Quiet room',
   createdAt: '2026-04-01T10:00:00.000Z',
   updatedAt: '2026-04-01T10:00:00.000Z',
+};
+
+const attendance: DayAttendanceSummary = {
+  attendeeCount: 2,
+  accommodationNames: ['Trackside Hotel'],
+  garageOwnerCount: 1,
+  garageOpenSpaceCount: 1,
+  attendees: [
+    {
+      bookingId: 'booking-1',
+      userId: 'user-1',
+      userName: 'Driver One',
+      status: 'booked',
+      arrivalDateTime: '2026-05-02 20:00:00',
+      accommodationStatus: 'booked',
+      accommodationName: 'Trackside Hotel',
+      garageBooked: true,
+      garageCapacity: 2,
+      garageLabel: 'Garage 7',
+    },
+    {
+      bookingId: 'booking-2',
+      userId: 'user-2',
+      userName: 'Driver Two',
+      status: 'maybe',
+      accommodationStatus: 'looking',
+    },
+  ],
 };
 
 describe('DashboardIndexPage', () => {
@@ -56,13 +85,28 @@ describe('DashboardIndexPage', () => {
         availableDaysCount={42}
         daysThisMonth={8}
         activeBookingsCount={3}
-        sharedStayCount={2}
+        accommodationPlanCount={2}
         maybeBookingsCount={1}
         tripsMissingStayCount={1}
-        tripsWithSharedStayCount={2}
-        privateRefsOpenCount={0}
+        missingBookingReferenceCount={0}
+        missingHotelReferenceCount={0}
+        pendingGarageRequestsCount={1}
         nextDays={[nextDay]}
         upcomingBookings={[upcomingBooking]}
+        nextTripAttendance={attendance}
+        groupDays={[
+          {
+            day: {
+              ...nextDay,
+              dayId: 'day-2',
+              date: '2026-05-10',
+              circuit: 'Donington Park',
+            },
+            attendeeCount: 2,
+            accommodationNames: ['Paddock Lodge'],
+            garageOpenSpaceCount: 1,
+          },
+        ]}
       />,
     );
 
@@ -72,24 +116,32 @@ describe('DashboardIndexPage', () => {
     expect(screen.getByText('42 upcoming days')).toBeInTheDocument();
     expect(screen.getByText('8 this month')).toBeInTheDocument();
     expect(screen.getByText('3 active bookings')).toBeInTheDocument();
-    expect(screen.getByText('2 shared stays')).toBeInTheDocument();
+    expect(screen.getByText('2 accommodation plans')).toBeInTheDocument();
     expect(screen.getByText('Next trip')).toBeInTheDocument();
     expect(screen.getByText('Trip details')).toBeInTheDocument();
     expect(screen.getAllByText('Race day reference').length).toBeGreaterThan(0);
     expect(screen.getAllByText('REF-123').length).toBeGreaterThan(0);
     expect(screen.getByText('Hotel reference')).toBeInTheDocument();
     expect(screen.getAllByText('HOTEL-7').length).toBeGreaterThan(0);
+    expect(screen.getByText('Group context')).toBeInTheDocument();
+    expect(screen.getByText('Driver Two')).toBeInTheDocument();
+    expect(screen.getByText('1 open garage space')).toBeInTheDocument();
     expect(screen.getByText('What needs attention')).toBeInTheDocument();
     expect(screen.getByText('Upcoming trips')).toBeInTheDocument();
-    expect(screen.getByText('Live calendar')).toBeInTheDocument();
+    expect(screen.getByText('Opportunities to join')).toBeInTheDocument();
+    expect(screen.getByText('Donington Park')).toBeInTheDocument();
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
     expect(
       screen.getByText(/everything for this trip is already in place/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /review my bookings/i }),
+      screen.getByRole('link', { name: /open my bookings/i }),
     ).toHaveAttribute('href', '/dashboard/bookings');
+    expect(screen.getByRole('link', { name: /edit booking/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?view=manage',
+    );
   });
 
   it('renders empty guidance when there are no upcoming bookings', () => {
@@ -99,13 +151,16 @@ describe('DashboardIndexPage', () => {
         availableDaysCount={0}
         daysThisMonth={0}
         activeBookingsCount={0}
-        sharedStayCount={0}
+        accommodationPlanCount={0}
         maybeBookingsCount={0}
         tripsMissingStayCount={0}
-        tripsWithSharedStayCount={0}
-        privateRefsOpenCount={0}
+        missingBookingReferenceCount={0}
+        missingHotelReferenceCount={0}
+        pendingGarageRequestsCount={0}
         nextDays={[]}
         upcomingBookings={[]}
+        nextTripAttendance={null}
+        groupDays={[]}
       />,
     );
 
@@ -150,13 +205,16 @@ describe('DashboardIndexPage', () => {
         availableDaysCount={42}
         daysThisMonth={8}
         activeBookingsCount={3}
-        sharedStayCount={2}
+        accommodationPlanCount={2}
         maybeBookingsCount={1}
         tripsMissingStayCount={1}
-        tripsWithSharedStayCount={2}
-        privateRefsOpenCount={0}
+        missingBookingReferenceCount={0}
+        missingHotelReferenceCount={0}
+        pendingGarageRequestsCount={0}
         nextDays={[unrelatedRaceDay]}
         upcomingBookings={[trackBooking]}
+        nextTripAttendance={attendance}
+        groupDays={[]}
       />,
     );
 

@@ -19,6 +19,7 @@ import type {
   MemberInviteSummary,
 } from '~/lib/auth/member-invites.server';
 import type { MemberDirectoryEntry } from '~/lib/auth/members.server';
+import { getAccommodationPlanSummary } from '~/lib/bookings/accommodation';
 import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface MembersPageProps {
@@ -51,11 +52,11 @@ function getNextTripSummary(member: MemberDirectoryEntry) {
 }
 
 function getStaySummary(member: MemberDirectoryEntry) {
-  if (!member.nextTrip?.accommodationName?.trim()) {
-    return 'No shared stay on the next trip yet';
+  if (!member.nextTrip) {
+    return 'No accommodation plan on the next trip yet';
   }
 
-  return member.nextTrip.accommodationName;
+  return getAccommodationPlanSummary(member.nextTrip);
 }
 
 function matchesMemberQuery(member: MemberDirectoryEntry, query: string) {
@@ -69,6 +70,7 @@ function matchesMemberQuery(member: MemberDirectoryEntry, query: string) {
     member.nextTrip?.circuit,
     member.nextTrip?.provider,
     member.nextTrip?.accommodationName,
+    member.nextTrip ? getAccommodationPlanSummary(member.nextTrip) : undefined,
   ].some((field) => field?.toLowerCase().includes(value));
 }
 
@@ -96,10 +98,10 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
         </Text>
         <Text size="xs" c="dimmed">
           {member.sharedStayCount}{' '}
-          {member.sharedStayCount === 1 ? 'shared stay' : 'shared stays'}
+          {member.sharedStayCount === 1 ? 'accommodation' : 'accommodations'}
         </Text>
         <Text size="xs" c="dimmed">
-          Stay • {getStaySummary(member)}
+          Accommodation • {getStaySummary(member)}
         </Text>
         <Button
           component={Link}
@@ -247,7 +249,7 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
       <PageHeader
         eyebrow="Members"
         title="Site members"
-        description="See who is on the site, invite new members, and check who already has stays in play."
+        description="See who is on the site, invite new members, and check who already has accommodation plans in play."
       />
 
       <MemberInvitePanel pendingInvites={pendingInvites} />
@@ -257,7 +259,7 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
           <TextInput
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.currentTarget.value)}
-            placeholder="Search by name, circuit, or stay"
+            placeholder="Search by name, circuit, or accommodation"
             label="Search members"
             leftSection={<IconSearch size={16} />}
           />
@@ -274,7 +276,7 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
           ) : (
             <EmptyStateCard
               title="No members match that search"
-              description="Try a different name, trip, or stay term."
+              description="Try a different name, trip, or accommodation term."
             />
           )}
         </Stack>

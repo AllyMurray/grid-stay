@@ -9,6 +9,15 @@ import {
   submitBookingUpdate,
   submitHotelReview,
 } from '~/lib/bookings/actions.server';
+import {
+  buildCalendarFeedUrl,
+  ensureCalendarFeedForUser,
+  getActiveCalendarFeedForUser,
+  getCalendarFeedOptions,
+  parseCalendarFeedOptionsFromFormData,
+  regenerateCalendarFeedForUser,
+  saveCalendarFeedOptionsForUser,
+} from '~/lib/calendar/feed.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
@@ -24,11 +33,22 @@ import { submitGarageShareDecision } from '~/lib/garage-sharing/actions.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
 import type { Route } from './+types/bookings';
 
+const calendarFeedIntents = new Set([
+  'createCalendarFeed',
+  'regenerateCalendarFeed',
+  'saveCalendarFeedOptions',
+]);
+
+function isCalendarFeedIntent(intent: FormDataEntryValue | null) {
+  return typeof intent === 'string' && calendarFeedIntents.has(intent);
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const [bookings, garageShareRequests] = await Promise.all([
+  const [bookings, garageShareRequests, calendarFeed] = await Promise.all([
     listMyBookings(user.id),
     listGarageShareRequestsForUser(user.id),
+    getActiveCalendarFeedForUser(user.id),
   ]);
   const hotelInsights = Object.fromEntries(
     await listHotelInsights(
@@ -38,7 +58,17 @@ export async function loader({ request }: Route.LoaderArgs) {
     ),
   );
   return Response.json(
-    { bookings, garageShareRequests, hotelInsights },
+    {
+      bookings,
+      garageShareRequests,
+      hotelInsights,
+      calendarFeedExists: Boolean(calendarFeed),
+      calendarFeedUrl: calendarFeed?.token
+        ? buildCalendarFeedUrl(request, calendarFeed.token)
+        : null,
+      calendarFeedTokenHint: calendarFeed?.tokenHint ?? null,
+      calendarFeedOptions: getCalendarFeedOptions(calendarFeed),
+    },
     { headers },
   );
 }
@@ -47,6 +77,63 @@ export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
   const formData = await request.formData();
   const intent = formData.get('intent');
+
+  if (isCalendarFeedIntent(intent)) {
+    const options = parseCalendarFeedOptionsFromFormData(formData);
+    const feed =
+      intent === 'regenerateCalendarFeed'
+        ? await regenerateCalendarFeedForUser(
+            user.id,
+            undefined,
+            undefined,
+            options,
+          )
+        : intent === 'saveCalendarFeedOptions'
+          ? await saveCalendarFeedOptionsForUser(user.id, options)
+          : await ensureCalendarFeedForUser(
+              user.id,
+              undefined,
+              undefined,
+              options,
+            );
+
+    await recordAppEventSafely({
+      category: 'audit',
+      action:
+        intent === 'regenerateCalendarFeed'
+          ? 'calendarFeed.regenerated'
+          : intent === 'saveCalendarFeedOptions'
+            ? 'calendarFeed.optionsSaved'
+            : 'calendarFeed.created',
+      message:
+        intent === 'regenerateCalendarFeed'
+          ? 'Calendar feed link regenerated.'
+          : intent === 'saveCalendarFeedOptions'
+            ? 'Calendar feed options saved.'
+            : 'Calendar feed created.',
+      actor: { userId: user.id, name: user.name },
+      subject: {
+        type: 'calendarFeed',
+        id: feed.tokenHash,
+      },
+      metadata: {
+        includeMaybe: options.includeMaybe,
+        includeStay: options.includeStay,
+      },
+    });
+
+    return Response.json(
+      {
+        ok: true,
+        feedExists: true,
+        feedUrl: feed.token ? buildCalendarFeedUrl(request, feed.token) : null,
+        tokenHint: feed.tokenHint ?? null,
+        options: getCalendarFeedOptions(feed),
+      },
+      { headers },
+    );
+  }
+
   const result =
     intent === 'deleteBooking'
       ? await submitBookingDelete(formData, user.id)
@@ -131,12 +218,20 @@ export default function MyBookingsRoute() {
     bookings: BookingRecord[];
     garageShareRequests: UserGarageShareRequest[];
     hotelInsights: Record<string, HotelInsight>;
+    calendarFeedExists: boolean;
+    calendarFeedUrl: string | null;
+    calendarFeedTokenHint: string | null;
+    calendarFeedOptions: ReturnType<typeof getCalendarFeedOptions>;
   };
   return (
     <MyBookingsPage
       bookings={data.bookings}
       garageShareRequests={data.garageShareRequests}
       hotelInsights={data.hotelInsights}
+      calendarFeedExists={data.calendarFeedExists}
+      calendarFeedUrl={data.calendarFeedUrl}
+      calendarFeedTokenHint={data.calendarFeedTokenHint}
+      calendarFeedOptions={data.calendarFeedOptions}
     />
   );
 }

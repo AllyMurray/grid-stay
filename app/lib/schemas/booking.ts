@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ACCOMMODATION_STATUS_VALUES } from '~/lib/bookings/accommodation';
 import { BOOKING_STATUS_VALUES } from '~/lib/constants/enums';
 import { HotelSelectionSchema } from './hotel';
 
@@ -10,6 +11,7 @@ export const AvailableDayTypeSchema = z.enum([
 ]);
 
 export const BookingStatusSchema = z.enum(BOOKING_STATUS_VALUES);
+export const AccommodationStatusSchema = z.enum(ACCOMMODATION_STATUS_VALUES);
 
 export const CreateBookingSchema = z.object({
   dayId: z.string().min(1),
@@ -71,11 +73,12 @@ const ArrivalDateTimeSchema = z.preprocess(
     .optional(),
 );
 
-export const UpdateBookingSchema = z.object({
+const UpdateBookingBaseSchema = z.object({
   bookingId: z.string().min(1),
   status: BookingStatusSchema,
   bookingReference: z.string().trim().max(120).optional().default(''),
   arrivalDateTime: ArrivalDateTimeSchema,
+  accommodationStatus: AccommodationStatusSchema.optional(),
   ...HotelSelectionSchema.shape,
   accommodationName: z.string().trim().max(120).optional().default(''),
   accommodationReference: z.string().trim().max(120).optional().default(''),
@@ -87,14 +90,42 @@ export const UpdateBookingSchema = z.object({
   notes: z.string().trim().max(1000).optional().default(''),
 });
 
-export const UpdateBookingTripSchema = UpdateBookingSchema.pick({
+function validateBookedAccommodation(
+  value: {
+    accommodationStatus?: string;
+    hotelId?: string;
+    hotelName?: string;
+    accommodationName?: string;
+  },
+  ctx: z.RefinementCtx,
+) {
+  if (
+    value.accommodationStatus === 'booked' &&
+    !value.hotelId?.trim() &&
+    !value.hotelName?.trim() &&
+    !value.accommodationName?.trim()
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['accommodationName'],
+      message: 'Add the hotel or stay name, or choose a different plan.',
+    });
+  }
+}
+
+export const UpdateBookingSchema = UpdateBookingBaseSchema.superRefine(
+  validateBookedAccommodation,
+);
+
+export const UpdateBookingTripSchema = UpdateBookingBaseSchema.pick({
   bookingId: true,
   status: true,
 });
 
-export const UpdateBookingStaySchema = UpdateBookingSchema.pick({
+export const UpdateBookingStaySchema = UpdateBookingBaseSchema.pick({
   bookingId: true,
   arrivalDateTime: true,
+  accommodationStatus: true,
   hotelId: true,
   hotelName: true,
   hotelAddress: true,
@@ -106,9 +137,9 @@ export const UpdateBookingStaySchema = UpdateBookingSchema.pick({
   hotelSourcePlaceId: true,
   hotelAttribution: true,
   accommodationName: true,
-});
+}).superRefine(validateBookedAccommodation);
 
-export const UpdateBookingGarageSchema = UpdateBookingSchema.pick({
+export const UpdateBookingGarageSchema = UpdateBookingBaseSchema.pick({
   bookingId: true,
   garageBooked: true,
   garageCapacity: true,
@@ -117,7 +148,7 @@ export const UpdateBookingGarageSchema = UpdateBookingSchema.pick({
   garageCostCurrency: true,
 });
 
-export const UpdateBookingPrivateSchema = UpdateBookingSchema.pick({
+export const UpdateBookingPrivateSchema = UpdateBookingBaseSchema.pick({
   bookingId: true,
   bookingReference: true,
   accommodationReference: true,

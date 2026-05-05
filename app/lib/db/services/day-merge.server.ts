@@ -159,6 +159,8 @@ function mergePrivateBookingFields(
     bookingReference: target.bookingReference ?? source.bookingReference,
     arrivalDateTime: target.arrivalDateTime ?? source.arrivalDateTime,
     arrivalTime: target.arrivalTime ?? source.arrivalTime,
+    accommodationStatus:
+      target.accommodationStatus ?? source.accommodationStatus,
     accommodationName: target.accommodationName ?? source.accommodationName,
     accommodationReference:
       target.accommodationReference ?? source.accommodationReference,

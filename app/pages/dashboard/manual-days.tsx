@@ -274,7 +274,7 @@ export function ManualDaysPage({
     <Stack gap="xl">
       <PageHeader
         eyebrow="Admin"
-        title="Manual Days"
+        title="Manual days"
         description="Add and review the extra days that should appear in the shared calendar outside the official scrape."
         meta={
           <HeaderStatGrid

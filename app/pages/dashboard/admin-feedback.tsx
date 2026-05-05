@@ -339,13 +339,18 @@ function FeedbackRow({
 }
 
 export function AdminFeedbackPage({ feedback }: AdminFeedbackPageProps) {
+  const [doneOpened, { toggle: toggleDone }] = useDisclosure(false);
+  const activeFeedback = feedback.filter((item) => item.status !== 'closed');
+  const doneFeedback = feedback.filter((item) => item.status === 'closed');
   const featureRequestCount = feedback.filter(
     (item) => item.type === 'feature_request',
   ).length;
   const bugReportCount = feedback.filter(
     (item) => item.type === 'bug_report',
   ).length;
-  const newCount = feedback.filter((item) => item.status === 'new').length;
+  const newCount = activeFeedback.filter(
+    (item) => item.status === 'new',
+  ).length;
 
   return (
     <Stack gap="xl">
@@ -375,22 +380,79 @@ export function AdminFeedbackPage({ feedback }: AdminFeedbackPageProps) {
           <Stack gap="lg">
             <Stack gap={2}>
               <Title order={2} fz="h3">
-                Latest submissions
+                Active submissions
               </Title>
               <Text size="sm" c="dimmed">
-                Showing the latest feedback records first.
+                Showing feedback that still needs review, planning, or an
+                update.
               </Text>
             </Stack>
 
-            <Stack gap="md">
-              {feedback.map((item, index) => (
-                <FeedbackRow
-                  key={item.feedbackId}
-                  item={item}
-                  isLast={index === feedback.length - 1}
-                />
-              ))}
-            </Stack>
+            {activeFeedback.length > 0 ? (
+              <Stack gap="md">
+                {activeFeedback.map((item, index) => (
+                  <FeedbackRow
+                    key={item.feedbackId}
+                    item={item}
+                    isLast={index === activeFeedback.length - 1}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <Alert color="green" icon={<IconCircleCheck size={18} />}>
+                No active feedback to review.
+              </Alert>
+            )}
+
+            {doneFeedback.length > 0 ? (
+              <>
+                <Divider />
+                <Stack gap="md">
+                  <Group justify="space-between" align="flex-start" gap="md">
+                    <Group gap="sm" align="flex-start" wrap="nowrap">
+                      <ThemeIcon
+                        size={38}
+                        radius="sm"
+                        color="green"
+                        variant="light"
+                      >
+                        <IconCircleCheck size={20} />
+                      </ThemeIcon>
+                      <Stack gap={2}>
+                        <Group gap="xs" wrap="wrap">
+                          <Text fw={800}>Done feedback</Text>
+                          <Badge color="green" variant="light">
+                            {doneFeedback.length}
+                          </Badge>
+                        </Group>
+                        <Text size="sm" c="dimmed">
+                          Completed feedback is collapsed by default.
+                        </Text>
+                      </Stack>
+                    </Group>
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={toggleDone}
+                    >
+                      {doneOpened ? 'Hide done' : 'Show done'}
+                    </Button>
+                  </Group>
+
+                  {doneOpened ? (
+                    <Stack gap="md">
+                      {doneFeedback.map((item, index) => (
+                        <FeedbackRow
+                          key={item.feedbackId}
+                          item={item}
+                          isLast={index === doneFeedback.length - 1}
+                        />
+                      ))}
+                    </Stack>
+                  ) : null}
+                </Stack>
+              </>
+            ) : null}
           </Stack>
         </Paper>
       )}
