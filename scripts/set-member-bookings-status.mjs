@@ -309,7 +309,7 @@ const user = matchingUsers[0];
 const bookingsResponse = await bookingEntity.query
   .booking({ userId: String(user.id) })
   .go();
-const bookings = bookingsResponse.data.sort((left, right) =>
+const bookings = bookingsResponse.data.toSorted((left, right) =>
   left.date === right.date
     ? String(left.bookingId).localeCompare(String(right.bookingId))
     : String(left.date).localeCompare(String(right.date)),
@@ -364,7 +364,7 @@ if (write) {
 const afterBookings = write
   ? (
       await bookingEntity.query.booking({ userId: String(user.id) }).go()
-    ).data.sort((left, right) =>
+    ).data.toSorted((left, right) =>
       left.date === right.date
         ? String(left.bookingId).localeCompare(String(right.bookingId))
         : String(left.date).localeCompare(String(right.date)),

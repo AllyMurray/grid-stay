@@ -14,7 +14,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const insights = await listHotelInsights(
     hotels.map((hotel) => hotel.hotelId),
   );
-  const sortedInsights = [...insights.values()].sort((left, right) =>
+  const sortedInsights = [...insights.values()].toSorted((left, right) =>
     left.hotel.name.localeCompare(right.hotel.name),
   );
 
