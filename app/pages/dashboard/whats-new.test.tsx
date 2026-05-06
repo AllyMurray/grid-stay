@@ -23,11 +23,21 @@ describe('WhatsNewPage', () => {
     expect(screen.getByRole('heading', { name: "What's new" })).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
+        name: 'Most dates leaderboard',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/track, test, and race day counts/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /open members/i })[0]).toHaveAttribute(
+      'href',
+      '/dashboard/members',
+    );
+    expect(
+      screen.getByRole('heading', {
         name: 'Pending invites are now private to the sender',
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/the Members page shows your pending invites only/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open members/i })[0]).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /open members/i })[1]).toHaveAttribute(
       'href',
       '/dashboard/members',
     );

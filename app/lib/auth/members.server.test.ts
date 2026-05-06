@@ -6,6 +6,7 @@ import {
   getSiteMemberById,
   listAdminSiteMembers,
   listGroupCalendarData,
+  listMemberDateLeaderboard,
   listSiteMembers,
   submitMemberDayBooking,
 } from './members.server';
@@ -398,6 +399,121 @@ describe('listSiteMembers', () => {
     );
 
     expect(members.map((member) => member.id)).toEqual(['user-4']);
+  });
+
+  it('returns a booked race, test, and track day leaderboard for visible members', async () => {
+    const leaderboardBookingsByUser: Record<string, BookingRecord[]> = {
+      'user-1': [
+        {
+          ...bookingsByUser['user-1']![0]!,
+          bookingId: 'leaderboard-1',
+          dayId: 'leaderboard-1',
+          type: 'race_day',
+          status: 'booked',
+        },
+        {
+          ...bookingsByUser['user-1']![0]!,
+          bookingId: 'leaderboard-2',
+          dayId: 'leaderboard-2',
+          type: 'test_day',
+          status: 'booked',
+        },
+        {
+          ...bookingsByUser['user-1']![0]!,
+          bookingId: 'leaderboard-3',
+          dayId: 'leaderboard-3',
+          type: 'track_day',
+          status: 'booked',
+        },
+        {
+          ...bookingsByUser['user-1']![0]!,
+          bookingId: 'leaderboard-ignored-maybe',
+          dayId: 'leaderboard-ignored-maybe',
+          type: 'race_day',
+          status: 'maybe',
+        },
+        {
+          ...bookingsByUser['user-1']![0]!,
+          bookingId: 'leaderboard-ignored-road',
+          dayId: 'leaderboard-ignored-road',
+          type: 'road_drive',
+          status: 'booked',
+        },
+      ],
+      'user-2': [
+        {
+          ...bookingsByUser['user-2']![0]!,
+          bookingId: 'leaderboard-4',
+          dayId: 'leaderboard-4',
+          type: 'race_day',
+          status: 'booked',
+        },
+        {
+          ...bookingsByUser['user-2']![0]!,
+          bookingId: 'leaderboard-5',
+          dayId: 'leaderboard-5',
+          type: 'race_day',
+          status: 'booked',
+        },
+        {
+          ...bookingsByUser['user-2']![0]!,
+          bookingId: 'leaderboard-6',
+          dayId: 'leaderboard-6',
+          type: 'track_day',
+          status: 'booked',
+        },
+        {
+          ...bookingsByUser['user-2']![0]!,
+          bookingId: 'leaderboard-ignored-cancelled',
+          dayId: 'leaderboard-ignored-cancelled',
+          type: 'test_day',
+          status: 'cancelled',
+        },
+      ],
+      'user-3': [
+        {
+          ...bookingsByUser['user-1']![0]!,
+          bookingId: 'leaderboard-hidden',
+          userId: 'user-3',
+          dayId: 'leaderboard-hidden',
+          type: 'race_day',
+          status: 'booked',
+        },
+      ],
+    };
+
+    const leaderboard = await listMemberDateLeaderboard(
+      async () => userRecords,
+      async (userId) => leaderboardBookingsByUser[userId] ?? [],
+      async () => [
+        {
+          userId: 'user-2',
+          displayName: 'Adam Mann',
+        },
+      ],
+      async () => [acceptedInvites[0]!],
+    );
+
+    expect(leaderboard).toEqual([
+      {
+        id: 'user-2',
+        name: 'Adam Mann',
+        picture: undefined,
+        totalCount: 3,
+        raceDayCount: 2,
+        testDayCount: 0,
+        trackDayCount: 1,
+      },
+      {
+        id: 'user-1',
+        name: 'Ally Murray',
+        picture: 'https://example.com/ally.png',
+        totalCount: 3,
+        raceDayCount: 1,
+        testDayCount: 1,
+        trackDayCount: 1,
+      },
+    ]);
   });
 
   it('returns public booked days for a member without private booking fields', async () => {
