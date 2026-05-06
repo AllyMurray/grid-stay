@@ -26,19 +26,53 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'bookings-show-past-dates',
+    title: 'My Bookings now focuses on future trips',
+    publishedAt: '2026-05-06T12:15:00.000Z',
+    dateLabel: '6 May 2026',
+    category: 'Bookings',
+    description:
+      'My Bookings now matches Available Days by hiding older trips unless you choose to bring them back.',
+    highlights: [
+      'Future bookings are shown by default in the booking list and calendar view.',
+      'Use Show past dates when you need to review or edit older bookings.',
+      'Direct links to older bookings still open the matching booking record.',
+    ],
+    href: '/dashboard/bookings',
+    actionLabel: 'Open My Bookings',
+    icon: IconCalendarMonth,
+  },
+  {
+    id: 'saved-hotels-page',
+    title: 'Saved Hotels can be browsed from the menu',
+    publishedAt: '2026-05-06T11:00:00.000Z',
+    dateLabel: '6 May 2026',
+    category: 'Hotels',
+    description:
+      'Hotels now has its own dashboard page for browsing saved stays, group ratings, summaries, and member feedback.',
+    highlights: [
+      'Open Hotels from the main menu without first finding a booking that used the hotel.',
+      'Search by hotel name, address, parking notes, or member feedback.',
+      'Add or edit your own hotel feedback directly from each saved hotel.',
+    ],
+    href: '/dashboard/hotels',
+    actionLabel: 'Open hotels',
+    icon: IconBuildingSkyscraper,
+  },
+  {
     id: 'bookings-management-refresh',
     title: 'My Bookings is easier to manage',
     publishedAt: '2026-05-06T09:00:00.000Z',
     dateLabel: '6 May 2026',
     category: 'Bookings',
     description:
-      'My Bookings now has a focused management workspace with separate trip, stay, garage, and private sections.',
+      'My Bookings now opens straight into a mobile-first booking list, with each trip opening into a focused editor.',
     highlights: [
-      'Manage each booking in smaller sections with clear save actions.',
-      'Stay details now link to a dedicated hotel feedback page for parking, arrival, and rating notes.',
-      'The mobile manage view opens one booking at a time with a back control for returning to the trip list.',
+      'Tap a booking to edit trip status, stay, garage, and private details without switching page modes.',
+      'Calendar is now a secondary view for season planning rather than the default booking workflow.',
+      'Track stays can include a short visible detail such as TentBox, campervan, or camping.',
     ],
-    href: '/dashboard/bookings?view=manage',
+    href: '/dashboard/bookings',
     actionLabel: 'Open My Bookings',
     icon: IconBuildingSkyscraper,
   },
@@ -69,10 +103,10 @@ export const whatsNewEntries: WhatsNewEntry[] = [
       'Accommodation plans now include staying at the track for camping, campervans, tentboxes, and paddock overnight stays.',
     highlights: [
       'Choose Staying at the track from the accommodation plan in My Bookings.',
-      'The plan is visible to other members coordinating the same day.',
-      'Track stays do not require a hotel lookup, hotel name, or hotel reference.',
+      'Add a short visible detail such as TentBox, campervan, camping, or garage loft.',
+      'Track stays do not require a hotel lookup or hotel reference.',
     ],
-    href: '/dashboard/bookings?view=manage',
+    href: '/dashboard/bookings',
     actionLabel: 'Update accommodation',
     icon: IconBuildingSkyscraper,
   },
@@ -83,11 +117,11 @@ export const whatsNewEntries: WhatsNewEntry[] = [
     dateLabel: '5 May 2026',
     category: 'Bookings',
     description:
-      'My Bookings now brings upcoming trips, calendar sync, the trip calendar, and private booking edits together on one page.',
+      'My Bookings keeps trip calendar tools close to the booking editor without making them the primary workflow.',
     highlights: [
-      'Upcoming trips is the default view so the next dates are immediately visible.',
-      'Calendar view stays available from the same page when you need a month view.',
-      'Manage keeps the full editor for accommodation, arrival, garage, and private details.',
+      'The booking list is the default view for quick trip edits.',
+      'Calendar view stays available from the My Bookings header when you need a month view.',
+      'Selected trips deep-link directly into the matching booking editor.',
     ],
     href: '/dashboard/bookings',
     actionLabel: 'Open My Bookings',

@@ -23,16 +23,27 @@ describe('WhatsNewPage', () => {
     expect(screen.getByRole('heading', { name: "What's new" })).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
+        name: 'Saved Hotels can be browsed from the menu',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/search by hotel name, address, parking notes/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open hotels/i })).toHaveAttribute(
+      'href',
+      '/dashboard/hotels',
+    );
+    expect(
+      screen.getByRole('heading', {
         name: 'My Bookings is easier to manage',
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/stay details now link to a dedicated hotel feedback/i),
+      screen.getByText(/tap a booking to edit trip status/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open my bookings/i })[0]).toHaveAttribute(
-      'href',
-      '/dashboard/bookings?view=manage',
-    );
+    expect(
+      screen.getAllByRole('link', { name: /open my bookings/i })[0],
+    ).toHaveAttribute('href', '/dashboard/bookings');
     expect(
       screen.getByRole('heading', {
         name: 'Group Calendar shows attendee initials',
