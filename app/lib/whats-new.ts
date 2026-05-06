@@ -33,14 +33,14 @@ export const whatsNewEntries: WhatsNewEntry[] = [
     dateLabel: '6 May 2026',
     category: 'Members',
     description:
-      'Members now has a leaderboard showing who has the most confirmed race, test, and track days.',
+      'The group now has a dedicated leaderboard showing who has the most confirmed race, test, and track days.',
     highlights: [
-      'The Members page ranks confirmed booked dates across the whole group.',
+      'The leaderboard ranks confirmed booked dates across the whole group.',
       'Track, test, and race day counts are shown beside each member total.',
       'Leaderboard rows link straight to that member’s shared days.',
     ],
-    href: '/dashboard/members',
-    actionLabel: 'Open members',
+    href: '/dashboard/members/leaderboard',
+    actionLabel: 'Open leaderboard',
     icon: IconTrophy,
   },
   {

@@ -27,9 +27,9 @@ describe('WhatsNewPage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/track, test, and race day counts/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open members/i })[0]).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /open leaderboard/i })).toHaveAttribute(
       'href',
-      '/dashboard/members',
+      '/dashboard/members/leaderboard',
     );
     expect(
       screen.getByRole('heading', {
@@ -37,7 +37,7 @@ describe('WhatsNewPage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/the Members page shows your pending invites only/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open members/i })[1]).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /open members/i })[0]).toHaveAttribute(
       'href',
       '/dashboard/members',
     );

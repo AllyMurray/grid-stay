@@ -41,6 +41,7 @@ export default [
     route('dashboard/hotels/:hotelId', 'routes/dashboard/hotels.$hotelId.tsx'),
     route('dashboard/hotels/:hotelId/feedback', 'routes/dashboard/hotels.$hotelId.feedback.tsx'),
     route('dashboard/members', 'routes/dashboard/members.tsx'),
+    route('dashboard/members/leaderboard', 'routes/dashboard/members.leaderboard.tsx'),
     route('dashboard/members/:memberId', 'routes/dashboard/members.$memberId.tsx'),
   ]),
 ] satisfies RouteConfig;
