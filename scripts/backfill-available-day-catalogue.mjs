@@ -14,6 +14,7 @@ const SOURCE_PRIORITIES = {
 function parseArgs(argv) {
   const args = {
     apply: false,
+    beforeDate: '',
     region: process.env.AWS_REGION ?? 'eu-west-1',
     targetTable: process.env.GRID_STAY_PROD_TABLE ?? DEFAULT_TABLE,
     sourceTables: [],
@@ -24,6 +25,9 @@ function parseArgs(argv) {
     switch (arg) {
       case '--apply':
         args.apply = true;
+        break;
+      case '--before-date':
+        args.beforeDate = argv[++index] ?? '';
         break;
       case '--region':
         args.region = argv[++index] ?? args.region;
@@ -51,6 +55,9 @@ function parseArgs(argv) {
   if (args.sourceTables.length === 0) {
     args.sourceTables.push(args.targetTable);
   }
+  if (args.beforeDate && !isIsoDate(args.beforeDate)) {
+    throw new Error('--before-date must be in YYYY-MM-DD format');
+  }
 
   return args;
 }
@@ -66,6 +73,7 @@ Options:
   --target-table <name>    Live table to write to. Defaults to grid-stay-prod.
   --source-table <name>    Source table to scan. Can be passed more than once.
   --restored-table <name>  Alias for --source-table, intended for PITR restores.
+  --before-date <date>     Only backfill days before this YYYY-MM-DD date.
   --region <region>        AWS region. Defaults to eu-west-1.
 
 Safety:
@@ -454,8 +462,15 @@ async function main() {
   }
 
   const missingCandidates = [...candidates.values()].filter(
-    (candidate) => !existingDayIds.has(candidate.day.dayId),
+    (candidate) =>
+      !existingDayIds.has(candidate.day.dayId) &&
+      (!args.beforeDate || candidate.day.date < args.beforeDate),
   );
+  const dateFilteredCandidateCount =
+    candidates.size -
+    [...candidates.values()].filter(
+      (candidate) => !args.beforeDate || candidate.day.date < args.beforeDate,
+    ).length;
   const recordsToCreate = missingCandidates.map((candidate) =>
     buildCatalogueRecord(candidate, recoveredAt),
   );
@@ -477,8 +492,10 @@ async function main() {
         region: args.region,
         targetTable: args.targetTable,
         sourceTables: args.sourceTables,
+        beforeDate: args.beforeDate || null,
         existingCatalogueCount: existingDayIds.size,
         candidateCount: candidates.size,
+        dateFilteredCandidateCount,
         missingCandidateCount: missingCandidates.length,
         wouldCreateCount: args.apply ? 0 : recordsToCreate.length,
         appliedCount: writeResult.appliedCount,
