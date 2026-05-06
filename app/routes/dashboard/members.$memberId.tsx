@@ -1,15 +1,9 @@
 import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
-import {
-  getSiteMemberBookedDays,
-  submitMemberDayBooking,
-} from '~/lib/auth/members.server';
+import { getSiteMemberBookedDays, submitMemberDayBooking } from '~/lib/auth/members.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
-import {
-  MemberDaysPage,
-  type MemberDaysPageProps,
-} from '~/pages/dashboard/member-days';
+import { MemberDaysPage, type MemberDaysPageProps } from '~/pages/dashboard/member-days';
 import type { Route } from './+types/members.$memberId';
 
 function getMemberId(params: Route.LoaderArgs['params']) {
@@ -32,9 +26,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   const dayIds = new Set(memberDays.days.map((day) => day.dayId));
-  const myBookings = (await listMyBookings(user.id)).filter((booking) =>
-    dayIds.has(booking.dayId),
-  );
+  const myBookings = (await listMyBookings(user.id)).filter((booking) => dayIds.has(booking.dayId));
 
   return Response.json(
     {

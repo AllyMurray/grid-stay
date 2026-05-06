@@ -1,9 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  colorSchemeManager,
-  colorSchemeStorageKey,
-  defaultColorScheme,
-} from './color-scheme';
+import { beforeEach, describe, expect, it } from 'vite-plus/test';
+import { colorSchemeManager, colorSchemeStorageKey, defaultColorScheme } from './color-scheme';
 
 describe('color scheme preferences', () => {
   beforeEach(() => {

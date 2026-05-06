@@ -14,14 +14,7 @@ export const CostGroupEntity = new Entity(
       dayId: { type: 'string', required: true },
       name: { type: 'string', required: true },
       category: {
-        type: [
-          'track_day',
-          'hotel',
-          'garage',
-          'food',
-          'fuel',
-          'other',
-        ] as const,
+        type: ['track_day', 'hotel', 'garage', 'food', 'fuel', 'other'] as const,
         required: true,
       },
       participantUserIds: {

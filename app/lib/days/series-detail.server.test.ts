@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
@@ -103,10 +103,7 @@ describe('loadRaceSeriesDetail', () => {
       maybeCount: 0,
       manualRoundCount: 1,
     });
-    expect(detail?.rounds.map((round) => round.dayId)).toEqual([
-      'manual-test',
-      'race-2',
-    ]);
+    expect(detail?.rounds.map((round) => round.dayId)).toEqual(['manual-test', 'race-2']);
     expect(detail?.rounds[0]).toMatchObject({
       circuit: 'Snetterton',
       layout: '300',

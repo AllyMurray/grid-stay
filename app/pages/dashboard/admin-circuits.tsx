@@ -15,21 +15,13 @@ import { IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
 import { useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
-import type {
-  AdminCircuitActionResult,
-  AdminCircuitsReport,
-} from '~/lib/admin/circuits.server';
+import type { AdminCircuitActionResult, AdminCircuitsReport } from '~/lib/admin/circuits.server';
 
 export type AdminCircuitsPageProps = AdminCircuitsReport;
-type CircuitAliasFieldErrors = Extract<
-  AdminCircuitActionResult,
-  { ok: false }
->['fieldErrors'];
+type CircuitAliasFieldErrors = Extract<AdminCircuitActionResult, { ok: false }>['fieldErrors'];
 
 function formatAliasTarget(alias: AdminCircuitsReport['aliases'][number]) {
-  return [alias.canonicalCircuit, alias.canonicalLayout]
-    .filter(Boolean)
-    .join(' ');
+  return [alias.canonicalCircuit, alias.canonicalLayout].filter(Boolean).join(' ');
 }
 
 function formatCircuitLabel(circuit: AdminCircuitsReport['circuits'][number]) {
@@ -50,10 +42,8 @@ export function AdminCircuitsPage({
 }: AdminCircuitsPageProps) {
   const fetcher = useFetcher<AdminCircuitActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
 
   return (
@@ -78,8 +68,7 @@ export function AdminCircuitsPage({
           <Stack gap={2}>
             <Title order={3}>Add circuit alias</Title>
             <Text size="sm" c="dimmed">
-              Store source labels that should resolve to an existing circuit and
-              optional layout.
+              Store source labels that should resolve to an existing circuit and optional layout.
             </Text>
           </Stack>
 
@@ -152,8 +141,7 @@ export function AdminCircuitsPage({
           <Stack gap={2}>
             <Title order={3}>Configured aliases</Title>
             <Text size="sm" c="dimmed">
-              Aliases are applied during feed refresh before the available-day
-              cache is saved.
+              Aliases are applied during feed refresh before the available-day cache is saved.
             </Text>
           </Stack>
 
@@ -174,11 +162,7 @@ export function AdminCircuitsPage({
                         </Text>
                       ) : null}
                     </Stack>
-                    <input
-                      type="hidden"
-                      name="aliasKey"
-                      value={alias.aliasKey}
-                    />
+                    <input type="hidden" name="aliasKey" value={alias.aliasKey} />
                     <Button
                       type="submit"
                       name="intent"
@@ -224,15 +208,10 @@ export function AdminCircuitsPage({
                 </Table.Thead>
                 <Table.Tbody>
                   {circuits.map((circuit) => (
-                    <Table.Tr
-                      key={`${circuit.circuit}:${circuit.layout ?? ''}`}
-                    >
+                    <Table.Tr key={`${circuit.circuit}:${circuit.layout ?? ''}`}>
                       <Table.Td>{formatCircuitLabel(circuit)}</Table.Td>
                       <Table.Td>
-                        <Badge
-                          color={circuit.circuitKnown ? 'green' : 'yellow'}
-                          variant="light"
-                        >
+                        <Badge color={circuit.circuitKnown ? 'green' : 'yellow'} variant="light">
                           {circuit.circuitKnown ? 'Known' : 'Unknown'}
                         </Badge>
                       </Table.Td>

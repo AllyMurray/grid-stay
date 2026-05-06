@@ -3,12 +3,7 @@ import { ACCOMMODATION_STATUS_VALUES } from '~/lib/bookings/accommodation';
 import { BOOKING_STATUS_VALUES } from '~/lib/constants/enums';
 import { HotelSelectionSchema } from './hotel';
 
-export const AvailableDayTypeSchema = z.enum([
-  'race_day',
-  'test_day',
-  'track_day',
-  'road_drive',
-]);
+export const AvailableDayTypeSchema = z.enum(['race_day', 'test_day', 'track_day', 'road_drive']);
 
 export const BookingStatusSchema = z.enum(BOOKING_STATUS_VALUES);
 export const AccommodationStatusSchema = z.enum(ACCOMMODATION_STATUS_VALUES);
@@ -36,10 +31,9 @@ export const SharedStaySelectionSchema = CreateBookingSchema.extend({
   accommodationName: z.string().trim().min(1).max(120),
 });
 
-export const SharedStaySelectionRequestSchema =
-  CreateBookingRequestSchema.extend({
-    accommodationName: z.string().trim().min(1).max(120),
-  });
+export const SharedStaySelectionRequestSchema = CreateBookingRequestSchema.extend({
+  accommodationName: z.string().trim().min(1).max(120),
+});
 
 export const BulkRaceSeriesBookingSchema = z.object({
   dayId: z.string().min(1),
@@ -47,8 +41,7 @@ export const BulkRaceSeriesBookingSchema = z.object({
 });
 
 const GarageBookedSchema = z.preprocess(
-  (value) =>
-    value === true || value === 'true' || value === 'on' || value === '1',
+  (value) => value === true || value === 'true' || value === 'on' || value === '1',
   z.boolean(),
 );
 
@@ -113,9 +106,7 @@ function validateBookedAccommodation(
   }
 }
 
-export const UpdateBookingSchema = UpdateBookingBaseSchema.superRefine(
-  validateBookedAccommodation,
-);
+export const UpdateBookingSchema = UpdateBookingBaseSchema.superRefine(validateBookedAccommodation);
 
 export const UpdateBookingTripSchema = UpdateBookingBaseSchema.pick({
   bookingId: true,
@@ -160,25 +151,13 @@ export const DeleteBookingSchema = z.object({
 });
 
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
-export type CreateBookingRequestInput = z.infer<
-  typeof CreateBookingRequestSchema
->;
-export type SharedStaySelectionInput = z.infer<
-  typeof SharedStaySelectionSchema
->;
-export type SharedStaySelectionRequestInput = z.infer<
-  typeof SharedStaySelectionRequestSchema
->;
-export type BulkRaceSeriesBookingInput = z.infer<
-  typeof BulkRaceSeriesBookingSchema
->;
+export type CreateBookingRequestInput = z.infer<typeof CreateBookingRequestSchema>;
+export type SharedStaySelectionInput = z.infer<typeof SharedStaySelectionSchema>;
+export type SharedStaySelectionRequestInput = z.infer<typeof SharedStaySelectionRequestSchema>;
+export type BulkRaceSeriesBookingInput = z.infer<typeof BulkRaceSeriesBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
 export type UpdateBookingTripInput = z.infer<typeof UpdateBookingTripSchema>;
 export type UpdateBookingStayInput = z.infer<typeof UpdateBookingStaySchema>;
-export type UpdateBookingGarageInput = z.infer<
-  typeof UpdateBookingGarageSchema
->;
-export type UpdateBookingPrivateInput = z.infer<
-  typeof UpdateBookingPrivateSchema
->;
+export type UpdateBookingGarageInput = z.infer<typeof UpdateBookingGarageSchema>;
+export type UpdateBookingPrivateInput = z.infer<typeof UpdateBookingPrivateSchema>;
 export type DeleteBookingInput = z.infer<typeof DeleteBookingSchema>;

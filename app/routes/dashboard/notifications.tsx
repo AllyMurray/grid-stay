@@ -6,10 +6,7 @@ import {
 } from '~/lib/db/services/day-notification.server';
 import { listPendingIncomingGarageShareRequests } from '~/lib/db/services/garage-sharing.server';
 import { submitGarageShareDecision } from '~/lib/garage-sharing/actions.server';
-import {
-  NotificationsPage,
-  type NotificationsPageProps,
-} from '~/pages/dashboard/notifications';
+import { NotificationsPage, type NotificationsPageProps } from '~/pages/dashboard/notifications';
 import type { Route } from './+types/notifications';
 
 export async function loader({ request }: Route.LoaderArgs) {

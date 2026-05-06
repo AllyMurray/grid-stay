@@ -1,8 +1,5 @@
 import type { User } from '~/lib/auth/schemas';
-import {
-  hasBookedAccommodation,
-  resolveAccommodationStatus,
-} from '~/lib/bookings/accommodation';
+import { hasBookedAccommodation, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
 import { normalizeAvailableDayCircuit } from '~/lib/days/aggregation.server';
 import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
@@ -135,10 +132,7 @@ async function resolveBookableDay(
   loadSnapshot: typeof getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays,
 ): Promise<AvailableDay | null> {
-  const [snapshot, manualDays] = await Promise.all([
-    loadSnapshot(),
-    loadManualDays(),
-  ]);
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
   const days = [...(snapshot?.days ?? []), ...manualDays];
   const day = days.find((entry) => entry.dayId === dayId);
   return day ? normalizeAvailableDayCircuit(day) : null;
@@ -156,9 +150,7 @@ function toCreateBookingInput(
     ...(day.circuitId ? { circuitId: day.circuitId } : {}),
     ...(day.circuitName ? { circuitName: day.circuitName } : {}),
     ...(day.layout ? { layout: day.layout } : {}),
-    ...(day.circuitKnown !== undefined
-      ? { circuitKnown: day.circuitKnown }
-      : {}),
+    ...(day.circuitKnown !== undefined ? { circuitKnown: day.circuitKnown } : {}),
     provider: day.provider,
     description: day.description,
     status,
@@ -172,9 +164,7 @@ export async function submitCreateBooking(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays = listManualDays,
 ): Promise<CreateBookingActionResult> {
-  const parsed = CreateBookingRequestSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = CreateBookingRequestSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -184,11 +174,7 @@ export async function submitCreateBooking(
     };
   }
 
-  const day = await resolveBookableDay(
-    parsed.data.dayId,
-    loadSnapshot,
-    loadManualDays,
-  );
+  const day = await resolveBookableDay(parsed.data.dayId, loadSnapshot, loadManualDays);
 
   if (!day) {
     return {
@@ -211,9 +197,7 @@ export async function submitSharedStaySelection(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays = listManualDays,
 ): Promise<SharedStaySelectionActionResult> {
-  const parsed = SharedStaySelectionRequestSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = SharedStaySelectionRequestSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -223,11 +207,7 @@ export async function submitSharedStaySelection(
     };
   }
 
-  const day = await resolveBookableDay(
-    parsed.data.dayId,
-    loadSnapshot,
-    loadManualDays,
-  );
+  const day = await resolveBookableDay(parsed.data.dayId, loadSnapshot, loadManualDays);
 
   if (!day) {
     return {
@@ -257,9 +237,7 @@ export async function submitBulkRaceSeriesBooking(
   loadManualDays: typeof listManualDays = listManualDays,
   saveSubscription: typeof upsertSeriesSubscription = upsertSeriesSubscription,
 ): Promise<BulkRaceSeriesBookingActionResult> {
-  const parsed = BulkRaceSeriesBookingSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = BulkRaceSeriesBookingSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -269,19 +247,13 @@ export async function submitBulkRaceSeriesBooking(
     };
   }
 
-  const [snapshot, manualDays] = await Promise.all([
-    loadSnapshot(),
-    loadManualDays(),
-  ]);
-  const days = [...(snapshot?.days ?? []), ...manualDays].map(
-    normalizeAvailableDayCircuit,
-  );
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
+  const days = [...(snapshot?.days ?? []), ...manualDays].map(normalizeAvailableDayCircuit);
 
   if (days.length === 0) {
     return {
       ok: false,
-      formError:
-        'The race calendar is not ready yet. Try again after the next refresh.',
+      formError: 'The race calendar is not ready yet. Try again after the next refresh.',
       fieldErrors: {},
     };
   }
@@ -304,9 +276,7 @@ export async function submitBulkRaceSeriesBooking(
       ...(day.circuitId ? { circuitId: day.circuitId } : {}),
       ...(day.circuitName ? { circuitName: day.circuitName } : {}),
       ...(day.layout ? { layout: day.layout } : {}),
-      ...(day.circuitKnown !== undefined
-        ? { circuitKnown: day.circuitKnown }
-        : {}),
+      ...(day.circuitKnown !== undefined ? { circuitKnown: day.circuitKnown } : {}),
       provider: day.provider,
       description: day.description,
       status: parsed.data.status,
@@ -351,15 +321,11 @@ export async function submitBookingUpdate(
     accommodationStatus: resolveAccommodationStatus(parsed.data),
   };
   const accommodationBooked = hasBookedAccommodation(bookingUpdate);
-  const hotel = accommodationBooked
-    ? await resolveHotel(bookingUpdate, userId)
-    : null;
+  const hotel = accommodationBooked ? await resolveHotel(bookingUpdate, userId) : null;
   await saveBooking(userId, {
     ...bookingUpdate,
     hotelId: hotel?.hotelId,
-    accommodationName: accommodationBooked
-      ? (hotel?.name ?? bookingUpdate.accommodationName)
-      : '',
+    accommodationName: accommodationBooked ? (hotel?.name ?? bookingUpdate.accommodationName) : '',
   });
   return { ok: true };
 }
@@ -369,9 +335,7 @@ export async function submitBookingTripUpdate(
   userId: string,
   saveBooking: typeof updateBookingTrip = updateBookingTrip,
 ): Promise<UpdateBookingTripActionResult> {
-  const parsed = UpdateBookingTripSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = UpdateBookingTripSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -391,9 +355,7 @@ export async function submitBookingStayUpdate(
   saveBooking: typeof updateBookingStay = updateBookingStay,
   resolveHotel: typeof createOrUpdateHotelFromSelection = createOrUpdateHotelFromSelection,
 ): Promise<UpdateBookingStayActionResult> {
-  const parsed = UpdateBookingStaySchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = UpdateBookingStaySchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -408,15 +370,11 @@ export async function submitBookingStayUpdate(
     accommodationStatus: resolveAccommodationStatus(parsed.data),
   };
   const accommodationBooked = hasBookedAccommodation(bookingUpdate);
-  const hotel = accommodationBooked
-    ? await resolveHotel(bookingUpdate, userId)
-    : null;
+  const hotel = accommodationBooked ? await resolveHotel(bookingUpdate, userId) : null;
   await saveBooking(userId, {
     ...bookingUpdate,
     hotelId: hotel?.hotelId,
-    accommodationName: accommodationBooked
-      ? (hotel?.name ?? bookingUpdate.accommodationName)
-      : '',
+    accommodationName: accommodationBooked ? (hotel?.name ?? bookingUpdate.accommodationName) : '',
   });
   return { ok: true };
 }
@@ -426,9 +384,7 @@ export async function submitBookingGarageUpdate(
   userId: string,
   saveBooking: typeof updateBookingGarage = updateBookingGarage,
 ): Promise<UpdateBookingGarageActionResult> {
-  const parsed = UpdateBookingGarageSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = UpdateBookingGarageSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -447,9 +403,7 @@ export async function submitBookingPrivateUpdate(
   userId: string,
   saveBooking: typeof updateBookingPrivate = updateBookingPrivate,
 ): Promise<UpdateBookingPrivateActionResult> {
-  const parsed = UpdateBookingPrivateSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = UpdateBookingPrivateSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {

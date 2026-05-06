@@ -24,9 +24,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ForgotPasswordRoute() {
-  const actionData = useActionData<typeof action>() as
-    | PasswordResetRequestActionData
-    | undefined;
+  const actionData = useActionData<typeof action>() as PasswordResetRequestActionData | undefined;
 
   return <ForgotPasswordPage actionData={actionData} />;
 }

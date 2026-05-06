@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 import { theme } from '~/theme';
 import DashboardLayoutRoute from './_dashboard';
@@ -72,9 +72,7 @@ function renderDashboard(
     },
   ]);
 
-  return render(
-    <Stub initialEntries={options.initialEntries ?? ['/dashboard']} />,
-  );
+  return render(<Stub initialEntries={options.initialEntries ?? ['/dashboard']} />);
 }
 
 describe('DashboardLayoutRoute', () => {
@@ -90,18 +88,22 @@ describe('DashboardLayoutRoute', () => {
 
     const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
 
-    expect(
-      within(drawer).getByRole('link', { name: 'Members' }),
-    ).toHaveAttribute('href', '/dashboard/members');
-    expect(
-      within(drawer).getByRole('link', { name: 'Account' }),
-    ).toHaveAttribute('href', '/dashboard/account');
-    expect(
-      within(drawer).getByRole('link', { name: "What's New" }),
-    ).toHaveAttribute('href', '/dashboard/whats-new');
-    expect(
-      within(drawer).getByRole('link', { name: 'Feedback' }),
-    ).toHaveAttribute('href', '/dashboard/feedback');
+    expect(within(drawer).getByRole('link', { name: 'Members' })).toHaveAttribute(
+      'href',
+      '/dashboard/members',
+    );
+    expect(within(drawer).getByRole('link', { name: 'Account' })).toHaveAttribute(
+      'href',
+      '/dashboard/account',
+    );
+    expect(within(drawer).getByRole('link', { name: "What's New" })).toHaveAttribute(
+      'href',
+      '/dashboard/whats-new',
+    );
+    expect(within(drawer).getByRole('link', { name: 'Feedback' })).toHaveAttribute(
+      'href',
+      '/dashboard/feedback',
+    );
     expect(
       within(drawer)
         .getAllByRole('link')
@@ -138,12 +140,8 @@ describe('DashboardLayoutRoute', () => {
       'href',
       '/dashboard/admin',
     );
-    expect(
-      within(drawer).queryByRole('link', { name: 'Manual days' }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(drawer).queryByRole('link', { name: 'Feed Status' }),
-    ).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('link', { name: 'Manual days' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('link', { name: 'Feed Status' })).not.toBeInTheDocument();
     expect(
       within(drawer).queryByRole('link', { name: 'Member Management' }),
     ).not.toBeInTheDocument();
@@ -198,9 +196,7 @@ describe('DashboardLayoutRoute', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Open menu' }));
     drawer = await screen.findByRole('dialog', { name: 'Navigation' });
-    expect(
-      within(drawer).getByRole('link', { name: "What's New" }),
-    ).toBeInTheDocument();
+    expect(within(drawer).getByRole('link', { name: "What's New" })).toBeInTheDocument();
     await user.click(within(drawer).getByRole('link', { name: 'Overview' }));
 
     expect(await screen.findByText('Dashboard content')).toBeInTheDocument();
@@ -233,8 +229,6 @@ describe('DashboardLayoutRoute', () => {
       window.dispatchEvent(createPageShowEvent(true));
     });
 
-    await waitFor(() =>
-      expect(menuButton).toHaveAttribute('aria-expanded', 'false'),
-    );
+    await waitFor(() => expect(menuButton).toHaveAttribute('aria-expanded', 'false'));
   });
 });

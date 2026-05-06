@@ -49,16 +49,13 @@ export async function defaultTextFetch(url: string): Promise<string> {
 
 export function decodeHtmlEntities(value: string): string {
   return value
-    .replace(/&#(\d+);/g, (_, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 10)),
-    )
+    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
     .replace(/&#x([0-9a-f]+);/gi, (_, code: string) =>
       String.fromCodePoint(Number.parseInt(code, 16)),
     )
     .replace(
       /&([a-z]+);/gi,
-      (_, entity: string) =>
-        NAMED_ENTITIES[entity.toLowerCase()] ?? `&${entity};`,
+      (_, entity: string) => NAMED_ENTITIES[entity.toLowerCase()] ?? `&${entity};`,
     );
 }
 
@@ -78,9 +75,7 @@ export function normalizeCircuitLabel(value: string): string {
 }
 
 export function normalizeCircuitName(circuit: string): string {
-  return normalizeCircuitLabel(circuit)
-    .replace(CIRCUIT_LAYOUT_SUFFIX_PATTERN, '')
-    .trim();
+  return normalizeCircuitLabel(circuit).replace(CIRCUIT_LAYOUT_SUFFIX_PATTERN, '').trim();
 }
 
 export function parseIsoDate(value: unknown): string | undefined {
@@ -109,10 +104,7 @@ export function parseBritishDate(value: string): string | undefined {
   return `${match[3]}-${month}-${match[1].padStart(2, '0')}`;
 }
 
-export function parseMonthDayWithYear(
-  value: string,
-  year: string,
-): string | undefined {
+export function parseMonthDayWithYear(value: string, year: string): string | undefined {
   const normalized = stripHtml(value);
   const match = normalized.match(/(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)/i);
   if (!match) {
@@ -127,16 +119,10 @@ export function parseMonthDayWithYear(
   return `${year}-${month}-${match[1].padStart(2, '0')}`;
 }
 
-export function extractHtmlLabelValue(
-  html: string,
-  label: string,
-): string | undefined {
+export function extractHtmlLabelValue(html: string, label: string): string | undefined {
   const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = html.match(
-    new RegExp(
-      `<strong>\\s*${escapedLabel}\\s*:\\s*<\\/strong>\\s*([^<]+)`,
-      'i',
-    ),
+    new RegExp(`<strong>\\s*${escapedLabel}\\s*:\\s*<\\/strong>\\s*([^<]+)`, 'i'),
   );
 
   return match?.[1] ? stripHtml(match[1]) : undefined;

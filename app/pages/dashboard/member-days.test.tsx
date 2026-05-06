@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { MemberDaysPage, type MemberDaysPageProps } from './member-days';
 
@@ -77,27 +77,23 @@ describe('MemberDaysPage', () => {
   it('renders public member days with booking actions', () => {
     renderMemberDaysPage();
 
-    expect(
-      screen.getByRole('heading', { name: "Ally Murray's days" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: "Ally Murray's days" })).toBeInTheDocument();
     expect(screen.getByText('Silverstone GP')).toBeInTheDocument();
     expect(screen.getByText(/Sun, 3 May 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Race day/)).toBeInTheDocument();
-    expect(
-      screen.getByText('Accommodation: Trackside Hotel'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Accommodation: No hotel needed'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Accommodation: Trackside Hotel')).toBeInTheDocument();
+    expect(screen.getByText('Accommodation: No hotel needed')).toBeInTheDocument();
     expect(screen.getByText('Arrival: Sat 2 May, 20:00')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add as maybe' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Add as booked' })).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: 'Open my booking' }),
-    ).toHaveAttribute('href', '/dashboard/bookings');
-    expect(
-      screen.getAllByRole('link', { name: 'View day' })[0],
-    ).toHaveAttribute('href', '/dashboard/days?day=day-1');
+    expect(screen.getByRole('link', { name: 'Open my booking' })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings',
+    );
+    expect(screen.getAllByRole('link', { name: 'View day' })[0]).toHaveAttribute(
+      'href',
+      '/dashboard/days?day=day-1',
+    );
   });
 
   it('does not render private booking fields', () => {
@@ -117,9 +113,7 @@ describe('MemberDaysPage', () => {
 
     expect(screen.getByText('No upcoming shared days')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'This member does not have any upcoming booked or maybe days yet.',
-      ),
+      screen.getByText('This member does not have any upcoming booked or maybe days yet.'),
     ).toBeInTheDocument();
   });
 });

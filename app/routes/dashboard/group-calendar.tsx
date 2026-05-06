@@ -1,9 +1,6 @@
 import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
-import {
-  type GroupCalendarData,
-  listGroupCalendarData,
-} from '~/lib/auth/members.server';
+import { type GroupCalendarData, listGroupCalendarData } from '~/lib/auth/members.server';
 import { GroupCalendarPage } from '~/pages/dashboard/group-calendar';
 import type { Route } from './+types/group-calendar';
 

@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminCircuitsPage } from './admin-circuits';
 
@@ -46,9 +46,7 @@ describe('AdminCircuitsPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Circuit tools' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Circuit tools' })).toBeInTheDocument();
     expect(screen.getByText('Sntterton 300')).toBeInTheDocument();
     expect(screen.getByText(/Maps to Snetterton 300/)).toBeInTheDocument();
     expect(screen.getByText('Caterham Motorsport')).toBeInTheDocument();

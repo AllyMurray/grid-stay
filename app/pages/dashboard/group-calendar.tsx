@@ -159,12 +159,9 @@ function filterEvent(
   return {
     ...event,
     filteredAttendees,
-    filteredBookedCount: filteredAttendees.filter(
-      (attendee) => attendee.status === 'booked',
-    ).length,
-    filteredMaybeCount: filteredAttendees.filter(
-      (attendee) => attendee.status === 'maybe',
-    ).length,
+    filteredBookedCount: filteredAttendees.filter((attendee) => attendee.status === 'booked')
+      .length,
+    filteredMaybeCount: filteredAttendees.filter((attendee) => attendee.status === 'maybe').length,
   };
 }
 
@@ -184,10 +181,7 @@ function groupEventsByDate(events: FilteredCalendarEvent[]) {
   return groups;
 }
 
-function getAttendeesForStatus(
-  events: FilteredCalendarEvent[],
-  status: VisibleStatus,
-) {
+function getAttendeesForStatus(events: FilteredCalendarEvent[], status: VisibleStatus) {
   const attendees: GroupCalendarAttendee[] = [];
   const seenUserIds = new Set<string>();
 
@@ -210,14 +204,8 @@ function getDayCellLabel(date: string, events: FilteredCalendarEvent[]) {
     return `${formatLongDate(date)}: no member plans`;
   }
 
-  const bookedCount = events.reduce(
-    (count, event) => count + event.filteredBookedCount,
-    0,
-  );
-  const maybeCount = events.reduce(
-    (count, event) => count + event.filteredMaybeCount,
-    0,
-  );
+  const bookedCount = events.reduce((count, event) => count + event.filteredBookedCount, 0);
+  const maybeCount = events.reduce((count, event) => count + event.filteredMaybeCount, 0);
   const circuitLabels = getCircuitLabels(events);
   const eventLabel = events.length === 1 ? 'event' : 'events';
 
@@ -327,18 +315,8 @@ function AttendeeList({
 
       <Stack gap="xs">
         {attendees.map((attendee) => (
-          <Group
-            key={attendee.userId}
-            gap="sm"
-            wrap="nowrap"
-            align="flex-start"
-          >
-            <Avatar
-              src={attendee.userImage}
-              alt={attendee.userName}
-              size={34}
-              radius="sm"
-            />
+          <Group key={attendee.userId} gap="sm" wrap="nowrap" align="flex-start">
+            <Avatar src={attendee.userImage} alt={attendee.userName} size={34} radius="sm" />
             <Stack gap={2}>
               <Text size="sm" fw={800}>
                 {attendee.userName}
@@ -346,9 +324,7 @@ function AttendeeList({
               {attendee.arrivalDateTime ? (
                 <Group gap="xs" c="dimmed">
                   <IconClock size={14} />
-                  <Text size="xs">
-                    {formatArrivalDateTime(attendee.arrivalDateTime)}
-                  </Text>
+                  <Text size="xs">{formatArrivalDateTime(attendee.arrivalDateTime)}</Text>
                 </Group>
               ) : null}
               <Group gap="xs" c="dimmed">
@@ -367,9 +343,7 @@ function EventDetailCard({ event }: { event: FilteredCalendarEvent }) {
   const bookedAttendees = event.filteredAttendees.filter(
     (attendee) => attendee.status === 'booked',
   );
-  const maybeAttendees = event.filteredAttendees.filter(
-    (attendee) => attendee.status === 'maybe',
-  );
+  const maybeAttendees = event.filteredAttendees.filter((attendee) => attendee.status === 'maybe');
 
   return (
     <Paper className="shell-card" p="md">
@@ -398,16 +372,8 @@ function EventDetailCard({ event }: { event: FilteredCalendarEvent }) {
         </Group>
 
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-          <AttendeeList
-            title="Booked"
-            attendees={bookedAttendees}
-            status="booked"
-          />
-          <AttendeeList
-            title="Maybe"
-            attendees={maybeAttendees}
-            status="maybe"
-          />
+          <AttendeeList title="Booked" attendees={bookedAttendees} status="booked" />
+          <AttendeeList title="Maybe" attendees={maybeAttendees} status="maybe" />
         </SimpleGrid>
       </Stack>
     </Paper>
@@ -425,14 +391,8 @@ function CalendarDayCell({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const bookedCount = events.reduce(
-    (count, event) => count + event.filteredBookedCount,
-    0,
-  );
-  const maybeCount = events.reduce(
-    (count, event) => count + event.filteredMaybeCount,
-    0,
-  );
+  const bookedCount = events.reduce((count, event) => count + event.filteredBookedCount, 0);
+  const maybeCount = events.reduce((count, event) => count + event.filteredMaybeCount, 0);
   const bookedAttendees = getAttendeesForStatus(events, 'booked');
   const maybeAttendees = getAttendeesForStatus(events, 'maybe');
   const hasEvents = events.length > 0;
@@ -466,22 +426,12 @@ function CalendarDayCell({
           <Stack gap={5} mt="auto">
             <Stack gap={2} className="group-calendar-track-list">
               {visibleCircuitLabels.map((label) => (
-                <Text
-                  key={label}
-                  component="span"
-                  className="group-calendar-track-name"
-                  fw={800}
-                >
+                <Text key={label} component="span" className="group-calendar-track-name" fw={800}>
                   {label}
                 </Text>
               ))}
               {hiddenCircuitCount > 0 ? (
-                <Text
-                  component="span"
-                  className="group-calendar-track-more"
-                  c="dimmed"
-                  fw={700}
-                >
+                <Text component="span" className="group-calendar-track-more" c="dimmed" fw={700}>
                   +{hiddenCircuitCount} more
                 </Text>
               ) : null}
@@ -492,11 +442,7 @@ function CalendarDayCell({
               count={bookedCount}
               status="booked"
             />
-            <CalendarStatusSummary
-              attendees={maybeAttendees}
-              count={maybeCount}
-              status="maybe"
-            />
+            <CalendarStatusSummary attendees={maybeAttendees} count={maybeCount} status="maybe" />
           </Stack>
         ) : null}
       </Stack>
@@ -504,15 +450,10 @@ function CalendarDayCell({
   );
 }
 
-export function GroupCalendarPage({
-  members,
-  events,
-  today,
-}: GroupCalendarData) {
+export function GroupCalendarPage({ members, events, today }: GroupCalendarData) {
   const [month, setMonth] = useState(dayjs(today).startOf('month'));
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [visibleStatuses, setVisibleStatuses] =
-    useState<VisibleStatus[]>(visibleStatusOptions);
+  const [visibleStatuses, setVisibleStatuses] = useState<VisibleStatus[]>(visibleStatusOptions);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [drawerOpened, drawerHandlers] = useDisclosure(false);
 
@@ -525,32 +466,17 @@ export function GroupCalendarPage({
       .filter((event): event is FilteredCalendarEvent => Boolean(event));
   }, [events, selectedMemberIds, visibleStatuses]);
 
-  const eventsByDate = useMemo(
-    () => groupEventsByDate(filteredEvents),
-    [filteredEvents],
-  );
-  const monthCells = useMemo(
-    () => buildMonthCells(month.format('YYYY-MM-DD')),
-    [month],
-  );
-  const selectedEvents = selectedDate
-    ? (eventsByDate.get(selectedDate) ?? [])
-    : [];
-  const monthEvents = filteredEvents.filter((event) =>
-    dayjs(event.date).isSame(month, 'month'),
-  );
-  const monthActiveDateCount = new Set(monthEvents.map((event) => event.date))
-    .size;
+  const eventsByDate = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents]);
+  const monthCells = useMemo(() => buildMonthCells(month.format('YYYY-MM-DD')), [month]);
+  const selectedEvents = selectedDate ? (eventsByDate.get(selectedDate) ?? []) : [];
+  const monthEvents = filteredEvents.filter((event) => dayjs(event.date).isSame(month, 'month'));
+  const monthActiveDateCount = new Set(monthEvents.map((event) => event.date)).size;
   const monthBookedCount = monthEvents.reduce(
     (count, event) => count + event.filteredBookedCount,
     0,
   );
-  const monthMaybeCount = monthEvents.reduce(
-    (count, event) => count + event.filteredMaybeCount,
-    0,
-  );
-  const shownMemberCount =
-    selectedMemberIds.length > 0 ? selectedMemberIds.length : members.length;
+  const monthMaybeCount = monthEvents.reduce((count, event) => count + event.filteredMaybeCount, 0);
+  const shownMemberCount = selectedMemberIds.length > 0 ? selectedMemberIds.length : members.length;
   const memberOptions = members.map((member) => ({
     value: member.id,
     label: member.name,
@@ -585,16 +511,14 @@ export function GroupCalendarPage({
         meta={
           <Group gap="xs" wrap="wrap">
             <Badge leftSection={<IconCalendarMonth size={14} />} color="brand">
-              {monthActiveDateCount}{' '}
-              {monthActiveDateCount === 1 ? 'active date' : 'active dates'}
+              {monthActiveDateCount} {monthActiveDateCount === 1 ? 'active date' : 'active dates'}
             </Badge>
             <Badge leftSection={<IconCircleCheck size={14} />} color="green">
               {monthBookedCount} booked
             </Badge>
             <Badge color="yellow">{monthMaybeCount} maybe</Badge>
             <Badge leftSection={<IconUsersGroup size={14} />} color="gray">
-              {shownMemberCount}{' '}
-              {selectedMemberIds.length > 0 ? 'selected' : 'members'}
+              {shownMemberCount} {selectedMemberIds.length > 0 ? 'selected' : 'members'}
             </Badge>
           </Group>
         }
@@ -642,9 +566,7 @@ export function GroupCalendarPage({
               <ActionIcon
                 variant="default"
                 aria-label="Previous month"
-                onClick={() =>
-                  setMonth((current) => current.subtract(1, 'month'))
-                }
+                onClick={() => setMonth((current) => current.subtract(1, 'month'))}
               >
                 <IconChevronLeft size={18} />
               </ActionIcon>
@@ -662,20 +584,12 @@ export function GroupCalendarPage({
 
             <div className="group-calendar-grid">
               {weekDayLabels.map((label) => (
-                <Text
-                  key={label}
-                  className="group-calendar-weekday"
-                  size="xs"
-                  fw={800}
-                  c="dimmed"
-                >
+                <Text key={label} className="group-calendar-weekday" size="xs" fw={800} c="dimmed">
                   {label}
                 </Text>
               ))}
               {monthCells.map((cell) => {
-                const cellEvents = cell.inMonth
-                  ? (eventsByDate.get(cell.date) ?? [])
-                  : [];
+                const cellEvents = cell.inMonth ? (eventsByDate.get(cell.date) ?? []) : [];
 
                 return (
                   <CalendarDayCell

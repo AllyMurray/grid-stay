@@ -34,13 +34,7 @@ import {
   IconSearch,
   IconUsers,
 } from '@tabler/icons-react';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
@@ -57,17 +51,11 @@ import {
 } from '~/lib/bookings/accommodation';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
-import {
-  formatArrivalDateTime,
-  resolveArrivalDateTime,
-} from '~/lib/dates/arrival';
+import { formatArrivalDateTime, resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { UserGarageShareRequest } from '~/lib/db/services/garage-sharing.server';
-import type {
-  HotelInsight,
-  HotelSuggestion,
-} from '~/lib/db/services/hotel.server';
+import type { HotelInsight, HotelSuggestion } from '~/lib/db/services/hotel.server';
 import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
 import { BookingSchedulePanel } from './schedule';
 
@@ -85,12 +73,7 @@ export interface MyBookingsPageProps {
 type BookingFilter = 'all' | BookingRecord['status'];
 type BookingEditorTab = 'trip' | 'stay' | 'garage' | 'private';
 
-const bookingEditorTabs: BookingEditorTab[] = [
-  'trip',
-  'stay',
-  'garage',
-  'private',
-];
+const bookingEditorTabs: BookingEditorTab[] = ['trip', 'stay', 'garage', 'private'];
 
 type MyBookingsView = 'upcoming' | 'calendar' | 'manage';
 
@@ -148,9 +131,7 @@ function getRatingLabel(value?: number) {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function bookingColor(status: BookingRecord['status']) {
@@ -171,9 +152,7 @@ function bookingSharedSummary(booking: BookingRecord) {
     booking.status === 'cancelled' && accommodationStatus === 'unknown'
       ? undefined
       : getAccommodationPlanSummary(booking),
-    arrivalDateTime
-      ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}`
-      : undefined,
+    arrivalDateTime ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}` : undefined,
   ].filter((part): part is string => Boolean(part));
 
   if (parts.length > 0) {
@@ -365,11 +344,7 @@ function BookingListItem({
         <Text className="booking-list-title" fw={700} lineClamp={1}>
           {booking.circuit}
         </Text>
-        <Badge
-          className="booking-list-badge"
-          color={bookingColor(booking.status)}
-          size="sm"
-        >
+        <Badge className="booking-list-badge" color={bookingColor(booking.status)} size="sm">
           {titleCase(booking.status)}
         </Badge>
         <Text className="booking-list-shared" size="sm" lineClamp={1}>
@@ -378,16 +353,8 @@ function BookingListItem({
           </Text>{' '}
           {bookingSharedSummary(booking)} • {bookingGarageSummary(booking)}
         </Text>
-        <Text
-          className="booking-list-private"
-          size="xs"
-          c="dimmed"
-          lineClamp={1}
-        >
-          <Text
-            span
-            className="booking-list-kicker booking-list-kicker-private"
-          >
+        <Text className="booking-list-private" size="xs" c="dimmed" lineClamp={1}>
+          <Text span className="booking-list-kicker booking-list-kicker-private">
             Private
           </Text>{' '}
           {bookingPrivateSummary(booking)}
@@ -408,8 +375,7 @@ function GarageShareRequestList({
 }) {
   const fetcher = useFetcher<GarageShareDecisionActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const submitStatus = (
     request: UserGarageShareRequest,
     status: 'approved' | 'declined' | 'cancelled',
@@ -444,14 +410,9 @@ function GarageShareRequestList({
                 <Stack gap={4}>
                   <Group gap="xs" wrap="wrap">
                     <Text size="sm" fw={700}>
-                      {request.isIncoming
-                        ? request.requesterName
-                        : request.garageOwnerName}
+                      {request.isIncoming ? request.requesterName : request.garageOwnerName}
                     </Text>
-                    <Badge
-                      color={garageRequestStatusColor(request.status)}
-                      variant="light"
-                    >
+                    <Badge color={garageRequestStatusColor(request.status)} variant="light">
                       {titleCase(request.status)}
                     </Badge>
                   </Group>
@@ -480,8 +441,7 @@ function GarageShareRequestList({
                       Approve
                     </Button>
                   </Group>
-                ) : request.status === 'pending' ||
-                  request.status === 'approved' ? (
+                ) : request.status === 'pending' || request.status === 'approved' ? (
                   <Button
                     type="button"
                     size="compact-sm"
@@ -531,17 +491,12 @@ function HotelSelector({
   >;
 }) {
   const initialHotel = hotelFromInsight(insight) ?? hotelFromBooking(booking);
-  const [searchOpened, { close: closeSearch, open: openSearch }] =
-    useDisclosure(false);
+  const [searchOpened, { close: closeSearch, open: openSearch }] = useDisclosure(false);
   const searchFetcher = useFetcher<HotelSearchResponse>();
   const [query, setQuery] = useState(booking.accommodationName ?? '');
-  const [selectedHotel, setSelectedHotel] = useState<HotelSuggestion | null>(
-    initialHotel,
-  );
+  const [selectedHotel, setSelectedHotel] = useState<HotelSuggestion | null>(initialHotel);
   const [hotelName, setHotelName] = useState(initialHotel?.name ?? '');
-  const [hotelAddress, setHotelAddress] = useState(
-    getHotelAddressLine(initialHotel),
-  );
+  const [hotelAddress, setHotelAddress] = useState(getHotelAddressLine(initialHotel));
 
   const searchResults = searchFetcher.data?.suggestions ?? [];
   const isSearching = searchFetcher.state !== 'idle';
@@ -601,8 +556,7 @@ function HotelSelector({
 
           {providerError ? (
             <Alert color="yellow" icon={<IconAlertCircle size={18} />}>
-              Hotel lookup is not available right now. You can still add the
-              hotel manually.
+              Hotel lookup is not available right now. You can still add the hotel manually.
             </Alert>
           ) : null}
 
@@ -610,23 +564,13 @@ function HotelSelector({
             <Stack gap="xs">
               {searchResults.map((hotel) => (
                 <UnstyledButton
-                  key={[
-                    hotel.hotelId,
-                    hotel.source,
-                    hotel.sourcePlaceId,
-                    hotel.name,
-                  ].join(':')}
+                  key={[hotel.hotelId, hotel.source, hotel.sourcePlaceId, hotel.name].join(':')}
                   type="button"
                   className="hotel-search-result"
                   onClick={() => selectHotel(hotel)}
                 >
                   <Group gap="sm" align="flex-start" wrap="nowrap">
-                    <ThemeIcon
-                      size={32}
-                      radius="sm"
-                      color="blue"
-                      variant="light"
-                    >
+                    <ThemeIcon size={32} radius="sm" color="blue" variant="light">
                       <IconBuildingSkyscraper size={18} />
                     </ThemeIcon>
                     <Stack gap={2}>
@@ -673,11 +617,7 @@ function HotelSelector({
       </Modal>
 
       <Stack gap="sm">
-        <input
-          type="hidden"
-          name="accommodationStatus"
-          value={accommodationStatus}
-        />
+        <input type="hidden" name="accommodationStatus" value={accommodationStatus} />
         <Select
           label={
             <BookingFieldLabel
@@ -689,9 +629,7 @@ function HotelSelector({
           description={ACCOMMODATION_STATUS_DESCRIPTIONS[accommodationStatus]}
           value={accommodationStatus}
           onChange={(value) => {
-            onAccommodationStatusChange(
-              (value as AccommodationStatus | null) ?? 'unknown',
-            );
+            onAccommodationStatusChange((value as AccommodationStatus | null) ?? 'unknown');
           }}
           data={ACCOMMODATION_STATUS_VALUES.map((value) => ({
             value,
@@ -702,11 +640,7 @@ function HotelSelector({
 
         {showHotelFields ? (
           <>
-            <input
-              type="hidden"
-              name="hotelId"
-              value={selectedHotel?.hotelId ?? ''}
-            />
+            <input type="hidden" name="hotelId" value={selectedHotel?.hotelId ?? ''} />
             <input type="hidden" name="hotelName" value={hotelName} />
             <input type="hidden" name="hotelSource" value={hotelSource} />
             <input
@@ -714,31 +648,11 @@ function HotelSelector({
               name="hotelSourcePlaceId"
               value={selectedHotel?.sourcePlaceId ?? ''}
             />
-            <input
-              type="hidden"
-              name="hotelPostcode"
-              value={selectedHotel?.postcode ?? ''}
-            />
-            <input
-              type="hidden"
-              name="hotelCountry"
-              value={selectedHotel?.country ?? ''}
-            />
-            <input
-              type="hidden"
-              name="hotelLatitude"
-              value={selectedHotel?.latitude ?? ''}
-            />
-            <input
-              type="hidden"
-              name="hotelLongitude"
-              value={selectedHotel?.longitude ?? ''}
-            />
-            <input
-              type="hidden"
-              name="hotelAttribution"
-              value={selectedHotel?.attribution ?? ''}
-            />
+            <input type="hidden" name="hotelPostcode" value={selectedHotel?.postcode ?? ''} />
+            <input type="hidden" name="hotelCountry" value={selectedHotel?.country ?? ''} />
+            <input type="hidden" name="hotelLatitude" value={selectedHotel?.latitude ?? ''} />
+            <input type="hidden" name="hotelLongitude" value={selectedHotel?.longitude ?? ''} />
+            <input type="hidden" name="hotelAttribution" value={selectedHotel?.attribution ?? ''} />
 
             <TextInput
               name="accommodationName"
@@ -829,11 +743,7 @@ function SectionSaveFooter({
   label: string;
 }) {
   return (
-    <Group
-      justify="space-between"
-      wrap="wrap"
-      className="booking-section-actions"
-    >
+    <Group justify="space-between" wrap="wrap" className="booking-section-actions">
       <Text size="sm" c={dirty ? 'brand.7' : saved ? 'green.7' : 'dimmed'}>
         {dirty ? 'Unsaved changes' : saved ? 'Saved' : 'No changes yet'}
       </Text>
@@ -883,15 +793,10 @@ function TripSectionForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const fetcher = useFetcher<BookingEditorActionResult>();
-  const { dirty, markDirty, saved } = useSectionDirtyState(
-    fetcher,
-    onDirtyChange,
-  );
+  const { dirty, markDirty, saved } = useSectionDirtyState(fetcher, onDirtyChange);
   const isSaving = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
     <fetcher.Form method="post" onChange={markDirty}>
@@ -923,12 +828,7 @@ function TripSectionForm({
           error={fieldErrors?.status?.[0]}
         />
         <BookingSectionStatus formError={formError} />
-        <SectionSaveFooter
-          dirty={dirty}
-          saved={saved}
-          isSaving={isSaving}
-          label="Save trip"
-        />
+        <SectionSaveFooter dirty={dirty} saved={saved} isSaving={isSaving} label="Save trip" />
       </Stack>
     </fetcher.Form>
   );
@@ -944,19 +844,15 @@ function StaySectionForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const fetcher = useFetcher<BookingEditorActionResult>();
-  const { dirty, markDirty, saved } = useSectionDirtyState(
-    fetcher,
-    onDirtyChange,
-  );
+  const { dirty, markDirty, saved } = useSectionDirtyState(fetcher, onDirtyChange);
   const isSaving = fetcher.state !== 'idle';
   const arrivalDateTime = resolveArrivalDateTime(booking);
-  const [accommodationStatus, setAccommodationStatus] =
-    useState<AccommodationStatus>(() => resolveAccommodationStatus(booking));
+  const [accommodationStatus, setAccommodationStatus] = useState<AccommodationStatus>(() =>
+    resolveAccommodationStatus(booking),
+  );
   const accommodationBooked = accommodationStatus === 'booked';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
     <fetcher.Form method="post" onChange={markDirty}>
@@ -1008,9 +904,7 @@ function StaySectionForm({
                 <Text size="sm">{hotelInsight.summary}</Text>
                 <Group gap="xs" wrap="wrap">
                   <Badge size="xs" variant="light" color="blue">
-                    {hotelInsight.summarySource === 'bedrock'
-                      ? 'AI summary'
-                      : 'Review summary'}
+                    {hotelInsight.summarySource === 'bedrock' ? 'AI summary' : 'Review summary'}
                   </Badge>
                   <Badge size="xs" variant="light" color="gray">
                     {getRatingLabel(hotelInsight.averageRating)}
@@ -1032,8 +926,8 @@ function StaySectionForm({
           </Paper>
         ) : accommodationBooked ? (
           <Alert color="blue" icon={<IconBuildingSkyscraper size={18} />}>
-            Save a hotel from this section first, then add parking and arrival
-            feedback for the group.
+            Save a hotel from this section first, then add parking and arrival feedback for the
+            group.
           </Alert>
         ) : null}
 
@@ -1041,12 +935,7 @@ function StaySectionForm({
           Add only details you are happy for other members to see.
         </Text>
         <BookingSectionStatus formError={formError} />
-        <SectionSaveFooter
-          dirty={dirty}
-          saved={saved}
-          isSaving={isSaving}
-          label="Save stay"
-        />
+        <SectionSaveFooter dirty={dirty} saved={saved} isSaving={isSaving} label="Save stay" />
       </Stack>
     </fetcher.Form>
   );
@@ -1062,15 +951,10 @@ function GarageSectionForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const fetcher = useFetcher<BookingEditorActionResult>();
-  const { dirty, markDirty, saved } = useSectionDirtyState(
-    fetcher,
-    onDirtyChange,
-  );
+  const { dirty, markDirty, saved } = useSectionDirtyState(fetcher, onDirtyChange);
   const isSaving = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const incomingGarageRequests = garageShareRequests.filter(
     (request) =>
       request.isIncoming &&
@@ -1080,8 +964,7 @@ function GarageSectionForm({
   const outgoingGarageRequests = garageShareRequests.filter(
     (request) =>
       request.isOutgoing &&
-      (request.requesterBookingId === booking.bookingId ||
-        request.dayId === booking.dayId),
+      (request.requesterBookingId === booking.bookingId || request.dayId === booking.dayId),
   );
 
   return (
@@ -1152,12 +1035,7 @@ function GarageSectionForm({
           />
         </SimpleGrid>
         <BookingSectionStatus formError={formError} />
-        <SectionSaveFooter
-          dirty={dirty}
-          saved={saved}
-          isSaving={isSaving}
-          label="Save garage"
-        />
+        <SectionSaveFooter dirty={dirty} saved={saved} isSaving={isSaving} label="Save garage" />
       </Stack>
     </fetcher.Form>
   );
@@ -1171,15 +1049,10 @@ function PrivateSectionForm({
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const fetcher = useFetcher<BookingEditorActionResult>();
-  const { dirty, markDirty, saved } = useSectionDirtyState(
-    fetcher,
-    onDirtyChange,
-  );
+  const { dirty, markDirty, saved } = useSectionDirtyState(fetcher, onDirtyChange);
   const isSaving = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
     <fetcher.Form method="post" onChange={markDirty}>
@@ -1195,12 +1068,7 @@ function PrivateSectionForm({
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
           <TextInput
             name="bookingReference"
-            label={
-              <BookingFieldLabel
-                label="Booking reference"
-                visibility="Visible only to you"
-              />
-            }
+            label={<BookingFieldLabel label="Booking reference" visibility="Visible only to you" />}
             description="Store the confirmation code or internal reference here."
             defaultValue={booking.bookingReference ?? ''}
             error={fieldErrors?.bookingReference?.[0]}
@@ -1209,10 +1077,7 @@ function PrivateSectionForm({
           <TextInput
             name="accommodationReference"
             label={
-              <BookingFieldLabel
-                label="Accommodation reference"
-                visibility="Visible only to you"
-              />
+              <BookingFieldLabel label="Accommodation reference" visibility="Visible only to you" />
             }
             description="Useful for the hotel confirmation, booking id, or door code."
             defaultValue={booking.accommodationReference ?? ''}
@@ -1223,12 +1088,7 @@ function PrivateSectionForm({
 
         <Textarea
           name="notes"
-          label={
-            <BookingFieldLabel
-              label="Private notes"
-              visibility="Visible only to you"
-            />
-          }
+          label={<BookingFieldLabel label="Private notes" visibility="Visible only to you" />}
           description="Keep reminders or anything else you do not want in the shared plan."
           minRows={4}
           defaultValue={booking.notes ?? ''}
@@ -1274,31 +1134,23 @@ function BookingEditorPanel({
   showBackToTrips?: boolean;
   garageShareRequests: UserGarageShareRequest[];
 }) {
-  const [
-    deleteModalOpened,
-    { close: closeDeleteModal, open: openDeleteModal },
-  ] = useDisclosure(false);
+  const [deleteModalOpened, { close: closeDeleteModal, open: openDeleteModal }] =
+    useDisclosure(false);
   const deleteFetcher = useFetcher<BookingEditorActionResult>();
   const isDeleting = deleteFetcher.state !== 'idle';
   const [activeTab, setActiveTab] = useState<BookingEditorTab>('trip');
-  const [dirtyTabs, setDirtyTabs] = useState<Record<BookingEditorTab, boolean>>(
-    {
-      trip: false,
-      stay: false,
-      garage: false,
-      private: false,
-    },
-  );
+  const [dirtyTabs, setDirtyTabs] = useState<Record<BookingEditorTab, boolean>>({
+    trip: false,
+    stay: false,
+    garage: false,
+    private: false,
+  });
   const deleteFormError =
-    deleteFetcher.data && !deleteFetcher.data.ok
-      ? deleteFetcher.data.formError
-      : null;
+    deleteFetcher.data && !deleteFetcher.data.ok ? deleteFetcher.data.formError : null;
   const hasDirtyChanges = bookingEditorTabs.some((tab) => dirtyTabs[tab]);
 
   const setTabDirty = useCallback((tab: BookingEditorTab, dirty: boolean) => {
-    setDirtyTabs((current) =>
-      current[tab] === dirty ? current : { ...current, [tab]: dirty },
-    );
+    setDirtyTabs((current) => (current[tab] === dirty ? current : { ...current, [tab]: dirty }));
   }, []);
 
   useEffect(() => {
@@ -1312,8 +1164,7 @@ function BookingEditorPanel({
   }, [hasDirtyChanges, onDirtyChange]);
 
   const confirmDiscardActiveTab = () =>
-    !dirtyTabs[activeTab] ||
-    window.confirm('Discard unsaved changes in this section?');
+    !dirtyTabs[activeTab] || window.confirm('Discard unsaved changes in this section?');
 
   const changeTab = (value: string | null) => {
     if (!value || value === activeTab) {
@@ -1332,19 +1183,14 @@ function BookingEditorPanel({
 
   return (
     <>
-      <Modal
-        opened={deleteModalOpened}
-        onClose={closeDeleteModal}
-        title="Delete booking?"
-        centered
-      >
+      <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Delete booking?" centered>
         <deleteFetcher.Form method="post">
           <input type="hidden" name="bookingId" value={booking.bookingId} />
           <input type="hidden" name="intent" value="deleteBooking" />
           <Stack gap="md">
             <Text size="sm">
-              This removes {booking.circuit} from your trips and updates the
-              shared attendance for that day.
+              This removes {booking.circuit} from your trips and updates the shared attendance for
+              that day.
             </Text>
 
             {deleteFormError ? (
@@ -1354,11 +1200,7 @@ function BookingEditorPanel({
             ) : null}
 
             <Group justify="flex-end" wrap="wrap">
-              <Button
-                type="button"
-                variant="default"
-                onClick={closeDeleteModal}
-              >
+              <Button type="button" variant="default" onClick={closeDeleteModal}>
                 Cancel
               </Button>
               <Button type="submit" color="red" loading={isDeleting}>
@@ -1369,21 +1211,13 @@ function BookingEditorPanel({
         </deleteFetcher.Form>
       </Modal>
 
-      <Paper
-        className="shell-card booking-editor-panel"
-        p={{ base: 'md', sm: 'lg' }}
-      >
+      <Paper className="shell-card booking-editor-panel" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="lg">
           <Group justify="space-between" align="flex-start">
             <Stack gap={4}>
               {showBackToTrips && onBackToTrips ? (
                 <Group>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="compact-sm"
-                    onClick={onBackToTrips}
-                  >
+                  <Button type="button" variant="default" size="compact-sm" onClick={onBackToTrips}>
                     Back to trips
                   </Button>
                 </Group>
@@ -1463,12 +1297,7 @@ function BookingEditorPanel({
           </Tabs>
 
           <Group justify="space-between" wrap="wrap">
-            <Button
-              type="button"
-              color="red"
-              variant="subtle"
-              onClick={openDeleteModal}
-            >
+            <Button type="button" color="red" variant="subtle" onClick={openDeleteModal}>
               Delete booking
             </Button>
           </Group>
@@ -1490,9 +1319,7 @@ export function MyBookingsPage({
 }: MyBookingsPageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedBookingParam = searchParams.get('booking');
-  const activeView = selectedBookingParam
-    ? 'manage'
-    : parseBookingsView(searchParams.get('view'));
+  const activeView = selectedBookingParam ? 'manage' : parseBookingsView(searchParams.get('view'));
   const isCompact = useMediaQuery('(max-width: 62em)', false, {
     getInitialValueInEffect: false,
   });
@@ -1502,19 +1329,10 @@ export function MyBookingsPage({
   const [statusFilter, setStatusFilter] = useState<BookingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasEditorDirtyChanges, setHasEditorDirtyChanges] = useState(false);
-  const bookedCount = bookings.filter(
-    (booking) => booking.status === 'booked',
-  ).length;
-  const maybeCount = bookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
-  const accommodationPlanCount = bookings.filter(
-    hasArrangedAccommodation,
-  ).length;
-  const sortedBookings = useMemo(
-    () => [...bookings].sort(sortBookings),
-    [bookings],
-  );
+  const bookedCount = bookings.filter((booking) => booking.status === 'booked').length;
+  const maybeCount = bookings.filter((booking) => booking.status === 'maybe').length;
+  const accommodationPlanCount = bookings.filter(hasArrangedAccommodation).length;
+  const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const filteredBookings = useMemo(
     () =>
       sortedBookings.filter((booking) => {
@@ -1526,26 +1344,18 @@ export function MyBookingsPage({
       }),
     [searchQuery, sortedBookings, statusFilter],
   );
-  const bookingSections = useMemo(
-    () => groupBookingsByMonth(filteredBookings),
-    [filteredBookings],
-  );
+  const bookingSections = useMemo(() => groupBookingsByMonth(filteredBookings), [filteredBookings]);
   const selectedBooking = useMemo(
     () =>
-      filteredBookings.find(
-        (booking) => booking.bookingId === selectedBookingId,
-      ) ??
+      filteredBookings.find((booking) => booking.bookingId === selectedBookingId) ??
       filteredBookings[0] ??
       null,
     [filteredBookings, selectedBookingId],
   );
   const selectedIndex = selectedBooking
-    ? filteredBookings.findIndex(
-        (booking) => booking.bookingId === selectedBooking.bookingId,
-      )
+    ? filteredBookings.findIndex((booking) => booking.bookingId === selectedBooking.bookingId)
     : -1;
-  const editorOpen =
-    activeView === 'manage' && (!isCompact || Boolean(selectedBookingParam));
+  const editorOpen = activeView === 'manage' && (!isCompact || Boolean(selectedBookingParam));
 
   const updateSelectedBookingParam = useCallback(
     (bookingId: string | null) => {
@@ -1564,9 +1374,7 @@ export function MyBookingsPage({
   );
 
   const confirmDiscardEditor = useCallback(
-    () =>
-      !hasEditorDirtyChanges ||
-      window.confirm('Discard unsaved changes for this booking?'),
+    () => !hasEditorDirtyChanges || window.confirm('Discard unsaved changes for this booking?'),
     [hasEditorDirtyChanges],
   );
 
@@ -1600,9 +1408,7 @@ export function MyBookingsPage({
 
     if (
       selectedBookingParam &&
-      filteredBookings.some(
-        (booking) => booking.bookingId === selectedBookingParam,
-      )
+      filteredBookings.some((booking) => booking.bookingId === selectedBookingParam)
     ) {
       setSelectedBookingId(selectedBookingParam);
       return;
@@ -1610,9 +1416,7 @@ export function MyBookingsPage({
 
     if (
       selectedBookingId &&
-      filteredBookings.some(
-        (booking) => booking.bookingId === selectedBookingId,
-      )
+      filteredBookings.some((booking) => booking.bookingId === selectedBookingId)
     ) {
       return;
     }
@@ -1639,12 +1443,7 @@ export function MyBookingsPage({
       <Stack gap="lg">
         {bookingSections.map((section) => (
           <Stack key={section.label} gap="xs">
-            <Text
-              size="sm"
-              fw={700}
-              c="dimmed"
-              className="booking-section-label"
-            >
+            <Text size="sm" fw={700} c="dimmed" className="booking-section-label">
               {section.label}
             </Text>
             <Stack gap={0}>
@@ -1652,10 +1451,7 @@ export function MyBookingsPage({
                 <div key={booking.bookingId}>
                   <BookingListItem
                     booking={booking}
-                    active={
-                      editorOpen &&
-                      booking.bookingId === selectedBooking?.bookingId
-                    }
+                    active={editorOpen && booking.bookingId === selectedBooking?.bookingId}
                     onSelect={() => selectBooking(booking.bookingId)}
                   />
                   {index < section.items.length - 1 ? <Divider /> : null}
@@ -1669,8 +1465,7 @@ export function MyBookingsPage({
       <Stack gap="sm" py="sm">
         <Text fw={700}>No trips match that view</Text>
         <Text size="sm" c="dimmed">
-          Clear the search or widen the status filter to bring more bookings
-          back into the list.
+          Clear the search or widen the status filter to bring more bookings back into the list.
         </Text>
         <Group>
           <Button
@@ -1688,10 +1483,7 @@ export function MyBookingsPage({
     );
 
   const bookingListPanel = (
-    <Paper
-      className="shell-card booking-list-panel"
-      p={{ base: 'sm', sm: 'md' }}
-    >
+    <Paper className="shell-card booking-list-panel" p={{ base: 'sm', sm: 'md' }}>
       <Stack gap="md">
         <Group justify="space-between" align="flex-end">
           <Stack gap={2}>
@@ -1720,9 +1512,7 @@ export function MyBookingsPage({
               aria-label="Filter trips by status"
               comboboxProps={{ withinPortal: false }}
               value={statusFilter}
-              onChange={(value) =>
-                setStatusFilter((value as BookingFilter | null) ?? 'all')
-              }
+              onChange={(value) => setStatusFilter((value as BookingFilter | null) ?? 'all')}
               data={[
                 { value: 'all', label: 'All statuses' },
                 { value: 'booked', label: 'Booked' },
@@ -1748,30 +1538,21 @@ export function MyBookingsPage({
     <BookingEditorPanel
       key={selectedBooking.bookingId}
       booking={selectedBooking}
-      hotelInsight={
-        selectedBooking.hotelId
-          ? hotelInsights[selectedBooking.hotelId]
-          : undefined
-      }
+      hotelInsight={selectedBooking.hotelId ? hotelInsights[selectedBooking.hotelId] : undefined}
       garageShareRequests={garageShareRequests}
       selectedIndex={selectedIndex}
       totalBookings={filteredBookings.length}
       hasPrevious={selectedIndex > 0}
-      hasNext={
-        selectedIndex >= 0 && selectedIndex < filteredBookings.length - 1
-      }
+      hasNext={selectedIndex >= 0 && selectedIndex < filteredBookings.length - 1}
       onSelectPrevious={() => {
-        const previousBooking =
-          filteredBookings[Math.max(0, selectedIndex - 1)];
+        const previousBooking = filteredBookings[Math.max(0, selectedIndex - 1)];
         if (previousBooking) {
           selectBooking(previousBooking.bookingId);
         }
       }}
       onSelectNext={() => {
         const nextBooking =
-          filteredBookings[
-            Math.min(filteredBookings.length - 1, selectedIndex + 1)
-          ];
+          filteredBookings[Math.min(filteredBookings.length - 1, selectedIndex + 1)];
         if (nextBooking) {
           selectBooking(nextBooking.bookingId);
         }
@@ -1832,10 +1613,7 @@ export function MyBookingsPage({
             </Button>
           }
         />
-      ) : activeView === 'manage' &&
-        isCompact &&
-        editorOpen &&
-        selectedBooking ? (
+      ) : activeView === 'manage' && isCompact && editorOpen && selectedBooking ? (
         editorPanel
       ) : (
         <>
@@ -1867,9 +1645,7 @@ export function MyBookingsPage({
             <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
               <Grid.Col span={{ base: 12, lg: 4 }}>{bookingListPanel}</Grid.Col>
 
-              {!isCompact ? (
-                <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col>
-              ) : null}
+              {!isCompact ? <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col> : null}
             </Grid>
           )}
         </>

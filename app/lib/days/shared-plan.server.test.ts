@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { DayPlanRecord } from '~/lib/db/entities/day-plan.server';
 import type { DayPlanPersistence } from '~/lib/db/services/day-plan.server';
 
@@ -15,15 +15,9 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
 
-import {
-  getSharedDayPlan,
-  setSharedDayPlan,
-  submitSharedDayPlan,
-} from './shared-plan.server';
+import { getSharedDayPlan, setSharedDayPlan, submitSharedDayPlan } from './shared-plan.server';
 
-function createStore(
-  existing: DayPlanRecord | null = null,
-): DayPlanPersistence {
+function createStore(existing: DayPlanRecord | null = null): DayPlanPersistence {
   return {
     create: vi.fn(async (item) => item),
     update: vi.fn(async (_dayId, changes) => ({

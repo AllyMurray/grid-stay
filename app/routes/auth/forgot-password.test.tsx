@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireAnonymous, submitPasswordResetRequest } = vi.hoisted(() => ({
   requireAnonymous: vi.fn(),
@@ -51,9 +51,7 @@ describe('forgot password route', () => {
 
     expect(submitPasswordResetRequest).toHaveBeenCalledOnce();
     expect(submitPasswordResetRequest.mock.calls[0]?.[0]).toBe(request);
-    expect(submitPasswordResetRequest.mock.calls[0]?.[1].get('email')).toBe(
-      'driver@example.com',
-    );
+    expect(submitPasswordResetRequest.mock.calls[0]?.[1].get('email')).toBe('driver@example.com');
   });
 
   it('loads without a password-auth feature flag', async () => {

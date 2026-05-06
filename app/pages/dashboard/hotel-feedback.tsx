@@ -34,21 +34,13 @@ function getRatingLabel(value?: number) {
   return value ? `${value}/5` : 'No rating yet';
 }
 
-export function HotelFeedbackPage({
-  insight,
-  currentUserId,
-  returnTo,
-}: HotelFeedbackPageProps) {
+export function HotelFeedbackPage({ insight, currentUserId, returnTo }: HotelFeedbackPageProps) {
   const fetcher = useFetcher<HotelReviewActionResult>();
   const isSaving = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
   const saved = fetcher.state === 'idle' && fetcher.data?.ok === true;
-  const myReview = insight.reviews.find(
-    (review) => review.userId === currentUserId,
-  );
+  const myReview = insight.reviews.find((review) => review.userId === currentUserId);
 
   return (
     <Stack gap="xl">
@@ -80,13 +72,10 @@ export function HotelFeedbackPage({
                 <Text size="sm">{insight.summary}</Text>
                 <Group gap="xs" wrap="wrap">
                   <Badge size="xs" variant="light" color="blue">
-                    {insight.summarySource === 'bedrock'
-                      ? 'AI summary'
-                      : 'Review summary'}
+                    {insight.summarySource === 'bedrock' ? 'AI summary' : 'Review summary'}
                   </Badge>
                   <Badge size="xs" variant="light" color="gray">
-                    {insight.reviewCount}{' '}
-                    {insight.reviewCount === 1 ? 'review' : 'reviews'}
+                    {insight.reviewCount} {insight.reviewCount === 1 ? 'review' : 'reviews'}
                   </Badge>
                 </Group>
               </Stack>

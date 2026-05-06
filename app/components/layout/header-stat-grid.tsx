@@ -14,12 +14,7 @@ export function HeaderStatGrid({ items }: HeaderStatGridProps) {
   return (
     <Group gap="xs" wrap="wrap" className="page-header-stat-list">
       {items.map((item) => (
-        <Group
-          key={item.label}
-          gap="xs"
-          wrap="nowrap"
-          className="page-header-stat"
-        >
+        <Group key={item.label} gap="xs" wrap="nowrap" className="page-header-stat">
           <Text className="page-header-stat-value" fw={800}>
             {item.value}
           </Text>

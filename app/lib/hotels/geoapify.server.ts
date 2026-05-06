@@ -1,11 +1,9 @@
 import { Resource } from 'sst';
 import type { HotelSuggestion } from '~/lib/db/services/hotel.server';
 
-const GEOAPIFY_AUTOCOMPLETE_URL =
-  'https://api.geoapify.com/v1/geocode/autocomplete';
+const GEOAPIFY_AUTOCOMPLETE_URL = 'https://api.geoapify.com/v1/geocode/autocomplete';
 const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
-const GEOAPIFY_ATTRIBUTION =
-  'Hotel data powered by Geoapify. © OpenStreetMap contributors.';
+const GEOAPIFY_ATTRIBUTION = 'Hotel data powered by Geoapify. © OpenStreetMap contributors.';
 const ACCOMMODATION_CATEGORY_PREFIX = 'accommodation';
 const GENERIC_ACCOMMODATION_WORDS = /\b(hotel|hotels|accommodation|spa)\b|&/gi;
 
@@ -54,9 +52,7 @@ function getGeoapifyApiKey() {
 }
 
 function isAccommodation(result: GeoapifyAutocompleteResult) {
-  return result.categories?.some((category) =>
-    category.startsWith(ACCOMMODATION_CATEGORY_PREFIX),
-  );
+  return result.categories?.some((category) => category.startsWith(ACCOMMODATION_CATEGORY_PREFIX));
 }
 
 function getHotelName(result: GeoapifyAutocompleteResult) {
@@ -71,10 +67,7 @@ function stripGenericAccommodationWords(value: string) {
   return cleanSearchText(value.replace(GENERIC_ACCOMMODATION_WORDS, ' '));
 }
 
-function addPlaceFallbackSearch(
-  searches: PlaceFallbackSearch[],
-  search: PlaceFallbackSearch,
-) {
+function addPlaceFallbackSearch(searches: PlaceFallbackSearch[], search: PlaceFallbackSearch) {
   const name = cleanSearchText(search.name);
   const location = cleanSearchText(search.location);
 
@@ -85,9 +78,7 @@ function addPlaceFallbackSearch(
   const key = `${name.toLowerCase()}:${location.toLowerCase()}`;
   if (
     searches.some(
-      (existing) =>
-        `${existing.name.toLowerCase()}:${existing.location.toLowerCase()}` ===
-        key,
+      (existing) => `${existing.name.toLowerCase()}:${existing.location.toLowerCase()}` === key,
     )
   ) {
     return;
@@ -136,11 +127,7 @@ function getPlaceFallbackSearches(query: string) {
     });
   }
 
-  for (
-    let splitIndex = 1;
-    splitIndex < Math.min(tokens.length, 4);
-    splitIndex += 1
-  ) {
+  for (let splitIndex = 1; splitIndex < Math.min(tokens.length, 4); splitIndex += 1) {
     addPlaceFallbackSearch(searches, {
       name: tokens.slice(0, splitIndex).join(' '),
       location: tokens.slice(splitIndex).join(' '),
@@ -197,12 +184,7 @@ async function fetchAutocompleteResults(input: {
   return data.results ?? [];
 }
 
-function buildPlacesUrl(input: {
-  apiKey: string;
-  limit: number;
-  name: string;
-  placeId: string;
-}) {
+function buildPlacesUrl(input: { apiKey: string; limit: number; name: string; placeId: string }) {
   const url = new URL(GEOAPIFY_PLACES_URL);
   url.searchParams.set('categories', ACCOMMODATION_CATEGORY_PREFIX);
   url.searchParams.set('filter', `place:${input.placeId}`);

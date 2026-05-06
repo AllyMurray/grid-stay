@@ -8,12 +8,7 @@ interface EmptyStateCardProps {
   action?: ReactNode;
 }
 
-export function EmptyStateCard({
-  title,
-  description,
-  actionLabel,
-  action,
-}: EmptyStateCardProps) {
+export function EmptyStateCard({ title, description, actionLabel, action }: EmptyStateCardProps) {
   return (
     <Paper className="shell-card" p={{ base: 'md', sm: 'xl' }}>
       <Stack gap="sm" align="center">

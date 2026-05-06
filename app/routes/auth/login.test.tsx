@@ -1,14 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireAnonymous } = vi.hoisted(() => ({
   requireAnonymous: vi.fn(),
 }));
-const { sanitizeRedirectTo, submitPasswordSignIn, submitPasswordSignUp } =
-  vi.hoisted(() => ({
-    sanitizeRedirectTo: vi.fn(),
-    submitPasswordSignIn: vi.fn(),
-    submitPasswordSignUp: vi.fn(),
-  }));
+const { sanitizeRedirectTo, submitPasswordSignIn, submitPasswordSignUp } = vi.hoisted(() => ({
+  sanitizeRedirectTo: vi.fn(),
+  submitPasswordSignIn: vi.fn(),
+  submitPasswordSignUp: vi.fn(),
+}));
 
 vi.mock('~/lib/auth/helpers.server', () => ({
   requireAnonymous,
@@ -39,9 +38,7 @@ describe('auth login route', () => {
 
   it('clears Better Auth dont-remember cookies before starting Google sign-in', async () => {
     const response = (await loader({
-      request: new Request(
-        'https://gridstay.app/auth/login?redirectTo=/dashboard/days',
-      ),
+      request: new Request('https://gridstay.app/auth/login?redirectTo=/dashboard/days'),
       params: {},
       context: {},
     } as never)) as Response;
@@ -88,9 +85,7 @@ describe('auth login route', () => {
 
   it('returns a success notice after password reset', async () => {
     const response = (await loader({
-      request: new Request(
-        'https://gridstay.app/auth/login?passwordReset=success',
-      ),
+      request: new Request('https://gridstay.app/auth/login?passwordReset=success'),
       params: {},
       context: {},
     } as never)) as Response;
@@ -119,9 +114,7 @@ describe('auth login route', () => {
 
   it('advertises reset notices without a password-auth feature flag', async () => {
     const response = (await loader({
-      request: new Request(
-        'https://gridstay.app/auth/login?passwordReset=success',
-      ),
+      request: new Request('https://gridstay.app/auth/login?passwordReset=success'),
       params: {},
       context: {},
     } as never)) as Response;
@@ -146,9 +139,7 @@ describe('auth login route', () => {
 
     expect(submitPasswordSignIn).toHaveBeenCalledOnce();
     expect(submitPasswordSignIn.mock.calls[0]?.[0]).toBe(request);
-    expect(submitPasswordSignIn.mock.calls[0]?.[1].get('email')).toBe(
-      'driver@example.com',
-    );
+    expect(submitPasswordSignIn.mock.calls[0]?.[1].get('email')).toBe('driver@example.com');
     expect(submitPasswordSignUp).not.toHaveBeenCalled();
   });
 
@@ -166,9 +157,7 @@ describe('auth login route', () => {
 
     expect(submitPasswordSignUp).toHaveBeenCalledOnce();
     expect(submitPasswordSignUp.mock.calls[0]?.[0]).toBe(request);
-    expect(submitPasswordSignUp.mock.calls[0]?.[1].get('email')).toBe(
-      'driver@example.com',
-    );
+    expect(submitPasswordSignUp.mock.calls[0]?.[1].get('email')).toBe('driver@example.com');
     expect(submitPasswordSignIn).not.toHaveBeenCalled();
   });
 });

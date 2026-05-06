@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireAnonymous, submitPasswordReset } = vi.hoisted(() => ({
   requireAnonymous: vi.fn(),
@@ -25,9 +25,7 @@ describe('reset password route', () => {
 
   it('loads the reset token from the query string', async () => {
     const response = (await loader({
-      request: new Request(
-        'https://gridstay.app/auth/reset-password?token=reset-token',
-      ),
+      request: new Request('https://gridstay.app/auth/reset-password?token=reset-token'),
       params: {},
       context: {},
     } as never)) as Response;
@@ -54,16 +52,12 @@ describe('reset password route', () => {
 
     expect(submitPasswordReset).toHaveBeenCalledOnce();
     expect(submitPasswordReset.mock.calls[0]?.[0]).toBe(request);
-    expect(submitPasswordReset.mock.calls[0]?.[1].get('token')).toBe(
-      'reset-token',
-    );
+    expect(submitPasswordReset.mock.calls[0]?.[1].get('token')).toBe('reset-token');
   });
 
   it('loads without a password-auth feature flag', async () => {
     const response = (await loader({
-      request: new Request(
-        'https://gridstay.app/auth/reset-password?token=reset-token',
-      ),
+      request: new Request('https://gridstay.app/auth/reset-password?token=reset-token'),
       params: {},
       context: {},
     } as never)) as Response;

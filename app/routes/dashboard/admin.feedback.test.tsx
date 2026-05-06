@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireAdmin } = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
@@ -104,13 +104,10 @@ describe('admin feedback route', () => {
     formData.set('intent', 'saveStatus');
     formData.set('feedbackId', 'feedback-1');
     formData.set('status', 'reviewed');
-    const request = new Request(
-      'https://gridstay.app/dashboard/admin/feedback',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/admin/feedback', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,
@@ -148,13 +145,10 @@ describe('admin feedback route', () => {
     formData.set('feedbackId', 'feedback-1');
     formData.set('status', 'planned');
     formData.set('message', 'We have started work on this.');
-    const request = new Request(
-      'https://gridstay.app/dashboard/admin/feedback',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/admin/feedback', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,
@@ -199,13 +193,10 @@ describe('admin feedback route', () => {
     });
     sendFeedbackUpdateEmail.mockRejectedValue(new Error('SES down'));
 
-    const request = new Request(
-      'https://gridstay.app/dashboard/admin/feedback',
-      {
-        method: 'POST',
-        body: new FormData(),
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/admin/feedback', {
+      method: 'POST',
+      body: new FormData(),
+    });
 
     const response = (await action({
       request,
@@ -251,13 +242,10 @@ describe('admin feedback route', () => {
     const formData = new FormData();
     formData.set('intent', 'deleteFeedback');
     formData.set('feedbackId', 'feedback-1');
-    const request = new Request(
-      'https://gridstay.app/dashboard/admin/feedback',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/admin/feedback', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,

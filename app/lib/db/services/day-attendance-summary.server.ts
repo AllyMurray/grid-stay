@@ -15,10 +15,7 @@ const DAY_ATTENDANCE_SUMMARY_SCOPE = 'summary';
 function toOverview(
   record: Pick<
     DayAttendanceSummaryRecord,
-    | 'attendeeCount'
-    | 'accommodationNames'
-    | 'garageOwnerCount'
-    | 'garageOpenSpaceCount'
+    'attendeeCount' | 'accommodationNames' | 'garageOwnerCount' | 'garageOpenSpaceCount'
   >,
 ): DayAttendanceOverview {
   return {
@@ -31,11 +28,7 @@ function toOverview(
 
 export interface DayAttendanceSummaryPersistence {
   getByDayIds(dayIds: string[]): Promise<Map<string, DayAttendanceOverview>>;
-  put(
-    dayId: string,
-    overview: DayAttendanceOverview,
-    updatedAt: string,
-  ): Promise<void>;
+  put(dayId: string, overview: DayAttendanceOverview, updatedAt: string): Promise<void>;
 }
 
 export const dayAttendanceSummaryStore: DayAttendanceSummaryPersistence = {
@@ -54,9 +47,7 @@ export const dayAttendanceSummaryStore: DayAttendanceSummaryPersistence = {
 
     return new Map(
       records
-        .filter((record): record is DayAttendanceSummaryRecord =>
-          Boolean(record),
-        )
+        .filter((record): record is DayAttendanceSummaryRecord => Boolean(record))
         .map((record) => [record.dayId, toOverview(record)]),
     );
   },

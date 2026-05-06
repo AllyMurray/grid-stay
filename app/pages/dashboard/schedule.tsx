@@ -17,11 +17,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import {
-  Schedule,
-  type ScheduleEventData,
-  type ScheduleViewLevel,
-} from '@mantine/schedule';
+import { Schedule, type ScheduleEventData, type ScheduleViewLevel } from '@mantine/schedule';
 import dayjs from 'dayjs';
 import { type UIEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
@@ -86,9 +82,7 @@ interface ScheduleBookingEventPayload {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function bookingColor(status: BookingRecord['status']) {
@@ -164,13 +158,8 @@ function getDefaultSelectedBookingId(
   return nextActiveBooking?.bookingId ?? bookings[0]?.bookingId ?? null;
 }
 
-function filterUpcomingScheduleBookings(
-  bookings: BookingRecord[],
-  today: string,
-) {
-  return bookings.filter(
-    (booking) => booking.status !== 'cancelled' && booking.date >= today,
-  );
+function filterUpcomingScheduleBookings(bookings: BookingRecord[], today: string) {
+  return bookings.filter((booking) => booking.status !== 'cancelled' && booking.date >= today);
 }
 
 function buildScheduleEvents(
@@ -235,11 +224,7 @@ function ScheduleLegend() {
   return (
     <Group gap="xs" wrap="wrap">
       {(['booked', 'maybe', 'cancelled'] as const).map((status) => (
-        <Badge
-          key={status}
-          color={bookingColor(status)}
-          variant={bookingVariant(status)}
-        >
+        <Badge key={status} color={bookingColor(status)} variant={bookingVariant(status)}>
           {titleCase(status)}
         </Badge>
       ))}
@@ -273,8 +258,7 @@ function CalendarSyncModal({
   const feedUrl = actionFeedUrl ?? initialFeedUrl;
   const feedExists = actionFeedExists ?? initialFeedExists;
   const tokenHint = actionTokenHint ?? initialTokenHint;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   useEffect(() => {
     if (fetcher.data?.ok) {
@@ -291,17 +275,11 @@ function CalendarSyncModal({
   );
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title="Sync calendar"
-      centered
-      size="lg"
-    >
+    <Modal opened={opened} onClose={onClose} title="Sync calendar" centered size="lg">
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Subscribe from Apple Calendar, Google Calendar, Outlook, or another
-          calendar app. Cancelled trips are always left out of the feed.
+          Subscribe from Apple Calendar, Google Calendar, Outlook, or another calendar app.
+          Cancelled trips are always left out of the feed.
         </Text>
 
         <Stack gap="xs">
@@ -368,13 +346,12 @@ function CalendarSyncModal({
         ) : feedExists ? (
           <Text size="sm">
             A private calendar feed is active
-            {tokenHint ? `, ending ${tokenHint}` : ''}. Regenerate the link to
-            copy a fresh URL.
+            {tokenHint ? `, ending ${tokenHint}` : ''}. Regenerate the link to copy a fresh URL.
           </Text>
         ) : (
           <Text size="sm">
-            Create a private calendar link first. Anyone with the link can see
-            the trips in your schedule.
+            Create a private calendar link first. Anyone with the link can see the trips in your
+            schedule.
           </Text>
         )}
 
@@ -382,17 +359,12 @@ function CalendarSyncModal({
 
         <Group justify="space-between" align="center" gap="md">
           <Text size="sm" c="dimmed">
-            Saving options updates this feed. Regenerating the link turns off
-            the previous one.
+            Saving options updates this feed. Regenerating the link turns off the previous one.
           </Text>
           <Group gap="xs" justify="flex-end">
             {feedExists ? (
               <fetcher.Form method="post">
-                <input
-                  type="hidden"
-                  name="intent"
-                  value="saveCalendarFeedOptions"
-                />
+                <input type="hidden" name="intent" value="saveCalendarFeedOptions" />
                 {optionInputs}
                 <Button type="submit" variant="default" loading={isSubmitting}>
                   Save options
@@ -403,9 +375,7 @@ function CalendarSyncModal({
               <input
                 type="hidden"
                 name="intent"
-                value={
-                  feedExists ? 'regenerateCalendarFeed' : 'createCalendarFeed'
-                }
+                value={feedExists ? 'regenerateCalendarFeed' : 'createCalendarFeed'}
               />
               {optionInputs}
               <Button type="submit" variant="default" loading={isSubmitting}>
@@ -433,9 +403,7 @@ function ScheduleListRow({
       className="schedule-list-row"
       data-selected={selected ? 'true' : undefined}
       onClick={onSelect}
-      aria-label={`Select ${booking.circuit} on ${formatLongDate(
-        booking.date,
-      )}`}
+      aria-label={`Select ${booking.circuit} on ${formatLongDate(booking.date)}`}
     >
       <Group align="flex-start" gap="md" wrap="nowrap">
         <Stack gap={2} className="schedule-mobile-date">
@@ -483,9 +451,7 @@ function ScheduleListView({
   const hasMore = visibleCount < bookings.length;
 
   const loadMore = () => {
-    setVisibleCount((current) =>
-      Math.min(current + SCHEDULE_LIST_BATCH_SIZE, bookings.length),
-    );
+    setVisibleCount((current) => Math.min(current + SCHEDULE_LIST_BATCH_SIZE, bookings.length));
   };
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
@@ -506,8 +472,8 @@ function ScheduleListView({
           <Stack gap={2}>
             <Title order={3}>Upcoming trips</Title>
             <Text size="sm" c="dimmed">
-              Showing {visibleBookings.length} of {bookings.length} upcoming
-              trips. Scroll to load the next 7.
+              Showing {visibleBookings.length} of {bookings.length} upcoming trips. Scroll to load
+              the next 7.
             </Text>
           </Stack>
           <ScheduleLegend />
@@ -578,9 +544,7 @@ function SelectedBookingSummary({
             <Text size="sm" c="dimmed">
               {formatLongDate(booking.date)} • {booking.provider}
             </Text>
-            {booking.description ? (
-              <Text size="sm">{booking.description}</Text>
-            ) : null}
+            {booking.description ? <Text size="sm">{booking.description}</Text> : null}
           </Stack>
 
           <Group gap="xs" wrap="wrap" justify="flex-end">
@@ -598,27 +562,15 @@ function SelectedBookingSummary({
         </Group>
 
         <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
-          <DetailField
-            label="Accommodation"
-            value={getAccommodationLabel(booking)}
-          />
-          <DetailField
-            label="Booking reference"
-            value={getReferenceLabel(booking)}
-          />
+          <DetailField label="Accommodation" value={getAccommodationLabel(booking)} />
+          <DetailField label="Booking reference" value={getReferenceLabel(booking)} />
           {hasBookedAccommodation(booking) ? (
             <DetailField
               label="Hotel reference"
-              value={
-                booking.accommodationReference?.trim() ||
-                'No hotel reference saved'
-              }
+              value={booking.accommodationReference?.trim() || 'No hotel reference saved'}
             />
           ) : null}
-          <DetailField
-            label="Notes"
-            value={booking.notes?.trim() || 'No private notes saved'}
-          />
+          <DetailField label="Notes" value={booking.notes?.trim() || 'No private notes saved'} />
         </SimpleGrid>
       </Stack>
     </Paper>
@@ -649,8 +601,8 @@ function CalendarView({
           <Stack gap={2}>
             <Title order={3}>Calendar</Title>
             <Text size="sm" c="dimmed">
-              Week, month, and year views are available for checking where your
-              trips land in the season.
+              Week, month, and year views are available for checking where your trips land in the
+              season.
             </Text>
           </Stack>
           <ScheduleLegend />
@@ -665,13 +617,9 @@ function CalendarView({
           events={events}
           mode="static"
           layout="default"
-          onEventClick={(event) =>
-            onSelectBooking(String(event.payload?.bookingId ?? event.id))
-          }
+          onEventClick={(event) => onSelectBooking(String(event.payload?.bookingId ?? event.id))}
           onDayClick={(date) => {
-            const bookingForDay = bookings.find(
-              (booking) => booking.date === date,
-            );
+            const bookingForDay = bookings.find((booking) => booking.date === date);
 
             if (bookingForDay) {
               onSelectBooking(bookingForDay.bookingId);
@@ -711,26 +659,17 @@ export function BookingSchedulePanel({
     getInitialValueInEffect: false,
   });
   const [syncOpened, syncHandlers] = useDisclosure(false);
-  const [internalDisplayMode, setInternalDisplayMode] =
-    useState<ScheduleDisplayMode>('list');
+  const [internalDisplayMode, setInternalDisplayMode] = useState<ScheduleDisplayMode>('list');
   const displayMode = controlledDisplayMode ?? internalDisplayMode;
   const visibleDisplayMode = isCompactCalendar ? 'list' : displayMode;
-  const sortedBookings = useMemo(
-    () => [...bookings].sort(sortBookings),
-    [bookings],
-  );
+  const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const scheduleBookings = useMemo(
     () => filterUpcomingScheduleBookings(sortedBookings, today),
     [sortedBookings, today],
   );
-  const scheduleEvents = useMemo(
-    () => buildScheduleEvents(scheduleBookings),
-    [scheduleBookings],
-  );
+  const scheduleEvents = useMemo(() => buildScheduleEvents(scheduleBookings), [scheduleBookings]);
   const [view, setView] = useState<ScheduleViewLevel>('month');
-  const [currentDate, setCurrentDate] = useState<string>(
-    scheduleBookings[0]?.date ?? today,
-  );
+  const [currentDate, setCurrentDate] = useState<string>(scheduleBookings[0]?.date ?? today);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     getDefaultSelectedBookingId(scheduleBookings, today),
   );
@@ -742,10 +681,7 @@ export function BookingSchedulePanel({
     }
 
     setSelectedBookingId((current) => {
-      if (
-        current &&
-        scheduleBookings.some((booking) => booking.bookingId === current)
-      ) {
+      if (current && scheduleBookings.some((booking) => booking.bookingId === current)) {
         return current;
       }
 
@@ -762,9 +698,7 @@ export function BookingSchedulePanel({
   }, [scheduleBookings]);
 
   const selectedBooking =
-    scheduleBookings.find(
-      (booking) => booking.bookingId === selectedBookingId,
-    ) ?? null;
+    scheduleBookings.find((booking) => booking.bookingId === selectedBookingId) ?? null;
 
   const handleCalendarViewChange = (nextView: ScheduleViewLevel) => {
     setView(nextView === 'day' ? 'week' : nextView);
@@ -789,11 +723,7 @@ export function BookingSchedulePanel({
       />
       {scheduleBookings.length === 0 ? (
         <EmptyStateCard
-          title={
-            bookings.length > 0
-              ? 'No upcoming trips'
-              : 'No trips to schedule yet'
-          }
+          title={bookings.length > 0 ? 'No upcoming trips' : 'No trips to schedule yet'}
           description={
             bookings.length > 0
               ? 'Your past and cancelled trips are still available in My Bookings.'
@@ -804,9 +734,7 @@ export function BookingSchedulePanel({
               component={Link}
               to={bookings.length > 0 ? manageBookingsHref : '/dashboard/days'}
             >
-              {bookings.length > 0
-                ? 'View all bookings'
-                : 'Browse available days'}
+              {bookings.length > 0 ? 'View all bookings' : 'Browse available days'}
             </Button>
           }
         />
@@ -820,9 +748,7 @@ export function BookingSchedulePanel({
             {showDisplayModeControl ? (
               <SegmentedControl
                 value={displayMode}
-                onChange={(value) =>
-                  handleDisplayModeChange(value as ScheduleDisplayMode)
-                }
+                onChange={(value) => handleDisplayModeChange(value as ScheduleDisplayMode)}
                 data={[
                   { label: 'List', value: 'list' },
                   { label: 'Calendar', value: 'calendar' },
@@ -873,23 +799,14 @@ export function BookingSchedulePage({
   calendarFeedOptions = defaultCalendarFeedOptions,
   today = new Date().toISOString().slice(0, 10),
 }: BookingSchedulePageProps) {
-  const sortedBookings = useMemo(
-    () => [...bookings].sort(sortBookings),
-    [bookings],
-  );
+  const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const scheduleBookings = useMemo(
     () => filterUpcomingScheduleBookings(sortedBookings, today),
     [sortedBookings, today],
   );
-  const confirmedCount = scheduleBookings.filter(
-    (booking) => booking.status === 'booked',
-  ).length;
-  const maybeCount = scheduleBookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
-  const accommodationCount = scheduleBookings.filter(
-    hasArrangedAccommodation,
-  ).length;
+  const confirmedCount = scheduleBookings.filter((booking) => booking.status === 'booked').length;
+  const maybeCount = scheduleBookings.filter((booking) => booking.status === 'maybe').length;
+  const accommodationCount = scheduleBookings.filter(hasArrangedAccommodation).length;
 
   return (
     <Stack gap="xl">
@@ -906,11 +823,7 @@ export function BookingSchedulePage({
           />
         }
         actions={
-          <Button
-            component={Link}
-            to="/dashboard/bookings?view=manage"
-            variant="default"
-          >
+          <Button component={Link} to="/dashboard/bookings?view=manage" variant="default">
             View all bookings
           </Button>
         }

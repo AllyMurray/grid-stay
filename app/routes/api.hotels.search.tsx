@@ -1,8 +1,5 @@
 import { requireUser } from '~/lib/auth/helpers.server';
-import {
-  type HotelSuggestion,
-  searchHotelCatalogue,
-} from '~/lib/db/services/hotel.server';
+import { type HotelSuggestion, searchHotelCatalogue } from '~/lib/db/services/hotel.server';
 import { searchGeoapifyHotels } from '~/lib/hotels/geoapify.server';
 import { HotelSearchQuerySchema } from '~/lib/schemas/hotel';
 import type { Route } from './+types/api.hotels.search';
@@ -57,17 +54,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     });
   } catch (error) {
     providerError =
-      error instanceof Error
-        ? error.message
-        : 'Hotel lookup is not available right now.';
+      error instanceof Error ? error.message : 'Hotel lookup is not available right now.';
   }
 
   return Response.json(
     {
-      suggestions: dedupeSuggestions([
-        ...localSuggestions,
-        ...providerSuggestions,
-      ]).slice(0, 10),
+      suggestions: dedupeSuggestions([...localSuggestions, ...providerSuggestions]).slice(0, 10),
       providerAvailable: providerError === null,
       providerError,
     },

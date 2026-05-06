@@ -1,14 +1,4 @@
-import {
-  Avatar,
-  Badge,
-  Button,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  ThemeIcon,
-  Title,
-} from '@mantine/core';
+import { Avatar, Badge, Button, Group, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import {
   IconArrowLeft,
   IconCalendarEvent,
@@ -96,8 +86,7 @@ function MemberDayAction({
 }) {
   const fetcher = useFetcher<MemberDayBookingActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   if (myBooking && myBooking.status !== 'cancelled') {
     return (
@@ -151,9 +140,7 @@ function MemberDayRow({
   day: MemberBookedDay;
   myBooking?: MyMemberDayBooking;
 }) {
-  const circuitLabel = day.layout
-    ? `${day.circuit} ${day.layout}`
-    : day.circuit;
+  const circuitLabel = day.layout ? `${day.circuit} ${day.layout}` : day.circuit;
 
   return (
     <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
@@ -178,8 +165,7 @@ function MemberDayRow({
                 ) : null}
               </Group>
               <Text size="sm" c="dimmed">
-                {formatDayDate(day.date)} • {formatDayType(day.type)} •{' '}
-                {day.provider}
+                {formatDayDate(day.date)} • {formatDayType(day.type)} • {day.provider}
               </Text>
               <Text size="sm">{day.description}</Text>
             </Stack>
@@ -200,16 +186,12 @@ function MemberDayRow({
 
         <Group gap="xs" c="dimmed">
           <IconHotelService size={16} />
-          <Text size="sm">
-            Accommodation: {getAccommodationPlanSummary(day)}
-          </Text>
+          <Text size="sm">Accommodation: {getAccommodationPlanSummary(day)}</Text>
         </Group>
         {day.arrivalDateTime ? (
           <Group gap="xs" c="dimmed">
             <IconClock size={16} />
-            <Text size="sm">
-              Arrival: {formatArrivalDateTime(day.arrivalDateTime)}
-            </Text>
+            <Text size="sm">Arrival: {formatArrivalDateTime(day.arrivalDateTime)}</Text>
           </Group>
         ) : null}
       </Stack>
@@ -217,11 +199,7 @@ function MemberDayRow({
   );
 }
 
-export function MemberDaysPage({
-  member,
-  days,
-  myBookingsByDay,
-}: MemberDaysPageProps) {
+export function MemberDaysPage({ member, days, myBookingsByDay }: MemberDaysPageProps) {
   const bookedCount = days.filter((day) => day.status === 'booked').length;
   const maybeCount = days.filter((day) => day.status === 'maybe').length;
 
@@ -249,18 +227,10 @@ export function MemberDaysPage({
               </Avatar>
               <Text fw={700}>{member.name}</Text>
             </Group>
-            <Badge
-              color="green"
-              variant="light"
-              leftSection={<IconCircleCheck size={12} />}
-            >
+            <Badge color="green" variant="light" leftSection={<IconCircleCheck size={12} />}>
               {bookedCount} booked
             </Badge>
-            <Badge
-              color="yellow"
-              variant="light"
-              leftSection={<IconClock size={12} />}
-            >
+            <Badge color="yellow" variant="light" leftSection={<IconClock size={12} />}>
               {maybeCount} maybe
             </Badge>
           </Group>
@@ -270,11 +240,7 @@ export function MemberDaysPage({
       {days.length > 0 ? (
         <Stack gap="md">
           {days.map((day) => (
-            <MemberDayRow
-              key={day.dayId}
-              day={day}
-              myBooking={myBookingsByDay[day.dayId]}
-            />
+            <MemberDayRow key={day.dayId} day={day} myBooking={myBookingsByDay[day.dayId]} />
           ))}
         </Stack>
       ) : (

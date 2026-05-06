@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminFeedPage } from './admin-feed';
 
@@ -71,30 +71,24 @@ describe('AdminFeedPage', () => {
         ]}
         health={{
           status: 'warning',
-          message:
-            'The latest refresh completed with one or more source errors.',
+          message: 'The latest refresh completed with one or more source errors.',
         }}
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Feed status' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Feed status' })).toBeInTheDocument();
     expect(screen.getByText('26')).toBeInTheDocument();
     expect(screen.getByText('Source coverage')).toBeInTheDocument();
     expect(screen.getByText('Latest feed changes')).toBeInTheDocument();
     expect(screen.getByText('date')).toBeInTheDocument();
     expect(screen.getByText('focused-events')).toBeInTheDocument();
     expect(screen.getAllByText('Manual days').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText('Some sources could not be loaded.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('broken-testing: Timed out loading feed'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Open available days' }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByText('Some sources could not be loaded.')).toBeInTheDocument();
+    expect(screen.getByText('broken-testing: Timed out loading feed')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open available days' })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
   });
 
   it('shows a healthy source state when no errors were reported', () => {
@@ -120,16 +114,13 @@ describe('AdminFeedPage', () => {
         recentChanges={[]}
         health={{
           status: 'healthy',
-          message:
-            'The latest available-days snapshot is current and error-free.',
+          message: 'The latest available-days snapshot is current and error-free.',
         }}
       />,
     );
 
     expect(
-      screen.getByText(
-        'No source loading errors were reported in the latest snapshot.',
-      ),
+      screen.getByText('No source loading errors were reported in the latest snapshot.'),
     ).toBeInTheDocument();
   });
 });

@@ -1,10 +1,7 @@
 import type { User } from '~/lib/auth/schemas';
 import { createAvailableDayNotificationsSafely } from '~/lib/db/services/day-notification.server';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
-import {
-  type CreateMemberEventInput,
-  CreateMemberEventSchema,
-} from '~/lib/schemas/member-event';
+import { type CreateMemberEventInput, CreateMemberEventSchema } from '~/lib/schemas/member-event';
 import type { ManualDayRecord } from '../entities/manual-day.server';
 import { createManualDay, toAvailableManualDay } from './manual-day.server';
 
@@ -33,9 +30,7 @@ function buildManualDayDescription(input: CreateMemberEventInput) {
   return description.slice(0, 200);
 }
 
-function createManualDayInput(
-  input: CreateMemberEventInput,
-): CreateManualDayInput {
+function createManualDayInput(input: CreateMemberEventInput): CreateManualDayInput {
   return {
     date: input.date,
     type: input.type,
@@ -55,9 +50,7 @@ export async function submitMemberEventAction(
     notifyAvailableDays?: typeof createAvailableDayNotificationsSafely;
   } = {},
 ): Promise<MemberEventActionResult> {
-  const parsed = CreateMemberEventSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = CreateMemberEventSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {

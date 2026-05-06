@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { ManualDayRecord } from '~/lib/db/entities/manual-day.server';
 import { theme } from '~/theme';
 import { ManualDaysPage } from './manual-days';
@@ -65,18 +65,10 @@ describe('ManualDaysPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Manual days' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Add a manual day' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Manually added days' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { name: 'Feed source status' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Manual days' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Add a manual day' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Manually added days' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Feed source status' })).not.toBeInTheDocument();
     expect(screen.getByText('March 2026')).toBeInTheDocument();
     expect(screen.getAllByText('Donington Park').length).toBeGreaterThan(0);
     expect(screen.getByText('Series • Caterham 270R')).toBeInTheDocument();
@@ -84,21 +76,11 @@ describe('ManualDaysPage', () => {
       'href',
       'https://example.com/donington',
     );
-    expect(
-      screen.getAllByRole('link', { name: 'Open in available days' }),
-    ).toHaveLength(2);
-    expect(
-      screen.getByRole('combobox', { name: 'Circuit' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('Start typing a circuit'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('combobox', { name: 'Provider' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('combobox', { name: 'Series' }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Open in available days' })).toHaveLength(2);
+    expect(screen.getByRole('combobox', { name: 'Circuit' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Start typing a circuit')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Provider' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Series' })).toBeInTheDocument();
   });
 
   it('shows the empty state when no manual days exist', () => {

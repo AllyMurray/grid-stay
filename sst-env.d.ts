@@ -3,60 +3,60 @@
 /* eslint-disable */
 /* deno-fmt-ignore-file */
 
-declare module "sst" {
+declare module 'sst' {
   export interface Resource {
-    "AuthTable": {
-      "name": string
-      "type": "sst.aws.Dynamo"
-    }
-    "BetterAuthSecret": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "Email": {
-      "configSet": string
-      "sender": string
-      "type": "sst.aws.Email"
-    }
-    "GeoapifyApiKey": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "GoogleClientId": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "GoogleClientSecret": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "HotelSummaryQueue": {
-      "type": "sst.aws.Queue"
-      "url": string
-    }
-    "OpenRouteServiceApiKey": {
-      "type": "sst.sst.Secret"
-      "value": string
-    }
-    "RefreshAvailableDaysCache": {
-      "name": string
-      "type": "sst.aws.Function"
-    }
-    "RefreshCircuitDistanceMatrix": {
-      "name": string
-      "type": "sst.aws.Function"
-    }
-    "Site": {
-      "type": "sst.aws.React"
-      "url": string
-    }
-    "Table": {
-      "name": string
-      "type": "sst.aws.Dynamo"
-    }
+    AuthTable: {
+      name: string;
+      type: 'sst.aws.Dynamo';
+    };
+    BetterAuthSecret: {
+      type: 'sst.sst.Secret';
+      value: string;
+    };
+    Email: {
+      configSet: string;
+      sender: string;
+      type: 'sst.aws.Email';
+    };
+    GeoapifyApiKey: {
+      type: 'sst.sst.Secret';
+      value: string;
+    };
+    GoogleClientId: {
+      type: 'sst.sst.Secret';
+      value: string;
+    };
+    GoogleClientSecret: {
+      type: 'sst.sst.Secret';
+      value: string;
+    };
+    HotelSummaryQueue: {
+      type: 'sst.aws.Queue';
+      url: string;
+    };
+    OpenRouteServiceApiKey: {
+      type: 'sst.sst.Secret';
+      value: string;
+    };
+    RefreshAvailableDaysCache: {
+      name: string;
+      type: 'sst.aws.Function';
+    };
+    RefreshCircuitDistanceMatrix: {
+      name: string;
+      type: 'sst.aws.Function';
+    };
+    Site: {
+      type: 'sst.aws.React';
+      url: string;
+    };
+    Table: {
+      name: string;
+      type: 'sst.aws.Dynamo';
+    };
   }
 }
 /// <reference path="sst-env.d.ts" />
 
-import "sst"
-export {}
+import 'sst';
+export {};

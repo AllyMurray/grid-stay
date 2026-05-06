@@ -11,10 +11,7 @@ export interface SeriesSubscriptionPersistence {
     changes: Partial<SeriesSubscriptionRecord>,
   ): Promise<SeriesSubscriptionRecord>;
   delete(userId: string, seriesKey: string): Promise<void>;
-  getByUserAndSeries(
-    userId: string,
-    seriesKey: string,
-  ): Promise<SeriesSubscriptionRecord | null>;
+  getByUserAndSeries(userId: string, seriesKey: string): Promise<SeriesSubscriptionRecord | null>;
   listByUser(userId: string): Promise<SeriesSubscriptionRecord[]>;
   listBySeries(seriesKey: string): Promise<SeriesSubscriptionRecord[]>;
 }
@@ -71,10 +68,7 @@ export async function upsertSeriesSubscription(
   },
   store: SeriesSubscriptionPersistence = seriesSubscriptionStore,
 ): Promise<SeriesSubscriptionRecord> {
-  const existing = await store.getByUserAndSeries(
-    input.userId,
-    input.seriesKey,
-  );
+  const existing = await store.getByUserAndSeries(input.userId, input.seriesKey);
   const now = new Date().toISOString();
 
   if (existing) {

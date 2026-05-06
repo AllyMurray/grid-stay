@@ -31,12 +31,9 @@ const client = new DynamoDBClient({ region });
 async function checkTable(tableName) {
   const [table, backups] = await Promise.all([
     client.send(new DescribeTableCommand({ TableName: tableName })),
-    client.send(
-      new DescribeContinuousBackupsCommand({ TableName: tableName }),
-    ),
+    client.send(new DescribeContinuousBackupsCommand({ TableName: tableName })),
   ]);
-  const pitr =
-    backups.ContinuousBackupsDescription?.PointInTimeRecoveryDescription;
+  const pitr = backups.ContinuousBackupsDescription?.PointInTimeRecoveryDescription;
   const failures = [];
 
   if (table.Table?.DeletionProtectionEnabled !== true) {
@@ -48,9 +45,7 @@ async function checkTable(tableName) {
   }
 
   if (pitr?.RecoveryPeriodInDays !== expectedRecoveryDays) {
-    failures.push(
-      `PITR recovery period is ${pitr?.RecoveryPeriodInDays ?? 'unknown'} days`,
-    );
+    failures.push(`PITR recovery period is ${pitr?.RecoveryPeriodInDays ?? 'unknown'} days`);
   }
 
   return {

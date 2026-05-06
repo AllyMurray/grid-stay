@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { HotelInsight } from '~/lib/db/services/hotel.server';
 import { theme } from '~/theme';
 import { HotelFeedbackPage } from './hotel-feedback';
@@ -38,8 +38,7 @@ const insight: HotelInsight = {
   },
   reviewCount: 1,
   averageRating: 5,
-  summary:
-    'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
+  summary: 'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
   summarySource: 'bedrock',
   reviews: [
     {
@@ -70,17 +69,14 @@ describe('HotelFeedbackPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Trackside Hotel' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Trackside Hotel' })).toBeInTheDocument();
     expect(screen.getByText('1 Circuit Road, Towcester')).toBeInTheDocument();
     expect(screen.getByText('5/5')).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue('Plenty of room for trailers.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /back to booking/i }),
-    ).toHaveAttribute('href', '/dashboard/bookings?booking=booking-1');
+    expect(screen.getByDisplayValue('Plenty of room for trailers.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /back to booking/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?booking=booking-1',
+    );
   });
 
   it('submits hotel feedback through the route action', async () => {
@@ -99,9 +95,7 @@ describe('HotelFeedbackPage', () => {
       },
     );
 
-    await user.click(
-      screen.getByRole('button', { name: /save hotel feedback/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /save hotel feedback/i }));
 
     await waitFor(() =>
       expect(submitted).toEqual(

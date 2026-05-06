@@ -33,8 +33,7 @@ export async function handler() {
     const snapshot = await refreshAvailableDaysSnapshot(result);
     const recordedFeedChanges = await recordFeedChangesSafely(feedChanges);
     const notifications = await createAvailableDayNotificationsSafely(newDays);
-    const changedNotifications =
-      await createChangedDayNotificationsSafely(recordedFeedChanges);
+    const changedNotifications = await createChangedDayNotificationsSafely(recordedFeedChanges);
     const manualDays = await listManualDays();
     const linkedSeriesResults = await reconcileAllSeriesSubscriptions([
       ...snapshot.days,

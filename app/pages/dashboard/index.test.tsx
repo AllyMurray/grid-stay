@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { AvailableDay, DayAttendanceSummary } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
@@ -110,9 +110,7 @@ describe('DashboardIndexPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Welcome back, Ally' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Welcome back, Ally' })).toBeInTheDocument();
     expect(screen.getByText('42 upcoming days')).toBeInTheDocument();
     expect(screen.getByText('8 this month')).toBeInTheDocument();
     expect(screen.getByText('3 active bookings')).toBeInTheDocument();
@@ -132,12 +130,11 @@ describe('DashboardIndexPage', () => {
     expect(screen.getByText('Donington Park')).toBeInTheDocument();
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/everything for this trip is already in place/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /open my bookings/i }),
-    ).toHaveAttribute('href', '/dashboard/bookings');
+    expect(screen.getByText(/everything for this trip is already in place/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open my bookings/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings',
+    );
     expect(screen.getByRole('link', { name: /edit booking/i })).toHaveAttribute(
       'href',
       '/dashboard/bookings?view=manage',
@@ -170,9 +167,7 @@ describe('DashboardIndexPage', () => {
     });
 
     expect(
-      openAvailableDaysLinks.every(
-        (link) => link.getAttribute('href') === '/dashboard/days',
-      ),
+      openAvailableDaysLinks.every((link) => link.getAttribute('href') === '/dashboard/days'),
     ).toBe(true);
   });
 
@@ -188,10 +183,8 @@ describe('DashboardIndexPage', () => {
     };
     const trackBooking: BookingRecord = {
       ...upcomingBooking,
-      bookingId:
-        'track_day:knockhill-trackday:v2:dated-2026-05-22-e2167e1a85c4726e:base',
-      dayId:
-        'track_day:knockhill-trackday:v2:dated-2026-05-22-e2167e1a85c4726e:base',
+      bookingId: 'track_day:knockhill-trackday:v2:dated-2026-05-22-e2167e1a85c4726e:base',
+      dayId: 'track_day:knockhill-trackday:v2:dated-2026-05-22-e2167e1a85c4726e:base',
       date: '2026-05-22',
       type: 'track_day',
       circuit: 'Knockhill',
@@ -218,16 +211,12 @@ describe('DashboardIndexPage', () => {
       />,
     );
 
-    const nextTripPanel = screen
-      .getByText('Next trip')
-      .closest('.overview-focus-panel');
+    const nextTripPanel = screen.getByText('Next trip').closest('.overview-focus-panel');
 
     expect(nextTripPanel).not.toBeNull();
     const nextTrip = within(nextTripPanel as HTMLElement);
 
-    expect(
-      nextTrip.getByRole('heading', { name: 'Knockhill' }),
-    ).toBeInTheDocument();
+    expect(nextTrip.getByRole('heading', { name: 'Knockhill' })).toBeInTheDocument();
     expect(nextTrip.getByText('Track Day')).toBeInTheDocument();
     expect(nextTrip.getByText('Track day reference')).toBeInTheDocument();
   });

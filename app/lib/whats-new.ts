@@ -338,16 +338,12 @@ export function countWhatsNewEntriesAfter(
   viewedAt: string | undefined,
   entries: WhatsNewEntry[] = whatsNewEntries,
 ) {
-  return entries.filter((entry) => !viewedAt || entry.publishedAt > viewedAt)
-    .length;
+  return entries.filter((entry) => !viewedAt || entry.publishedAt > viewedAt).length;
 }
 
-export function getLatestWhatsNewPublishedAt(
-  entries: WhatsNewEntry[] = whatsNewEntries,
-) {
+export function getLatestWhatsNewPublishedAt(entries: WhatsNewEntry[] = whatsNewEntries) {
   return entries.reduce<string | undefined>(
-    (latest, entry) =>
-      !latest || entry.publishedAt > latest ? entry.publishedAt : latest,
+    (latest, entry) => (!latest || entry.publishedAt > latest ? entry.publishedAt : latest),
     undefined,
   );
 }
@@ -357,7 +353,5 @@ export function resolveWhatsNewViewedAt(
   entries: WhatsNewEntry[] = whatsNewEntries,
 ) {
   const latestPublishedAt = getLatestWhatsNewPublishedAt(entries);
-  return latestPublishedAt && latestPublishedAt > viewedAt
-    ? latestPublishedAt
-    : viewedAt;
+  return latestPublishedAt && latestPublishedAt > viewedAt ? latestPublishedAt : viewedAt;
 }

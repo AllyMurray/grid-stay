@@ -72,14 +72,9 @@ async function dayExists(
   loadSnapshot: typeof getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays,
 ) {
-  const [snapshot, manualDays] = await Promise.all([
-    loadSnapshot(),
-    loadManualDays(),
-  ]);
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
 
-  return [...(snapshot?.days ?? []), ...manualDays].some(
-    (day) => day.dayId === dayId,
-  );
+  return [...(snapshot?.days ?? []), ...manualDays].some((day) => day.dayId === dayId);
 }
 
 export async function getSharedDayPlan(
@@ -108,13 +103,7 @@ export async function setSharedDayPlan(
   const dinnerHeadcount = sanitizeNotes(input.dinnerHeadcount ?? '');
   const dinnerNotes = sanitizeNotes(input.dinnerNotes ?? '');
 
-  if (
-    !notes &&
-    !dinnerVenue &&
-    !dinnerTime &&
-    !dinnerHeadcount &&
-    !dinnerNotes
-  ) {
+  if (!notes && !dinnerVenue && !dinnerTime && !dinnerHeadcount && !dinnerNotes) {
     await store.delete(input.dayId);
     return null;
   }
@@ -156,10 +145,7 @@ export async function submitSharedDayPlan(
 ): Promise<SharedDayPlanActionResult> {
   const dayId = sanitizeNotes(formData.get('dayId'));
   const values = Object.fromEntries(
-    SHARED_PLAN_FIELDS.map((field) => [
-      field,
-      sanitizeNotes(formData.get(field)),
-    ]),
+    SHARED_PLAN_FIELDS.map((field) => [field, sanitizeNotes(formData.get(field))]),
   ) as Record<SharedPlanField, string>;
 
   if (!dayId) {
@@ -188,10 +174,7 @@ export async function submitSharedDayPlan(
     }
   }
 
-  if (
-    values.dinnerTime &&
-    !/^([01]\d|2[0-3]):[0-5]\d$/.test(values.dinnerTime)
-  ) {
+  if (values.dinnerTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(values.dinnerTime)) {
     fieldErrors.dinnerTime = ['Use a 24-hour time, for example 19:30.'];
   }
 

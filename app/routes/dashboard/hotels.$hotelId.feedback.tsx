@@ -2,10 +2,7 @@ import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
 import { submitHotelReview } from '~/lib/bookings/actions.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import {
-  type HotelInsight,
-  listHotelInsights,
-} from '~/lib/db/services/hotel.server';
+import { type HotelInsight, listHotelInsights } from '~/lib/db/services/hotel.server';
 import { HotelFeedbackPage } from '~/pages/dashboard/hotel-feedback';
 import type { Route } from './+types/hotels.$hotelId.feedback';
 

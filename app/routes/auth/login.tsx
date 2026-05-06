@@ -76,9 +76,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Login() {
   const loaderData = useLoaderData<typeof loader>() as LoaderData;
-  const actionData = useActionData<typeof action>() as
-    | PasswordAuthActionData
-    | undefined;
+  const actionData = useActionData<typeof action>() as PasswordAuthActionData | undefined;
 
   return (
     <LoginPage

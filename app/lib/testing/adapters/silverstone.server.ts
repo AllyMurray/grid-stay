@@ -6,8 +6,7 @@ import type { FetchFunction, TestingAdapter, TestingDay } from '../types';
 
 const SILVERSTONE_CIRCUIT_ID = '01HQ8VXMN0SILVERSTONE';
 
-export const SILVERSTONE_URL =
-  'https://www.silverstone.co.uk/track-and-testing/testing';
+export const SILVERSTONE_URL = 'https://www.silverstone.co.uk/track-and-testing/testing';
 
 /**
  * Parses testing schedule from Silverstone HTML.
@@ -41,25 +40,16 @@ export function parseSilverstoneSchedule(html: string): TestingDay[] {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
     // Extract layout from td.views-field-field-track-day-circuit
-    const layout = extractFieldText(
-      rowContent,
-      'views-field-field-track-day-circuit',
-    );
+    const layout = extractFieldText(rowContent, 'views-field-field-track-day-circuit');
 
     // Extract format from td.views-field-field-format-masterclass
-    const format = extractFieldText(
-      rowContent,
-      'views-field-field-format-masterclass',
-    );
+    const format = extractFieldText(rowContent, 'views-field-field-format-masterclass');
 
     // Extract group from td.views-field-field-g-set-group
     const group = extractFieldText(rowContent, 'views-field-field-g-set-group');
 
     // Extract price from td.views-field-field-track-day-current-price
-    const priceText = extractFieldText(
-      rowContent,
-      'views-field-field-track-day-current-price',
-    );
+    const priceText = extractFieldText(rowContent, 'views-field-field-track-day-current-price');
     const priceMatch = priceText.match(/£(\d+(?:\.\d{2})?)/);
     const pricePennies = priceMatch
       ? Math.round(Number.parseFloat(priceMatch[1]) * 100)
@@ -67,9 +57,7 @@ export function parseSilverstoneSchedule(html: string): TestingDay[] {
 
     // Determine availability
     const isSoldOut = /sold-out--status/i.test(rowHtml);
-    const hasBookButton = /class="[^"]*btn[^"]*"[^>]*>.*?Book/i.test(
-      rowContent,
-    );
+    const hasBookButton = /class="[^"]*btn[^"]*"[^>]*>.*?Book/i.test(rowContent);
     let availability: TestingDay['availability'] = 'unknown';
     if (isSoldOut) {
       availability = 'sold_out';
@@ -81,9 +69,7 @@ export function parseSilverstoneSchedule(html: string): TestingDay[] {
     const bookingMatch = rowContent.match(
       /<a[^>]*class="[^"]*btn-primary[^"]*"[^>]*href="([^"]*)"[^>]*>/i,
     );
-    const bookingUrl = bookingMatch
-      ? normalizeBookingUrl(bookingMatch[1])
-      : undefined;
+    const bookingUrl = bookingMatch ? normalizeBookingUrl(bookingMatch[1]) : undefined;
 
     days.push({
       date,
@@ -151,9 +137,7 @@ async function defaultFetch(url: string): Promise<string> {
 /**
  * Creates a Silverstone adapter with injectable fetch.
  */
-export function createSilverstoneAdapter(
-  fetchFn: FetchFunction,
-): TestingAdapter {
+export function createSilverstoneAdapter(fetchFn: FetchFunction): TestingAdapter {
   return {
     name: 'silverstone',
     description: 'Silverstone Circuit testing days',

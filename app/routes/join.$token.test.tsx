@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { getUser } = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -14,11 +14,10 @@ const {
   createMemberJoinLinkCookieHeader: vi.fn(),
   getMemberJoinLinkByToken: vi.fn(),
 }));
-const { createAcceptedMemberInviteForUser, ensureUserMemberAccess } =
-  vi.hoisted(() => ({
-    createAcceptedMemberInviteForUser: vi.fn(),
-    ensureUserMemberAccess: vi.fn(),
-  }));
+const { createAcceptedMemberInviteForUser, ensureUserMemberAccess } = vi.hoisted(() => ({
+  createAcceptedMemberInviteForUser: vi.fn(),
+  ensureUserMemberAccess: vi.fn(),
+}));
 const { recordAppEventSafely } = vi.hoisted(() => ({
   recordAppEventSafely: vi.fn(),
 }));
@@ -134,9 +133,7 @@ describe('join route', () => {
     );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get('location')).toBe(
-      `/auth/login?redirectTo=%2Fjoin%2F${token}`,
-    );
+    expect(response.headers.get('location')).toBe(`/auth/login?redirectTo=%2Fjoin%2F${token}`);
     expect(createMemberJoinLinkCookieHeader).toHaveBeenCalledWith({
       request: expect.any(Request),
       token,

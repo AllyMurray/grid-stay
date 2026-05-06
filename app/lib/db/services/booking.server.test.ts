@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const {
   bookingEntityCreateGo,
@@ -80,11 +80,7 @@ function createMemoryStore() {
         items.push(item);
         return item;
       },
-      async update(
-        userId: string,
-        bookingId: string,
-        changes: Record<string, unknown>,
-      ) {
+      async update(userId: string, bookingId: string, changes: Record<string, unknown>) {
         const index = items.findIndex(
           (item) => item.userId === userId && item.bookingId === bookingId,
         );
@@ -104,18 +100,10 @@ function createMemoryStore() {
         return items.filter((item) => item.userId === userId);
       },
       async findByUserAndDay(userId: string, dayId: string) {
-        return (
-          items.find(
-            (item) => item.userId === userId && item.dayId === dayId,
-          ) ?? null
-        );
+        return items.find((item) => item.userId === userId && item.dayId === dayId) ?? null;
       },
       async getByUser(userId: string, bookingId: string) {
-        return (
-          items.find(
-            (item) => item.userId === userId && item.bookingId === bookingId,
-          ) ?? null
-        );
+        return items.find((item) => item.userId === userId && item.bookingId === bookingId) ?? null;
       },
       async listByDay(dayId: string) {
         return items.filter((item) => item.dayId === dayId);
@@ -924,8 +912,9 @@ describe('booking service', () => {
     const communal = summarizeDayAttendances(memory.items as never);
     expect(communal.attendeeCount).toBe(1);
     expect(communal.attendees).toHaveLength(2);
-    expect(
-      communal.attendees.map((attendee) => attendee.status).sort(),
-    ).toEqual(['cancelled', 'maybe']);
+    expect(communal.attendees.map((attendee) => attendee.status).toSorted()).toEqual([
+      'cancelled',
+      'maybe',
+    ]);
   });
 });

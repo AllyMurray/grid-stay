@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { CircuitDistanceMatrixRecord } from '../entities/circuit-distance-matrix.server';
 import {
   getCircuitDistanceLeg,
@@ -31,15 +31,11 @@ describe('circuit distance matrix service', () => {
     } as CircuitDistanceMatrixRecord);
 
     expect(matrix?.circuitIds).toEqual(['silverstone', 'brands-hatch']);
-    expect(
-      getCircuitDistanceLeg(matrix, 'silverstone', 'brands-hatch'),
-    ).toEqual({
+    expect(getCircuitDistanceLeg(matrix, 'silverstone', 'brands-hatch')).toEqual({
       miles: 118.4,
       durationMinutes: 130,
     });
-    expect(
-      getCircuitDistanceLeg(matrix, 'brands-hatch', 'silverstone'),
-    ).toEqual({
+    expect(getCircuitDistanceLeg(matrix, 'brands-hatch', 'silverstone')).toEqual({
       miles: 121.2,
       durationMinutes: 136,
     });

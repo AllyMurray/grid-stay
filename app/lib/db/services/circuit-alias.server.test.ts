@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { CircuitAliasRecord } from '../entities/circuit-alias.server';
 import {
   type CircuitAliasPersistence,

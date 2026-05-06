@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { AvailableDay } from '~/lib/days/types';
 import type { CircuitAliasRecord } from '~/lib/db/entities/circuit-alias.server';
 
@@ -16,10 +16,7 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
 
-import {
-  loadAdminCircuitsReport,
-  submitAdminCircuitAction,
-} from './circuits.server';
+import { loadAdminCircuitsReport, submitAdminCircuitAction } from './circuits.server';
 
 const day: AvailableDay = {
   dayId: 'day-1',
@@ -102,11 +99,7 @@ describe('admin circuit helpers', () => {
     formData.set('aliasKey', 'snetterton-300');
     const removeAlias = vi.fn(async () => undefined);
 
-    const result = await submitAdminCircuitAction(
-      formData,
-      { id: 'admin-1' },
-      { removeAlias },
-    );
+    const result = await submitAdminCircuitAction(formData, { id: 'admin-1' }, { removeAlias });
 
     expect(result).toEqual({
       ok: true,

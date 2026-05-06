@@ -1,24 +1,11 @@
 import { ulid } from 'ulid';
-import {
-  getLinkedSeriesKey,
-  getLinkedSeriesName,
-} from '~/lib/days/series.server';
+import { getLinkedSeriesKey, getLinkedSeriesName } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
-import {
-  FeedChangeEntity,
-  type FeedChangeRecord,
-} from '../entities/feed-change.server';
+import { FeedChangeEntity, type FeedChangeRecord } from '../entities/feed-change.server';
 
 export const FEED_CHANGE_SCOPE = 'available-days';
 
-const trackedFields = [
-  'date',
-  'type',
-  'circuit',
-  'provider',
-  'description',
-  'bookingUrl',
-] as const;
+const trackedFields = ['date', 'type', 'circuit', 'provider', 'description', 'bookingUrl'] as const;
 
 type TrackedField = (typeof trackedFields)[number];
 
@@ -32,9 +19,7 @@ export const feedChangeStore: FeedChangePersistence = {
     await Promise.all(items.map((item) => FeedChangeEntity.put(item).go()));
   },
   async listAll() {
-    const response = await FeedChangeEntity.query
-      .byScope({ changeScope: FEED_CHANGE_SCOPE })
-      .go();
+    const response = await FeedChangeEntity.query.byScope({ changeScope: FEED_CHANGE_SCOPE }).go();
     return response.data;
   },
 };
@@ -59,10 +44,7 @@ function toSnapshot(day: AvailableDay) {
   };
 }
 
-function getChangedFields(
-  previous: AvailableDay,
-  next: AvailableDay,
-): TrackedField[] {
+function getChangedFields(previous: AvailableDay, next: AvailableDay): TrackedField[] {
   return trackedFields.filter((field) => previous[field] !== next[field]);
 }
 
@@ -104,9 +86,7 @@ function createChangeRecord(input: {
     seriesKey: getLinkedSeriesKey(input.day) ?? undefined,
     seriesName: getLinkedSeriesName(input.day) ?? undefined,
     changedFields: input.changedFields,
-    previousJson: input.previous
-      ? JSON.stringify(toSnapshot(input.previous))
-      : undefined,
+    previousJson: input.previous ? JSON.stringify(toSnapshot(input.previous)) : undefined,
     nextJson: input.next ? JSON.stringify(toSnapshot(input.next)) : undefined,
     createdAt: input.createdAt,
   } as FeedChangeRecord;
@@ -175,7 +155,7 @@ export function diffAvailableDays(
     );
   }
 
-  return changes.sort((left, right) =>
+  return changes.toSorted((left, right) =>
     left.date === right.date
       ? left.dayId.localeCompare(right.dayId)
       : left.date.localeCompare(right.date),
@@ -211,5 +191,5 @@ export async function listRecentFeedChanges(
   store: FeedChangePersistence = feedChangeStore,
 ): Promise<FeedChangeRecord[]> {
   const records = await store.listAll();
-  return records.sort(sortNewestFirst).slice(0, limit);
+  return records.toSorted(sortNewestFirst).slice(0, limit);
 }

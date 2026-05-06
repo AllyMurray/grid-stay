@@ -5,25 +5,18 @@ import {
   HotelAiSummaryEntity,
   type HotelAiSummaryRecord,
 } from '~/lib/db/entities/hotel-ai-summary.server';
-import {
-  HotelReviewEntity,
-  type HotelReviewRecord,
-} from '~/lib/db/entities/hotel-review.server';
+import { HotelReviewEntity, type HotelReviewRecord } from '~/lib/db/entities/hotel-review.server';
 import { generateHotelSummaryWithBedrock } from '~/lib/hotels/bedrock.server';
 import {
   getHotelReviewFingerprint,
   summariseHotelReviewsStructurally,
 } from '~/lib/hotels/review-summary';
-import type {
-  HotelReviewInput,
-  HotelSelectionInput,
-} from '~/lib/schemas/hotel';
+import type { HotelReviewInput, HotelSelectionInput } from '~/lib/schemas/hotel';
 
 const HOTEL_SCOPE = 'hotel';
 const REVIEW_SCOPE = 'hotel-review';
 const SUMMARY_SCOPE = 'hotel-ai-summary';
-const GEOAPIFY_ATTRIBUTION =
-  'Hotel data powered by Geoapify. © OpenStreetMap contributors.';
+const GEOAPIFY_ATTRIBUTION = 'Hotel data powered by Geoapify. © OpenStreetMap contributors.';
 
 export interface HotelSuggestion {
   hotelId?: string;
@@ -170,9 +163,7 @@ export async function listHotels(): Promise<HotelRecord[]> {
   return response.data;
 }
 
-export async function getHotelById(
-  hotelId?: string | null,
-): Promise<HotelRecord | null> {
+export async function getHotelById(hotelId?: string | null): Promise<HotelRecord | null> {
   if (!hotelId) {
     return null;
   }
@@ -184,9 +175,7 @@ export async function getHotelById(
   return response.data ?? null;
 }
 
-export async function listHotelsByIds(
-  hotelIds: string[],
-): Promise<Map<string, HotelRecord>> {
+export async function listHotelsByIds(hotelIds: string[]): Promise<Map<string, HotelRecord>> {
   const uniqueIds = [...new Set(hotelIds.filter(Boolean))];
   if (uniqueIds.length === 0) {
     return new Map();
@@ -206,10 +195,7 @@ export async function listHotelsByIds(
   );
 }
 
-export async function searchHotelCatalogue(
-  query: string,
-  limit = 8,
-): Promise<HotelSuggestion[]> {
+export async function searchHotelCatalogue(query: string, limit = 8): Promise<HotelSuggestion[]> {
   const normalizedQuery = normalizeHotelName(query);
   const hotels = await listHotels();
 
@@ -219,7 +205,7 @@ export async function searchHotelCatalogue(
       rank: rankHotelMatch(hotel, normalizedQuery),
     }))
     .filter((entry) => entry.rank < 99)
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       if (left.rank !== right.rank) {
         return left.rank - right.rank;
       }
@@ -336,18 +322,12 @@ export async function upsertHotelReview(
   return created;
 }
 
-export async function listHotelReviews(
-  hotelId: string,
-): Promise<HotelReviewRecord[]> {
+export async function listHotelReviews(hotelId: string): Promise<HotelReviewRecord[]> {
   const response = await HotelReviewEntity.query.review({ hotelId }).go();
-  return response.data.sort((left, right) =>
-    right.updatedAt.localeCompare(left.updatedAt),
-  );
+  return response.data.toSorted((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
-export async function getHotelAiSummary(
-  hotelId: string,
-): Promise<HotelAiSummaryRecord | null> {
+export async function getHotelAiSummary(hotelId: string): Promise<HotelAiSummaryRecord | null> {
   const response = await HotelAiSummaryEntity.get({
     hotelId,
     summaryScope: SUMMARY_SCOPE,
@@ -445,8 +425,7 @@ export async function refreshHotelAiSummary(
   return upsertHotelAiSummary({
     hotelId,
     provider: 'bedrock',
-    modelId:
-      process.env.BEDROCK_HOTEL_SUMMARY_MODEL_ID ?? 'eu.amazon.nova-micro-v1:0',
+    modelId: process.env.BEDROCK_HOTEL_SUMMARY_MODEL_ID ?? 'eu.amazon.nova-micro-v1:0',
     summary,
     reviewFingerprint: getHotelReviewFingerprint(reviews),
     reviewCount: reviews.length,
@@ -454,9 +433,7 @@ export async function refreshHotelAiSummary(
   });
 }
 
-export async function listHotelInsights(
-  hotelIds: string[],
-): Promise<Map<string, HotelInsight>> {
+export async function listHotelInsights(hotelIds: string[]): Promise<Map<string, HotelInsight>> {
   const hotels = await listHotelsByIds(hotelIds);
   const cachedSummaries = await listHotelAiSummariesByIds([...hotels.keys()]);
   const entries = await Promise.all(
@@ -465,18 +442,14 @@ export async function listHotelInsights(
       const reviewFingerprint = getHotelReviewFingerprint(reviews);
       const cachedSummary = cachedSummaries.get(hotel.hotelId);
       const currentCachedSummary =
-        cachedSummary?.reviewFingerprint === reviewFingerprint
-          ? cachedSummary
-          : null;
+        cachedSummary?.reviewFingerprint === reviewFingerprint ? cachedSummary : null;
       const ratings = reviews
         .map((review) => review.rating)
         .filter((rating): rating is number => Number.isFinite(rating));
       const averageRating =
         ratings.length > 0
           ? Math.round(
-              (ratings.reduce((total, rating) => total + rating, 0) /
-                ratings.length) *
-                10,
+              (ratings.reduce((total, rating) => total + rating, 0) / ratings.length) * 10,
             ) / 10
           : undefined;
 
@@ -486,9 +459,7 @@ export async function listHotelInsights(
           hotel,
           reviewCount: reviews.length,
           averageRating,
-          summary:
-            currentCachedSummary?.summary ??
-            summariseHotelReviewsStructurally(reviews),
+          summary: currentCachedSummary?.summary ?? summariseHotelReviewsStructurally(reviews),
           summarySource: currentCachedSummary ? 'bedrock' : 'structured',
           summaryGeneratedAt: currentCachedSummary?.generatedAt,
           reviews,

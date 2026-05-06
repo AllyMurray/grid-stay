@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { MemberJoinLinkRecord } from '~/lib/db/entities/member-join-link.server';
 import type { User } from './schemas';
 
@@ -62,9 +62,7 @@ function createMemoryStore(initial: MemberJoinLinkRecord[] = []): {
         return item;
       },
       async update({ tokenHash: nextTokenHash, changes }) {
-        const index = records.findIndex(
-          (record) => record.tokenHash === nextTokenHash,
-        );
+        const index = records.findIndex((record) => record.tokenHash === nextTokenHash);
         if (index < 0) {
           throw new Error('Join link not found');
         }
@@ -76,17 +74,13 @@ function createMemoryStore(initial: MemberJoinLinkRecord[] = []): {
         return records[index]!;
       },
       async getByTokenHash({ tokenHash: nextTokenHash }) {
-        return (
-          records.find((record) => record.tokenHash === nextTokenHash) ?? null
-        );
+        return records.find((record) => record.tokenHash === nextTokenHash) ?? null;
       },
       async listAll() {
         return [...records];
       },
       async accept({ tokenHash: nextTokenHash, userId, now, maxUses }) {
-        const link = records.find(
-          (record) => record.tokenHash === nextTokenHash,
-        );
+        const link = records.find((record) => record.tokenHash === nextTokenHash);
         if (
           !link ||
           link.status !== 'active' ||
@@ -106,9 +100,7 @@ function createMemoryStore(initial: MemberJoinLinkRecord[] = []): {
   };
 }
 
-function activeLink(
-  changes: Partial<MemberJoinLinkRecord> = {},
-): MemberJoinLinkRecord {
+function activeLink(changes: Partial<MemberJoinLinkRecord> = {}): MemberJoinLinkRecord {
   return {
     tokenHash,
     linkScope: 'memberJoin',
@@ -255,9 +247,7 @@ describe('member join link helpers', () => {
   it('revokes links by token hash', async () => {
     const memory = createMemoryStore([activeLink()]);
 
-    await expect(
-      revokeMemberJoinLink({ tokenHash, store: memory.store }),
-    ).resolves.toMatchObject({
+    await expect(revokeMemberJoinLink({ tokenHash, store: memory.store })).resolves.toMatchObject({
       status: 'revoked',
       revokedAt: expect.any(String),
     });
@@ -270,10 +260,7 @@ describe('member join link helpers', () => {
       ...memory.store,
       async update(input: Parameters<MemberJoinLinkPersistence['update']>[0]) {
         updateCalls.push(input);
-        if (
-          input.changes.status &&
-          !('composite' in input && input.composite?.createdAt)
-        ) {
+        if (input.changes.status && !('composite' in input && input.composite?.createdAt)) {
           throw new Error('missing createdAt composite');
         }
 
@@ -297,9 +284,7 @@ describe('member join link helpers', () => {
       expiresAt: '2026-05-05T10:00:00.000Z',
     });
 
-    expect(buildMemberJoinLinkUrl({ request, token })).toBe(
-      `https://gridstay.app/join/${token}`,
-    );
+    expect(buildMemberJoinLinkUrl({ request, token })).toBe(`https://gridstay.app/join/${token}`);
     expect(
       readMemberJoinLinkTokenFromRequest({
         request: new Request('https://gridstay.app/auth/login', {
@@ -314,9 +299,7 @@ describe('member join link helpers', () => {
       readMemberJoinLinkTokenFromRequest({
         request: new Request('https://gridstay.app/auth/login', {
           headers: {
-            cookie: `grid_stay_join_token=%; other=${encodeURIComponent(
-              'safe value',
-            )}`,
+            cookie: `grid_stay_join_token=%; other=${encodeURIComponent('safe value')}`,
           },
         }),
       }),

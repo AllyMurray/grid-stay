@@ -25,9 +25,7 @@ type DatabaseHookContext = {
   headers?: Headers;
 };
 
-function readMemberJoinLinkTokenFromAuthContext(
-  ctx: DatabaseHookContext | null,
-) {
+function readMemberJoinLinkTokenFromAuthContext(ctx: DatabaseHookContext | null) {
   return readMemberJoinLinkTokenFromRequest({
     request: {
       headers: ctx?.request?.headers ?? ctx?.headers ?? new Headers(),
@@ -107,8 +105,7 @@ export const auth = betterAuth({
             user: {
               id: String(user.id),
               email: String(user.email),
-              name:
-                typeof user.name === 'string' ? user.name : String(user.email),
+              name: typeof user.name === 'string' ? user.name : String(user.email),
             },
           });
 

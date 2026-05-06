@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('~/lib/db/entities/calendar-feed.server', () => ({
   CalendarFeedEntity: {},
@@ -49,16 +49,8 @@ function createMemoryStore() {
 describe('calendar feed service', () => {
   it('creates a private feed once and returns the active feed afterwards', async () => {
     const memory = createMemoryStore();
-    const first = await ensureCalendarFeedForUser(
-      'user-1',
-      memory.store,
-      () => 'first-token',
-    );
-    const second = await ensureCalendarFeedForUser(
-      'user-1',
-      memory.store,
-      () => 'second-token',
-    );
+    const first = await ensureCalendarFeedForUser('user-1', memory.store, () => 'first-token');
+    const second = await ensureCalendarFeedForUser('user-1', memory.store, () => 'second-token');
 
     expect(second.tokenHash).toBe(first.tokenHash);
     expect(second.token).toBeUndefined();
@@ -76,24 +68,15 @@ describe('calendar feed service', () => {
 
   it('regenerates a feed and disables the previous token', async () => {
     const memory = createMemoryStore();
-    await ensureCalendarFeedForUser(
-      'user-1',
-      memory.store,
-      () => 'first-token',
-    );
+    await ensureCalendarFeedForUser('user-1', memory.store, () => 'first-token');
     const second = await regenerateCalendarFeedForUser(
       'user-1',
       memory.store,
       () => 'second-token',
     );
 
-    await expect(
-      getActiveCalendarFeedByToken('first-token', memory.store),
-    ).resolves.toBeNull();
-    const activeSecond = await getActiveCalendarFeedByToken(
-      'second-token',
-      memory.store,
-    );
+    await expect(getActiveCalendarFeedByToken('first-token', memory.store)).resolves.toBeNull();
+    const activeSecond = await getActiveCalendarFeedByToken('second-token', memory.store);
     expect(activeSecond?.tokenHash).toBe(second.tokenHash);
     expect(activeSecond?.token).toBeUndefined();
     expect(memory.items[0]?.revokedAt).toBeTruthy();
@@ -102,11 +85,7 @@ describe('calendar feed service', () => {
 
   it('updates feed options without changing the active token', async () => {
     const memory = createMemoryStore();
-    const feed = await ensureCalendarFeedForUser(
-      'user-1',
-      memory.store,
-      () => 'first-token',
-    );
+    const feed = await ensureCalendarFeedForUser('user-1', memory.store, () => 'first-token');
 
     const updated = await saveCalendarFeedOptionsForUser(
       'user-1',

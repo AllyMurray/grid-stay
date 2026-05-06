@@ -10,12 +10,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core';
-import {
-  IconCarGarage,
-  IconChecklist,
-  IconHotelService,
-  IconLock,
-} from '@tabler/icons-react';
+import { IconCarGarage, IconChecklist, IconHotelService, IconLock } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '~/components/layout/page-header';
@@ -27,11 +22,7 @@ import {
 } from '~/lib/bookings/accommodation';
 import { formatArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
-import type {
-  AvailableDay,
-  DayAttendanceSummary,
-  SharedAttendee,
-} from '~/lib/days/types';
+import type { AvailableDay, DayAttendanceSummary, SharedAttendee } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
 export interface OverviewGroupDay {
@@ -59,9 +50,7 @@ export interface DashboardIndexPageProps {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function typeColor(type: AvailableDay['type']) {
@@ -122,10 +111,7 @@ function OverviewHeaderSummary({
   accommodationPlanCount,
 }: Pick<
   DashboardIndexPageProps,
-  | 'availableDaysCount'
-  | 'daysThisMonth'
-  | 'activeBookingsCount'
-  | 'accommodationPlanCount'
+  'availableDaysCount' | 'daysThisMonth' | 'activeBookingsCount' | 'accommodationPlanCount'
 >) {
   return (
     <Stack gap={6} className="overview-header-summary">
@@ -162,16 +148,11 @@ function nextTripTasks(booking: BookingRecord, type?: AvailableDay['type']) {
     tasks.push('Set whether you need a hotel for this trip.');
   }
 
-  if (
-    hasBookedAccommodation(booking) &&
-    !booking.accommodationReference?.trim()
-  ) {
+  if (hasBookedAccommodation(booking) && !booking.accommodationReference?.trim()) {
     tasks.push('Add the hotel booking reference.');
   }
 
-  return tasks.length > 0
-    ? tasks
-    : ['Everything for this trip is already in place.'];
+  return tasks.length > 0 ? tasks : ['Everything for this trip is already in place.'];
 }
 
 function AttentionRow({
@@ -231,11 +212,7 @@ function AllClearPanel() {
         </Stack>
       </Group>
       <Group gap="sm" wrap="wrap">
-        <Button
-          component={Link}
-          to="/dashboard/group-calendar"
-          variant="default"
-        >
+        <Button component={Link} to="/dashboard/group-calendar" variant="default">
           Check group calendar
         </Button>
         <Button component={Link} to="/dashboard/days" variant="subtle">
@@ -263,20 +240,11 @@ function formatAttendeeLine(attendee: SharedAttendee) {
     .join(' • ');
 }
 
-function GroupContextPanel({
-  attendance,
-}: {
-  attendance: DayAttendanceSummary | null;
-}) {
+function GroupContextPanel({ attendance }: { attendance: DayAttendanceSummary | null }) {
   const activeAttendees =
-    attendance?.attendees.filter(
-      (attendee) => attendee.status !== 'cancelled',
-    ) ?? [];
+    attendance?.attendees.filter((attendee) => attendee.status !== 'cancelled') ?? [];
   const visibleAttendees = activeAttendees.slice(0, 4);
-  const extraAttendeeCount = Math.max(
-    activeAttendees.length - visibleAttendees.length,
-    0,
-  );
+  const extraAttendeeCount = Math.max(activeAttendees.length - visibleAttendees.length, 0);
   const accommodationNames = attendance?.accommodationNames ?? [];
   const garageOpenSpaceCount = attendance?.garageOpenSpaceCount ?? 0;
   const garageOwnerCount = attendance?.garageOwnerCount ?? 0;
@@ -401,9 +369,7 @@ function CompactBookingRow({
             {formatOverviewDate(booking.date)} • {booking.provider}
           </Text>
         </Stack>
-        <Badge color={bookingColor(booking.status)}>
-          {titleCase(booking.status)}
-        </Badge>
+        <Badge color={bookingColor(booking.status)}>{titleCase(booking.status)}</Badge>
       </Group>
 
       <Group gap="sm" wrap="wrap">
@@ -550,10 +516,7 @@ export function DashboardIndexPage({
         }
       />
 
-      <Paper
-        className="shell-card overview-focus-panel"
-        p={{ base: 'md', sm: 'xl' }}
-      >
+      <Paper className="shell-card overview-focus-panel" p={{ base: 'md', sm: 'xl' }}>
         {nextBooking || focusDay ? (
           <Stack gap="lg">
             <Group justify="space-between" align="flex-start" gap="lg">
@@ -561,32 +524,21 @@ export function DashboardIndexPage({
                 <Text size="sm" fw={700} c="brand.7">
                   Next trip
                 </Text>
-                <Title order={2}>
-                  {nextBooking?.circuit ?? focusDay?.circuit}
-                </Title>
+                <Title order={2}>{nextBooking?.circuit ?? focusDay?.circuit}</Title>
                 <Text size="sm" c="dimmed">
-                  {formatOverviewDate(
-                    nextBooking?.date ?? focusDay?.date ?? '',
-                  )}{' '}
-                  • {nextBooking?.provider ?? focusDay?.provider}
+                  {formatOverviewDate(nextBooking?.date ?? focusDay?.date ?? '')} •{' '}
+                  {nextBooking?.provider ?? focusDay?.provider}
                 </Text>
                 <Text size="sm">
-                  {nextBooking?.description ||
-                    focusDay?.description ||
-                    'No extra details'}
+                  {nextBooking?.description || focusDay?.description || 'No extra details'}
                 </Text>
               </Stack>
               <Group gap="xs" align="flex-start">
                 {nextTripType ? (
-                  <Badge color={typeColor(nextTripType)}>
-                    {titleCase(nextTripType)}
-                  </Badge>
+                  <Badge color={typeColor(nextTripType)}>{titleCase(nextTripType)}</Badge>
                 ) : null}
                 {nextBooking ? (
-                  <Badge
-                    color={bookingColor(nextBooking.status)}
-                    variant="light"
-                  >
+                  <Badge color={bookingColor(nextBooking.status)} variant="light">
                     {titleCase(nextBooking.status)}
                   </Badge>
                 ) : null}
@@ -595,10 +547,7 @@ export function DashboardIndexPage({
 
             <Divider />
 
-            <SimpleGrid
-              cols={{ base: 1, lg: 3 }}
-              spacing={{ base: 'md', sm: 'lg' }}
-            >
+            <SimpleGrid cols={{ base: 1, lg: 3 }} spacing={{ base: 'md', sm: 'lg' }}>
               <Stack gap="sm">
                 <Text fw={700}>Trip details</Text>
                 <Stack gap={8}>
@@ -626,21 +575,12 @@ export function DashboardIndexPage({
                 <Group gap="sm" mt="xs">
                   <Button
                     component={Link}
-                    to={
-                      nextBooking
-                        ? '/dashboard/bookings?view=manage'
-                        : '/dashboard/days'
-                    }
+                    to={nextBooking ? '/dashboard/bookings?view=manage' : '/dashboard/days'}
                     w="fit-content"
                   >
                     {nextBooking ? 'Edit booking' : 'Browse live days'}
                   </Button>
-                  <Button
-                    component={Link}
-                    to={focusDayHref}
-                    variant="default"
-                    w="fit-content"
-                  >
+                  <Button component={Link} to={focusDayHref} variant="default" w="fit-content">
                     View day
                   </Button>
                 </Group>
@@ -654,9 +594,8 @@ export function DashboardIndexPage({
             </Text>
             <Title order={3}>Nothing is lined up yet</Title>
             <Text size="sm" c="dimmed">
-              The live feed is waiting for the next refresh. As soon as dates
-              arrive, this page will surface the next event and the gaps worth
-              closing first.
+              The live feed is waiting for the next refresh. As soon as dates arrive, this page will
+              surface the next event and the gaps worth closing first.
             </Text>
             <Button component={Link} to="/dashboard/days" w="fit-content">
               Open available days
@@ -672,15 +611,11 @@ export function DashboardIndexPage({
               <Stack gap={2}>
                 <Title order={3}>What needs attention</Title>
                 <Text size="sm" c="dimmed">
-                  Clear these first so the next trip is not missing decisions,
-                  refs, or garage responses.
+                  Clear these first so the next trip is not missing decisions, refs, or garage
+                  responses.
                 </Text>
               </Stack>
-              <Button
-                component={Link}
-                to="/dashboard/bookings?view=manage"
-                variant="subtle"
-              >
+              <Button component={Link} to="/dashboard/bookings?view=manage" variant="subtle">
                 Review trips
               </Button>
             </Group>
@@ -741,15 +676,11 @@ export function DashboardIndexPage({
               <Stack gap={2}>
                 <Title order={3}>Upcoming trips</Title>
                 <Text size="sm" c="dimmed">
-                  Keep the next few dates, refs, and accommodation details
-                  visible without opening the editor first.
+                  Keep the next few dates, refs, and accommodation details visible without opening
+                  the editor first.
                 </Text>
               </Stack>
-              <Button
-                component={Link}
-                to="/dashboard/bookings"
-                variant="subtle"
-              >
+              <Button component={Link} to="/dashboard/bookings" variant="subtle">
                 Open all
               </Button>
             </Group>
@@ -766,16 +697,14 @@ export function DashboardIndexPage({
                           : 'Event booking ref'
                       }
                     />
-                    {index < Math.min(upcomingBookings.length, 3) - 1 ? (
-                      <Divider />
-                    ) : null}
+                    {index < Math.min(upcomingBookings.length, 3) - 1 ? <Divider /> : null}
                   </div>
                 ))}
               </Stack>
             ) : (
               <Text size="sm" c="dimmed">
-                Add the first trip from the live days feed and accommodation
-                progress will start here.
+                Add the first trip from the live days feed and accommodation progress will start
+                here.
               </Text>
             )}
           </Stack>
@@ -790,11 +719,7 @@ export function DashboardIndexPage({
                   Upcoming dates where other members already have plans.
                 </Text>
               </Stack>
-              <Button
-                component={Link}
-                to="/dashboard/group-calendar"
-                variant="subtle"
-              >
+              <Button component={Link} to="/dashboard/group-calendar" variant="subtle">
                 Group calendar
               </Button>
             </Group>
@@ -804,16 +729,14 @@ export function DashboardIndexPage({
                 {groupDays.slice(0, 3).map((groupDay, index) => (
                   <div key={groupDay.day.dayId}>
                     <OpportunityRow groupDay={groupDay} />
-                    {index < Math.min(groupDays.length, 3) - 1 ? (
-                      <Divider />
-                    ) : null}
+                    {index < Math.min(groupDays.length, 3) - 1 ? <Divider /> : null}
                   </div>
                 ))}
               </Stack>
             ) : (
               <Text size="sm" c="dimmed">
-                No group-booked days appear in the next feed preview yet. The
-                group calendar will show the full month view.
+                No group-booked days appear in the next feed preview yet. The group calendar will
+                show the full month view.
               </Text>
             )}
           </Stack>

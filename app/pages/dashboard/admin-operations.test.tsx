@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminOperationsPage } from './admin-operations';
 
@@ -54,12 +54,8 @@ describe('AdminOperationsPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Operations' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Failed to create available day notifications.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Operations' })).toBeInTheDocument();
+    expect(screen.getByText('Failed to create available day notifications.')).toBeInTheDocument();
     expect(screen.getByText('Member invite created.')).toBeInTheDocument();
     expect(screen.getByText('Admin One')).toBeInTheDocument();
     expect(

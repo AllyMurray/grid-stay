@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { ensureUserMemberAccess, getSession } = vi.hoisted(() => ({
   ensureUserMemberAccess: vi.fn(),
@@ -17,12 +17,7 @@ vi.mock('./member-invites.server', () => ({
   ensureUserMemberAccess,
 }));
 
-import {
-  getUser,
-  requireAdmin,
-  requireAnonymous,
-  requireUser,
-} from './helpers.server';
+import { getUser, requireAdmin, requireAnonymous, requireUser } from './helpers.server';
 
 describe('auth helpers', () => {
   beforeEach(() => {
@@ -98,9 +93,7 @@ describe('auth helpers', () => {
       },
     });
 
-    const result = await requireUser(
-      new Request('https://gridstay.app/dashboard'),
-    );
+    const result = await requireUser(new Request('https://gridstay.app/dashboard'));
 
     expect(result.user.email).toBe('driver@example.com');
     expect(ensureUserMemberAccess).toHaveBeenCalledWith(result.user);
@@ -128,9 +121,7 @@ describe('auth helpers', () => {
       },
     });
 
-    await expect(
-      requireUser(new Request('https://gridstay.app/dashboard')),
-    ).rejects.toMatchObject({
+    await expect(requireUser(new Request('https://gridstay.app/dashboard'))).rejects.toMatchObject({
       status: 403,
       statusText: 'Invite required',
     });
@@ -147,9 +138,7 @@ describe('auth helpers', () => {
       response: null,
     });
 
-    const result = await requireAnonymous(
-      new Request('https://gridstay.app/auth/login'),
-    );
+    const result = await requireAnonymous(new Request('https://gridstay.app/auth/login'));
 
     expect(result).toBe(headers);
   });

@@ -19,10 +19,7 @@ export interface GarageShareRequestPersistence {
   listAll(): Promise<GarageShareRequestRecord[]>;
 }
 
-function sortNewestFirst(
-  left: GarageShareRequestRecord,
-  right: GarageShareRequestRecord,
-) {
+function sortNewestFirst(left: GarageShareRequestRecord, right: GarageShareRequestRecord) {
   if (left.createdAt !== right.createdAt) {
     return right.createdAt.localeCompare(left.createdAt);
   }
@@ -57,18 +54,18 @@ export const garageShareRequestStore: GarageShareRequestPersistence = {
   },
   async listByDay(dayId) {
     const response = await GarageShareRequestEntity.query.byDay({ dayId }).go();
-    return response.data.sort(sortNewestFirst);
+    return response.data.toSorted(sortNewestFirst);
   },
   async listByOwner(ownerUserId) {
     const response = await GarageShareRequestEntity.query
       .byOwner({ garageOwnerUserId: ownerUserId })
       .go();
-    return response.data.sort(sortNewestFirst);
+    return response.data.toSorted(sortNewestFirst);
   },
   async listAll() {
     const response = await GarageShareRequestEntity.scan.go();
     return response.data
       .filter((record) => record.requestScope === GARAGE_SHARE_REQUEST_SCOPE)
-      .sort(sortNewestFirst);
+      .toSorted(sortNewestFirst);
   },
 };

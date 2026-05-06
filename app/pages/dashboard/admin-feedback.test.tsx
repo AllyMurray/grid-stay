@@ -2,14 +2,12 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { FeedbackThread } from '~/lib/db/services/feedback.server';
 import { theme } from '~/theme';
 import { AdminFeedbackPage } from './admin-feedback';
 
-function createFeedback(
-  overrides: Partial<FeedbackThread> = {},
-): FeedbackThread {
+function createFeedback(overrides: Partial<FeedbackThread> = {}): FeedbackThread {
   return {
     feedbackId: 'feedback-1',
     feedbackScope: 'feedback',
@@ -64,9 +62,7 @@ describe('AdminFeedbackPage', () => {
     expect(screen.getByText('Saved filter presets')).toBeVisible();
     expect(screen.getByText(/Driver One · driver@example.com/)).toBeVisible();
     expect(screen.getByText('Context: Available Days')).toBeVisible();
-    expect(
-      screen.getByText('We have added this to the next sprint.'),
-    ).toBeVisible();
+    expect(screen.getByText('We have added this to the next sprint.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Save status' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Send update' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeVisible();
@@ -78,9 +74,7 @@ describe('AdminFeedbackPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(
-      await screen.findByRole('button', { name: 'Delete feedback' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Delete feedback' })).toBeInTheDocument();
   });
 
   it('collapses done feedback until the admin expands it', async () => {

@@ -110,7 +110,7 @@ function groupCandidates(
 ): JourneyPlannerCandidate[] {
   const groups = new Map<string, JourneyPlannerDay[]>();
 
-  for (const day of [...days].sort(compareDays)) {
+  for (const day of [...days].toSorted(compareDays)) {
     const key = `${day.date}:${day.circuitId ?? day.circuit}`;
     const current = groups.get(key);
     if (current) {
@@ -132,10 +132,7 @@ function groupCandidates(
   });
 }
 
-function getSelectedDayIdsByDate(
-  days: JourneyPlannerDay[],
-  selectedDayIds: string[] | undefined,
-) {
+function getSelectedDayIdsByDate(days: JourneyPlannerDay[], selectedDayIds: string[] | undefined) {
   const daysById = new Map(days.map((day) => [day.dayId, day]));
   const selectedByDate = new Map<string, string>();
 
@@ -151,10 +148,7 @@ function getSelectedDayIdsByDate(
   return selectedByDate;
 }
 
-function getOptionReason(
-  option: JourneyPlannerDay,
-  selected: JourneyPlannerDay,
-) {
+function getOptionReason(option: JourneyPlannerDay, selected: JourneyPlannerDay) {
   if (!option.circuitId || option.circuitKnown === false) {
     return 'Distance unavailable';
   }
@@ -198,7 +192,7 @@ function buildStopOptions(
 ): JourneyPlannerStopOption[] {
   return candidateDays
     .filter((day) => day.date === selected.date)
-    .sort(compareDays)
+    .toSorted(compareDays)
     .map((day) => ({
       day,
       selected: day.dayId === selected.dayId,
@@ -216,11 +210,7 @@ function buildRecommendedStops(
   }
 
   return route.stops.map((stop, index) => {
-    const options = buildStopOptions(
-      candidateDays,
-      stop.day,
-      stop.recommendedDayId,
-    );
+    const options = buildStopOptions(candidateDays, stop.day, stop.recommendedDayId);
 
     return {
       ...stop,
@@ -311,11 +301,7 @@ function bestRoute(
         continue;
       }
 
-      const distance = getDistanceLeg(
-        matrix,
-        previous.day.circuitId,
-        candidate.day.circuitId,
-      );
+      const distance = getDistanceLeg(matrix, previous.day.circuitId, candidate.day.circuitId);
       if (!distance || distance.miles > maxMiles) {
         continue;
       }
@@ -325,8 +311,7 @@ function bestRoute(
         stops: [...previousRoute.stops, candidate],
         legs: [...previousRoute.legs, buildLeg(previous, candidate, distance)],
         totalMiles: round(previousRoute.totalMiles + distance.miles),
-        totalDurationMinutes:
-          previousRoute.totalDurationMinutes + distance.durationMinutes,
+        totalDurationMinutes: previousRoute.totalDurationMinutes + distance.durationMinutes,
       };
 
       if (compareRouteStates(nextRoute, candidateBest) < 0) {
@@ -353,9 +338,7 @@ function buildKnownCandidates(
         candidate,
       ): candidate is JourneyPlannerCandidate & {
         day: JourneyPlannerDay & { circuitId: string };
-      } =>
-        Boolean(candidate.day.circuitId) &&
-        candidate.day.circuitKnown !== false,
+      } => Boolean(candidate.day.circuitId) && candidate.day.circuitKnown !== false,
     )
     .map((candidate) => ({
       ...candidate,
@@ -364,10 +347,7 @@ function buildKnownCandidates(
     }));
 }
 
-function buildCandidateMap(
-  candidates: JourneyPlannerCandidate[],
-  selectedDayIds: Set<string>,
-) {
+function buildCandidateMap(candidates: JourneyPlannerCandidate[], selectedDayIds: Set<string>) {
   const map = new Map<string, CandidateStop>();
 
   for (const candidate of candidates) {
@@ -403,9 +383,7 @@ function buildFixedRoute(
 
   const stops = recommendedRoute.stops.map((recommendedStop) => {
     const selectedDayId = selectedByDate.get(recommendedStop.day.date);
-    const selectedStop = selectedDayId
-      ? candidateByDayId.get(selectedDayId)
-      : null;
+    const selectedStop = selectedDayId ? candidateByDayId.get(selectedDayId) : null;
     const nextStop = selectedStop ?? recommendedStop;
 
     return {
@@ -421,11 +399,7 @@ function buildFixedRoute(
   for (let index = 1; index < stops.length; index += 1) {
     const previous = stops[index - 1]!;
     const next = stops[index]!;
-    const distance = getDistanceLeg(
-      matrix,
-      previous.day.circuitId,
-      next.day.circuitId,
-    );
+    const distance = getDistanceLeg(matrix, previous.day.circuitId, next.day.circuitId);
 
     if (!distance) {
       continue;
@@ -452,29 +426,15 @@ export function buildJourneyPlannerResult(
     matrix: CircuitDistanceMatrix | null;
   },
 ): JourneyPlannerResult {
-  const candidateDays = days.filter((day) =>
-    isWithinRange(day, options.start, options.end),
-  );
-  const selectedByDate = getSelectedDayIdsByDate(
-    candidateDays,
-    options.selectedDayIds,
-  );
+  const candidateDays = days.filter((day) => isWithinRange(day, options.start, options.end));
+  const selectedByDate = getSelectedDayIdsByDate(candidateDays, options.selectedDayIds);
   const selectedDayIds = new Set(selectedByDate.values());
   const groupedCandidates = groupCandidates(candidateDays, new Set());
-  const selectedGroupedCandidates = groupCandidates(
-    candidateDays,
-    selectedDayIds,
-  );
+  const selectedGroupedCandidates = groupCandidates(candidateDays, selectedDayIds);
   const knownCandidates = buildKnownCandidates(groupedCandidates, new Set());
-  const candidateByDayId = buildCandidateMap(
-    selectedGroupedCandidates,
-    selectedDayIds,
-  );
+  const candidateByDayId = buildCandidateMap(selectedGroupedCandidates, selectedDayIds);
   const unknownDistanceDays = groupedCandidates
-    .filter(
-      (candidate) =>
-        !candidate.day.circuitId || candidate.day.circuitKnown === false,
-    )
+    .filter((candidate) => !candidate.day.circuitId || candidate.day.circuitKnown === false)
     .map((candidate) => candidate.day);
 
   if (groupedCandidates.length === 0) {
@@ -511,11 +471,7 @@ export function buildJourneyPlannerResult(
     };
   }
 
-  const recommendedRoute = bestRoute(
-    knownCandidates,
-    distanceResult.matrix,
-    options.maxMiles,
-  );
+  const recommendedRoute = bestRoute(knownCandidates, distanceResult.matrix, options.maxMiles);
   const route =
     selectedDayIds.size > 0
       ? buildFixedRoute(
@@ -527,9 +483,7 @@ export function buildJourneyPlannerResult(
         )
       : recommendedRoute;
   const effectiveSelectedDayIds =
-    route?.stops
-      .filter((stop) => stop.selectedByUser)
-      .map((stop) => stop.day.dayId) ?? [];
+    route?.stops.filter((stop) => stop.selectedByUser).map((stop) => stop.day.dayId) ?? [];
 
   return {
     status: distanceResult.status,

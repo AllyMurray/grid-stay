@@ -17,9 +17,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const view = url.searchParams.get('view');
 
   return redirect(
-    view === 'calendar'
-      ? '/dashboard/bookings?view=calendar'
-      : '/dashboard/bookings',
+    view === 'calendar' ? '/dashboard/bookings?view=calendar' : '/dashboard/bookings',
     { headers },
   );
 }
@@ -31,20 +29,10 @@ export async function action({ request }: Route.ActionArgs) {
   const options = parseCalendarFeedOptionsFromFormData(formData);
   const feed =
     intent === 'regenerateCalendarFeed'
-      ? await regenerateCalendarFeedForUser(
-          user.id,
-          undefined,
-          undefined,
-          options,
-        )
+      ? await regenerateCalendarFeedForUser(user.id, undefined, undefined, options)
       : intent === 'saveCalendarFeedOptions'
         ? await saveCalendarFeedOptionsForUser(user.id, options)
-        : await ensureCalendarFeedForUser(
-            user.id,
-            undefined,
-            undefined,
-            options,
-          );
+        : await ensureCalendarFeedForUser(user.id, undefined, undefined, options);
 
   await recordAppEventSafely({
     category: 'audit',

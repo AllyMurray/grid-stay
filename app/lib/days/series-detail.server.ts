@@ -76,34 +76,27 @@ export async function loadRaceSeriesDetail(
     loadManualDays(),
     loadBookings(user.id),
   ]);
-  const bookingStatusByDayId = new Map(
-    bookings.map((booking) => [booking.dayId, booking.status]),
-  );
+  const bookingStatusByDayId = new Map(bookings.map((booking) => [booking.dayId, booking.status]));
   const seriesDays = [...(snapshot?.days ?? []), ...manualDays]
     .map(normalizeAvailableDayCircuit)
     .filter((day) => getLinkedSeriesKey(day) === normalizedSeriesKey)
-    .sort(compareAvailableDays);
+    .toSorted(compareAvailableDays);
 
   if (seriesDays.length === 0) {
     return null;
   }
 
   const seriesName =
-    seriesDays
-      .map(getLinkedSeriesName)
-      .find((name): name is string => Boolean(name)) ?? normalizedSeriesKey;
-  const rounds = seriesDays.map((day) =>
-    toRound(day, bookingStatusByDayId.get(day.dayId)),
-  );
+    seriesDays.map(getLinkedSeriesName).find((name): name is string => Boolean(name)) ??
+    normalizedSeriesKey;
+  const rounds = seriesDays.map((day) => toRound(day, bookingStatusByDayId.get(day.dayId)));
 
   return {
     seriesKey: normalizedSeriesKey,
     seriesName,
     roundCount: rounds.length,
-    bookedCount: rounds.filter((round) => round.myBookingStatus === 'booked')
-      .length,
-    maybeCount: rounds.filter((round) => round.myBookingStatus === 'maybe')
-      .length,
+    bookedCount: rounds.filter((round) => round.myBookingStatus === 'booked').length,
+    maybeCount: rounds.filter((round) => round.myBookingStatus === 'maybe').length,
     manualRoundCount: rounds.filter((round) => round.isManual).length,
     rounds,
   };

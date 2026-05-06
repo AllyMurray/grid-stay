@@ -62,6 +62,4 @@ export const DayNotificationReadEntity = new Entity(
 );
 
 export type DayNotificationRecord = EntityItem<typeof DayNotificationEntity>;
-export type DayNotificationReadRecord = EntityItem<
-  typeof DayNotificationReadEntity
->;
+export type DayNotificationReadRecord = EntityItem<typeof DayNotificationReadEntity>;

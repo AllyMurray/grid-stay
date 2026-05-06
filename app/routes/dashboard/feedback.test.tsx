@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireUser } = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -80,10 +80,7 @@ describe('feedback route', () => {
     const formData = new FormData();
     formData.set('type', 'feature_request');
     formData.set('title', 'Saved filter presets');
-    formData.set(
-      'message',
-      'Please let me save several available-day filters.',
-    );
+    formData.set('message', 'Please let me save several available-day filters.');
     const request = new Request('https://gridstay.app/dashboard/feedback', {
       method: 'POST',
       body: formData,

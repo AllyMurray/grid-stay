@@ -23,19 +23,9 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import {
-  Schedule,
-  type ScheduleEventData,
-  type ScheduleViewLevel,
-} from '@mantine/schedule';
+import { Schedule, type ScheduleEventData, type ScheduleViewLevel } from '@mantine/schedule';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Form,
-  Link,
-  useFetcher,
-  useNavigate,
-  useSearchParams,
-} from 'react-router';
+import { Form, Link, useFetcher, useNavigate, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
 import {
@@ -61,14 +51,8 @@ import type {
   DaysIndexData,
 } from '~/lib/days/dashboard-feed.server';
 import type { JourneyPlannerResult } from '~/lib/days/journey-planner';
-import type {
-  DaysPreferenceActionResult,
-  SavedDaysFilters,
-} from '~/lib/days/preferences.server';
-import type {
-  SharedDayPlan,
-  SharedDayPlanActionResult,
-} from '~/lib/days/shared-plan.server';
+import type { DaysPreferenceActionResult, SavedDaysFilters } from '~/lib/days/preferences.server';
+import type { SharedDayPlan, SharedDayPlanActionResult } from '~/lib/days/shared-plan.server';
 import type {
   DayAttendanceSummary as DayAttendanceDetails,
   GarageShareOption,
@@ -87,9 +71,7 @@ export interface AvailableDaysPageProps {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function compareDayRows(left: DayRow, right: DayRow) {
@@ -121,13 +103,10 @@ function mergeDayRows(primary: DayRow[], secondary: DayRow[]): DayRow[] {
     seenDayIds.add(day.dayId);
   }
 
-  return merged.sort(compareDayRows);
+  return merged.toSorted(compareDayRows);
 }
 
-function createDaysFeedHref(
-  filters: DaysIndexData['filters'],
-  offset: number,
-): string {
+function createDaysFeedHref(filters: DaysIndexData['filters'], offset: number): string {
   const params = new URLSearchParams();
   if (filters.month) {
     params.set('month', filters.month);
@@ -160,10 +139,7 @@ interface DaysViewState {
   plannerDayIds?: string[];
 }
 
-function appendDaysViewState(
-  params: URLSearchParams,
-  viewState?: DaysViewState,
-) {
+function appendDaysViewState(params: URLSearchParams, viewState?: DaysViewState) {
   if (!viewState || viewState.view === 'list') {
     return;
   }
@@ -222,10 +198,7 @@ function createDaysIndexHref(
   return query ? `/dashboard/days?${query}` : '/dashboard/days';
 }
 
-function createDaysViewHref(
-  filters: DaysIndexData['filters'],
-  viewState: DaysViewState,
-) {
+function createDaysViewHref(filters: DaysIndexData['filters'], viewState: DaysViewState) {
   return createDaysIndexHref(filters, null, null, viewState);
 }
 
@@ -236,9 +209,7 @@ function replacePlannerSelection(
   shouldSelect = true,
 ) {
   const dayIdsForDateSet = new Set(dayIdsForDate);
-  const remainingDayIds = (currentDayIds ?? []).filter(
-    (dayId) => !dayIdsForDateSet.has(dayId),
-  );
+  const remainingDayIds = (currentDayIds ?? []).filter((dayId) => !dayIdsForDateSet.has(dayId));
 
   return shouldSelect ? [...remainingDayIds, nextDayId] : remainingDayIds;
 }
@@ -294,11 +265,7 @@ function AvailableDaysHeaderMeta({
   );
 }
 
-function DaysFilterHiddenInputs({
-  filters,
-}: {
-  filters: DaysIndexData['filters'];
-}) {
+function DaysFilterHiddenInputs({ filters }: { filters: DaysIndexData['filters'] }) {
   return (
     <>
       <input type="hidden" name="month" value={filters.month} />
@@ -308,9 +275,7 @@ function DaysFilterHiddenInputs({
       ))}
       <input type="hidden" name="provider" value={filters.provider} />
       <input type="hidden" name="type" value={filters.type} />
-      {filters.showPast ? (
-        <input type="hidden" name="showPast" value="true" />
-      ) : null}
+      {filters.showPast ? <input type="hidden" name="showPast" value="true" /> : null}
     </>
   );
 }
@@ -327,11 +292,7 @@ function DaysViewHiddenInputs({ viewState }: { viewState: DaysViewState }) {
         <>
           <input type="hidden" name="start" value={viewState.start ?? ''} />
           <input type="hidden" name="end" value={viewState.end ?? ''} />
-          <input
-            type="hidden"
-            name="maxMiles"
-            value={String(viewState.maxMiles ?? '')}
-          />
+          <input type="hidden" name="maxMiles" value={String(viewState.maxMiles ?? '')} />
           {(viewState.plannerDayIds ?? []).map((dayId) => (
             <input key={dayId} type="hidden" name="plannerDay" value={dayId} />
           ))}
@@ -341,10 +302,7 @@ function DaysViewHiddenInputs({ viewState }: { viewState: DaysViewState }) {
   );
 }
 
-function getSeriesFilterLabel(
-  value: string,
-  options: DaysIndexData['seriesOptions'],
-) {
+function getSeriesFilterLabel(value: string, options: DaysIndexData['seriesOptions']) {
   return options.find((option) => option.value === value)?.label ?? value;
 }
 
@@ -365,13 +323,8 @@ function formatSavedFilterSummary(
 }
 
 function getMemberEventFieldError(
-  fieldErrors:
-    | Extract<MemberEventActionResult, { ok: false }>['fieldErrors']
-    | undefined,
-  fieldName: keyof Extract<
-    MemberEventActionResult,
-    { ok: false }
-  >['fieldErrors'],
+  fieldErrors: Extract<MemberEventActionResult, { ok: false }>['fieldErrors'] | undefined,
+  fieldName: keyof Extract<MemberEventActionResult, { ok: false }>['fieldErrors'],
 ) {
   return fieldErrors?.[fieldName]?.[0];
 }
@@ -380,22 +333,16 @@ function MemberEventForm({ onClose }: { onClose: () => void }) {
   const fetcher = useFetcher<MemberEventActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const success = fetcher.data?.ok ? fetcher.data : null;
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
     <Stack gap="md">
       <Text size="sm" c="dimmed">
-        Add missing track days, club days, or group road drives to the shared
-        calendar for everyone.
+        Add missing track days, club days, or group road drives to the shared calendar for everyone.
       </Text>
 
-      <fetcher.Form
-        method="post"
-        key={success?.day.dayId ?? 'member-event-form'}
-      >
+      <fetcher.Form method="post" key={success?.day.dayId ?? 'member-event-form'}>
         <Stack gap="md">
           <input type="hidden" name="intent" value="createMemberEvent" />
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
@@ -460,10 +407,7 @@ function MemberEventForm({ onClose }: { onClose: () => void }) {
           />
 
           <Group justify="space-between" gap="sm" align="center">
-            <Text
-              size="sm"
-              c={formError ? 'red' : success ? 'green' : 'dimmed'}
-            >
+            <Text size="sm" c={formError ? 'red' : success ? 'green' : 'dimmed'}>
               {formError ??
                 success?.message ??
                 'Saved events appear in Available Days for everyone.'}
@@ -583,9 +527,7 @@ interface LoadedDaysState {
 }
 
 function createLoadedDaysState(data: DaysIndexData): LoadedDaysState {
-  const days = data.selectedDay
-    ? mergeDayRows([data.selectedDay], data.days)
-    : data.days;
+  const days = data.selectedDay ? mergeDayRows([data.selectedDay], data.days) : data.days;
 
   return {
     filterKey: data.filterKey,
@@ -594,9 +536,7 @@ function createLoadedDaysState(data: DaysIndexData): LoadedDaysState {
     attendanceSummaries: data.selectedDay
       ? {
           ...data.attendanceSummaries,
-          ...(data.selectedDaySummary
-            ? { [data.selectedDay.dayId]: data.selectedDaySummary }
-            : {}),
+          ...(data.selectedDaySummary ? { [data.selectedDay.dayId]: data.selectedDaySummary } : {}),
         }
       : data.attendanceSummaries,
     totalCount: data.totalCount,
@@ -744,9 +684,7 @@ function getSavedStayCountLabel(count: number) {
   return count === 1 ? '1 saved stay' : `${count} saved stays`;
 }
 
-function groupAttendeesByStatus(
-  attendees: SharedAttendee[],
-): AttendeeStatusGroup[] {
+function groupAttendeesByStatus(attendees: SharedAttendee[]): AttendeeStatusGroup[] {
   return [
     {
       key: 'booked',
@@ -761,16 +699,12 @@ function groupAttendeesByStatus(
     {
       key: 'cancelled',
       label: 'Cancelled',
-      attendees: attendees.filter(
-        (attendee) => attendee.status === 'cancelled',
-      ),
+      attendees: attendees.filter((attendee) => attendee.status === 'cancelled'),
     },
   ];
 }
 
-function groupAttendeesBySharedStay(
-  attendees: SharedAttendee[],
-): SharedStayGroup[] {
+function groupAttendeesBySharedStay(attendees: SharedAttendee[]): SharedStayGroup[] {
   const groups = new Map<string, SharedAttendee[]>();
 
   for (const attendee of attendees) {
@@ -803,25 +737,17 @@ function groupAttendeesBySharedStay(
       accommodationStatus: resolveAccommodationStatus(groupAttendees[0]!),
       attendees: groupAttendees,
     }))
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       const statusCompare =
-        statusOrder[left.accommodationStatus] -
-        statusOrder[right.accommodationStatus];
+        statusOrder[left.accommodationStatus] - statusOrder[right.accommodationStatus];
       return statusCompare || left.label.localeCompare(right.label);
     });
 }
 
-function DayBookingAction({
-  day,
-  booking,
-}: {
-  day: DayRow;
-  booking?: DayBookingSnapshot;
-}) {
+function DayBookingAction({ day, booking }: { day: DayRow; booking?: DayBookingSnapshot }) {
   const fetcher = useFetcher<CreateBookingActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   if (booking) {
     return (
@@ -886,14 +812,7 @@ function DayProviderBookingLink({ day }: { day: DayRow }) {
   }
 
   return (
-    <Anchor
-      component="a"
-      href={day.bookingUrl}
-      target="_blank"
-      rel="noreferrer"
-      size="sm"
-      fw={700}
-    >
+    <Anchor component="a" href={day.bookingUrl} target="_blank" rel="noreferrer" size="sm" fw={700}>
       Book on provider site
     </Anchor>
   );
@@ -912,13 +831,9 @@ function SeriesBookingAction({
 }) {
   const fetcher = useFetcher<BulkRaceSeriesBookingActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const missingCount = Math.max(
-    series.totalCount - series.existingBookingCount,
-    0,
-  );
+  const missingCount = Math.max(series.totalCount - series.existingBookingCount, 0);
   const successResult = fetcher.data?.ok ? fetcher.data : null;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const successMessage = successResult
     ? `Added ${successResult.addedCount} ${
         successResult.addedCount === 1 ? 'event' : 'events'
@@ -933,8 +848,8 @@ function SeriesBookingAction({
         {series.name}
       </Text>
       <Text size="xs" c="dimmed">
-        {formatRaceSeriesCount(series.totalCount)} •{' '}
-        {series.existingBookingCount} already in My Bookings
+        {formatRaceSeriesCount(series.totalCount)} • {series.existingBookingCount} already in My
+        Bookings
       </Text>
       <Text size="xs" c="dimmed">
         Existing event bookings keep their status and notes.
@@ -1023,9 +938,7 @@ function DayListItem({
       to={href}
       preventScrollReset
       aria-current={selected ? 'page' : undefined}
-      aria-label={`${selected ? 'Hide details for' : 'View details for'} ${
-        day.circuit
-      }`}
+      aria-label={`${selected ? 'Hide details for' : 'View details for'} ${day.circuit}`}
       className="day-list-item"
       data-active={selected || undefined}
     >
@@ -1041,23 +954,14 @@ function DayListItem({
           </Stack>
 
           <Stack gap={6} style={{ flex: 1, minWidth: 0 }}>
-            <Group
-              justify="space-between"
-              align="flex-start"
-              wrap="nowrap"
-              gap="sm"
-            >
+            <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
               <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
                 <Group gap="xs" wrap="wrap">
                   <Text fw={700} lineClamp={1}>
                     {day.circuit}
                   </Text>
                   {session.label ? (
-                    <Badge
-                      variant="light"
-                      color={typeColor(day.type)}
-                      size="sm"
-                    >
+                    <Badge variant="light" color={typeColor(day.type)} size="sm">
                       {session.label}
                     </Badge>
                   ) : null}
@@ -1072,11 +976,7 @@ function DayListItem({
                   {titleCase(day.type)}
                 </Badge>
                 {booking ? (
-                  <Badge
-                    color={bookingColor(booking.status)}
-                    variant="light"
-                    size="sm"
-                  >
+                  <Badge color={bookingColor(booking.status)} variant="light" size="sm">
                     {titleCase(booking.status)}
                   </Badge>
                 ) : null}
@@ -1169,7 +1069,7 @@ function buildAvailableDayCalendarEvents(
 function groupDaysByDate(days: DayRow[]) {
   const groups = new Map<string, DayRow[]>();
 
-  for (const day of [...days].sort(compareDayRows)) {
+  for (const day of [...days].toSorted(compareDayRows)) {
     const current = groups.get(day.date);
     if (current) {
       current.push(day);
@@ -1217,7 +1117,7 @@ function AvailableDaysCalendarPanel({
   const [currentDate, setCurrentDate] = useState(days[0]?.date ?? '');
   const [selectedDate, setSelectedDate] = useState(days[0]?.date ?? '');
   const daysForSelectedDate = selectedDate
-    ? days.filter((day) => day.date === selectedDate).sort(compareDayRows)
+    ? days.filter((day) => day.date === selectedDate).toSorted(compareDayRows)
     : [];
 
   useEffect(() => {
@@ -1245,8 +1145,8 @@ function AvailableDaysCalendarPanel({
         <Stack gap={2}>
           <Title order={3}>Calendar</Title>
           <Text size="sm" c="dimmed">
-            {days.length} matching {days.length === 1 ? 'day' : 'days'} across{' '}
-            {groupedDays.length} {groupedDays.length === 1 ? 'date' : 'dates'}.
+            {days.length} matching {days.length === 1 ? 'day' : 'days'} across {groupedDays.length}{' '}
+            {groupedDays.length === 1 ? 'date' : 'dates'}.
           </Text>
         </Stack>
         <DayTypeLegend />
@@ -1293,8 +1193,7 @@ function AvailableDaysCalendarPanel({
           <Group justify="space-between" align="center">
             <Text fw={800}>{formatDayLongDate(selectedDate)}</Text>
             <Badge variant="light" color="brand">
-              {daysForSelectedDate.length}{' '}
-              {daysForSelectedDate.length === 1 ? 'day' : 'days'}
+              {daysForSelectedDate.length} {daysForSelectedDate.length === 1 ? 'day' : 'days'}
             </Badge>
           </Group>
           <DayListPanel
@@ -1345,18 +1244,8 @@ function PlannerRangeForm({
           <input key={dayId} type="hidden" name="plannerDay" value={dayId} />
         ))}
         <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-          <TextInput
-            type="date"
-            name="start"
-            label="Start date"
-            defaultValue={planner.start}
-          />
-          <TextInput
-            type="date"
-            name="end"
-            label="End date"
-            defaultValue={planner.end}
-          />
+          <TextInput type="date" name="start" label="Start date" defaultValue={planner.start} />
+          <TextInput type="date" name="end" label="End date" defaultValue={planner.end} />
           <NumberInput
             name="maxMiles"
             label="Max miles between tracks"
@@ -1423,15 +1312,13 @@ function JourneyPlannerPanel({
   filters: DaysIndexData['filters'];
   viewState: DaysViewState;
 }) {
-  const distanceUnavailable =
-    planner.status === 'missing' || planner.status === 'unavailable';
+  const distanceUnavailable = planner.status === 'missing' || planner.status === 'unavailable';
 
   return (
     <Stack gap="lg">
       <Group justify="space-between" align="center" gap="md">
         <Text size="sm" c="dimmed">
-          {planner.candidateCount} matching{' '}
-          {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
+          {planner.candidateCount} matching {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
           {planner.start || 'any date'} to {planner.end || 'any date'}.
         </Text>
         <Group gap="xs">
@@ -1464,18 +1351,15 @@ function JourneyPlannerPanel({
           title="No days in that range"
           description="Adjust the dates or widen the feed filters to bring more track dates into the planner."
           action={
-            <Button
-              component={Link}
-              to={createDaysViewHref(filters, viewState)}
-            >
+            <Button component={Link} to={createDaysViewHref(filters, viewState)}>
               Reset planner
             </Button>
           }
         />
       ) : distanceUnavailable ? (
         <Alert color="yellow" variant="light">
-          Distance matrix unavailable. Calendar and list views still work while
-          the road-distance cache is refreshed.
+          Distance matrix unavailable. Calendar and list views still work while the road-distance
+          cache is refreshed.
         </Alert>
       ) : planner.stops.length === 0 ? (
         <EmptyStateCard
@@ -1486,10 +1370,7 @@ function JourneyPlannerPanel({
         <Stack gap="md">
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
             <DetailMetric label="Stops" value={String(planner.stops.length)} />
-            <DetailMetric
-              label="Road miles"
-              value={formatPlannerDistance(planner.totalMiles)}
-            />
+            <DetailMetric label="Road miles" value={formatPlannerDistance(planner.totalMiles)} />
             <DetailMetric
               label="Drive time"
               value={formatPlannerDuration(planner.totalDurationMinutes)}
@@ -1499,12 +1380,8 @@ function JourneyPlannerPanel({
           <Stack gap={0}>
             {planner.stops.map((stop, index) => {
               const leg = index > 0 ? planner.legs[index - 1] : null;
-              const optionDayIdsForDate = stop.options.map(
-                (option) => option.day.dayId,
-              );
-              const otherOptions = stop.options.filter(
-                (option) => !option.selected,
-              );
+              const optionDayIdsForDate = stop.options.map((option) => option.day.dayId);
+              const otherOptions = stop.options.filter((option) => !option.selected);
 
               return (
                 <Fragment key={stop.day.dayId}>
@@ -1519,27 +1396,17 @@ function JourneyPlannerPanel({
                         </Badge>
                       ) : null}
                       <Text size="sm" c="dimmed">
-                        {formatPlannerDuration(leg.durationMinutes)} from{' '}
-                        {leg.fromCircuit}
+                        {formatPlannerDuration(leg.durationMinutes)} from {leg.fromCircuit}
                       </Text>
                     </Group>
                   ) : null}
-                  <Group
-                    py="sm"
-                    justify="space-between"
-                    align="flex-start"
-                    gap="md"
-                    wrap="nowrap"
-                  >
+                  <Group py="sm" justify="space-between" align="flex-start" gap="md" wrap="nowrap">
                     <Stack gap={4} style={{ minWidth: 0 }}>
                       <Group gap="xs" wrap="wrap">
                         <Badge color="brand" variant="light">
                           Stop {index + 1}
                         </Badge>
-                        <Badge
-                          color={stop.selectedByUser ? 'blue' : 'green'}
-                          variant="light"
-                        >
+                        <Badge color={stop.selectedByUser ? 'blue' : 'green'} variant="light">
                           {stop.selectedByUser ? 'Selected' : 'Recommended'}
                         </Badge>
                         <Badge color={typeColor(stop.day.type)} variant="light">
@@ -1566,12 +1433,7 @@ function JourneyPlannerPanel({
                     </Stack>
                     <Button
                       component={Link}
-                      to={createDaysIndexHref(
-                        filters,
-                        stop.day.dayId,
-                        null,
-                        viewState,
-                      )}
+                      to={createDaysIndexHref(filters, stop.day.dayId, null, viewState)}
                       variant="default"
                       size="sm"
                       preventScrollReset
@@ -1594,27 +1456,18 @@ function JourneyPlannerPanel({
                         >
                           <Stack gap={2} style={{ minWidth: 0 }}>
                             <Group gap="xs" wrap="wrap">
-                              <Badge
-                                color={typeColor(option.day.type)}
-                                variant="light"
-                              >
+                              <Badge color={typeColor(option.day.type)} variant="light">
                                 {titleCase(option.day.type)}
                               </Badge>
-                              <Badge
-                                color={option.recommended ? 'green' : 'gray'}
-                                variant="light"
-                              >
-                                {option.recommended
-                                  ? 'Recommended'
-                                  : option.reason}
+                              <Badge color={option.recommended ? 'green' : 'gray'} variant="light">
+                                {option.recommended ? 'Recommended' : option.reason}
                               </Badge>
                             </Group>
                             <Text size="sm" fw={700} lineClamp={1}>
                               {option.day.circuit}
                             </Text>
                             <Text size="xs" c="dimmed" lineClamp={1}>
-                              {option.day.provider} •{' '}
-                              {getDaySessionText(option.day)}
+                              {option.day.provider} • {getDaySessionText(option.day)}
                             </Text>
                           </Stack>
                           <Button
@@ -1654,10 +1507,8 @@ function JourneyPlannerPanel({
           <Stack gap="sm">
             <Text size="sm">
               {planner.unknownDistanceDays.length}{' '}
-              {planner.unknownDistanceDays.length === 1
-                ? 'day has'
-                : 'days have'}{' '}
-              no circuit coordinates yet.
+              {planner.unknownDistanceDays.length === 1 ? 'day has' : 'days have'} no circuit
+              coordinates yet.
             </Text>
             <PlannerCandidateList
               days={planner.unknownDistanceDays as DayRow[]}
@@ -1724,25 +1575,14 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
               aria-expanded={isOpen}
               aria-label={`${isOpen ? 'Hide' : 'View'} ${group.label} attendees`}
               onClick={() =>
-                setOpenGroupKey((current) =>
-                  current === group.key ? null : group.key,
-                )
+                setOpenGroupKey((current) => (current === group.key ? null : group.key))
               }
             >
               <Group justify="space-between" align="flex-start" gap="md">
-                <Group
-                  gap="sm"
-                  align="center"
-                  wrap="nowrap"
-                  className="attendee-roster-summary"
-                >
+                <Group gap="sm" align="center" wrap="nowrap" className="attendee-roster-summary">
                   <Stack gap={6} className="attendee-roster-summary-copy">
                     <Group gap="xs" wrap="wrap">
-                      <Badge
-                        variant="light"
-                        color={bookingColor(group.key)}
-                        size="sm"
-                      >
+                      <Badge variant="light" color={bookingColor(group.key)} size="sm">
                         {group.label}
                       </Badge>
                       <Text size="sm" fw={700}>
@@ -1755,9 +1595,7 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
                   </Stack>
                 </Group>
                 <Text size="sm" fw={700} c={isOpen ? 'brand.7' : 'dimmed'}>
-                  <span className="row-toggle-label">
-                    {isOpen ? 'Hide' : 'View'}
-                  </span>
+                  <span className="row-toggle-label">{isOpen ? 'Hide' : 'View'}</span>
                 </Text>
               </Group>
             </UnstyledButton>
@@ -1773,11 +1611,7 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
 
                       return (
                         <Fragment key={attendee.bookingId}>
-                          <Group
-                            justify="space-between"
-                            align="flex-start"
-                            gap="md"
-                          >
+                          <Group justify="space-between" align="flex-start" gap="md">
                             <Text size="sm" fw={600}>
                               {attendee.userName}
                             </Text>
@@ -1792,9 +1626,7 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
                               ) : null}
                             </Stack>
                           </Group>
-                          {attendeeIndex < group.attendees.length - 1 ? (
-                            <Divider />
-                          ) : null}
+                          {attendeeIndex < group.attendees.length - 1 ? <Divider /> : null}
                         </Fragment>
                       );
                     })}
@@ -1826,11 +1658,9 @@ function SharedStayAction({
 }) {
   const fetcher = useFetcher<SharedStaySelectionActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const isCurrentSelection =
-    booking?.status !== 'cancelled' &&
-    booking?.accommodationName?.trim() === accommodationName;
+    booking?.status !== 'cancelled' && booking?.accommodationName?.trim() === accommodationName;
   const buttonLabel = isCurrentSelection
     ? 'Joined'
     : booking
@@ -1845,11 +1675,7 @@ function SharedStayAction({
         <input type="hidden" name="intent" value="useSharedStay" />
         <input type="hidden" name="dayId" value={day.dayId} />
         <input type="hidden" name="status" value="booked" />
-        <input
-          type="hidden"
-          name="accommodationName"
-          value={accommodationName}
-        />
+        <input type="hidden" name="accommodationName" value={accommodationName} />
         <Button
           type="submit"
           size="sm"
@@ -1871,10 +1697,7 @@ function SharedStayAction({
   );
 }
 
-function getSharedStayState(
-  booking: DayBookingSnapshot | undefined,
-  group: SharedStayGroup,
-) {
+function getSharedStayState(booking: DayBookingSnapshot | undefined, group: SharedStayGroup) {
   if (!booking) {
     return {
       label: 'Not in your plan',
@@ -1901,10 +1724,7 @@ function getSharedStayState(
         };
   }
 
-  if (
-    hasBookedAccommodation(booking) &&
-    booking.accommodationName?.trim() === group.label
-  ) {
+  if (hasBookedAccommodation(booking) && booking.accommodationName?.trim() === group.label) {
     return {
       label: 'Current stay',
       color: 'green' as const,
@@ -1993,68 +1813,37 @@ function SharedStayAssignments({
                 }
               >
                 <Stack gap={4} className="shared-stay-cell">
-                  <Text
-                    size="xs"
-                    fw={700}
-                    c="dimmed"
-                    className="shared-stay-cell-label"
-                  >
+                  <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                     Stay
                   </Text>
                   <Group gap="xs" wrap="wrap">
                     <Text fw={700}>{group.label}</Text>
                     <Badge variant="light" color="gray" size="sm">
-                      {group.attendees.length}{' '}
-                      {group.attendees.length === 1 ? 'person' : 'people'}
+                      {group.attendees.length} {group.attendees.length === 1 ? 'person' : 'people'}
                     </Badge>
                   </Group>
                 </Stack>
 
                 <Stack gap={4} className="shared-stay-cell">
-                  <Text
-                    size="xs"
-                    fw={700}
-                    c="dimmed"
-                    className="shared-stay-cell-label"
-                  >
+                  <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                     People on it
                   </Text>
                   <Text size="sm" c="dimmed">
-                    {group.attendees
-                      .map((attendee) => attendee.userName)
-                      .join(', ')}
+                    {group.attendees.map((attendee) => attendee.userName).join(', ')}
                   </Text>
                 </Stack>
 
                 <Stack gap={4} className="shared-stay-cell">
-                  <Text
-                    size="xs"
-                    fw={700}
-                    c="dimmed"
-                    className="shared-stay-cell-label"
-                  >
+                  <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                     Your state
                   </Text>
-                  <Badge
-                    variant="light"
-                    color={state.color}
-                    size="sm"
-                    w="fit-content"
-                  >
+                  <Badge variant="light" color={state.color} size="sm" w="fit-content">
                     {state.label}
                   </Badge>
                 </Stack>
 
-                <Stack
-                  gap={4}
-                  className="shared-stay-cell shared-stay-action-cell"
-                >
-                  <Text
-                    size="xs"
-                    fw={700}
-                    c="dimmed"
-                    className="shared-stay-cell-label"
-                  >
+                <Stack gap={4} className="shared-stay-cell shared-stay-action-cell">
+                  <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                     Action
                   </Text>
                   {group.accommodationStatus !== 'booked' ? (
@@ -2062,11 +1851,7 @@ function SharedStayAssignments({
                       {getSharedStayActionText(group.accommodationStatus)}
                     </Text>
                   ) : (
-                    <SharedStayAction
-                      day={day}
-                      booking={booking}
-                      accommodationName={group.label}
-                    />
+                    <SharedStayAction day={day} booking={booking} accommodationName={group.label} />
                   )}
                 </Stack>
               </Box>
@@ -2090,8 +1875,7 @@ function GarageShareRequestAction({
 }) {
   const fetcher = useFetcher<GarageShareRequestActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const isOwner = booking && option.ownerUserId === booking.userId;
   const activeBooking = booking && booking.status !== 'cancelled';
   const requestStatus = option.myRequestStatus;
@@ -2118,16 +1902,8 @@ function GarageShareRequestAction({
       <fetcher.Form method="post">
         <input type="hidden" name="intent" value="requestGarageShare" />
         <input type="hidden" name="dayId" value={day.dayId} />
-        <input
-          type="hidden"
-          name="garageBookingId"
-          value={option.garageBookingId}
-        />
-        <input
-          type="hidden"
-          name="garageOwnerUserId"
-          value={option.ownerUserId}
-        />
+        <input type="hidden" name="garageBookingId" value={option.garageBookingId} />
+        <input type="hidden" name="garageOwnerUserId" value={option.ownerUserId} />
         <Button
           type="submit"
           size="sm"
@@ -2187,17 +1963,10 @@ function GarageShareAssignments({
           <Fragment key={`${option.ownerUserId}:${option.garageBookingId}`}>
             <Box
               className="shared-stay-row"
-              data-current={
-                booking?.userId === option.ownerUserId ? 'true' : undefined
-              }
+              data-current={booking?.userId === option.ownerUserId ? 'true' : undefined}
             >
               <Stack gap={4} className="shared-stay-cell">
-                <Text
-                  size="xs"
-                  fw={700}
-                  c="dimmed"
-                  className="shared-stay-cell-label"
-                >
+                <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                   Garage
                 </Text>
                 <Group gap="xs" wrap="wrap">
@@ -2216,52 +1985,29 @@ function GarageShareAssignments({
               </Stack>
 
               <Stack gap={4} className="shared-stay-cell">
-                <Text
-                  size="xs"
-                  fw={700}
-                  c="dimmed"
-                  className="shared-stay-cell-label"
-                >
+                <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                   Capacity
                 </Text>
                 <Text size="sm" c="dimmed">
-                  {option.openSpaceCount} of{' '}
-                  {Math.max(option.garageCapacity - 1, 0)} shareable spaces open
+                  {option.openSpaceCount} of {Math.max(option.garageCapacity - 1, 0)} shareable
+                  spaces open
                 </Text>
               </Stack>
 
               <Stack gap={4} className="shared-stay-cell">
-                <Text
-                  size="xs"
-                  fw={700}
-                  c="dimmed"
-                  className="shared-stay-cell-label"
-                >
+                <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                   Requests
                 </Text>
                 <Text size="sm" c="dimmed">
-                  {option.approvedRequestCount} approved •{' '}
-                  {option.pendingRequestCount} pending
+                  {option.approvedRequestCount} approved • {option.pendingRequestCount} pending
                 </Text>
               </Stack>
 
-              <Stack
-                gap={4}
-                className="shared-stay-cell shared-stay-action-cell"
-              >
-                <Text
-                  size="xs"
-                  fw={700}
-                  c="dimmed"
-                  className="shared-stay-cell-label"
-                >
+              <Stack gap={4} className="shared-stay-cell shared-stay-action-cell">
+                <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                   Action
                 </Text>
-                <GarageShareRequestAction
-                  day={day}
-                  booking={booking}
-                  option={option}
-                />
+                <GarageShareRequestAction day={day} booking={booking} option={option} />
               </Stack>
             </Box>
             {index < options.length - 1 ? <Divider /> : null}
@@ -2317,12 +2063,7 @@ function ParticipantMultiSelect({
         error={error}
       />
       {selected.map((userId) => (
-        <input
-          key={userId}
-          type="hidden"
-          name="participantUserId"
-          value={userId}
-        />
+        <input key={userId} type="hidden" name="participantUserId" value={userId} />
       ))}
     </>
   );
@@ -2350,8 +2091,7 @@ function CostGroupForm({
   currentUser: DaysIndexData['currentUser'];
 }) {
   const fetcher = useFetcher<CostSplittingActionResult>();
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
   const defaultParticipants = summary.availableParticipants.some(
     (participant) => participant.userId === currentUser.id,
   )
@@ -2406,9 +2146,7 @@ function CostGroupSettingsForm({
   const updateFetcher = useFetcher<CostSplittingActionResult>();
   const deleteFetcher = useFetcher<CostSplittingActionResult>();
   const fieldErrors =
-    updateFetcher.data && !updateFetcher.data.ok
-      ? updateFetcher.data.fieldErrors
-      : undefined;
+    updateFetcher.data && !updateFetcher.data.ok ? updateFetcher.data.fieldErrors : undefined;
 
   if (!group.canEdit) {
     return null;
@@ -2446,19 +2184,13 @@ function CostGroupSettingsForm({
                       ),
                   ),
                 ]}
-                defaultValue={group.participants.map(
-                  (participant) => participant.userId,
-                )}
+                defaultValue={group.participants.map((participant) => participant.userId)}
                 error={fieldErrors?.participantUserIds?.[0]}
               />
             </SimpleGrid>
             <Group justify="space-between">
               <CostActionMessage result={updateFetcher.data} />
-              <Button
-                type="submit"
-                variant="default"
-                loading={updateFetcher.state !== 'idle'}
-              >
+              <Button type="submit" variant="default" loading={updateFetcher.state !== 'idle'}>
                 Save group
               </Button>
             </Group>
@@ -2495,12 +2227,10 @@ function CostExpenseForm({
   currentUser: DaysIndexData['currentUser'];
 }) {
   const fetcher = useFetcher<CostSplittingActionResult>();
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
   const defaultPayer =
-    group.participants.find(
-      (participant) => participant.userId === currentUser.id,
-    )?.userId ?? group.participants[0]?.userId;
+    group.participants.find((participant) => participant.userId === currentUser.id)?.userId ??
+    group.participants[0]?.userId;
 
   return (
     <fetcher.Form method="post">
@@ -2562,9 +2292,7 @@ function CostExpenseRow({
   const updateFetcher = useFetcher<CostSplittingActionResult>();
   const deleteFetcher = useFetcher<CostSplittingActionResult>();
   const fieldErrors =
-    updateFetcher.data && !updateFetcher.data.ok
-      ? updateFetcher.data.fieldErrors
-      : undefined;
+    updateFetcher.data && !updateFetcher.data.ok ? updateFetcher.data.fieldErrors : undefined;
 
   if (!expense.canEdit) {
     return (
@@ -2664,8 +2392,7 @@ function CostExpenseRow({
 }
 
 function SettlementStatusBadge({ status }: { status: string }) {
-  const color =
-    status === 'received' ? 'green' : status === 'sent' ? 'yellow' : 'gray';
+  const color = status === 'received' ? 'green' : status === 'sent' ? 'yellow' : 'gray';
   return (
     <Badge color={color} variant="light">
       {titleCase(status)}
@@ -2689,23 +2416,11 @@ function SettlementAction({ settlement }: { settlement: NetCostSettlement }) {
     <fetcher.Form method="post">
       <input type="hidden" name="intent" value="updateCostSettlement" />
       <input type="hidden" name="dayId" value={settlement.dayId} />
-      <input
-        type="hidden"
-        name="debtorUserId"
-        value={settlement.debtorUserId}
-      />
-      <input
-        type="hidden"
-        name="creditorUserId"
-        value={settlement.creditorUserId}
-      />
+      <input type="hidden" name="debtorUserId" value={settlement.debtorUserId} />
+      <input type="hidden" name="creditorUserId" value={settlement.creditorUserId} />
       <input type="hidden" name="amountPence" value={settlement.amountPence} />
       <input type="hidden" name="currency" value={settlement.currency} />
-      <input
-        type="hidden"
-        name="breakdownHash"
-        value={settlement.breakdownHash}
-      />
+      <input type="hidden" name="breakdownHash" value={settlement.breakdownHash} />
       <Group gap="xs">
         <CostActionMessage result={fetcher.data} />
         <Button
@@ -2786,9 +2501,7 @@ function CostGroupPanel({
               <Badge variant="light">{titleCase(group.category)}</Badge>
             </Group>
             <Text size="sm" c="dimmed">
-              {group.participants
-                .map((participant) => participant.userName)
-                .join(', ')}
+              {group.participants.map((participant) => participant.userName).join(', ')}
             </Text>
           </Stack>
           <Text fw={900}>{formatMoneyPence(group.totalPence)}</Text>
@@ -2866,8 +2579,7 @@ function EventCostsPanel({
         <Stack gap={2}>
           <Text fw={700}>Cost splitting</Text>
           <Text size="sm" c="dimmed">
-            Create participant-only groups for garages, hotels, meals, fuel, and
-            other shared costs.
+            Create participant-only groups for garages, hotels, meals, fuel, and other shared costs.
           </Text>
         </Stack>
         <Text size="sm" fw={800} c="dimmed">
@@ -2882,10 +2594,7 @@ function EventCostsPanel({
         {summary.netSettlements.length > 0 ? (
           <Stack gap="xs">
             {summary.netSettlements.map((settlement) => (
-              <SettlementRow
-                key={settlement.settlementId}
-                settlement={settlement}
-              />
+              <SettlementRow key={settlement.settlementId} settlement={settlement} />
             ))}
           </Stack>
         ) : (
@@ -2917,37 +2626,19 @@ function EventCostsPanel({
   );
 }
 
-function SharedPlanNoteEditor({
-  day,
-  plan,
-}: {
-  day: DayRow;
-  plan?: SharedDayPlan | null;
-}) {
+function SharedPlanNoteEditor({ day, plan }: { day: DayRow; plan?: SharedDayPlan | null }) {
   const fetcher = useFetcher<SharedDayPlanActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
-  const noteError =
-    fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.notes?.[0]
-      : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const noteError = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.notes?.[0] : null;
   const dinnerVenueError =
-    fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.dinnerVenue?.[0]
-      : null;
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerVenue?.[0] : null;
   const dinnerTimeError =
-    fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.dinnerTime?.[0]
-      : null;
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerTime?.[0] : null;
   const dinnerHeadcountError =
-    fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.dinnerHeadcount?.[0]
-      : null;
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerHeadcount?.[0] : null;
   const dinnerNotesError =
-    fetcher.data && !fetcher.data.ok
-      ? fetcher.data.fieldErrors.dinnerNotes?.[0]
-      : null;
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerNotes?.[0] : null;
 
   return (
     <Stack gap="sm">
@@ -2955,8 +2646,7 @@ function SharedPlanNoteEditor({
         <Stack gap={2}>
           <Text fw={700}>Shared planning note</Text>
           <Text size="sm" c="dimmed">
-            Keep group-visible logistics here, separate from private booking
-            references.
+            Keep group-visible logistics here, separate from private booking references.
           </Text>
         </Stack>
         {plan ? (
@@ -3010,9 +2700,7 @@ function SharedPlanNoteEditor({
                 max={99}
                 allowDecimal={false}
                 allowNegative={false}
-                defaultValue={
-                  plan?.dinnerHeadcount ? Number(plan.dinnerHeadcount) : ''
-                }
+                defaultValue={plan?.dinnerHeadcount ? Number(plan.dinnerHeadcount) : ''}
                 error={dinnerHeadcountError}
               />
             </SimpleGrid>
@@ -3064,10 +2752,7 @@ function DayDetailContent({
   attendanceLoading?: boolean;
 }) {
   const attendeeStatusGroups = useMemo(
-    () =>
-      attendanceDetails
-        ? groupAttendeesByStatus(attendanceDetails.attendees)
-        : [],
+    () => (attendanceDetails ? groupAttendeesByStatus(attendanceDetails.attendees) : []),
     [attendanceDetails],
   );
 
@@ -3084,9 +2769,7 @@ function DayDetailContent({
               <Text size="sm" c="dimmed">
                 {formatDayLongDate(day.date)} • {day.provider}
               </Text>
-              {day.description ? (
-                <Text size="sm">{day.description}</Text>
-              ) : null}
+              {day.description ? <Text size="sm">{day.description}</Text> : null}
             </Stack>
 
             <Group gap="xs" wrap="wrap" className="day-detail-meta-items">
@@ -3143,12 +2826,7 @@ function DayDetailContent({
               <Text size="xs" c="dimmed">
                 Accommodation
               </Text>
-              <Text
-                size="sm"
-                fw={700}
-                lineClamp={2}
-                className="selected-day-summary-value"
-              >
+              <Text size="sm" fw={700} lineClamp={2} className="selected-day-summary-value">
                 {getMyPlanSharedStay(booking)}
               </Text>
             </Box>
@@ -3156,12 +2834,7 @@ function DayDetailContent({
               <Text size="xs" c="dimmed">
                 Garage
               </Text>
-              <Text
-                size="sm"
-                fw={700}
-                lineClamp={2}
-                className="selected-day-summary-value"
-              >
+              <Text size="sm" fw={700} lineClamp={2} className="selected-day-summary-value">
                 {getMyPlanGarage(booking)}
               </Text>
             </Box>
@@ -3256,8 +2929,8 @@ function DayDetailContent({
           <Stack gap={2}>
             <Text fw={700}>Attendee roster</Text>
             <Text size="sm" c="dimmed">
-              Open one status group at a time when you need names, without
-              stretching the whole page.
+              Open one status group at a time when you need names, without stretching the whole
+              page.
             </Text>
           </Stack>
           {attendanceDetails ? (
@@ -3304,8 +2977,8 @@ function DayDetailContent({
           <Stack gap={2}>
             <Text fw={700}>Accommodation</Text>
             <Text size="sm" c="dimmed">
-              See who is attached to each hotel or stay name, then copy one into
-              your booking without leaving this page.
+              See who is attached to each hotel or stay name, then copy one into your booking
+              without leaving this page.
             </Text>
           </Stack>
           <Text size="sm" fw={700} c="dimmed">
@@ -3384,9 +3057,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const adjacentAttendanceFetcher = useFetcher<DayAttendanceDetails>();
   const costFetcher = useFetcher<EventCostSummary | null>();
   const preferenceFetcher = useFetcher<DaysPreferenceActionResult>();
-  const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() =>
-    createLoadedDaysState(data),
-  );
+  const [loadedDays, setLoadedDays] = useState<LoadedDaysState>(() => createLoadedDaysState(data));
   const [attendanceDetailsByDay, setAttendanceDetailsByDay] = useState<
     Record<string, DayAttendanceDetails>
   >(() =>
@@ -3396,11 +3067,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   );
   const [costSummariesByDay, setCostSummariesByDay] = useState<
     Record<string, EventCostSummary | null>
-  >(() =>
-    data.selectedDay
-      ? { [data.selectedDay.dayId]: data.selectedDayCostSummary }
-      : {},
-  );
+  >(() => (data.selectedDay ? { [data.selectedDay.dayId]: data.selectedDayCostSummary } : {}));
   const [memberEventModalOpened, setMemberEventModalOpened] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const previousFilterKeyRef = useRef(data.filterKey);
@@ -3410,12 +3077,8 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const pendingCostDayIdRef = useRef<string | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
-  const savedFilterCount = data.savedFilters
-    ? countActiveFilters(data.savedFilters)
-    : 0;
-  const savedFilterHref = data.savedFilters
-    ? createDaysIndexHref(data.savedFilters)
-    : null;
+  const savedFilterCount = data.savedFilters ? countActiveFilters(data.savedFilters) : 0;
+  const savedFilterHref = data.savedFilters ? createDaysIndexHref(data.savedFilters) : null;
   const viewState: DaysViewState = useMemo(
     () => ({
       view: data.view,
@@ -3440,11 +3103,9 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       : preferenceFetcher.data.formError;
   const selectedDayId = searchParams.get('day')?.trim() || null;
   const [selectedSeries, setSelectedSeries] = useState(data.filters.series);
-  const [selectedCircuits, setSelectedCircuits] = useState(
-    data.filters.circuits,
-  );
+  const [selectedCircuits, setSelectedCircuits] = useState(data.filters.circuits);
   const orderedLoadedDays = useMemo(
-    () => [...loadedDays.days].sort(compareDayRows),
+    () => [...loadedDays.days].toSorted(compareDayRows),
     [loadedDays.days],
   );
   const loadMoreHref = useMemo(
@@ -3460,8 +3121,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     }
 
     return (
-      data.seriesOptions.find((option) => option.value === selectedSeries)
-        ?.circuitOptions ?? []
+      data.seriesOptions.find((option) => option.value === selectedSeries)?.circuitOptions ?? []
     );
   }, [data.circuitOptions, data.seriesOptions, selectedSeries]);
   const circuitOptionSet = useMemo(
@@ -3598,17 +3258,13 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     return () => observer.disconnect();
   }, [feedFetcher, loadMoreHref, loadedDays.nextOffset, feedFetcher.state]);
 
-  const selectedDayFromUrl =
-    orderedLoadedDays.find((day) => day.dayId === selectedDayId) ?? null;
+  const selectedDayFromUrl = orderedLoadedDays.find((day) => day.dayId === selectedDayId) ?? null;
   const hasLoadedFullSet = orderedLoadedDays.length >= loadedDays.totalCount;
   const selectedDayIndex = selectedDayFromUrl
-    ? orderedLoadedDays.findIndex(
-        (day) => day.dayId === selectedDayFromUrl.dayId,
-      )
+    ? orderedLoadedDays.findIndex((day) => day.dayId === selectedDayFromUrl.dayId)
     : -1;
   const selectedDayMatchesRouteData =
-    Boolean(selectedDayFromUrl) &&
-    data.selectedDay?.dayId === selectedDayFromUrl?.dayId;
+    Boolean(selectedDayFromUrl) && data.selectedDay?.dayId === selectedDayFromUrl?.dayId;
   const selectedDayPosition =
     selectedDayFromUrl && hasLoadedFullSet
       ? selectedDayIndex + 1
@@ -3634,31 +3290,23 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         : null
       : selectedDayMatchesRouteData
         ? data.selectedDayNext
-        : selectedDayIndex >= 0 &&
-            selectedDayIndex < orderedLoadedDays.length - 1
+        : selectedDayIndex >= 0 && selectedDayIndex < orderedLoadedDays.length - 1
           ? orderedLoadedDays[selectedDayIndex + 1]
           : null;
   const selectedDaySummaryPreview = selectedDayFromUrl
-    ? getAttendanceSummary(
-        loadedDays.attendanceSummaries,
-        selectedDayFromUrl.dayId,
-      )
+    ? getAttendanceSummary(loadedDays.attendanceSummaries, selectedDayFromUrl.dayId)
     : null;
   const cachedSelectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
     : null;
   const selectedDayAttendanceDetails =
     cachedSelectedDayAttendanceDetails && selectedDaySummaryPreview
-      ? attendanceDetailsMatchSummary(
-          cachedSelectedDayAttendanceDetails,
-          selectedDaySummaryPreview,
-        )
+      ? attendanceDetailsMatchSummary(cachedSelectedDayAttendanceDetails, selectedDaySummaryPreview)
         ? cachedSelectedDayAttendanceDetails
         : null
       : cachedSelectedDayAttendanceDetails;
   const hasSelectedDayCostSummary =
-    selectedDayFromUrl &&
-    Object.hasOwn(costSummariesByDay, selectedDayFromUrl.dayId);
+    selectedDayFromUrl && Object.hasOwn(costSummariesByDay, selectedDayFromUrl.dayId);
   const selectedDayCostSummary =
     selectedDayFromUrl && hasSelectedDayCostSummary
       ? (costSummariesByDay[selectedDayFromUrl.dayId] ?? null)
@@ -3674,8 +3322,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const costLoading =
     Boolean(selectedDayFromUrl) &&
     !hasSelectedDayCostSummary &&
-    (costFetcher.state !== 'idle' ||
-      pendingCostDayIdRef.current === selectedDayFromUrl?.dayId);
+    (costFetcher.state !== 'idle' || pendingCostDayIdRef.current === selectedDayFromUrl?.dayId);
 
   useEffect(() => {
     if (!selectedDayFromUrl || selectedDayAttendanceDetails) {
@@ -3727,12 +3374,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
     pendingCostDayIdRef.current = selectedDayFromUrl.dayId;
     costFetcher.load(createDayCostsHref(selectedDayFromUrl.dayId));
-  }, [
-    costFetcher,
-    costFetcher.state,
-    hasSelectedDayCostSummary,
-    selectedDayFromUrl,
-  ]);
+  }, [costFetcher, costFetcher.state, hasSelectedDayCostSummary, selectedDayFromUrl]);
 
   useEffect(() => {
     if (!pendingCostDayIdRef.current) {
@@ -3752,11 +3394,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   }, [costFetcher.data]);
 
   useEffect(() => {
-    if (
-      !selectedDayFromUrl ||
-      loadedDays.nextOffset === null ||
-      feedFetcher.state !== 'idle'
-    ) {
+    if (!selectedDayFromUrl || loadedDays.nextOffset === null || feedFetcher.state !== 'idle') {
       return;
     }
 
@@ -3766,30 +3404,20 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
 
     pendingOffsetRef.current = loadedDays.nextOffset;
     feedFetcher.load(createDaysFeedHref(data.filters, loadedDays.nextOffset));
-  }, [
-    data.filters,
-    feedFetcher,
-    feedFetcher.state,
-    loadedDays.nextOffset,
-    selectedDayFromUrl,
-  ]);
+  }, [data.filters, feedFetcher, feedFetcher.state, loadedDays.nextOffset, selectedDayFromUrl]);
 
   useEffect(() => {
-    const adjacentDays = [previousSelectedDay, nextSelectedDay].filter(
-      (day): day is DayRow => Boolean(day),
+    const adjacentDays = [previousSelectedDay, nextSelectedDay].filter((day): day is DayRow =>
+      Boolean(day),
     );
-    const missingAdjacentDay = adjacentDays.find(
-      (day) => !attendanceDetailsByDay[day.dayId],
-    );
+    const missingAdjacentDay = adjacentDays.find((day) => !attendanceDetailsByDay[day.dayId]);
 
     if (!missingAdjacentDay || adjacentAttendanceFetcher.state !== 'idle') {
       return;
     }
 
     pendingAdjacentAttendanceDayIdRef.current = missingAdjacentDay.dayId;
-    adjacentAttendanceFetcher.load(
-      createDayAttendeesHref(missingAdjacentDay.dayId),
-    );
+    adjacentAttendanceFetcher.load(createDayAttendeesHref(missingAdjacentDay.dayId));
   }, [
     adjacentAttendanceFetcher,
     adjacentAttendanceFetcher.state,
@@ -3799,10 +3427,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   ]);
 
   useEffect(() => {
-    if (
-      !adjacentAttendanceFetcher.data ||
-      !pendingAdjacentAttendanceDayIdRef.current
-    ) {
+    if (!adjacentAttendanceFetcher.data || !pendingAdjacentAttendanceDayIdRef.current) {
       return;
     }
 
@@ -3848,22 +3473,14 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         actions={
           <>
             {data.canCreateManualDays ? (
-              <Button
-                component={Link}
-                to="/dashboard/manual-days"
-                variant="default"
-              >
+              <Button component={Link} to="/dashboard/manual-days" variant="default">
                 Manage manual days
               </Button>
             ) : null}
             <Button component={Link} to="/dashboard/bookings" variant="default">
               Open my bookings
             </Button>
-            <Button
-              type="button"
-              variant="light"
-              onClick={() => setMemberEventModalOpened(true)}
-            >
+            <Button type="button" variant="light" onClick={() => setMemberEventModalOpened(true)}>
               Add event
             </Button>
           </>
@@ -3876,36 +3493,22 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             <Stack gap={2}>
               <Title order={3}>Refine the feed</Title>
               <Text size="sm" c="dimmed">
-                Narrow the calendar by month, race series, circuit, provider, or
-                day type.
+                Narrow the calendar by month, race series, circuit, provider, or day type.
               </Text>
             </Stack>
             <Group gap="xs" justify="flex-end">
               {activeFilterCount > 0 ? (
-                <preferenceFetcher.Form
-                  method="post"
-                  aria-label="Save applied filters"
-                >
+                <preferenceFetcher.Form method="post" aria-label="Save applied filters">
                   <Group gap="xs" align="flex-end" wrap="wrap">
-                    <input
-                      type="hidden"
-                      name="intent"
-                      value="saveDaysFilters"
-                    />
+                    <input type="hidden" name="intent" value="saveDaysFilters" />
                     <DaysFilterHiddenInputs filters={data.filters} />
                     <Checkbox
                       name="notifyOnNewMatches"
                       label="Use for notifications"
-                      defaultChecked={
-                        data.savedFilters?.notifyOnNewMatches ?? false
-                      }
+                      defaultChecked={data.savedFilters?.notifyOnNewMatches ?? false}
                       pb={8}
                     />
-                    <Button
-                      type="submit"
-                      variant="default"
-                      loading={preferenceSubmitting}
-                    >
+                    <Button type="submit" variant="default" loading={preferenceSubmitting}>
                       Save applied filters
                     </Button>
                   </Group>
@@ -3926,41 +3529,23 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                   <Group gap="xs" wrap="wrap">
                     <Text fw={700}>Saved view</Text>
                     <Badge variant="light" color="brand">
-                      {savedFilterCount}{' '}
-                      {savedFilterCount === 1 ? 'filter' : 'filters'}
+                      {savedFilterCount} {savedFilterCount === 1 ? 'filter' : 'filters'}
                     </Badge>
                   </Group>
                   <Text size="sm" c="dimmed">
-                    {formatSavedFilterSummary(
-                      data.savedFilters,
-                      data.seriesOptions,
-                    )}
+                    {formatSavedFilterSummary(data.savedFilters, data.seriesOptions)}
                   </Text>
                   <Text size="sm" c="dimmed">
                     Notifications{' '}
-                    {data.savedFilters.notifyOnNewMatches
-                      ? 'limited to this saved view'
-                      : 'off'}
+                    {data.savedFilters.notifyOnNewMatches ? 'limited to this saved view' : 'off'}
                   </Text>
                 </Stack>
                 <Group gap="xs" justify="flex-end">
-                  <Button
-                    component={Link}
-                    to={savedFilterHref}
-                    variant="light"
-                    color="brand"
-                  >
+                  <Button component={Link} to={savedFilterHref} variant="light" color="brand">
                     Apply saved view
                   </Button>
-                  <preferenceFetcher.Form
-                    method="post"
-                    aria-label="Clear saved filters"
-                  >
-                    <input
-                      type="hidden"
-                      name="intent"
-                      value="clearSavedDaysFilters"
-                    />
+                  <preferenceFetcher.Form method="post" aria-label="Clear saved filters">
+                    <input type="hidden" name="intent" value="clearSavedDaysFilters" />
                     <Button
                       type="submit"
                       variant="subtle"
@@ -3976,11 +3561,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           ) : null}
 
           {preferenceMessage ? (
-            <Text
-              size="sm"
-              c={preferenceFetcher.data?.ok ? 'dimmed' : 'red'}
-              fw={700}
-            >
+            <Text size="sm" c={preferenceFetcher.data?.ok ? 'dimmed' : 'red'} fw={700}>
               {preferenceMessage}
             </Text>
           ) : null}
@@ -4016,9 +3597,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 />
                 <MultiSelect
                   label="Circuit"
-                  placeholder={
-                    selectedCircuits.length > 0 ? undefined : 'Any circuit'
-                  }
+                  placeholder={selectedCircuits.length > 0 ? undefined : 'Any circuit'}
                   data={circuitOptionsForSelectedSeries}
                   value={selectedCircuits}
                   onChange={setSelectedCircuits}
@@ -4027,12 +3606,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                   nothingFoundMessage="No circuits found"
                 />
                 {selectedCircuits.map((circuit) => (
-                  <input
-                    key={circuit}
-                    type="hidden"
-                    name="circuit"
-                    value={circuit}
-                  />
+                  <input key={circuit} type="hidden" name="circuit" value={circuit} />
                 ))}
                 <Select
                   name="provider"
@@ -4076,10 +3650,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           <Tabs.Tab
             value="list"
             renderRoot={(props) => (
-              <Link
-                {...props}
-                to={createDaysViewHref(data.filters, { view: 'list' })}
-              />
+              <Link {...props} to={createDaysViewHref(data.filters, { view: 'list' })} />
             )}
           >
             List
@@ -4087,10 +3658,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           <Tabs.Tab
             value="calendar"
             renderRoot={(props) => (
-              <Link
-                {...props}
-                to={createDaysViewHref(data.filters, { view: 'calendar' })}
-              />
+              <Link {...props} to={createDaysViewHref(data.filters, { view: 'calendar' })} />
             )}
           >
             Calendar
@@ -4198,16 +3766,11 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
               day={selectedDayFromUrl}
               summary={
                 selectedDaySummaryPreview ??
-                getAttendanceSummary(
-                  loadedDays.attendanceSummaries,
-                  selectedDayFromUrl.dayId,
-                )
+                getAttendanceSummary(loadedDays.attendanceSummaries, selectedDayFromUrl.dayId)
               }
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
               series={selectedDaySeries ?? undefined}
-              sharedPlan={
-                selectedDayMatchesRouteData ? data.selectedDayPlan : null
-              }
+              sharedPlan={selectedDayMatchesRouteData ? data.selectedDayPlan : null}
               costSummary={selectedDayCostSummary}
               costLoading={costLoading}
               currentUser={data.currentUser}
@@ -4249,9 +3812,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
             />
           )}
 
-          {!selectedDayFromUrl &&
-          data.view === 'list' &&
-          loadedDays.nextOffset !== null ? (
+          {!selectedDayFromUrl && data.view === 'list' && loadedDays.nextOffset !== null ? (
             <Box>
               <Stack gap={4} align="center">
                 {feedFetcher.state === 'idle' ? (

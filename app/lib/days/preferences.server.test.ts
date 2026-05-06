@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { MemberDaysPreferenceRecord } from '~/lib/db/entities/member-days-preference.server';
 import type { MemberDaysPreferencePersistence } from '~/lib/db/services/member-days-preference.server';
 

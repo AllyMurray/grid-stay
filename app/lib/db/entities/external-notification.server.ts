@@ -48,6 +48,4 @@ export const ExternalNotificationEntity = new Entity(
   { client, table: tableName },
 );
 
-export type ExternalNotificationRecord = EntityItem<
-  typeof ExternalNotificationEntity
->;
+export type ExternalNotificationRecord = EntityItem<typeof ExternalNotificationEntity>;

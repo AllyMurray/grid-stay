@@ -1,8 +1,5 @@
 import { Resource } from 'sst';
-import {
-  CIRCUIT_LOCATIONS,
-  type CircuitLocation,
-} from '~/lib/circuits/locations';
+import { CIRCUIT_LOCATIONS, type CircuitLocation } from '~/lib/circuits/locations';
 import {
   CircuitDistanceMatrixEntity,
   type CircuitDistanceMatrixRecord,
@@ -30,11 +27,7 @@ export interface CircuitDistanceMatrix {
   attribution: string;
 }
 
-export type CircuitDistanceMatrixStatus =
-  | 'ready'
-  | 'stale'
-  | 'missing'
-  | 'unavailable';
+export type CircuitDistanceMatrixStatus = 'ready' | 'stale' | 'missing' | 'unavailable';
 
 export interface CircuitDistanceMatrixLoadResult {
   status: CircuitDistanceMatrixStatus;
@@ -82,9 +75,9 @@ function isStale(updatedAt: string, now = Date.now()) {
 export function parseCircuitDistanceMatrixRecord(
   record: CircuitDistanceMatrixRecord,
 ): CircuitDistanceMatrix | null {
-  const parsed = parseJson<
-    Omit<CircuitDistanceMatrix, 'updatedAt' | 'provider' | 'profile'>
-  >(record.payload);
+  const parsed = parseJson<Omit<CircuitDistanceMatrix, 'updatedAt' | 'provider' | 'profile'>>(
+    record.payload,
+  );
 
   if (!parsed) {
     return null;
@@ -139,8 +132,7 @@ function buildMatrixFromResponse(
 
     locations.forEach((destination, destinationIndex) => {
       const miles = response.distances?.[originIndex]?.[destinationIndex];
-      const durationSeconds =
-        response.durations?.[originIndex]?.[destinationIndex];
+      const durationSeconds = response.durations?.[originIndex]?.[destinationIndex];
 
       if (!Number.isFinite(miles)) {
         return;
@@ -170,25 +162,19 @@ export async function fetchCircuitDistanceMatrix(
   locations: CircuitLocation[] = CIRCUIT_LOCATIONS,
   fetchImpl: typeof fetch = fetch,
 ): Promise<CircuitDistanceMatrix> {
-  const response = await fetchImpl(
-    `https://api.openrouteservice.org/v2/matrix/${PROFILE}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: apiKey,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        locations: locations.map((location) => [
-          location.longitude,
-          location.latitude,
-        ]),
-        metrics: ['distance', 'duration'],
-        units: 'mi',
-      }),
+  const response = await fetchImpl(`https://api.openrouteservice.org/v2/matrix/${PROFILE}`, {
+    method: 'POST',
+    headers: {
+      Authorization: apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
-  );
+    body: JSON.stringify({
+      locations: locations.map((location) => [location.longitude, location.latitude]),
+      metrics: ['distance', 'duration'],
+      units: 'mi',
+    }),
+  });
 
   if (!response.ok) {
     throw new Error(`openrouteservice returned ${response.status}`);

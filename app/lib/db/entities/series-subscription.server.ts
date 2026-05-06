@@ -34,6 +34,4 @@ export const SeriesSubscriptionEntity = new Entity(
   { client, table: tableName },
 );
 
-export type SeriesSubscriptionRecord = EntityItem<
-  typeof SeriesSubscriptionEntity
->;
+export type SeriesSubscriptionRecord = EntityItem<typeof SeriesSubscriptionEntity>;

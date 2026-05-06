@@ -2,21 +2,14 @@ import type { User } from '~/lib/auth/schemas';
 import type { DayMergeRule } from '~/lib/days/day-merges';
 import type { AvailableDay } from '~/lib/days/types';
 import type { BookingRecord } from '../entities/booking.server';
-import {
-  DayMergeEntity,
-  type DayMergeRecord,
-} from '../entities/day-merge.server';
+import { DayMergeEntity, type DayMergeRecord } from '../entities/day-merge.server';
 import type { DayPlanRecord } from '../entities/day-plan.server';
 import {
   type BookingPersistence,
   bookingStore,
   syncDayAttendanceSummaries,
 } from './booking.server';
-import {
-  type DayPlanPersistence,
-  dayPlanStore,
-  SHARED_DAY_PLAN_SCOPE,
-} from './day-plan.server';
+import { type DayPlanPersistence, dayPlanStore, SHARED_DAY_PLAN_SCOPE } from './day-plan.server';
 import {
   type GarageShareRequestPersistence,
   type GarageShareRequestRecord,
@@ -75,9 +68,7 @@ export const dayMergeStore: DayMergePersistence = {
     return response.data ?? null;
   },
   async listAll() {
-    const response = await DayMergeEntity.query
-      .byScope({ mergeScope: DAY_MERGE_SCOPE })
-      .go();
+    const response = await DayMergeEntity.query.byScope({ mergeScope: DAY_MERGE_SCOPE }).go();
     return response.data;
   },
 };
@@ -133,9 +124,7 @@ function copyBookingToTarget(
 }
 
 function mergeGarageShareCount(target: BookingRecord, source: BookingRecord) {
-  const count =
-    (target.garageApprovedShareCount ?? 0) +
-    (source.garageApprovedShareCount ?? 0);
+  const count = (target.garageApprovedShareCount ?? 0) + (source.garageApprovedShareCount ?? 0);
   return count > 0 ? count : undefined;
 }
 
@@ -159,24 +148,18 @@ function mergePrivateBookingFields(
     bookingReference: target.bookingReference ?? source.bookingReference,
     arrivalDateTime: target.arrivalDateTime ?? source.arrivalDateTime,
     arrivalTime: target.arrivalTime ?? source.arrivalTime,
-    accommodationStatus:
-      target.accommodationStatus ?? source.accommodationStatus,
+    accommodationStatus: target.accommodationStatus ?? source.accommodationStatus,
     accommodationName: target.accommodationName ?? source.accommodationName,
-    accommodationReference:
-      target.accommodationReference ?? source.accommodationReference,
+    accommodationReference: target.accommodationReference ?? source.accommodationReference,
     garageBooked: target.garageBooked || source.garageBooked,
     garageCapacity:
-      target.garageCapacity ??
-      (source.garageBooked ? source.garageCapacity : undefined),
-    garageLabel:
-      target.garageLabel ??
-      (source.garageBooked ? source.garageLabel : undefined),
+      target.garageCapacity ?? (source.garageBooked ? source.garageCapacity : undefined),
+    garageLabel: target.garageLabel ?? (source.garageBooked ? source.garageLabel : undefined),
     garageCostTotalPence:
       target.garageCostTotalPence ??
       (source.garageBooked ? source.garageCostTotalPence : undefined),
     garageCostCurrency:
-      target.garageCostCurrency ??
-      (source.garageBooked ? source.garageCostCurrency : undefined),
+      target.garageCostCurrency ?? (source.garageBooked ? source.garageCostCurrency : undefined),
     garageApprovedShareCount: mergeGarageShareCount(target, source),
     notes: target.notes ?? source.notes,
     updatedAt: now,
@@ -221,7 +204,7 @@ export async function listDayMerges(
   store: DayMergePersistence = dayMergeStore,
 ): Promise<DayMergeRecord[]> {
   const records = await store.listAll();
-  return records.sort(compareMerges);
+  return records.toSorted(compareMerges);
 }
 
 export async function listDayMergeRules(
@@ -265,10 +248,8 @@ export async function migrateMergedDayData(
 ): Promise<DayMergeMigrationResult> {
   const bookings = dependencies.bookingStore ?? bookingStore;
   const plans = dependencies.planStore ?? dayPlanStore;
-  const garageRequests =
-    dependencies.garageShareRequestStore ?? garageShareRequestStore;
-  const syncSummaries =
-    dependencies.syncSummaries ?? syncDayAttendanceSummaries;
+  const garageRequests = dependencies.garageShareRequestStore ?? garageShareRequestStore;
+  const syncSummaries = dependencies.syncSummaries ?? syncDayAttendanceSummaries;
   const sourceBookings = await bookings.listByDay(sourceDayId);
   const sourceGarageRequests = await garageRequests.listByDay(sourceDayId);
   const now = new Date().toISOString();
@@ -277,35 +258,21 @@ export async function migrateMergedDayData(
   let mergedBookingCount = 0;
 
   for (const sourceBooking of sourceBookings) {
-    const existingTarget = await bookings.findByUserAndDay(
-      sourceBooking.userId,
-      targetDay.dayId,
-    );
+    const existingTarget = await bookings.findByUserAndDay(sourceBooking.userId, targetDay.dayId);
 
     if (existingTarget) {
-      const changes = mergePrivateBookingFields(
-        existingTarget,
-        sourceBooking,
-        targetDay,
-        now,
-      );
+      const changes = mergePrivateBookingFields(existingTarget, sourceBooking, targetDay, now);
       const updatedTarget = await bookings.update(
         existingTarget.userId,
         existingTarget.bookingId,
         changes,
       );
-      movedBookings.set(
-        bookingKey(sourceBooking.userId, sourceBooking.bookingId),
-        updatedTarget,
-      );
+      movedBookings.set(bookingKey(sourceBooking.userId, sourceBooking.bookingId), updatedTarget);
       mergedBookingCount += 1;
     } else {
       const targetBooking = copyBookingToTarget(sourceBooking, targetDay, now);
       await bookings.create(targetBooking);
-      movedBookings.set(
-        bookingKey(sourceBooking.userId, sourceBooking.bookingId),
-        targetBooking,
-      );
+      movedBookings.set(bookingKey(sourceBooking.userId, sourceBooking.bookingId), targetBooking);
       movedBookingCount += 1;
     }
 
@@ -316,12 +283,7 @@ export async function migrateMergedDayData(
     sourceGarageRequests
       .map((request) => ({
         request,
-        changes: getGarageShareMigrationChanges(
-          request,
-          movedBookings,
-          targetDay,
-          now,
-        ),
+        changes: getGarageShareMigrationChanges(request, movedBookings, targetDay, now),
       }))
       .filter(
         (
@@ -331,9 +293,7 @@ export async function migrateMergedDayData(
           changes: Partial<GarageShareRequestRecord>;
         } => item.changes !== null,
       )
-      .map(({ request, changes }) =>
-        garageRequests.update(request.requestId, changes),
-      ),
+      .map(({ request, changes }) => garageRequests.update(request.requestId, changes)),
   );
 
   const [sourcePlan, targetPlan] = await Promise.all([

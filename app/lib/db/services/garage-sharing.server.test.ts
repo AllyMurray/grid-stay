@@ -1,11 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 import type { BookingRecord } from '../entities/booking.server';
 import type { GarageShareRequestRecord } from './garage-share-request.server';
-import {
-  createGarageShareRequest,
-  updateGarageShareRequestStatus,
-} from './garage-sharing.server';
+import { createGarageShareRequest, updateGarageShareRequestStatus } from './garage-sharing.server';
 
 vi.mock('./booking.server', () => ({
   bookingStore: {},
@@ -74,16 +71,13 @@ function createMemoryDependencies({
       listByUser: vi.fn(),
       async findByUserAndDay(userId: string, dayId: string) {
         return (
-          bookings.find(
-            (booking) => booking.userId === userId && booking.dayId === dayId,
-          ) ?? null
+          bookings.find((booking) => booking.userId === userId && booking.dayId === dayId) ?? null
         );
       },
       async getByUser(userId: string, bookingId: string) {
         return (
           bookings.find(
-            (booking) =>
-              booking.userId === userId && booking.bookingId === bookingId,
+            (booking) => booking.userId === userId && booking.bookingId === bookingId,
           ) ?? null
         );
       },
@@ -91,11 +85,7 @@ function createMemoryDependencies({
         return bookings.filter((booking) => booking.dayId === dayId);
       },
       claimGarageShareSpace: vi.fn(
-        async (
-          userId: string,
-          bookingId: string,
-          maxApprovedShareCount: number,
-        ) => {
+        async (userId: string, bookingId: string, maxApprovedShareCount: number) => {
           const booking = bookings.find(
             (item) => item.userId === userId && item.bookingId === bookingId,
           );
@@ -130,30 +120,20 @@ function createMemoryDependencies({
         requestItems.push(item);
         return item;
       },
-      async update(
-        requestId: string,
-        changes: Partial<GarageShareRequestRecord>,
-      ) {
-        const index = requestItems.findIndex(
-          (request) => request.requestId === requestId,
-        );
+      async update(requestId: string, changes: Partial<GarageShareRequestRecord>) {
+        const index = requestItems.findIndex((request) => request.requestId === requestId);
         const next = { ...requestItems[index], ...changes };
         requestItems[index] = next;
         return next;
       },
       async get(requestId: string) {
-        return (
-          requestItems.find((request) => request.requestId === requestId) ??
-          null
-        );
+        return requestItems.find((request) => request.requestId === requestId) ?? null;
       },
       async listByDay(dayId: string) {
         return requestItems.filter((request) => request.dayId === dayId);
       },
       async listByOwner(ownerUserId: string) {
-        return requestItems.filter(
-          (request) => request.garageOwnerUserId === ownerUserId,
-        );
+        return requestItems.filter((request) => request.garageOwnerUserId === ownerUserId);
       },
       async listAll() {
         return requestItems;

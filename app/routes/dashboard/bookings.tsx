@@ -25,10 +25,7 @@ import {
   listGarageShareRequestsForUser,
   type UserGarageShareRequest,
 } from '~/lib/db/services/garage-sharing.server';
-import {
-  type HotelInsight,
-  listHotelInsights,
-} from '~/lib/db/services/hotel.server';
+import { type HotelInsight, listHotelInsights } from '~/lib/db/services/hotel.server';
 import { submitGarageShareDecision } from '~/lib/garage-sharing/actions.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
 import type { Route } from './+types/bookings';
@@ -82,20 +79,10 @@ export async function action({ request }: Route.ActionArgs) {
     const options = parseCalendarFeedOptionsFromFormData(formData);
     const feed =
       intent === 'regenerateCalendarFeed'
-        ? await regenerateCalendarFeedForUser(
-            user.id,
-            undefined,
-            undefined,
-            options,
-          )
+        ? await regenerateCalendarFeedForUser(user.id, undefined, undefined, options)
         : intent === 'saveCalendarFeedOptions'
           ? await saveCalendarFeedOptionsForUser(user.id, options)
-          : await ensureCalendarFeedForUser(
-              user.id,
-              undefined,
-              undefined,
-              options,
-            );
+          : await ensureCalendarFeedForUser(user.id, undefined, undefined, options);
 
     await recordAppEventSafely({
       category: 'audit',

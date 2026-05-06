@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminDayMergesPage } from './admin-day-merges';
 
@@ -40,10 +40,8 @@ describe('AdminDayMergesPage', () => {
           {
             sourceDayId: 'source-day',
             targetDayId: 'target-day',
-            sourceLabel:
-              '2026-05-10 • Snetterton • Caterham Motorsport • Duplicate',
-            targetLabel:
-              '2026-05-10 • Snetterton • Caterham Motorsport • Canonical',
+            sourceLabel: '2026-05-10 • Snetterton • Caterham Motorsport • Duplicate',
+            targetLabel: '2026-05-10 • Snetterton • Caterham Motorsport • Canonical',
             mergeScope: 'day-merge',
             reason: 'Duplicate Caterham import',
             createdByUserId: 'admin-1',
@@ -54,9 +52,7 @@ describe('AdminDayMergesPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Day merge rules' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Day merge rules' })).toBeInTheDocument();
     expect(screen.getByText(/Duplicate Caterham import/)).toBeInTheDocument();
     expect(screen.getByText(/Keeps 2026-05-10/)).toBeInTheDocument();
   });

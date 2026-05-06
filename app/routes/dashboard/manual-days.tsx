@@ -6,10 +6,7 @@ import { getRaceSeriesName } from '~/lib/days/series.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listManagedManualDays } from '~/lib/db/services/manual-day.server';
-import {
-  ManualDaysPage,
-  type ManualDaysPageProps,
-} from '~/pages/dashboard/manual-days';
+import { ManualDaysPage, type ManualDaysPageProps } from '~/pages/dashboard/manual-days';
 import type { Route } from './+types/manual-days';
 
 function isNonEmptyString(value: string | null | undefined): value is string {
@@ -22,28 +19,21 @@ export async function loader({ request }: Route.LoaderArgs) {
     listManagedManualDays(),
     getAvailableDaysSnapshot(),
   ]);
-  const circuitOptions = listCircuitOptions([
-    ...(snapshot?.days ?? []),
-    ...manualDays,
-  ]);
+  const circuitOptions = listCircuitOptions([...(snapshot?.days ?? []), ...manualDays]);
   const providerOptions = [
     ...new Set([
       ...(snapshot?.days.map((day) => day.provider) ?? []),
       ...manualDays.map((day) => day.provider),
     ]),
-  ].sort();
+  ].toSorted();
   const seriesOptions = [
     ...new Set([
-      ...(snapshot?.days
-        .map((day) => getRaceSeriesName(day))
-        .filter(isNonEmptyString) ?? []),
+      ...(snapshot?.days.map((day) => getRaceSeriesName(day)).filter(isNonEmptyString) ?? []),
       ...manualDays
-        .map((day) =>
-          day.type === 'race_day' ? (day.series?.trim() ?? '') : '',
-        )
+        .map((day) => (day.type === 'race_day' ? (day.series?.trim() ?? '') : ''))
         .filter(isNonEmptyString),
     ]),
-  ].sort();
+  ].toSorted();
 
   return Response.json(
     {

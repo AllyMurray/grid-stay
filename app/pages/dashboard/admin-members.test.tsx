@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminMembersPage } from './admin-members';
 
@@ -63,13 +63,9 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('AdminMembersPage', () => {
   it('renders searchable member-management rows', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <AdminMembersPage members={members} joinLinks={joinLinks} />,
-    );
+    renderWithProviders(<AdminMembersPage members={members} joinLinks={joinLinks} />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Member management' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Member management' })).toBeInTheDocument();
     expect(screen.getByText('Ally Murray')).toBeInTheDocument();
     expect(screen.getByText('ally@example.com')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /ally murray/i })).toHaveAttribute(
@@ -85,18 +81,14 @@ describe('AdminMembersPage', () => {
 
   it('renders join-link controls and usage-limit mode', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <AdminMembersPage members={members} joinLinks={joinLinks} />,
-    );
+    renderWithProviders(<AdminMembersPage members={members} joinLinks={joinLinks} />);
 
     expect(screen.getByText('Join links')).toBeInTheDocument();
     expect(screen.getByText(/2 of 5 joined/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('combobox', { name: /link mode/i }));
-    fireEvent.click(
-      screen.getByRole('option', { name: 'Usage limit', hidden: true }),
-    );
+    fireEvent.click(screen.getByRole('option', { name: 'Usage limit', hidden: true }));
 
     expect(screen.getByLabelText('Usage limit')).toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 import type { ConverseCommandOutput } from '@aws-sdk/client-bedrock-runtime';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { generateHotelSummaryWithBedrock } from './bedrock.server';
 
 const hotel = {
@@ -55,9 +55,7 @@ describe('Bedrock hotel summaries', () => {
       modelId: 'eu.amazon.nova-micro-v1:0',
     });
 
-    expect(summary).toBe(
-      'Members report good trailer parking and limited late check-in.',
-    );
+    expect(summary).toBe('Members report good trailer parking and limited late check-in.');
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'eu.amazon.nova-micro-v1:0',
@@ -73,9 +71,7 @@ describe('Bedrock hotel summaries', () => {
   it('skips Bedrock when there are no reviews', async () => {
     const send = vi.fn();
 
-    await expect(
-      generateHotelSummaryWithBedrock(hotel, [], { send }),
-    ).resolves.toBeNull();
+    await expect(generateHotelSummaryWithBedrock(hotel, [], { send })).resolves.toBeNull();
     expect(send).not.toHaveBeenCalled();
   });
 });

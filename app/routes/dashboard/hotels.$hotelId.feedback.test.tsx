@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireUser } = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -85,13 +85,10 @@ describe('hotel feedback route', () => {
     formData.set('trailerParking', 'good');
     formData.set('secureParking', 'yes');
     formData.set('lateCheckIn', 'limited');
-    const request = new Request(
-      'https://gridstay.app/dashboard/hotels/hotel-1/feedback',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/hotels/hotel-1/feedback', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,
@@ -130,13 +127,10 @@ describe('hotel feedback route', () => {
     });
 
     const response = (await action({
-      request: new Request(
-        'https://gridstay.app/dashboard/hotels/hotel-1/feedback',
-        {
-          method: 'POST',
-          body: new FormData(),
-        },
-      ),
+      request: new Request('https://gridstay.app/dashboard/hotels/hotel-1/feedback', {
+        method: 'POST',
+        body: new FormData(),
+      }),
       params: { hotelId: 'hotel-1' },
       context: {},
     } as never)) as Response;

@@ -1,9 +1,6 @@
 import { ulid } from 'ulid';
 import type { User } from '~/lib/auth/schemas';
-import type {
-  GarageShareDecisionInput,
-  GarageShareRequestInput,
-} from '~/lib/schemas/garage-share';
+import type { GarageShareDecisionInput, GarageShareRequestInput } from '~/lib/schemas/garage-share';
 import type { BookingRecord } from '../entities/booking.server';
 import {
   type BookingPersistence,
@@ -52,16 +49,10 @@ function sanitizeOptional(value?: string): string | undefined {
 }
 
 async function loadOwnerGarageBooking(
-  input: Pick<
-    GarageShareRequestInput,
-    'dayId' | 'garageOwnerUserId' | 'garageBookingId'
-  >,
+  input: Pick<GarageShareRequestInput, 'dayId' | 'garageOwnerUserId' | 'garageBookingId'>,
   bookings: BookingPersistence,
 ): Promise<BookingRecord | null> {
-  const ownerBooking = await bookings.getByUser(
-    input.garageOwnerUserId,
-    input.garageBookingId,
-  );
+  const ownerBooking = await bookings.getByUser(input.garageOwnerUserId, input.garageBookingId);
 
   if (
     ownerBooking?.dayId !== input.dayId ||
@@ -112,10 +103,7 @@ async function getOpenGarageSpaces(
     excludingRequestId,
   );
 
-  return Math.max(
-    getGarageCapacity(ownerBooking) - 1 - approvedRequestCount,
-    0,
-  );
+  return Math.max(getGarageCapacity(ownerBooking) - 1 - approvedRequestCount, 0);
 }
 
 export async function createGarageShareRequest(
@@ -137,17 +125,11 @@ export async function createGarageShareRequest(
     throw new Response('You cannot request your own garage.', { status: 400 });
   }
 
-  const requesterBooking = await bookings.findByUserAndDay(
-    user.id,
-    input.dayId,
-  );
+  const requesterBooking = await bookings.findByUserAndDay(user.id, input.dayId);
   if (!isActiveBooking(requesterBooking)) {
-    throw new Response(
-      'Add this day to your bookings before requesting space.',
-      {
-        status: 400,
-      },
-    );
+    throw new Response('Add this day to your bookings before requesting space.', {
+      status: 400,
+    });
   }
 
   const existingRequests = await requests.listByDay(input.dayId);
@@ -193,9 +175,7 @@ export async function createGarageShareRequest(
     updatedAt: now,
   } as GarageShareRequestRecord);
 
-  await (dependencies.syncSummaries ?? syncDayAttendanceSummaries)([
-    request.dayId,
-  ]);
+  await (dependencies.syncSummaries ?? syncDayAttendanceSummaries)([request.dayId]);
   return request;
 }
 
@@ -221,10 +201,7 @@ export async function updateGarageShareRequestStatus(
     });
   }
 
-  if (
-    (input.status === 'approved' || input.status === 'declined') &&
-    !isOwner
-  ) {
+  if ((input.status === 'approved' || input.status === 'declined') && !isOwner) {
     throw new Response('Only the garage owner can approve or decline.', {
       status: 403,
     });
@@ -288,14 +265,7 @@ export async function updateGarageShareRequestStatus(
       });
     }
 
-    if (
-      (await getOpenGarageSpaces(
-        ownerBooking,
-        bookings,
-        requests,
-        existing.requestId,
-      )) <= 0
-    ) {
+    if ((await getOpenGarageSpaces(ownerBooking, bookings, requests, existing.requestId)) <= 0) {
       throw new Response('This garage no longer has a free space.', {
         status: 400,
       });
@@ -307,9 +277,7 @@ export async function updateGarageShareRequestStatus(
     updated = await requests.update(existing.requestId, {
       status: input.status,
       decidedAt:
-        input.status === 'approved' || input.status === 'declined'
-          ? now
-          : existing.decidedAt,
+        input.status === 'approved' || input.status === 'declined' ? now : existing.decidedAt,
       decidedByUserId:
         input.status === 'approved' || input.status === 'declined'
           ? user.id
@@ -336,9 +304,7 @@ export async function updateGarageShareRequestStatus(
     );
   }
 
-  await (dependencies.syncSummaries ?? syncDayAttendanceSummaries)([
-    updated.dayId,
-  ]);
+  await (dependencies.syncSummaries ?? syncDayAttendanceSummaries)([updated.dayId]);
   return updated;
 }
 
@@ -348,11 +314,7 @@ export async function listGarageShareRequestsForUser(
 ): Promise<UserGarageShareRequest[]> {
   const records = await store.listAll();
   return records
-    .filter(
-      (request) =>
-        request.garageOwnerUserId === userId ||
-        request.requesterUserId === userId,
-    )
+    .filter((request) => request.garageOwnerUserId === userId || request.requesterUserId === userId)
     .map((request) => ({
       ...request,
       isIncoming: request.garageOwnerUserId === userId,

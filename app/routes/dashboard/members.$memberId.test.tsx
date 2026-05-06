@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireUser } = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -128,13 +128,10 @@ describe('member days route', () => {
     const formData = new FormData();
     formData.set('dayId', 'day-1');
     formData.set('status', 'booked');
-    const request = new Request(
-      'https://gridstay.app/dashboard/members/user-1',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/members/user-1', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,

@@ -14,13 +14,7 @@ import {
   ThemeIcon,
   UnstyledButton,
 } from '@mantine/core';
-import {
-  IconCheck,
-  IconChevronRight,
-  IconCopy,
-  IconLink,
-  IconSearch,
-} from '@tabler/icons-react';
+import { IconCheck, IconChevronRight, IconCopy, IconLink, IconSearch } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
@@ -115,20 +109,14 @@ function usageLabel(link: MemberJoinLinkSummary) {
   return `${link.acceptedCount} of ${link.maxUses} joined`;
 }
 
-function JoinLinkManagementPanel({
-  joinLinks,
-}: {
-  joinLinks: MemberJoinLinkSummary[];
-}) {
+function JoinLinkManagementPanel({ joinLinks }: { joinLinks: MemberJoinLinkSummary[] }) {
   const fetcher = useFetcher<MemberJoinLinkActionResult>();
   const [mode, setMode] = useState<MemberJoinLinkMode>('reusable');
   const [maxUses, setMaxUses] = useState<number | string>(5);
   const [copied, setCopied] = useState(false);
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
   const recentLinks = joinLinks.slice(0, 8);
 
@@ -139,8 +127,7 @@ function JoinLinkManagementPanel({
           <Stack gap={2}>
             <Text fw={700}>Join links</Text>
             <Text size="sm" c="dimmed">
-              Create a 24-hour link for WhatsApp, then revoke it when you no
-              longer need it.
+              Create a 24-hour link for WhatsApp, then revoke it when you no longer need it.
             </Text>
           </Stack>
           <ThemeIcon variant="light" color="brand" radius="sm" size={36}>
@@ -156,9 +143,7 @@ function JoinLinkManagementPanel({
                 name="mode"
                 label="Link mode"
                 value={mode}
-                onChange={(value) =>
-                  setMode((value ?? 'reusable') as MemberJoinLinkMode)
-                }
+                onChange={(value) => setMode((value ?? 'reusable') as MemberJoinLinkMode)}
                 data={[
                   { value: 'reusable', label: 'Reusable' },
                   { value: 'single_use', label: 'Single-use' },
@@ -240,10 +225,7 @@ function JoinLinkManagementPanel({
                   <Group justify="space-between" align="center" gap="md">
                     <Stack gap={2}>
                       <Group gap="xs" wrap="wrap">
-                        <Badge
-                          color={joinLinkStateColor(link.state)}
-                          variant="light"
-                        >
+                        <Badge color={joinLinkStateColor(link.state)} variant="light">
                           {joinLinkStateLabel(link.state)}
                         </Badge>
                         <Text size="sm" fw={700}>
@@ -254,23 +236,14 @@ function JoinLinkManagementPanel({
                         </Text>
                       </Group>
                       <Text size="xs" c="dimmed">
-                        {usageLabel(link)} • Expires{' '}
-                        {formatJoinLinkDate(link.expiresAt)} • Created by{' '}
-                        {link.createdByName}
+                        {usageLabel(link)} • Expires {formatJoinLinkDate(link.expiresAt)} • Created
+                        by {link.createdByName}
                       </Text>
                     </Stack>
                     {link.state === 'active' ? (
                       <fetcher.Form method="post">
-                        <input
-                          type="hidden"
-                          name="intent"
-                          value="revokeJoinLink"
-                        />
-                        <input
-                          type="hidden"
-                          name="tokenHash"
-                          value={link.tokenHash}
-                        />
+                        <input type="hidden" name="intent" value="revokeJoinLink" />
+                        <input type="hidden" name="tokenHash" value={link.tokenHash} />
                         <Button
                           type="submit"
                           variant="subtle"
@@ -294,11 +267,7 @@ function JoinLinkManagementPanel({
   );
 }
 
-function MemberManagementRow({
-  member,
-}: {
-  member: AdminMemberDirectoryEntry;
-}) {
+function MemberManagementRow({ member }: { member: AdminMemberDirectoryEntry }) {
   const nextTrip = member.nextTrip
     ? `${formatMemberDate(member.nextTrip.date)} • ${member.nextTrip.circuit}`
     : 'No upcoming trips';
@@ -342,9 +311,7 @@ function MemberManagementRow({
               </Text>
               <Text size="xs" c="dimmed">
                 {member.sharedStayCount}{' '}
-                {member.sharedStayCount === 1
-                  ? 'accommodation'
-                  : 'accommodations'}
+                {member.sharedStayCount === 1 ? 'accommodation' : 'accommodations'}
               </Text>
             </Group>
           </Stack>
@@ -358,22 +325,14 @@ function MemberManagementRow({
   );
 }
 
-export function AdminMembersPage({
-  members,
-  joinLinks,
-}: AdminMembersPageProps) {
+export function AdminMembersPage({ members, joinLinks }: AdminMembersPageProps) {
   const [query, setQuery] = useState('');
   const filteredMembers = useMemo(
     () => members.filter((member) => matchesMember(member, query.trim())),
     [members, query],
   );
-  const membersWithTrips = members.filter(
-    (member) => member.activeTripsCount > 0,
-  );
-  const totalSharedStays = members.reduce(
-    (count, member) => count + member.sharedStayCount,
-    0,
-  );
+  const membersWithTrips = members.filter((member) => member.activeTripsCount > 0);
+  const totalSharedStays = members.reduce((count, member) => count + member.sharedStayCount, 0);
 
   return (
     <Stack gap="xl">

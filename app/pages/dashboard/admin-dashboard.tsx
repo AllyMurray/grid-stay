@@ -72,8 +72,7 @@ const adminToolGroups: AdminToolGroup[] = [
     tools: [
       {
         title: 'Manual days',
-        description:
-          'Add track, test, race, or road drive days that are not in the feed.',
+        description: 'Add track, test, race, or road drive days that are not in the feed.',
         href: '/dashboard/manual-days',
         label: 'Create',
         icon: IconLock,

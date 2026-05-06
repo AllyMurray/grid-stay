@@ -13,10 +13,7 @@ import {
 } from '@mantine/core';
 import { IconArrowLeft, IconLock, IconRoad } from '@tabler/icons-react';
 import { Form, Link, useNavigation } from 'react-router';
-import {
-  PASSWORD_MIN_LENGTH,
-  type PasswordResetActionData,
-} from '~/lib/auth/password-auth.shared';
+import { PASSWORD_MIN_LENGTH, type PasswordResetActionData } from '~/lib/auth/password-auth.shared';
 
 interface ResetPasswordPageProps {
   actionData?: PasswordResetActionData;
@@ -26,19 +23,13 @@ interface ResetPasswordPageProps {
 const LOGIN_BACKGROUND_IMAGE =
   'https://images.pexels.com/photos/1571882/pexels-photo-1571882.jpeg?cs=srgb&dl=pexels-tomverdoot-1571882.jpg&fm=jpg';
 
-export function ResetPasswordPage({
-  actionData,
-  token,
-}: ResetPasswordPageProps) {
+export function ResetPasswordPage({ actionData, token }: ResetPasswordPageProps) {
   const navigation = useNavigation();
   const isSubmitting = navigation.state !== 'idle';
   const tokenError = actionData?.fieldErrors.token?.[0];
 
   return (
-    <Box
-      className="auth-login-shell"
-      style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE})` }}
-    >
+    <Box className="auth-login-shell" style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE})` }}>
       <Container size="xl" className="auth-login-container">
         <Stack className="auth-login-stage" justify="center" align="center">
           <Paper className="auth-login-panel" radius="sm" p="xl" shadow="xl">

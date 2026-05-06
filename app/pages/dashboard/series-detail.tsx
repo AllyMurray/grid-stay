@@ -1,29 +1,14 @@
-import {
-  Badge,
-  Button,
-  Group,
-  Paper,
-  ScrollArea,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Badge, Button, Group, Paper, ScrollArea, Stack, Table, Text, Title } from '@mantine/core';
 import { Link } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import { formatDateOnly } from '~/lib/dates/date-only';
-import type {
-  RaceSeriesDetail,
-  RaceSeriesRound,
-} from '~/lib/days/series-detail.server';
+import type { RaceSeriesDetail, RaceSeriesRound } from '~/lib/days/series-detail.server';
 
 export type RaceSeriesDetailPageProps = RaceSeriesDetail;
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function typeColor(type: RaceSeriesRound['type']) {
@@ -92,10 +77,7 @@ export function RaceSeriesDetailPage({
         }
         actions={
           <Group gap="sm">
-            <Button
-              component={Link}
-              to={`/dashboard/days?series=${encodeURIComponent(seriesKey)}`}
-            >
+            <Button component={Link} to={`/dashboard/days?series=${encodeURIComponent(seriesKey)}`}>
               Open filtered days
             </Button>
             <Button component={Link} to="/dashboard/days" variant="default">
@@ -140,18 +122,11 @@ export function RaceSeriesDetailPage({
                     </Table.Td>
                     <Table.Td>{round.provider}</Table.Td>
                     <Table.Td>
-                      <Badge color={typeColor(round.type)}>
-                        {titleCase(round.type)}
-                      </Badge>
+                      <Badge color={typeColor(round.type)}>{titleCase(round.type)}</Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Badge
-                        variant="light"
-                        color={bookingColor(round.myBookingStatus)}
-                      >
-                        {round.myBookingStatus
-                          ? titleCase(round.myBookingStatus)
-                          : 'Not added'}
+                      <Badge variant="light" color={bookingColor(round.myBookingStatus)}>
+                        {round.myBookingStatus ? titleCase(round.myBookingStatus) : 'Not added'}
                       </Badge>
                     </Table.Td>
                     <Table.Td>

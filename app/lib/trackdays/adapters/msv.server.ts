@@ -22,9 +22,7 @@ export const MSV_TRACKDAY_CIRCUIT_MAP: Record<string, string> = {
 /**
  * All circuit IDs that the MSV track day adapter covers.
  */
-export const MSV_TRACKDAY_CIRCUIT_IDS = [
-  ...new Set(Object.values(MSV_TRACKDAY_CIRCUIT_MAP)),
-];
+export const MSV_TRACKDAY_CIRCUIT_IDS = [...new Set(Object.values(MSV_TRACKDAY_CIRCUIT_MAP))];
 
 /**
  * URLs to scrape per circuit. Some circuits share a URL (e.g. Brands Hatch GP & Indy).
@@ -68,10 +66,7 @@ export interface MsvTrackDayEvent {
 /**
  * Resolves an MSV circuit text name + layout to an internal circuit ID.
  */
-export function resolveCircuitId(
-  circuitName: string,
-  layout?: string,
-): string | undefined {
+export function resolveCircuitId(circuitName: string, layout?: string): string | undefined {
   // Try specific name:layout first
   if (layout) {
     const specific = MSV_TRACKDAY_CIRCUIT_MAP[`${circuitName}:${layout}`];
@@ -171,13 +166,8 @@ export function parseMsvTrackDayCalendar(html: string): MsvTrackDayEvent[] {
   return events;
 }
 
-function parseShortDate(
-  shortDate: string,
-  bookingUrl?: string,
-): string | undefined {
-  const match = shortDate.match(
-    /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{1,2})\s+([A-Za-z]{3})$/i,
-  );
+function parseShortDate(shortDate: string, bookingUrl?: string): string | undefined {
+  const match = shortDate.match(/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{1,2})\s+([A-Za-z]{3})$/i);
   if (!match) return undefined;
 
   const day = match[1].padStart(2, '0');
@@ -269,16 +259,13 @@ function parseEventContent(content: string): MsvTrackDayEvent | null {
   const organizer = organizerMatch ? stripHtml(organizerMatch[1]) : undefined;
 
   // Extract duration
-  const durationMatch = content.match(
-    /\b(Full Day|Half Day|Evening|Morning)\b/i,
-  );
+  const durationMatch = content.match(/\b(Full Day|Half Day|Evening|Morning)\b/i);
   const duration = durationMatch ? durationMatch[1] : undefined;
 
   // Extract event type/name
   const titleMatch =
-    content.match(
-      /<[^>]*class="[^"]*(?:title|name|event-name)[^"]*"[^>]*>([\s\S]*?)<\/[^>]*>/i,
-    ) ?? content.match(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i);
+    content.match(/<[^>]*class="[^"]*(?:title|name|event-name)[^"]*"[^>]*>([\s\S]*?)<\/[^>]*>/i) ??
+    content.match(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i);
   const eventType = titleMatch ? stripHtml(titleMatch[1]) : undefined;
 
   // Extract booking URL
@@ -328,9 +315,7 @@ async function defaultFetch(url: string): Promise<string> {
 /**
  * Creates an MSV track day adapter with injectable fetch.
  */
-export function createMsvTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createMsvTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'msv-trackday',
     description:
@@ -338,9 +323,7 @@ export function createMsvTrackDayAdapter(
     circuitIds: MSV_TRACKDAY_CIRCUIT_IDS,
 
     async fetchSchedule(circuitIds, options) {
-      const relevantIds = circuitIds.filter((id) =>
-        MSV_TRACKDAY_CIRCUIT_IDS.includes(id),
-      );
+      const relevantIds = circuitIds.filter((id) => MSV_TRACKDAY_CIRCUIT_IDS.includes(id));
       if (relevantIds.length === 0) return [];
 
       // Determine unique URLs to fetch (dedup for shared pages like Brands Hatch)

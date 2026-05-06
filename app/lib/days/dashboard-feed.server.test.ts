@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
@@ -35,8 +35,7 @@ vi.mock('~/lib/db/services/circuit-distance-matrix.server', () => ({
 }));
 
 vi.mock('~/lib/days/series.server', async () => {
-  const actual =
-    await vi.importActual<typeof import('./series.server')>('./series.server');
+  const actual = await vi.importActual<typeof import('./series.server')>('./series.server');
 
   return {
     ...actual,
@@ -53,17 +52,11 @@ vi.mock('~/lib/days/shared-plan.server', () => ({
 }));
 
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
-import {
-  listAttendanceByDay,
-  listMyBookings,
-} from '~/lib/db/services/booking.server';
+import { listAttendanceByDay, listMyBookings } from '~/lib/db/services/booking.server';
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
-import {
-  loadDaysIndex,
-  loadUpcomingAvailableDaysOverview,
-} from './dashboard-feed.server';
+import { loadDaysIndex, loadUpcomingAvailableDaysOverview } from './dashboard-feed.server';
 import { getSavedDaysFilters } from './preferences.server';
 import { getSharedDayPlan } from './shared-plan.server';
 
@@ -137,9 +130,7 @@ describe('days dashboard feed', () => {
       },
     ]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
 
     const data = await loadDaysIndex(
       {
@@ -211,14 +202,8 @@ describe('days dashboard feed', () => {
 
     const overview = await loadUpcomingAvailableDaysOverview();
 
-    expect(overview.days.map((day) => day.dayId)).toEqual([
-      'manual:1',
-      'future:1',
-    ]);
-    expect(overview.days.map((day) => day.circuit)).toEqual([
-      'North Coast',
-      'Snetterton',
-    ]);
+    expect(overview.days.map((day) => day.dayId)).toEqual(['manual:1', 'future:1']);
+    expect(overview.days.map((day) => day.circuit)).toEqual(['North Coast', 'Snetterton']);
   });
 
   it('returns saved available-days filters for the signed-in member', async () => {
@@ -229,9 +214,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
     vi.mocked(getSavedDaysFilters).mockResolvedValue({
       month: '2026-05',
       series: 'caterham-academy',
@@ -296,9 +279,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
 
     const defaultData = await loadDaysIndex(
       {
@@ -320,10 +301,7 @@ describe('days dashboard feed', () => {
     expect(defaultData.days.map((day) => day.dayId)).toEqual(['future-day']);
     expect(defaultData.totalCount).toBe(1);
     expect(defaultData.monthOptions).toEqual(['2026-06']);
-    expect(showPastData.days.map((day) => day.dayId)).toEqual([
-      'past-day',
-      'future-day',
-    ]);
+    expect(showPastData.days.map((day) => day.dayId)).toEqual(['past-day', 'future-day']);
     expect(showPastData.totalCount).toBe(2);
     expect(showPastData.filters.showPast).toBe(true);
     expect(showPastData.monthOptions).toEqual(['2026-04', '2026-06']);
@@ -362,9 +340,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
     vi.mocked(loadCircuitDistanceMatrix).mockResolvedValue({
       status: 'ready',
       matrix: {
@@ -396,14 +372,8 @@ describe('days dashboard feed', () => {
     );
 
     expect(data.view).toBe('planner');
-    expect(data.calendarDays.map((day) => day.dayId)).toEqual([
-      'day-1',
-      'day-2',
-    ]);
-    expect(data.planner.stops.map((stop) => stop.day.dayId)).toEqual([
-      'day-1',
-      'day-2',
-    ]);
+    expect(data.calendarDays.map((day) => day.dayId)).toEqual(['day-1', 'day-2']);
+    expect(data.planner.stops.map((stop) => stop.day.dayId)).toEqual(['day-1', 'day-2']);
     expect(data.planner.selectedDayIds).toEqual([]);
     expect(data.planner.stops[0]?.selectedByUser).toBe(false);
     expect(data.planner.totalMiles).toBe(55);
@@ -455,9 +425,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
 
     const data = await loadDaysIndex(
       {
@@ -494,9 +462,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
     vi.mocked(getSharedDayPlan).mockResolvedValue({
       dayId: 'race:1',
       notes: 'Meet in paddock bay 12.',
@@ -575,9 +541,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
 
     const data = await loadDaysIndex(
       {
@@ -585,18 +549,13 @@ describe('days dashboard feed', () => {
         email: 'driver@example.com',
         role: 'member',
       },
-      new URL(
-        'https://gridstay.app/dashboard/days?circuit=Silverstone&circuit=Brands%20Hatch',
-      ),
+      new URL('https://gridstay.app/dashboard/days?circuit=Silverstone&circuit=Brands%20Hatch'),
     );
 
     expect(data.filters.circuits).toEqual(['Brands Hatch', 'Silverstone']);
     expect(data.filterKey).toBe('circuit=Brands+Hatch&circuit=Silverstone');
     expect(data.totalCount).toBe(2);
-    expect(data.days.map((day) => day.dayId)).toEqual([
-      'brands',
-      'silverstone',
-    ]);
+    expect(data.days.map((day) => day.dayId)).toEqual(['brands', 'silverstone']);
   });
 
   it('builds current-year circuit options for the selected race series', async () => {
@@ -660,9 +619,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
 
     const data = await loadDaysIndex(
       {
@@ -727,9 +684,7 @@ describe('days dashboard feed', () => {
     });
     vi.mocked(listManualDays).mockResolvedValue([]);
     vi.mocked(listMyBookings).mockResolvedValue([]);
-    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(
-      new Map(),
-    );
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
 
     const data = await loadDaysIndex(
       {
@@ -742,12 +697,7 @@ describe('days dashboard feed', () => {
 
     expect(data.circuitOptions).toEqual(['Snetterton']);
     expect(data.totalCount).toBe(2);
-    expect(data.days.map((day) => day.circuit)).toEqual([
-      'Snetterton',
-      'Snetterton',
-    ]);
-    expect(data.days[0]?.description).toBe(
-      'Caterham Academy • Round 1 - Snetterton 300',
-    );
+    expect(data.days.map((day) => day.circuit)).toEqual(['Snetterton', 'Snetterton']);
+    expect(data.days[0]?.description).toBe('Caterham Academy • Round 1 - Snetterton 300');
   });
 });

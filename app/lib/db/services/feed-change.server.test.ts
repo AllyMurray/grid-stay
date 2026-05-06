@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../entities/feed-change.server', () => ({
   FeedChangeEntity: {},
@@ -107,8 +107,6 @@ describe('feed change service', () => {
 
     await recordFeedChanges(changes, memory.store);
 
-    await expect(listRecentFeedChanges(1, memory.store)).resolves.toEqual(
-      changes,
-    );
+    await expect(listRecentFeedChanges(1, memory.store)).resolves.toEqual(changes);
   });
 });

@@ -60,6 +60,4 @@ export const GarageShareRequestEntity = new Entity(
   { client, table: tableName },
 );
 
-export type GarageShareRequestRecord = EntityItem<
-  typeof GarageShareRequestEntity
->;
+export type GarageShareRequestRecord = EntityItem<typeof GarageShareRequestEntity>;

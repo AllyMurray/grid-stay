@@ -121,11 +121,7 @@ function findDayIssues(days: AvailableDay[]): DataQualityIssue[] {
 
     if (normalized.circuitKnown === false) {
       issues.push(
-        createDayIssue(
-          day,
-          'unknown_circuit',
-          'Circuit is not in the canonical circuit catalog.',
-        ),
+        createDayIssue(day, 'unknown_circuit', 'Circuit is not in the canonical circuit catalog.'),
       );
     }
 
@@ -140,10 +136,7 @@ function findDayIssues(days: AvailableDay[]): DataQualityIssue[] {
       );
     }
 
-    if (
-      normalized.circuit !== day.circuit ||
-      normalized.layout !== day.layout
-    ) {
+    if (normalized.circuit !== day.circuit || normalized.layout !== day.layout) {
       issues.push(
         createDayIssue(
           day,
@@ -180,7 +173,7 @@ function findDayIssues(days: AvailableDay[]): DataQualityIssue[] {
     }
   }
 
-  return issues.sort((left, right) =>
+  return issues.toSorted((left, right) =>
     left.date === right.date
       ? left.type.localeCompare(right.type)
       : left.date.localeCompare(right.date),
@@ -199,15 +192,9 @@ export async function loadDaysDataQualityReport(
   ]);
   const days = [...(snapshot?.days ?? []), ...manualDays];
   const issues = applyIssueStates(findDayIssues(days), issueStates);
-  const openIssueCount = issues.filter(
-    (issue) => issue.status === 'open',
-  ).length;
-  const ignoredIssueCount = issues.filter(
-    (issue) => issue.status === 'ignored',
-  ).length;
-  const resolvedIssueCount = issues.filter(
-    (issue) => issue.status === 'resolved',
-  ).length;
+  const openIssueCount = issues.filter((issue) => issue.status === 'open').length;
+  const ignoredIssueCount = issues.filter((issue) => issue.status === 'ignored').length;
+  const resolvedIssueCount = issues.filter((issue) => issue.status === 'resolved').length;
 
   return {
     refreshedAt: snapshot?.refreshedAt ?? '',

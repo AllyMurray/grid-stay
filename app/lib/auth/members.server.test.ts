@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import {
   getSiteMemberBookedDays,
@@ -330,10 +330,7 @@ describe('listSiteMembers', () => {
       'Ally Murray',
       'New Member',
     ]);
-    expect(result.events.map((event) => event.dayId)).toEqual([
-      'day-1',
-      'day-2',
-    ]);
+    expect(result.events.map((event) => event.dayId)).toEqual(['day-1', 'day-2']);
     expect(result.events[0]).toMatchObject({
       dayId: 'day-1',
       date: '2026-05-03',
@@ -356,12 +353,8 @@ describe('listSiteMembers', () => {
         status: 'maybe',
       }),
     ]);
-    expect(result.events[0]?.attendees[1]).not.toHaveProperty(
-      'bookingReference',
-    );
-    expect(result.events[0]?.attendees[1]).not.toHaveProperty(
-      'accommodationReference',
-    );
+    expect(result.events[0]?.attendees[1]).not.toHaveProperty('bookingReference');
+    expect(result.events[0]?.attendees[1]).not.toHaveProperty('accommodationReference');
     expect(result.events[0]?.attendees[1]).not.toHaveProperty('notes');
   });
 

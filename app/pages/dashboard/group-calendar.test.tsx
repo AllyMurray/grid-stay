@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { GroupCalendarData } from '~/lib/auth/members.server';
 import { theme } from '~/theme';
 import { GroupCalendarPage } from './group-calendar';
@@ -109,23 +109,17 @@ describe('GroupCalendarPage', () => {
     const user = userEvent.setup();
     renderGroupCalendar();
 
-    expect(
-      screen.getByRole('heading', { name: 'Group Calendar' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'May 2026' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Group Calendar' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'May 2026' })).toBeInTheDocument();
 
     const dayButton = screen.getByRole('button', {
       name: /Thu, 7 May 2026: 2 events, 1 booked, 2 maybe/i,
     });
     expect(within(dayButton).getByText('Knockhill')).toBeInTheDocument();
-    expect(
-      within(dayButton).getByText('Oulton Park International'),
-    ).toBeInTheDocument();
-    expect(
-      within(dayButton).getByRole('img', { name: /booked: ally murray/i }),
-    ).toHaveTextContent('AM');
+    expect(within(dayButton).getByText('Oulton Park International')).toBeInTheDocument();
+    expect(within(dayButton).getByRole('img', { name: /booked: ally murray/i })).toHaveTextContent(
+      'AM',
+    );
     expect(
       within(dayButton).getByRole('img', {
         name: /maybe: driver two, tim george/i,
@@ -137,9 +131,7 @@ describe('GroupCalendarPage', () => {
       name: /Thu, 7 May 2026/i,
     });
 
-    expect(
-      within(drawer).getByRole('heading', { name: 'Knockhill' }),
-    ).toBeInTheDocument();
+    expect(within(drawer).getByRole('heading', { name: 'Knockhill' })).toBeInTheDocument();
     expect(
       within(drawer).getByRole('heading', {
         name: 'Oulton Park International',
@@ -148,9 +140,10 @@ describe('GroupCalendarPage', () => {
     expect(within(drawer).getByText('Ally Murray')).toBeInTheDocument();
     expect(within(drawer).getByText('Driver Two')).toBeInTheDocument();
     expect(within(drawer).getByText('Tim George')).toBeInTheDocument();
-    expect(
-      within(drawer).getAllByRole('link', { name: 'Open day' })[0],
-    ).toHaveAttribute('href', '/dashboard/days?day=day-1');
+    expect(within(drawer).getAllByRole('link', { name: 'Open day' })[0]).toHaveAttribute(
+      'href',
+      '/dashboard/days?day=day-1',
+    );
   });
 
   it('filters the calendar by status', async () => {
@@ -188,8 +181,9 @@ describe('GroupCalendarPage', () => {
     });
 
     expect(screen.getByText(/no group plans yet/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /browse available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByRole('link', { name: /browse available days/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
   });
 });

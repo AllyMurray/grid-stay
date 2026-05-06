@@ -7,10 +7,7 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { type CleanedWhere, createAdapterFactory } from 'better-auth/adapters';
-import {
-  hasGmailAliasSemantics,
-  normalizeMemberAccessEmail,
-} from './authorization';
+import { hasGmailAliasSemantics, normalizeMemberAccessEmail } from './authorization';
 
 /**
  * Key design for the dedicated auth DynamoDB table.
@@ -37,10 +34,7 @@ function modelPrefix(model: string): string {
   return prefixes[model] ?? model.toUpperCase();
 }
 
-function buildKeys(
-  model: string,
-  data: Record<string, unknown>,
-): Record<string, unknown> {
+function buildKeys(model: string, data: Record<string, unknown>): Record<string, unknown> {
   const prefix = modelPrefix(model);
   const keys: Record<string, unknown> = {
     pk: `${prefix}#${data.id ?? data.key}`,
@@ -193,10 +187,7 @@ function stripKeys(item: Record<string, unknown>): Record<string, unknown> {
   return data;
 }
 
-function getSingleUserEmailLookupValue(
-  model: string,
-  where: CleanedWhere[],
-): string | null {
+function getSingleUserEmailLookupValue(model: string, where: CleanedWhere[]): string | null {
   if (model !== 'user' || where.length !== 1) {
     return null;
   }
@@ -224,10 +215,7 @@ function matchesUserEmailByMemberAccessAlias(
 }
 
 /** Check if a single record matches a where clause */
-function matchesWhere(
-  item: Record<string, unknown>,
-  where: CleanedWhere[],
-): boolean {
+function matchesWhere(item: Record<string, unknown>, where: CleanedWhere[]): boolean {
   for (const clause of where) {
     const value = item[clause.field];
     let matches = false;
@@ -252,14 +240,10 @@ function matchesWhere(
         matches = (value as number) <= (clause.value as number);
         break;
       case 'in':
-        matches =
-          Array.isArray(clause.value) &&
-          (clause.value as unknown[]).includes(value);
+        matches = Array.isArray(clause.value) && (clause.value as unknown[]).includes(value);
         break;
       case 'not_in':
-        matches =
-          Array.isArray(clause.value) &&
-          !(clause.value as unknown[]).includes(value);
+        matches = Array.isArray(clause.value) && !(clause.value as unknown[]).includes(value);
         break;
       case 'contains':
         matches =
@@ -295,10 +279,7 @@ function matchesWhere(
 }
 
 /** Compute TTL epoch from expiresAt if present */
-function computeTtl(
-  model: string,
-  data: Record<string, unknown>,
-): number | undefined {
+function computeTtl(model: string, data: Record<string, unknown>): number | undefined {
   if (model === 'session' || model === 'verification') {
     const expiresAt = data.expiresAt;
     if (typeof expiresAt === 'string') {
@@ -321,9 +302,7 @@ async function paginatedScan(
   let lastKey: Record<string, unknown> | undefined;
 
   do {
-    const result = await client.send(
-      new ScanCommand({ ...params, ExclusiveStartKey: lastKey }),
-    );
+    const result = await client.send(new ScanCommand({ ...params, ExclusiveStartKey: lastKey }));
     if (params?.Select === 'COUNT') {
       count += result.Count ?? 0;
     } else {
@@ -360,11 +339,9 @@ async function findUserByMemberAccessEmail(
         typeof item.email === 'string' &&
         normalizeMemberAccessEmail(item.email) === memberAccessEmail,
     )
-    .sort((left, right) => {
-      const leftCreatedAt =
-        typeof left.createdAt === 'string' ? left.createdAt : '';
-      const rightCreatedAt =
-        typeof right.createdAt === 'string' ? right.createdAt : '';
+    .toSorted((left, right) => {
+      const leftCreatedAt = typeof left.createdAt === 'string' ? left.createdAt : '';
+      const rightCreatedAt = typeof right.createdAt === 'string' ? right.createdAt : '';
 
       if (leftCreatedAt !== rightCreatedAt) {
         return leftCreatedAt.localeCompare(rightCreatedAt);
@@ -429,9 +406,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
             new QueryCommand({
               TableName: tableName,
               IndexName: 'gsi1',
-              KeyConditionExpression: hasSort
-                ? 'gsi1pk = :pk AND gsi1sk = :sk'
-                : 'gsi1pk = :pk',
+              KeyConditionExpression: hasSort ? 'gsi1pk = :pk AND gsi1sk = :sk' : 'gsi1pk = :pk',
               ExpressionAttributeValues: hasSort
                 ? { ':pk': kc.gsi1pk, ':sk': kc.gsi1sk }
                 : { ':pk': kc.gsi1pk },
@@ -445,11 +420,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
               ) as Record<string, unknown> | undefined);
 
           if (!item && userEmailLookup) {
-            item = await findUserByMemberAccessEmail(
-              client,
-              tableName,
-              userEmailLookup,
-            );
+            item = await findUserByMemberAccessEmail(client, tableName, userEmailLookup);
           }
         } else if (query.type === 'gsi2Query') {
           const kc = query.keyCondition!;
@@ -458,9 +429,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
             new QueryCommand({
               TableName: tableName,
               IndexName: 'gsi2',
-              KeyConditionExpression: hasSort
-                ? 'gsi2pk = :pk AND gsi2sk = :sk'
-                : 'gsi2pk = :pk',
+              KeyConditionExpression: hasSort ? 'gsi2pk = :pk AND gsi2sk = :sk' : 'gsi2pk = :pk',
               ExpressionAttributeValues: hasSort
                 ? { ':pk': kc.gsi2pk, ':sk': kc.gsi2sk }
                 : { ':pk': kc.gsi2pk },
@@ -488,10 +457,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
         // For GetItem / GSI query, still verify all where conditions
         const clean = stripKeys(item);
         if (query.type !== 'scan' && !matchesWhere(clean, where)) {
-          if (
-            !userEmailLookup ||
-            !matchesUserEmailByMemberAccessAlias(clean, userEmailLookup)
-          ) {
+          if (!userEmailLookup || !matchesUserEmailByMemberAccessAlias(clean, userEmailLookup)) {
             return null;
           }
         }
@@ -545,9 +511,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
           }
 
           // Filter results through where clauses
-          items = items
-            .map((i) => stripKeys(i))
-            .filter((i) => matchesWhere(i, where));
+          items = items.map((i) => stripKeys(i)).filter((i) => matchesWhere(i, where));
         } else {
           // No where clause — scan for all items of this model
           const prefix = modelPrefix(model);
@@ -603,8 +567,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
           ExpressionAttributeValues: { ':prefix': `${prefix}#` },
         });
 
-        return fullResult.Items.filter((i) => matchesWhere(stripKeys(i), where))
-          .length;
+        return fullResult.Items.filter((i) => matchesWhere(stripKeys(i), where)).length;
       },
 
       update: async ({ model, where, update: updateData }) => {
@@ -690,9 +653,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
         });
 
         const items = result.Items.filter((i) =>
-          !where || where.length === 0
-            ? true
-            : matchesWhere(stripKeys(i), where),
+          !where || where.length === 0 ? true : matchesWhere(stripKeys(i), where),
         );
 
         let count = 0;
@@ -789,9 +750,7 @@ export function dynamoDBAdapter({ client, tableName }: DynamoDBAdapterOptions) {
         });
 
         const items = result.Items.filter((i) =>
-          !where || where.length === 0
-            ? true
-            : matchesWhere(stripKeys(i), where),
+          !where || where.length === 0 ? true : matchesWhere(stripKeys(i), where),
         );
 
         for (const item of items) {

@@ -1,11 +1,8 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
-import type {
-  AdminMemberProfile,
-  AdminSeriesOption,
-} from '~/lib/admin/member-management.server';
+import { describe, expect, it } from 'vite-plus/test';
+import type { AdminMemberProfile, AdminSeriesOption } from '~/lib/admin/member-management.server';
 import { theme } from '~/theme';
 import { AdminMemberDetailPage } from './admin-member-detail';
 
@@ -71,24 +68,16 @@ function renderWithProviders(ui: React.ReactElement) {
 
 describe('AdminMemberDetailPage', () => {
   it('renders member bookings and series controls without private fields', () => {
-    renderWithProviders(
-      <AdminMemberDetailPage profile={profile} seriesOptions={seriesOptions} />,
-    );
+    renderWithProviders(<AdminMemberDetailPage profile={profile} seriesOptions={seriesOptions} />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Driver One' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Driver One' })).toBeInTheDocument();
     expect(screen.getAllByText('driver@example.com').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Display name')).toHaveValue('Driver One');
     expect(screen.getByText(/Google name: driver one/)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Save display name' }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save display name' })).toBeVisible();
     expect(screen.getAllByLabelText('Role')[0]).toHaveDisplayValue('Member');
     expect(screen.getByRole('button', { name: 'Save role' })).toBeVisible();
-    expect(
-      screen.getByRole('heading', { name: 'Upcoming bookings' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming bookings' })).toBeInTheDocument();
     expect(screen.getByText('Snetterton')).toBeInTheDocument();
     expect(screen.getByText(/Trackside Hotel/)).toBeInTheDocument();
     expect(screen.getByText('Caterham Academy')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('~/lib/auth/member-invites.server', () => ({
   listMemberInvites: vi.fn(),
@@ -129,10 +129,7 @@ vi.mock('~/lib/db/entities/whats-new-view.server', () => ({
 
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { CalendarFeedRecord } from '~/lib/db/entities/calendar-feed.server';
-import {
-  createAdminDataExport,
-  summarizeAdminDataExport,
-} from './export.server';
+import { createAdminDataExport, summarizeAdminDataExport } from './export.server';
 
 describe('admin data export', () => {
   it('collects production data and redacts calendar feed tokens', async () => {
@@ -350,12 +347,8 @@ describe('admin data export', () => {
     ]);
     expect(JSON.stringify(dataExport.memberJoinLinks)).not.toContain('/join/');
     expect(dataExport.bookings).toEqual([booking]);
-    expect(dataExport.costGroups).toEqual([
-      expect.objectContaining({ groupId: 'group-1' }),
-    ]);
-    expect(dataExport.costExpenses).toEqual([
-      expect.objectContaining({ expenseId: 'expense-1' }),
-    ]);
+    expect(dataExport.costGroups).toEqual([expect.objectContaining({ groupId: 'group-1' })]);
+    expect(dataExport.costExpenses).toEqual([expect.objectContaining({ expenseId: 'expense-1' })]);
     expect(dataExport.costSettlements).toEqual([
       expect.objectContaining({ settlementId: 'day-1#user-2#user-1#GBP' }),
     ]);
@@ -375,9 +368,7 @@ describe('admin data export', () => {
         hasLegacyPlaintextToken: true,
       }),
     ]);
-    expect(JSON.stringify(dataExport.calendarFeeds)).not.toContain(
-      'plain-token',
-    );
+    expect(JSON.stringify(dataExport.calendarFeeds)).not.toContain('plain-token');
     expect(summarizeAdminDataExport(dataExport)).toMatchObject({
       memberCount: 1,
       joinLinkCount: 1,

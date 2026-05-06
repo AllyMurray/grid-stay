@@ -2,16 +2,13 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
 import { BookingSchedulePage } from './schedule';
 
 vi.mock('@mantine/schedule', async () => {
-  const actual =
-    await vi.importActual<typeof import('@mantine/schedule')>(
-      '@mantine/schedule',
-    );
+  const actual = await vi.importActual<typeof import('@mantine/schedule')>('@mantine/schedule');
 
   return {
     ...actual,
@@ -71,9 +68,7 @@ vi.mock('@mantine/schedule', async () => {
               key={event.id}
               type="button"
               data-end={event.end}
-              onClick={(reactEvent) =>
-                onEventClick?.(event, reactEvent.nativeEvent)
-              }
+              onClick={(reactEvent) => onEventClick?.(event, reactEvent.nativeEvent)}
             >
               {event.title}
             </button>
@@ -139,29 +134,18 @@ const bookingTwo: BookingRecord = {
 describe('BookingSchedulePage', () => {
   it('renders the list view by default and selected booking summary', () => {
     renderWithProviders(
-      <BookingSchedulePage
-        bookings={[bookingOne, bookingTwo]}
-        today="2026-05-03"
-      />,
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Schedule' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Schedule' })).toBeInTheDocument();
     expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
     expect(screen.getByText('1 confirmed')).toBeInTheDocument();
     expect(screen.getByText('1 maybe')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: '1 confirmed, 1 maybe' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '1 confirmed, 1 maybe' })).toBeInTheDocument();
     expect(screen.getByText('1 with accommodation')).toBeInTheDocument();
     expect(screen.queryByTestId('schedule')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Upcoming trips' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/showing 2 of 2 upcoming trips/i),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming trips' })).toBeInTheDocument();
+    expect(screen.getByText(/showing 2 of 2 upcoming trips/i)).toBeInTheDocument();
     expect(
       screen.getByRole('button', {
         name: /select silverstone on sun, 3 may 2026/i,
@@ -173,33 +157,27 @@ describe('BookingSchedulePage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText('All upcoming trips loaded.')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Silverstone' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Silverstone' })).toBeInTheDocument();
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('link', { name: /manage in my bookings/i }),
-    ).toHaveAttribute('href', '/dashboard/bookings?view=manage');
-    expect(
-      screen.getByRole('link', { name: /view all bookings/i }),
-    ).toHaveAttribute('href', '/dashboard/bookings?view=manage');
+    expect(screen.getByRole('link', { name: /manage in my bookings/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?view=manage',
+    );
+    expect(screen.getByRole('link', { name: /view all bookings/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?view=manage',
+    );
   });
 
   it('renders the calendar without the day view when selected', async () => {
     const user = userEvent.setup();
     renderWithProviders(
-      <BookingSchedulePage
-        bookings={[bookingOne, bookingTwo]}
-        today="2026-05-03"
-      />,
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
 
     await user.click(screen.getByText('Calendar'));
 
-    expect(screen.getByTestId('schedule')).toHaveAttribute(
-      'data-view',
-      'month',
-    );
+    expect(screen.getByTestId('schedule')).toHaveAttribute('data-view', 'month');
     expect(screen.queryByRole('tab', { name: 'day' })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'week' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'month' })).toBeInTheDocument();
@@ -213,18 +191,13 @@ describe('BookingSchedulePage', () => {
   it('updates the selected booking when a calendar event is clicked', async () => {
     const user = userEvent.setup();
     renderWithProviders(
-      <BookingSchedulePage
-        bookings={[bookingOne, bookingTwo]}
-        today="2026-05-03"
-      />,
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
 
     await user.click(screen.getByText('Calendar'));
     await user.click(screen.getByRole('button', { name: 'Donington Park' }));
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     expect(screen.getAllByText('No hotel needed').length).toBeGreaterThan(0);
     expect(screen.getByText('No booking reference saved')).toBeInTheDocument();
   });
@@ -240,30 +213,16 @@ describe('BookingSchedulePage', () => {
       description: `Trip ${index + 1}`,
     }));
 
-    renderWithProviders(
-      <BookingSchedulePage bookings={bookings} today="2026-05-03" />,
-    );
+    renderWithProviders(<BookingSchedulePage bookings={bookings} today="2026-05-03" />);
 
-    expect(
-      screen.getByText(/showing 7 of 8 upcoming trips/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /select circuit 7/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /select circuit 8/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/showing 7 of 8 upcoming trips/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select circuit 7/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /select circuit 8/i })).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /load next 7 trips/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /load next 7 trips/i }));
 
-    expect(
-      screen.getByText(/showing 8 of 8 upcoming trips/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /select circuit 8/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/showing 8 of 8 upcoming trips/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select circuit 8/i })).toBeInTheDocument();
   });
 
   it('gives unset accommodation enough context in the trip list', () => {
@@ -281,9 +240,7 @@ describe('BookingSchedulePage', () => {
       />,
     );
 
-    expect(screen.getAllByText('Accommodation not set').length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText('Accommodation not set').length).toBeGreaterThan(0);
     expect(screen.queryByText('Not set')).not.toBeInTheDocument();
   });
 
@@ -314,18 +271,12 @@ describe('BookingSchedulePage', () => {
     expect(screen.getByText('1 trip tracked')).toBeInTheDocument();
     expect(screen.getByText('0 confirmed')).toBeInTheDocument();
     expect(screen.getByText('1 maybe')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /select donington park/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /select past circuit/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select donington park/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /select past circuit/i })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /select cancelled circuit/i }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
   });
 
   it('opens the calendar sync modal with subscription links', async () => {
@@ -341,28 +292,18 @@ describe('BookingSchedulePage', () => {
     await user.click(screen.getByRole('button', { name: /sync calendar/i }));
 
     expect(
-      await screen.findByDisplayValue(
-        'https://gridstay.app/calendar/private-token.ics',
-      ),
+      await screen.findByDisplayValue('https://gridstay.app/calendar/private-token.ics'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /subscribe on this device/i }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /subscribe on this device/i })).toHaveAttribute(
       'href',
       'webcal://gridstay.app/calendar/private-token.ics',
     );
-    expect(
-      screen.getByRole('link', { name: /add to google calendar/i }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /add to google calendar/i })).toHaveAttribute(
       'href',
       expect.stringContaining('https%3A%2F%2Fgridstay.app'),
     );
-    expect(
-      screen.getByRole('checkbox', { name: /include trips marked maybe/i }),
-    ).toBeChecked();
-    expect(
-      screen.getByRole('checkbox', { name: /include accommodation details/i }),
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /include trips marked maybe/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /include accommodation details/i })).toBeChecked();
   });
 
   it('creates the calendar feed through the schedule route action', async () => {
@@ -370,10 +311,7 @@ describe('BookingSchedulePage', () => {
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
     renderWithProviders(
-      <BookingSchedulePage
-        bookings={[bookingOne, bookingTwo]}
-        today="2026-05-03"
-      />,
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
       async ({ request }) => {
         submitted = Object.fromEntries(await request.formData());
         return {
@@ -394,14 +332,10 @@ describe('BookingSchedulePage', () => {
     await user.click(screen.getByRole('button', { name: /create link/i }));
 
     await waitFor(() =>
-      expect(submitted).toEqual(
-        expect.objectContaining({ intent: 'createCalendarFeed' }),
-      ),
+      expect(submitted).toEqual(expect.objectContaining({ intent: 'createCalendarFeed' })),
     );
     expect(
-      await screen.findByDisplayValue(
-        'https://gridstay.app/calendar/new-token.ics',
-      ),
+      await screen.findByDisplayValue('https://gridstay.app/calendar/new-token.ics'),
     ).toBeInTheDocument();
   });
 
@@ -440,9 +374,7 @@ describe('BookingSchedulePage', () => {
         name: /include trips marked maybe/i,
       }),
     );
-    await user.click(
-      screen.getByRole('checkbox', { name: /include accommodation details/i }),
-    );
+    await user.click(screen.getByRole('checkbox', { name: /include accommodation details/i }));
     await user.click(screen.getByRole('button', { name: /save options/i }));
 
     await waitFor(() =>
@@ -485,33 +417,22 @@ describe('BookingSchedulePage', () => {
     await user.click(screen.getByRole('button', { name: /regenerate link/i }));
 
     await waitFor(() =>
-      expect(submitted).toEqual(
-        expect.objectContaining({ intent: 'regenerateCalendarFeed' }),
-      ),
+      expect(submitted).toEqual(expect.objectContaining({ intent: 'regenerateCalendarFeed' })),
     );
     expect(
-      await screen.findByDisplayValue(
-        'https://gridstay.app/calendar/regenerated-token.ics',
-      ),
+      await screen.findByDisplayValue('https://gridstay.app/calendar/regenerated-token.ics'),
     ).toBeInTheDocument();
   });
 
   it('updates the selected booking when a list item is clicked', async () => {
     const user = userEvent.setup();
     renderWithProviders(
-      <BookingSchedulePage
-        bookings={[bookingOne, bookingTwo]}
-        today="2026-05-03"
-      />,
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
 
-    await user.click(
-      screen.getByRole('button', { name: /select donington park/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /select donington park/i }));
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     expect(screen.getAllByText('No hotel needed').length).toBeGreaterThan(0);
     expect(screen.getByText('No booking reference saved')).toBeInTheDocument();
   });
@@ -520,27 +441,21 @@ describe('BookingSchedulePage', () => {
     renderWithProviders(<BookingSchedulePage bookings={[]} />);
 
     expect(screen.getByText(/no trips to schedule yet/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /browse available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByRole('link', { name: /browse available days/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
   });
 
   it('keeps past bookings accessible through My Bookings when schedule is empty', () => {
-    renderWithProviders(
-      <BookingSchedulePage bookings={[bookingOne]} today="2026-06-01" />,
-    );
+    renderWithProviders(<BookingSchedulePage bookings={[bookingOne]} today="2026-06-01" />);
 
     expect(screen.getByText(/no upcoming trips/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/past and cancelled trips are still available/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/past and cancelled trips are still available/i)).toBeInTheDocument();
     expect(
       screen
         .getAllByRole('link', { name: /view all bookings/i })
-        .every(
-          (link) =>
-            link.getAttribute('href') === '/dashboard/bookings?view=manage',
-        ),
+        .every((link) => link.getAttribute('href') === '/dashboard/bookings?view=manage'),
     ).toBe(true);
   });
 });

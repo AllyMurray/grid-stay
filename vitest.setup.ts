@@ -1,7 +1,9 @@
 import '@testing-library/dom';
-import '@testing-library/jest-dom/vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterEach, expect, vi } from 'vite-plus/test';
+
+expect.extend(matchers);
 
 // Mock window.matchMedia for Mantine
 Object.defineProperty(window, 'matchMedia', {
@@ -31,18 +33,14 @@ class IntersectionObserverMock {
   readonly rootMargin = '';
   readonly thresholds = [];
 
-  constructor(
-    _callback: IntersectionObserverCallback,
-    _options?: IntersectionObserverInit,
-  ) {}
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
 
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
   takeRecords = vi.fn(() => []);
 }
-window.IntersectionObserver =
-  IntersectionObserverMock as unknown as typeof IntersectionObserver;
+window.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
 
 HTMLElement.prototype.scrollIntoView = vi.fn();
 

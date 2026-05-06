@@ -1,12 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { MemberInviteRecord } from '~/lib/db/entities/member-invite.server';
 import type { User } from './schemas';
 
-const { acceptMemberJoinLink, canUseMemberJoinLinkForAccountCreation } =
-  vi.hoisted(() => ({
-    acceptMemberJoinLink: vi.fn(),
-    canUseMemberJoinLinkForAccountCreation: vi.fn(),
-  }));
+const { acceptMemberJoinLink, canUseMemberJoinLinkForAccountCreation } = vi.hoisted(() => ({
+  acceptMemberJoinLink: vi.fn(),
+  canUseMemberJoinLinkForAccountCreation: vi.fn(),
+}));
 
 vi.mock('~/lib/db/entities/member-invite.server', () => ({
   MemberInviteEntity: {
@@ -59,9 +58,7 @@ function createMemoryStore(initial: MemberInviteRecord[] = []): {
         return item;
       },
       async update(inviteEmail, changes) {
-        const index = records.findIndex(
-          (record) => record.inviteEmail === inviteEmail,
-        );
+        const index = records.findIndex((record) => record.inviteEmail === inviteEmail);
         if (index < 0) {
           throw new Error('Invite not found');
         }
@@ -73,9 +70,7 @@ function createMemoryStore(initial: MemberInviteRecord[] = []): {
         return records[index]!;
       },
       async getByEmail(inviteEmail) {
-        return (
-          records.find((record) => record.inviteEmail === inviteEmail) ?? null
-        );
+        return records.find((record) => record.inviteEmail === inviteEmail) ?? null;
       },
       async listAll() {
         return [...records];
@@ -101,11 +96,7 @@ describe('member invite helpers', () => {
   it('creates normalized pending invites', async () => {
     const memory = createMemoryStore();
 
-    const result = await createMemberInvite(
-      ' New.Driver@Example.com ',
-      inviter,
-      memory.store,
-    );
+    const result = await createMemberInvite(' New.Driver@Example.com ', inviter, memory.store);
 
     expect(result.created).toBe(true);
     expect(result.invite).toMatchObject({
@@ -121,11 +112,7 @@ describe('member invite helpers', () => {
     const formData = new FormData();
     formData.set('email', ' Driver@Team.co.uk ');
 
-    const result = await submitMemberInvite(
-      formData,
-      inviter,
-      createMemoryStore().store,
-    );
+    const result = await submitMemberInvite(formData, inviter, createMemoryStore().store);
 
     expect(result).toMatchObject({
       ok: true,
@@ -403,20 +390,17 @@ describe('member invite helpers', () => {
       } as MemberInviteRecord,
     ]);
 
-    await expect(
-      revokeMemberInvite('new.driver@example.com', memory.store),
-    ).resolves.toMatchObject({
-      status: 'revoked',
-    });
+    await expect(revokeMemberInvite('new.driver@example.com', memory.store)).resolves.toMatchObject(
+      {
+        status: 'revoked',
+      },
+    );
   });
 
   it('allows bootstrap members without an invite', async () => {
     vi.stubEnv('GRID_STAY_BOOTSTRAP_MEMBER_EMAILS', 'driver@example.com');
 
-    const allowed = await ensureUserMemberAccess(
-      inviter,
-      createMemoryStore().store,
-    );
+    const allowed = await ensureUserMemberAccess(inviter, createMemoryStore().store);
 
     expect(allowed).toBe(true);
   });
@@ -425,11 +409,7 @@ describe('member invite helpers', () => {
     const formData = new FormData();
     formData.set('email', 'not-an-email');
 
-    const result = await submitMemberInvite(
-      formData,
-      inviter,
-      createMemoryStore().store,
-    );
+    const result = await submitMemberInvite(formData, inviter, createMemoryStore().store);
 
     expect(result.ok).toBe(false);
     if (result.ok) {
@@ -454,11 +434,7 @@ describe('member invite helpers', () => {
     formData.set('intent', 'revokeInvite');
     formData.set('email', 'new.driver@example.com');
 
-    const result = await submitMemberInviteAction(
-      formData,
-      inviter,
-      memory.store,
-    );
+    const result = await submitMemberInviteAction(formData, inviter, memory.store);
 
     expect(result).toMatchObject({
       ok: true,

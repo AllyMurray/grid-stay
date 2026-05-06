@@ -40,9 +40,7 @@ export async function handler(event: SQSEvent) {
       await recordAppEventSafely({
         category: 'operational',
         action: summary ? 'hotelSummary.generated' : 'hotelSummary.skipped',
-        message: summary
-          ? 'Hotel AI summary generated.'
-          : 'Hotel AI summary skipped.',
+        message: summary ? 'Hotel AI summary generated.' : 'Hotel AI summary skipped.',
         subject: {
           type: 'hotel',
           id: message.hotelId,

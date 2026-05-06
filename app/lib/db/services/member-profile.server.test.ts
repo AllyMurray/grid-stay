@@ -1,17 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { MemberProfileRecord } from '../entities/member-profile.server';
-import {
-  type MemberProfilePersistence,
-  setMemberDisplayName,
-} from './member-profile.server';
+import { type MemberProfilePersistence, setMemberDisplayName } from './member-profile.server';
 
 vi.mock('../entities/member-profile.server', () => ({
   MemberProfileEntity: {},
 }));
 
-function createStore(
-  existing: MemberProfileRecord | null = null,
-): MemberProfilePersistence {
+function createStore(existing: MemberProfileRecord | null = null): MemberProfilePersistence {
   return {
     create: vi.fn(async (item) => item),
     update: vi.fn(async (_userId, changes) => ({

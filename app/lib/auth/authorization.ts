@@ -52,9 +52,5 @@ export function isBootstrapMemberEmail(email: string): boolean {
 export function isAdminUser(user: Pick<User, 'email' | 'role'>): boolean {
   const normalizedEmail = normalizeEmail(user.email);
 
-  return (
-    user.role === 'owner' ||
-    user.role === 'admin' ||
-    ADMIN_EMAILS.has(normalizedEmail)
-  );
+  return user.role === 'owner' || user.role === 'admin' || ADMIN_EMAILS.has(normalizedEmail);
 }

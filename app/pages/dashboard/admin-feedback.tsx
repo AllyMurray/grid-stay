@@ -28,19 +28,13 @@ import { useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
-import type {
-  AdminFeedbackActionResult,
-  FeedbackThread,
-} from '~/lib/db/services/feedback.server';
+import type { AdminFeedbackActionResult, FeedbackThread } from '~/lib/db/services/feedback.server';
 
 export interface AdminFeedbackPageProps {
   feedback: FeedbackThread[];
 }
 
-type FeedbackFieldErrors = Extract<
-  AdminFeedbackActionResult,
-  { ok: false }
->['fieldErrors'];
+type FeedbackFieldErrors = Extract<AdminFeedbackActionResult, { ok: false }>['fieldErrors'];
 
 function formatTimestamp(value: string) {
   return new Intl.DateTimeFormat('en-GB', {
@@ -50,9 +44,7 @@ function formatTimestamp(value: string) {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function typeColor(type: FeedbackThread['type']) {
@@ -146,36 +138,22 @@ function FeedbackUpdateTimeline({ item }: { item: FeedbackThread }) {
   );
 }
 
-function FeedbackRow({
-  item,
-  isLast,
-}: {
-  item: FeedbackThread;
-  isLast: boolean;
-}) {
+function FeedbackRow({ item, isLast }: { item: FeedbackThread; isLast: boolean }) {
   const fetcher = useFetcher<AdminFeedbackActionResult>();
-  const [
-    deleteModalOpened,
-    { close: closeDeleteModal, open: openDeleteModal },
-  ] = useDisclosure(false);
+  const [deleteModalOpened, { close: closeDeleteModal, open: openDeleteModal }] =
+    useDisclosure(false);
   const currentIntent = fetcher.formData?.get('intent')?.toString();
   const isSubmitting = fetcher.state !== 'idle';
   const isSavingStatus = isSubmitting && currentIntent === 'saveStatus';
   const isSendingUpdate = isSubmitting && currentIntent === 'sendUpdate';
   const isDeleting = isSubmitting && currentIntent === 'deleteFeedback';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
   const formKey = `${item.feedbackId}:${item.updatedAt}`;
 
   useEffect(() => {
-    if (
-      fetcher.state === 'idle' &&
-      fetcher.data?.ok &&
-      fetcher.data.intent === 'deleteFeedback'
-    ) {
+    if (fetcher.state === 'idle' && fetcher.data?.ok && fetcher.data.intent === 'deleteFeedback') {
       closeDeleteModal();
     }
   }, [closeDeleteModal, fetcher.data, fetcher.state]);
@@ -192,8 +170,7 @@ function FeedbackRow({
           <input type="hidden" name="feedbackId" value={item.feedbackId} />
           <Stack gap="md">
             <Text size="sm">
-              This permanently removes the feedback record and its admin update
-              history.
+              This permanently removes the feedback record and its admin update history.
             </Text>
 
             {formError ? (
@@ -203,11 +180,7 @@ function FeedbackRow({
             ) : null}
 
             <Group justify="flex-end" wrap="wrap">
-              <Button
-                type="button"
-                variant="default"
-                onClick={closeDeleteModal}
-              >
+              <Button type="button" variant="default" onClick={closeDeleteModal}>
                 Cancel
               </Button>
               <Button
@@ -226,12 +199,7 @@ function FeedbackRow({
 
       <Stack gap="md">
         <Group align="flex-start" gap="sm" wrap="nowrap">
-          <ThemeIcon
-            size={38}
-            radius="sm"
-            color={typeColor(item.type)}
-            variant="light"
-          >
+          <ThemeIcon size={38} radius="sm" color={typeColor(item.type)} variant="light">
             <FeedbackIcon type={item.type} />
           </ThemeIcon>
           <Stack gap="xs" style={{ minWidth: 0, flex: 1 }}>
@@ -245,8 +213,7 @@ function FeedbackRow({
               </Badge>
             </Group>
             <Text size="sm" c="dimmed">
-              {item.userName} · {item.userEmail} ·{' '}
-              {formatTimestamp(item.createdAt)}
+              {item.userName} · {item.userEmail} · {formatTimestamp(item.createdAt)}
             </Text>
             <Text size="sm">{item.message}</Text>
             {item.context ? (
@@ -342,15 +309,9 @@ export function AdminFeedbackPage({ feedback }: AdminFeedbackPageProps) {
   const [doneOpened, { toggle: toggleDone }] = useDisclosure(false);
   const activeFeedback = feedback.filter((item) => item.status !== 'closed');
   const doneFeedback = feedback.filter((item) => item.status === 'closed');
-  const featureRequestCount = feedback.filter(
-    (item) => item.type === 'feature_request',
-  ).length;
-  const bugReportCount = feedback.filter(
-    (item) => item.type === 'bug_report',
-  ).length;
-  const newCount = activeFeedback.filter(
-    (item) => item.status === 'new',
-  ).length;
+  const featureRequestCount = feedback.filter((item) => item.type === 'feature_request').length;
+  const bugReportCount = feedback.filter((item) => item.type === 'bug_report').length;
+  const newCount = activeFeedback.filter((item) => item.status === 'new').length;
 
   return (
     <Stack gap="xl">
@@ -383,8 +344,7 @@ export function AdminFeedbackPage({ feedback }: AdminFeedbackPageProps) {
                 Active submissions
               </Title>
               <Text size="sm" c="dimmed">
-                Showing feedback that still needs review, planning, or an
-                update.
+                Showing feedback that still needs review, planning, or an update.
               </Text>
             </Stack>
 
@@ -410,12 +370,7 @@ export function AdminFeedbackPage({ feedback }: AdminFeedbackPageProps) {
                 <Stack gap="md">
                   <Group justify="space-between" align="flex-start" gap="md">
                     <Group gap="sm" align="flex-start" wrap="nowrap">
-                      <ThemeIcon
-                        size={38}
-                        radius="sm"
-                        color="green"
-                        variant="light"
-                      >
+                      <ThemeIcon size={38} radius="sm" color="green" variant="light">
                         <IconCircleCheck size={20} />
                       </ThemeIcon>
                       <Stack gap={2}>
@@ -430,11 +385,7 @@ export function AdminFeedbackPage({ feedback }: AdminFeedbackPageProps) {
                         </Text>
                       </Stack>
                     </Group>
-                    <Button
-                      type="button"
-                      variant="default"
-                      onClick={toggleDone}
-                    >
+                    <Button type="button" variant="default" onClick={toggleDone}>
                       {doneOpened ? 'Hide done' : 'Show done'}
                     </Button>
                   </Group>

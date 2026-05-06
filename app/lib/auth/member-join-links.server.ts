@@ -43,9 +43,7 @@ export interface MemberJoinLinkPersistence {
     changes: Partial<MemberJoinLinkRecord>;
     composite?: Partial<MemberJoinLinkRecord>;
   }): Promise<MemberJoinLinkRecord>;
-  getByTokenHash(input: {
-    tokenHash: string;
-  }): Promise<MemberJoinLinkRecord | null>;
+  getByTokenHash(input: { tokenHash: string }): Promise<MemberJoinLinkRecord | null>;
   listAll(): Promise<MemberJoinLinkRecord[]>;
   accept(input: {
     tokenHash: string;
@@ -67,9 +65,7 @@ export type MemberJoinLinkActionResult =
       ok: false;
       intent: 'createJoinLink' | 'revokeJoinLink';
       formError: string;
-      fieldErrors: Partial<
-        Record<'mode' | 'maxUses' | 'tokenHash', string[] | undefined>
-      >;
+      fieldErrors: Partial<Record<'mode' | 'maxUses' | 'tokenHash', string[] | undefined>>;
     };
 
 export type MemberJoinLinkLookupResult =
@@ -118,10 +114,7 @@ export const memberJoinLinkStore: MemberJoinLinkPersistence = {
     });
 
     if (composite) {
-      const updated = await patch
-        .composite(composite)
-        .set(changes)
-        .go({ response: 'all_new' });
+      const updated = await patch.composite(composite).set(changes).go({ response: 'all_new' });
       return updated.data;
     }
 
@@ -153,10 +146,7 @@ export const memberJoinLinkStore: MemberJoinLinkPersistence = {
 
       const updated = await update
         .where(
-          (
-            { acceptedCount, acceptedUserIds, expiresAt, status },
-            { eq, gt, lt, notContains },
-          ) =>
+          ({ acceptedCount, acceptedUserIds, expiresAt, status }, { eq, gt, lt, notContains }) =>
             [
               eq(status, 'active'),
               gt(expiresAt, now),
@@ -263,10 +253,7 @@ export function getMemberJoinLinkState({
   link,
   now = new Date(),
 }: {
-  link: Pick<
-    MemberJoinLinkRecord,
-    'acceptedCount' | 'expiresAt' | 'maxUses' | 'status'
-  >;
+  link: Pick<MemberJoinLinkRecord, 'acceptedCount' | 'expiresAt' | 'maxUses' | 'status'>;
   now?: Date;
 }): MemberJoinLinkState {
   if (link.status === 'revoked') {
@@ -305,13 +292,7 @@ export function toMemberJoinLinkSummary({
   };
 }
 
-export function buildMemberJoinLinkUrl({
-  request,
-  token,
-}: {
-  request: Request;
-  token: string;
-}) {
+export function buildMemberJoinLinkUrl({ request, token }: { request: Request; token: string }) {
   const url = new URL(request.url);
   url.pathname = `/join/${token}`;
   url.search = '';
@@ -325,9 +306,7 @@ export function readMemberJoinLinkTokenFromRequest({
   request: Pick<Request, 'headers'>;
 }) {
   return sanitizeJoinToken(
-    parseCookieHeader(request.headers.get('cookie')).get(
-      MEMBER_JOIN_LINK_COOKIE_NAME,
-    ),
+    parseCookieHeader(request.headers.get('cookie')).get(MEMBER_JOIN_LINK_COOKIE_NAME),
   );
 }
 
@@ -340,10 +319,7 @@ export function createMemberJoinLinkCookieHeader({
   token: string;
   expiresAt: string;
 }) {
-  const secondsUntilExpiry = Math.max(
-    0,
-    Math.ceil((Date.parse(expiresAt) - Date.now()) / 1000),
-  );
+  const secondsUntilExpiry = Math.max(0, Math.ceil((Date.parse(expiresAt) - Date.now()) / 1000));
 
   return createCookieHeader({
     name: MEMBER_JOIN_LINK_COOKIE_NAME,
@@ -353,11 +329,7 @@ export function createMemberJoinLinkCookieHeader({
   });
 }
 
-export function createClearMemberJoinLinkCookieHeader({
-  request,
-}: {
-  request: Request;
-}) {
+export function createClearMemberJoinLinkCookieHeader({ request }: { request: Request }) {
   return createCookieHeader({
     name: MEMBER_JOIN_LINK_COOKIE_NAME,
     value: '',
@@ -415,7 +387,7 @@ export async function listMemberJoinLinks({
   const links = await store.listAll();
 
   return links
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .toSorted((left, right) => right.createdAt.localeCompare(left.createdAt))
     .map((link) => toMemberJoinLinkSummary({ link, now }));
 }
 
@@ -550,9 +522,7 @@ export async function submitCreateMemberJoinLink({
   request: Request;
   store?: MemberJoinLinkPersistence;
 }): Promise<MemberJoinLinkActionResult> {
-  const parsed = CreateJoinLinkInputSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = CreateJoinLinkInputSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -585,9 +555,7 @@ export async function submitRevokeMemberJoinLink({
   formData: FormData;
   store?: MemberJoinLinkPersistence;
 }): Promise<MemberJoinLinkActionResult> {
-  const parsed = RevokeJoinLinkInputSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = RevokeJoinLinkInputSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {

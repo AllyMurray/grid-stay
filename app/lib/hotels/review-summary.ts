@@ -4,7 +4,7 @@ import type { HotelReviewRecord } from '~/lib/db/entities/hotel-review.server';
 export function getHotelReviewFingerprint(reviews: HotelReviewRecord[]) {
   return JSON.stringify(
     [...reviews]
-      .sort((left, right) => left.reviewId.localeCompare(right.reviewId))
+      .toSorted((left, right) => left.reviewId.localeCompare(right.reviewId))
       .map((review) => ({
         reviewId: review.reviewId,
         rating: review.rating,
@@ -18,25 +18,15 @@ export function getHotelReviewFingerprint(reviews: HotelReviewRecord[]) {
   );
 }
 
-export function summariseHotelReviewsStructurally(
-  reviews: HotelReviewRecord[],
-) {
+export function summariseHotelReviewsStructurally(reviews: HotelReviewRecord[]) {
   if (reviews.length === 0) {
     return 'No Grid Stay hotel feedback yet.';
   }
 
-  const trailerGood = reviews.filter(
-    (review) => review.trailerParking === 'good',
-  ).length;
-  const trailerLimited = reviews.filter(
-    (review) => review.trailerParking === 'limited',
-  ).length;
-  const secureYes = reviews.filter(
-    (review) => review.secureParking === 'yes',
-  ).length;
-  const lateYes = reviews.filter(
-    (review) => review.lateCheckIn === 'yes',
-  ).length;
+  const trailerGood = reviews.filter((review) => review.trailerParking === 'good').length;
+  const trailerLimited = reviews.filter((review) => review.trailerParking === 'limited').length;
+  const secureYes = reviews.filter((review) => review.secureParking === 'yes').length;
+  const lateYes = reviews.filter((review) => review.lateCheckIn === 'yes').length;
   const notes = reviews
     .flatMap((review) => [review.parkingNotes, review.generalNotes])
     .map((note) => note?.trim())

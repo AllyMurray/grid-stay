@@ -1,12 +1,9 @@
 import { formatDateOnly } from './date-only';
 
-const ARRIVAL_DATE_TIME_RE =
-  /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
+const ARRIVAL_DATE_TIME_RE = /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
 const LEGACY_ARRIVAL_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-export function normalizeArrivalDateTime(
-  value?: string | null,
-): string | undefined {
+export function normalizeArrivalDateTime(value?: string | null): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) {
     return undefined;

@@ -41,12 +41,12 @@ function parseSavedType(value: string): DaysFilters['type'] {
 export function hasSavedDaysFilters(filters: SavedDaysFilters | null): boolean {
   return Boolean(
     filters &&
-      (filters.month ||
-        filters.series ||
-        filters.circuits.length > 0 ||
-        filters.provider ||
-        filters.type ||
-        filters.showPast),
+    (filters.month ||
+      filters.series ||
+      filters.circuits.length > 0 ||
+      filters.provider ||
+      filters.type ||
+      filters.showPast),
   );
 }
 
@@ -72,7 +72,7 @@ export function sanitizeSavedDaysFilters(input: {
           .map((circuit) => normalizeCircuitName(circuit.trim()))
           .filter(Boolean),
       ),
-    ].sort(),
+    ].toSorted(),
     provider: normalizeText(input.provider ?? ''),
     type: parseSavedType(normalizeText(input.type ?? '')),
     ...(showPast ? { showPast } : {}),
@@ -81,9 +81,7 @@ export function sanitizeSavedDaysFilters(input: {
   };
 }
 
-export function getSavedDaysFiltersFromFormData(
-  formData: FormData,
-): SavedDaysFilters {
+export function getSavedDaysFiltersFromFormData(formData: FormData): SavedDaysFilters {
   const notifyValue = normalizeText(formData.get('notifyOnNewMatches'));
 
   return sanitizeSavedDaysFilters({

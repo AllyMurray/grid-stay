@@ -93,8 +93,7 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
 
       <Group gap="md" wrap="wrap">
         <Text size="xs" c="dimmed">
-          {member.activeTripsCount}{' '}
-          {member.activeTripsCount === 1 ? 'active trip' : 'active trips'}
+          {member.activeTripsCount} {member.activeTripsCount === 1 ? 'active trip' : 'active trips'}
         </Text>
         <Text size="xs" c="dimmed">
           {member.sharedStayCount}{' '}
@@ -103,12 +102,7 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
         <Text size="xs" c="dimmed">
           Accommodation • {getStaySummary(member)}
         </Text>
-        <Button
-          component={Link}
-          to={`/dashboard/members/${member.id}`}
-          size="xs"
-          variant="default"
-        >
+        <Button component={Link} to={`/dashboard/members/${member.id}`} size="xs" variant="default">
           View days
         </Button>
       </Group>
@@ -116,17 +110,11 @@ function MemberRow({ member }: { member: MemberDirectoryEntry }) {
   );
 }
 
-function MemberInvitePanel({
-  pendingInvites,
-}: {
-  pendingInvites: MemberInviteSummary[];
-}) {
+function MemberInvitePanel({ pendingInvites }: { pendingInvites: MemberInviteSummary[] }) {
   const fetcher = useFetcher<MemberInviteActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
 
   return (
@@ -135,8 +123,7 @@ function MemberInvitePanel({
         <Stack gap={2}>
           <Text fw={700}>Invite a member</Text>
           <Text size="sm" c="dimmed">
-            Add their email address, then they can sign in and join the shared
-            planner.
+            Add their email address, then they can sign in and join the shared planner.
           </Text>
         </Stack>
 
@@ -187,11 +174,7 @@ function MemberInvitePanel({
                     </Stack>
                     <Group gap="xs">
                       <fetcher.Form method="post">
-                        <input
-                          type="hidden"
-                          name="email"
-                          value={invite.inviteEmail}
-                        />
+                        <input type="hidden" name="email" value={invite.inviteEmail} />
                         <Button
                           type="submit"
                           name="intent"
@@ -204,11 +187,7 @@ function MemberInvitePanel({
                         </Button>
                       </fetcher.Form>
                       <fetcher.Form method="post">
-                        <input
-                          type="hidden"
-                          name="email"
-                          value={invite.inviteEmail}
-                        />
+                        <input type="hidden" name="email" value={invite.inviteEmail} />
                         <Button
                           type="submit"
                           name="intent"
@@ -237,10 +216,7 @@ function MemberInvitePanel({
 export function MembersPage({ members, pendingInvites }: MembersPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const filteredMembers = useMemo(
-    () =>
-      members.filter((member) =>
-        matchesMemberQuery(member, searchQuery.trim()),
-      ),
+    () => members.filter((member) => matchesMemberQuery(member, searchQuery.trim())),
     [members, searchQuery],
   );
 

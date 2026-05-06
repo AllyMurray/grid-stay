@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireAdmin } = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
@@ -87,13 +87,10 @@ describe('admin members route', () => {
     const formData = new FormData();
     formData.set('intent', 'createJoinLink');
     formData.set('mode', 'reusable');
-    const request = new Request(
-      'https://gridstay.app/dashboard/admin/members',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/admin/members', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,

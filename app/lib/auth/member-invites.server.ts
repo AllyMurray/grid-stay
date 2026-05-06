@@ -31,10 +31,7 @@ export interface MemberInviteSummary {
 
 export interface MemberInvitePersistence {
   create(item: MemberInviteRecord): Promise<MemberInviteRecord>;
-  update(
-    inviteEmail: string,
-    changes: Partial<MemberInviteRecord>,
-  ): Promise<MemberInviteRecord>;
+  update(inviteEmail: string, changes: Partial<MemberInviteRecord>): Promise<MemberInviteRecord>;
   getByEmail(inviteEmail: string): Promise<MemberInviteRecord | null>;
   listAll(): Promise<MemberInviteRecord[]>;
 }
@@ -92,9 +89,7 @@ export const memberInviteStore: MemberInvitePersistence = {
   },
 };
 
-function toMemberInviteSummary(
-  invite: MemberInviteRecord,
-): MemberInviteSummary {
+function toMemberInviteSummary(invite: MemberInviteRecord): MemberInviteSummary {
   return {
     inviteEmail: invite.inviteEmail,
     invitedByName: invite.invitedByName,
@@ -124,17 +119,11 @@ function addDays(value: Date, days: number): string {
   return next.toISOString();
 }
 
-function isInviteExpired(
-  invite: MemberInviteRecord,
-  now = new Date(),
-): boolean {
+function isInviteExpired(invite: MemberInviteRecord, now = new Date()): boolean {
   return Boolean(invite.expiresAt && invite.expiresAt <= now.toISOString());
 }
 
-function isInviteUsableForMemberAccess(
-  invite: MemberInviteRecord,
-  now: Date,
-): boolean {
+function isInviteUsableForMemberAccess(invite: MemberInviteRecord, now: Date): boolean {
   if (invite.status === 'accepted') {
     return true;
   }
@@ -142,10 +131,7 @@ function isInviteUsableForMemberAccess(
   return invite.status === 'pending' && !isInviteExpired(invite, now);
 }
 
-function getMemberAccessInvitePriority(
-  invite: MemberInviteRecord,
-  now: Date,
-): number {
+function getMemberAccessInvitePriority(invite: MemberInviteRecord, now: Date): number {
   if (invite.status === 'pending' && !isInviteExpired(invite, now)) {
     return 0;
   }
@@ -167,8 +153,7 @@ function compareMemberAccessInviteCandidates(
   now: Date,
 ): number {
   const priorityDifference =
-    getMemberAccessInvitePriority(left, now) -
-    getMemberAccessInvitePriority(right, now);
+    getMemberAccessInvitePriority(left, now) - getMemberAccessInvitePriority(right, now);
 
   if (priorityDifference !== 0) {
     return priorityDifference;
@@ -190,21 +175,13 @@ async function findMemberInviteForAccessEmail(
   }
 
   const memberAccessEmail = normalizeMemberAccessEmail(normalizedEmail);
-  if (
-    memberAccessEmail === normalizedEmail &&
-    !hasGmailAliasSemantics(normalizedEmail)
-  ) {
+  if (memberAccessEmail === normalizedEmail && !hasGmailAliasSemantics(normalizedEmail)) {
     return directInvite;
   }
 
   const invite = (await store.listAll())
-    .filter(
-      (candidate) =>
-        normalizeMemberAccessEmail(candidate.inviteEmail) === memberAccessEmail,
-    )
-    .sort((left, right) =>
-      compareMemberAccessInviteCandidates(left, right, now),
-    )[0];
+    .filter((candidate) => normalizeMemberAccessEmail(candidate.inviteEmail) === memberAccessEmail)
+    .toSorted((left, right) => compareMemberAccessInviteCandidates(left, right, now))[0];
 
   return invite ?? directInvite ?? null;
 }
@@ -296,11 +273,7 @@ export async function createAcceptedMemberInviteForUser({
   store?: MemberInvitePersistence;
   nowDate?: Date;
 }): Promise<MemberInviteRecord> {
-  const existing = await findMemberInviteForAccessEmail(
-    user.email,
-    store,
-    nowDate,
-  );
+  const existing = await findMemberInviteForAccessEmail(user.email, store, nowDate);
   if (existing?.status === 'accepted') {
     return existing;
   }
@@ -363,11 +336,7 @@ export async function canCreateMemberAccountForEmail({
     return true;
   }
 
-  const invite = await findMemberInviteForAccessEmail(
-    normalizedEmail,
-    store,
-    now,
-  );
+  const invite = await findMemberInviteForAccessEmail(normalizedEmail, store, now);
   if (!invite || !isInviteUsableForMemberAccess(invite, now)) {
     return canUseMemberJoinLinkForAccountCreation({ token: joinToken, now });
   }
@@ -409,16 +378,14 @@ export async function listMemberInvites(
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteRecord[]> {
   const invites = await store.listAll();
-  return invites.sort(compareInvites);
+  return invites.toSorted(compareInvites);
 }
 
 export async function listPendingMemberInvites(
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteSummary[]> {
   const invites = await listMemberInvites(store);
-  return invites
-    .filter((invite) => invite.status === 'pending')
-    .map(toMemberInviteSummary);
+  return invites.filter((invite) => invite.status === 'pending').map(toMemberInviteSummary);
 }
 
 export async function revokeMemberInvite(
@@ -440,9 +407,7 @@ export async function submitRevokeMemberInvite(
   formData: FormData,
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteActionResult> {
-  const parsed = MemberInviteInputSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = MemberInviteInputSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -476,9 +441,7 @@ export async function submitMemberInvite(
   invitedBy: User,
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteActionResult> {
-  const parsed = MemberInviteInputSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = MemberInviteInputSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -489,8 +452,7 @@ export async function submitMemberInvite(
   }
 
   if (
-    normalizeMemberAccessEmail(invitedBy.email) ===
-    normalizeMemberAccessEmail(parsed.data.email)
+    normalizeMemberAccessEmail(invitedBy.email) === normalizeMemberAccessEmail(parsed.data.email)
   ) {
     return {
       ok: false,

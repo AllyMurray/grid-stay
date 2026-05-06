@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { PasswordResetActionData } from '~/lib/auth/password-auth.shared';
 import { theme } from '~/theme';
 import { ResetPasswordPage } from './reset-password';
@@ -36,30 +36,20 @@ describe('ResetPasswordPage', () => {
   it('renders the new password form when a token is present', () => {
     const { container } = renderResetPasswordPage();
 
-    expect(
-      screen.getByRole('heading', { name: 'Choose a new password' }),
-    ).toBeVisible();
-    expect(container.querySelector('input[name="token"]')).toHaveValue(
-      'reset-token',
-    );
+    expect(screen.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
+    expect(container.querySelector('input[name="token"]')).toHaveValue('reset-token');
     expect(container.querySelector('input[name="password"]')).toHaveAttribute(
       'autocomplete',
       'new-password',
     );
-    expect(
-      screen.getByRole('button', { name: 'Reset password' }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Reset password' })).toBeVisible();
   });
 
   it('shows an invalid-token state without the form', () => {
     renderResetPasswordPage({ token: '' });
 
-    expect(
-      screen.getByText('This reset link is invalid or has expired.'),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole('button', { name: 'Reset password' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('This reset link is invalid or has expired.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Reset password' })).not.toBeInTheDocument();
   });
 
   it('shows server reset errors', () => {
@@ -71,8 +61,6 @@ describe('ResetPasswordPage', () => {
       },
     });
 
-    expect(
-      screen.getByText('This reset link is invalid or has expired.'),
-    ).toBeVisible();
+    expect(screen.getByText('This reset link is invalid or has expired.')).toBeVisible();
   });
 });

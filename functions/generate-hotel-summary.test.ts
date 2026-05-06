@@ -1,5 +1,5 @@
 import type { SQSEvent } from 'aws-lambda';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { recordAppEventSafely } from '../app/lib/db/services/app-event.server';
 import { refreshHotelAiSummary } from '../app/lib/db/services/hotel.server';
 import { handler } from './generate-hotel-summary';
@@ -54,9 +54,7 @@ describe('hotel summary worker', () => {
   });
 
   it('records Bedrock failures without retrying the non-critical job', async () => {
-    vi.mocked(refreshHotelAiSummary).mockRejectedValue(
-      new Error('model access denied'),
-    );
+    vi.mocked(refreshHotelAiSummary).mockRejectedValue(new Error('model access denied'));
 
     await expect(
       handler(

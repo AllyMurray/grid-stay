@@ -12,11 +12,7 @@ import {
   getMemberJoinLinkByToken,
 } from '~/lib/auth/member-join-links.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import {
-  type JoinLinkFailureReason,
-  JoinLinkPage,
-  type JoinLinkPageProps,
-} from '~/pages/join';
+import { type JoinLinkFailureReason, JoinLinkPage, type JoinLinkPageProps } from '~/pages/join';
 import type { Route } from './+types/join.$token';
 
 function failureStatus(reason: JoinLinkFailureReason) {
@@ -33,15 +29,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!lookup.ok) {
     const headers = new Headers();
-    headers.append(
-      'set-cookie',
-      createClearMemberJoinLinkCookieHeader({ request }),
-    );
+    headers.append('set-cookie', createClearMemberJoinLinkCookieHeader({ request }));
 
-    return Response.json(
-      { reason: lookup.reason } satisfies JoinLinkPageProps,
-      { headers, status: failureStatus(lookup.reason) },
-    );
+    return Response.json({ reason: lookup.reason } satisfies JoinLinkPageProps, {
+      headers,
+      status: failureStatus(lookup.reason),
+    });
   }
 
   const authResult = await getUser(request);
@@ -62,10 +55,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const headers = cloneHeadersPreservingSetCookie(authResult.headers);
 
   if (await ensureUserMemberAccess(authResult.user)) {
-    headers.append(
-      'set-cookie',
-      createClearMemberJoinLinkCookieHeader({ request }),
-    );
+    headers.append('set-cookie', createClearMemberJoinLinkCookieHeader({ request }));
     throw redirect('/dashboard/days', { headers });
   }
 
@@ -74,15 +64,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     user: authResult.user,
   });
   if (!accepted.ok) {
-    headers.append(
-      'set-cookie',
-      createClearMemberJoinLinkCookieHeader({ request }),
-    );
+    headers.append('set-cookie', createClearMemberJoinLinkCookieHeader({ request }));
 
-    return Response.json(
-      { reason: accepted.reason } satisfies JoinLinkPageProps,
-      { headers, status: failureStatus(accepted.reason) },
-    );
+    return Response.json({ reason: accepted.reason } satisfies JoinLinkPageProps, {
+      headers,
+      status: failureStatus(accepted.reason),
+    });
   }
 
   await createAcceptedMemberInviteForUser({
@@ -108,10 +95,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     },
   });
 
-  headers.append(
-    'set-cookie',
-    createClearMemberJoinLinkCookieHeader({ request }),
-  );
+  headers.append('set-cookie', createClearMemberJoinLinkCookieHeader({ request }));
   throw redirect('/dashboard/days', { headers });
 }
 

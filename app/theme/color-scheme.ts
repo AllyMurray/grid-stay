@@ -1,7 +1,4 @@
-import {
-  localStorageColorSchemeManager,
-  type MantineColorScheme,
-} from '@mantine/core';
+import { localStorageColorSchemeManager, type MantineColorScheme } from '@mantine/core';
 
 export const defaultColorScheme: MantineColorScheme = 'auto';
 export const colorSchemeStorageKey = 'grid-stay-color-scheme';

@@ -8,10 +8,7 @@ function parseDateOnly(value: string): Date {
   return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
 }
 
-export function formatDateOnly(
-  value: string,
-  options: Intl.DateTimeFormatOptions,
-): string {
+export function formatDateOnly(value: string, options: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat('en-GB', {
     ...options,
     timeZone: 'UTC',

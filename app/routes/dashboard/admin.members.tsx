@@ -6,18 +6,12 @@ import {
 } from '~/lib/auth/member-join-links.server';
 import { listAdminSiteMembers } from '~/lib/auth/members.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import {
-  AdminMembersPage,
-  type AdminMembersPageProps,
-} from '~/pages/dashboard/admin-members';
+import { AdminMembersPage, type AdminMembersPageProps } from '~/pages/dashboard/admin-members';
 import type { Route } from './+types/admin.members';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { headers } = await requireAdmin(request);
-  const [members, joinLinks] = await Promise.all([
-    listAdminSiteMembers(),
-    listMemberJoinLinks(),
-  ]);
+  const [members, joinLinks] = await Promise.all([listAdminSiteMembers(), listMemberJoinLinks()]);
 
   return Response.json({ members, joinLinks } satisfies AdminMembersPageProps, {
     headers,

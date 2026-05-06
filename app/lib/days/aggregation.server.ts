@@ -1,12 +1,6 @@
-import {
-  normalizeCircuitName,
-  normalizeCircuitText,
-} from '~/lib/circuit-sources/shared.server';
+import { normalizeCircuitName, normalizeCircuitText } from '~/lib/circuit-sources/shared.server';
 import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
-import {
-  applyCircuitAliases,
-  type CircuitAliasRule,
-} from '~/lib/circuits/circuit-aliases';
+import { applyCircuitAliases, type CircuitAliasRule } from '~/lib/circuits/circuit-aliases';
 import { applyDayMerges, type DayMergeRule } from '~/lib/days/day-merges';
 import { getLinkedSeriesKey } from '~/lib/days/series.server';
 import { caterhamAdapter } from '~/lib/discovery/adapters/caterham.server';
@@ -34,12 +28,7 @@ import { msvTrackDayAdapter } from '~/lib/trackdays/adapters/msv.server';
 import { silverstoneTrackDayAdapter } from '~/lib/trackdays/adapters/silverstone.server';
 import type { TrackDay, TrackDayAdapter } from '~/lib/trackdays/types';
 import { createDayIdentity } from './identity.server';
-import type {
-  AvailableDay,
-  AvailableDaysResult,
-  AvailableDayType,
-  DaySourceError,
-} from './types';
+import type { AvailableDay, AvailableDaysResult, AvailableDayType, DaySourceError } from './types';
 
 export { normalizeCircuitName } from '~/lib/circuit-sources/shared.server';
 
@@ -79,21 +68,14 @@ const DEFAULT_TRACKDAY_ADAPTERS = [
   thruxtonTrackDayAdapter,
 ];
 
-function createTestingDayIdentity(
-  day: TestingDay,
-): Pick<AvailableDay, 'dayId'> {
+function createTestingDayIdentity(day: TestingDay): Pick<AvailableDay, 'dayId'> {
   return {
     dayId: createDayIdentity({
       type: 'test_day',
       sourceName: day.source,
       date: day.date,
       stableKey: day.externalId,
-      fallbackKey: [
-        day.circuitId,
-        day.layout ?? '',
-        day.format ?? '',
-        day.group ?? '',
-      ].join('|'),
+      fallbackKey: [day.circuitId, day.layout ?? '', day.format ?? '', day.group ?? ''].join('|'),
     }),
   };
 }
@@ -129,9 +111,7 @@ function createRaceDayIdentity(
     endDate?: string;
   },
 ): Pick<AvailableDay, 'dayId'> {
-  const stableKey =
-    round.externalId ??
-    `${result.externalId ?? result.name}-${round.roundNumber}`;
+  const stableKey = round.externalId ?? `${result.externalId ?? result.name}-${round.roundNumber}`;
 
   return {
     dayId: createDayIdentity({
@@ -175,11 +155,7 @@ function providerLabel(source: string): string {
   }
 }
 
-function applyCanonicalCircuit(
-  day: AvailableDay,
-  circuit: string,
-  layout?: string,
-): AvailableDay {
+function applyCanonicalCircuit(day: AvailableDay, circuit: string, layout?: string): AvailableDay {
   const canonicalCircuit = resolveCanonicalCircuit(circuit, layout);
 
   return {
@@ -255,15 +231,12 @@ function normalizeRaceResults(results: DiscoveryResult[]): AvailableDay[] {
               type: 'race_day',
               circuit: normalizeCircuitName(round.circuit ?? result.name),
               provider: result.organiser ?? 'Caterham Motorsport',
-              description: normalizeCircuitText(
-                compactDescription([result.name, round.name]),
-              ),
+              description: normalizeCircuitText(compactDescription([result.name, round.name])),
               source: {
                 sourceType: 'caterham',
                 sourceName: 'caterham',
                 externalId:
-                  round.externalId ??
-                  `${result.externalId ?? result.name}-${round.roundNumber}`,
+                  round.externalId ?? `${result.externalId ?? result.name}-${round.roundNumber}`,
                 metadata: {
                   series: result.name,
                   endDate: round.endDate,
@@ -283,9 +256,7 @@ export async function fetchRaceDaysFromCaterham(): Promise<AvailableDay[]> {
   return normalizeRaceResults(results);
 }
 
-async function fetchFromTestingAdapters(
-  adapters: TestingAdapter[],
-): Promise<AdapterFetchResult> {
+async function fetchFromTestingAdapters(adapters: TestingAdapter[]): Promise<AdapterFetchResult> {
   const results = await Promise.allSettled(
     adapters.map((adapter) => adapter.fetchSchedule(adapter.circuitIds)),
   );
@@ -305,9 +276,7 @@ async function fetchFromTestingAdapters(
   return { days, errors };
 }
 
-async function fetchFromTrackDayAdapters(
-  adapters: TrackDayAdapter[],
-): Promise<AdapterFetchResult> {
+async function fetchFromTrackDayAdapters(adapters: TrackDayAdapter[]): Promise<AdapterFetchResult> {
   const results = await Promise.allSettled(
     adapters.map((adapter) => adapter.fetchSchedule(adapter.circuitIds)),
   );
@@ -345,9 +314,7 @@ async function loadCircuitAliasesSafely(
       return [];
     }
 
-    const { listCircuitAliasRules } = await import(
-      '~/lib/db/services/circuit-alias.server'
-    );
+    const { listCircuitAliasRules } = await import('~/lib/db/services/circuit-alias.server');
     return listCircuitAliasRules();
   } catch (error) {
     console.error('Failed to load circuit aliases', { error });
@@ -366,9 +333,7 @@ async function loadDayMergesSafely(
       return [];
     }
 
-    const { listDayMergeRules } = await import(
-      '~/lib/db/services/day-merge.server'
-    );
+    const { listDayMergeRules } = await import('~/lib/db/services/day-merge.server');
     return listDayMergeRules();
   } catch (error) {
     console.error('Failed to load day merge rules', { error });
@@ -384,12 +349,8 @@ export async function listAvailableDays(
   const [sourceResults, circuitAliases, dayMerges] = await Promise.all([
     Promise.allSettled([
       raceLoader(),
-      fetchFromTestingAdapters(
-        dependencies.testingAdapters ?? DEFAULT_TESTING_ADAPTERS,
-      ),
-      fetchFromTrackDayAdapters(
-        dependencies.trackDayAdapters ?? DEFAULT_TRACKDAY_ADAPTERS,
-      ),
+      fetchFromTestingAdapters(dependencies.testingAdapters ?? DEFAULT_TESTING_ADAPTERS),
+      fetchFromTrackDayAdapters(dependencies.trackDayAdapters ?? DEFAULT_TRACKDAY_ADAPTERS),
     ]),
     loadCircuitAliasesSafely(dependencies.loadCircuitAliases),
     loadDayMergesSafely(dependencies.loadDayMerges),
@@ -433,11 +394,10 @@ export async function listAvailableDays(
   }
 
   return {
-    days: applyDayMerges([...deduped.values()], dayMerges).sort(
-      (left, right) =>
-        left.date === right.date
-          ? left.circuit.localeCompare(right.circuit)
-          : left.date.localeCompare(right.date),
+    days: applyDayMerges([...deduped.values()], dayMerges).toSorted((left, right) =>
+      left.date === right.date
+        ? left.circuit.localeCompare(right.circuit)
+        : left.date.localeCompare(right.date),
     ),
     errors,
   };
@@ -453,10 +413,7 @@ export interface AvailableDayFilters {
 }
 
 export function normalizeAvailableDayCircuit(day: AvailableDay): AvailableDay {
-  const canonicalCircuit = resolveCanonicalCircuit(
-    day.circuitName ?? day.circuit,
-    day.layout,
-  );
+  const canonicalCircuit = resolveCanonicalCircuit(day.circuitName ?? day.circuit, day.layout);
   const circuit = canonicalCircuit.circuitName;
   const description = normalizeCircuitText(day.description);
 
@@ -482,14 +439,10 @@ export function normalizeAvailableDayCircuit(day: AvailableDay): AvailableDay {
   };
 }
 
-export function listCircuitOptions(
-  days: Array<Pick<AvailableDay, 'circuit'>>,
-): string[] {
+export function listCircuitOptions(days: Array<Pick<AvailableDay, 'circuit'>>): string[] {
   return [
-    ...new Set(
-      days.map((day) => normalizeCircuitName(day.circuit)).filter(Boolean),
-    ),
-  ].sort();
+    ...new Set(days.map((day) => normalizeCircuitName(day.circuit)).filter(Boolean)),
+  ].toSorted();
 }
 
 export function filterAvailableDays(
@@ -510,10 +463,7 @@ export function filterAvailableDays(
     if (filters.series && getLinkedSeriesKey(day) !== filters.series) {
       return false;
     }
-    if (
-      circuitFilters.length > 0 &&
-      !circuitFilters.includes(normalizeCircuitName(day.circuit))
-    ) {
+    if (circuitFilters.length > 0 && !circuitFilters.includes(normalizeCircuitName(day.circuit))) {
       return false;
     }
     if (filters.provider && day.provider !== filters.provider) {

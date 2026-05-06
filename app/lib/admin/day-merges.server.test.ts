@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { AvailableDay } from '~/lib/days/types';
 import type { DayMergeRecord } from '~/lib/db/entities/day-merge.server';
 
@@ -17,10 +17,7 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
 
-import {
-  loadAdminDayMergesReport,
-  submitAdminDayMergeAction,
-} from './day-merges.server';
+import { loadAdminDayMergesReport, submitAdminDayMergeAction } from './day-merges.server';
 
 const sourceDay: AvailableDay = {
   dayId: 'source-day',

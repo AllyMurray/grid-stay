@@ -67,7 +67,7 @@ export function getRaceSeriesDaysForDay(
     seriesName,
     days: days
       .filter((day) => getLinkedSeriesKey(day) === seriesKey)
-      .sort(compareAvailableDays),
+      .toSorted(compareAvailableDays),
   };
 }
 
@@ -102,9 +102,7 @@ export function buildRaceSeriesSummaryByDayId(
       key: seriesKey,
       name: getLinkedSeriesName(seriesDays[0]!)!,
       totalCount: seriesDays.length,
-      existingBookingCount: seriesDays.filter((day) =>
-        existingBookingDayIds.has(day.dayId),
-      ).length,
+      existingBookingCount: seriesDays.filter((day) => existingBookingDayIds.has(day.dayId)).length,
     } satisfies RaceSeriesSummary;
 
     for (const day of days) {

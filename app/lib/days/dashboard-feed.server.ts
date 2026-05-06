@@ -1,14 +1,8 @@
 import type { User } from '~/lib/auth/schemas';
-import {
-  type AccommodationStatus,
-  resolveAccommodationStatus,
-} from '~/lib/bookings/accommodation';
+import { type AccommodationStatus, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
 import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
-import {
-  listAttendanceByDay,
-  listMyBookings,
-} from '~/lib/db/services/booking.server';
+import { listAttendanceByDay, listMyBookings } from '~/lib/db/services/booking.server';
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import {
   type EventCostSummary,
@@ -32,10 +26,7 @@ import {
   type JourneyPlannerResult,
 } from './journey-planner';
 import { canCreateManualDays } from './manual-days.server';
-import {
-  getSavedDaysFilters,
-  type SavedDaysFilters,
-} from './preferences.server';
+import { getSavedDaysFilters, type SavedDaysFilters } from './preferences.server';
 import {
   buildRaceSeriesSummaryByDayId,
   getLinkedSeriesKey,
@@ -43,12 +34,7 @@ import {
   type RaceSeriesSummary,
 } from './series.server';
 import { getSharedDayPlan, type SharedDayPlan } from './shared-plan.server';
-import type {
-  AvailableDay,
-  AvailableDayType,
-  DayAttendanceSummary,
-  DaySourceError,
-} from './types';
+import type { AvailableDay, AvailableDayType, DayAttendanceSummary, DaySourceError } from './types';
 
 export const DAYS_PAGE_SIZE = 30;
 const DEFAULT_PLANNER_WINDOW_DAYS = 3;
@@ -180,15 +166,10 @@ function combineAttendanceOverviews(
   overviews: Array<DayAttendanceOverview | undefined>,
 ): DayAttendanceOverview {
   return {
-    attendeeCount: overviews.reduce(
-      (count, overview) => count + (overview?.attendeeCount ?? 0),
-      0,
-    ),
+    attendeeCount: overviews.reduce((count, overview) => count + (overview?.attendeeCount ?? 0), 0),
     accommodationNames: [
-      ...new Set(
-        overviews.flatMap((overview) => overview?.accommodationNames ?? []),
-      ),
-    ].sort(),
+      ...new Set(overviews.flatMap((overview) => overview?.accommodationNames ?? [])),
+    ].toSorted(),
     garageOwnerCount: overviews.reduce(
       (count, overview) => count + (overview?.garageOwnerCount ?? 0),
       0,
@@ -257,11 +238,7 @@ function getTodayDate() {
 
 function getDefaultPlannerStart(filteredDays: AvailableDay[]) {
   const today = getTodayDate();
-  return (
-    filteredDays.find((day) => day.date >= today)?.date ??
-    filteredDays[0]?.date ??
-    ''
-  );
+  return filteredDays.find((day) => day.date >= today)?.date ?? filteredDays[0]?.date ?? '';
 }
 
 function getPlannerRange(url: URL, filteredDays: AvailableDay[]) {
@@ -283,10 +260,7 @@ function getPlannerRange(url: URL, filteredDays: AvailableDay[]) {
 }
 
 function getMaxMiles(url: URL) {
-  const parsed = Number.parseInt(
-    url.searchParams.get('maxMiles')?.trim() ?? '',
-    10,
-  );
+  const parsed = Number.parseInt(url.searchParams.get('maxMiles')?.trim() ?? '', 10);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return DEFAULT_JOURNEY_MAX_MILES;
@@ -312,13 +286,11 @@ function getCircuitFilters(url: URL): string[] {
     .map((value) => normalizeCircuitName(value.trim()))
     .filter(Boolean);
 
-  return [...new Set(circuits)].sort();
+  return [...new Set(circuits)].toSorted();
 }
 
 function getFilters(url: URL): DaysFilters {
-  const showPast = ['1', 'true', 'on'].includes(
-    url.searchParams.get('showPast')?.trim() ?? '',
-  );
+  const showPast = ['1', 'true', 'on'].includes(url.searchParams.get('showPast')?.trim() ?? '');
 
   return {
     month: url.searchParams.get('month')?.trim() ?? '',
@@ -355,15 +327,12 @@ export function createDaysFilterKey(filters: DaysFilters): string {
 }
 
 function getCurrentSeriesYear(days: AvailableDay[]): string {
-  return days.map((day) => day.date.slice(0, 4)).sort()[0] ?? '';
+  return days.map((day) => day.date.slice(0, 4)).toSorted()[0] ?? '';
 }
 
 function listRaceSeriesOptions(days: AvailableDay[]): RaceSeriesFilterOption[] {
   const currentYear = getCurrentSeriesYear(days);
-  const optionsByKey = new Map<
-    string,
-    { label: string; circuitOptions: Set<string> }
-  >();
+  const optionsByKey = new Map<string, { label: string; circuitOptions: Set<string> }>();
 
   for (const day of days) {
     if (currentYear && day.date.slice(0, 4) !== currentYear) {
@@ -395,9 +364,9 @@ function listRaceSeriesOptions(days: AvailableDay[]): RaceSeriesFilterOption[] {
     .map(([value, option]) => ({
       value,
       label: option.label,
-      circuitOptions: [...option.circuitOptions].sort(),
+      circuitOptions: [...option.circuitOptions].toSorted(),
     }))
-    .sort((left, right) => left.label.localeCompare(right.label));
+    .toSorted((left, right) => left.label.localeCompare(right.label));
 }
 
 async function loadFilteredDays(url: URL) {
@@ -413,7 +382,7 @@ async function loadFilteredDays(url: URL) {
   };
   const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
     .map(normalizeAvailableDayCircuit)
-    .sort(compareAvailableDays);
+    .toSorted(compareAvailableDays);
   const dateScopedDays = filters.showPast
     ? allDays
     : allDays.filter((day) => day.date >= getTodayDate());
@@ -423,7 +392,7 @@ async function loadFilteredDays(url: URL) {
     circuits: filters.circuits,
     provider: filters.provider || undefined,
     type: parseType(filters.type),
-  }).sort(compareAvailableDays);
+  }).toSorted(compareAvailableDays);
 
   return {
     allDays,
@@ -431,14 +400,10 @@ async function loadFilteredDays(url: URL) {
     errors: raw.errors,
     refreshedAt: snapshot?.refreshedAt ?? '',
     filteredDays,
-    monthOptions: [
-      ...new Set(dateScopedDays.map((day) => day.date.slice(0, 7))),
-    ].sort(),
+    monthOptions: [...new Set(dateScopedDays.map((day) => day.date.slice(0, 7)))].toSorted(),
     seriesOptions: listRaceSeriesOptions(dateScopedDays),
     circuitOptions: listCircuitOptions(dateScopedDays),
-    providerOptions: [
-      ...new Set(dateScopedDays.map((day) => day.provider)),
-    ].sort(),
+    providerOptions: [...new Set(dateScopedDays.map((day) => day.provider))].toSorted(),
   };
 }
 
@@ -454,7 +419,7 @@ export async function loadUpcomingAvailableDaysOverview() {
   };
   const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
     .map(normalizeAvailableDayCircuit)
-    .sort(compareAvailableDays);
+    .toSorted(compareAvailableDays);
   const today = getTodayDate();
   const upcomingDays = allDays.filter((day) => day.date >= today);
 
@@ -470,9 +435,7 @@ async function loadDayMergesSafely(): Promise<DayMergeRule[]> {
       return [];
     }
 
-    const { listDayMergeRules } = await import(
-      '~/lib/db/services/day-merge.server'
-    );
+    const { listDayMergeRules } = await import('~/lib/db/services/day-merge.server');
     return listDayMergeRules();
   } catch (error) {
     console.error('Failed to load day merge rules', { error });
@@ -493,16 +456,10 @@ async function loadDaysFeedPage(
     filterKey: createDaysFilterKey(filters),
     offset,
     totalCount: filteredDays.length,
-    nextOffset:
-      offset + DAYS_PAGE_SIZE < filteredDays.length
-        ? offset + DAYS_PAGE_SIZE
-        : null,
+    nextOffset: offset + DAYS_PAGE_SIZE < filteredDays.length ? offset + DAYS_PAGE_SIZE : null,
     days: pageDays.map(toDayRow),
     attendanceSummaries: Object.fromEntries(
-      pageDays.map((day) => [
-        day.dayId,
-        combineAttendanceOverviews([summaries.get(day.dayId)]),
-      ]),
+      pageDays.map((day) => [day.dayId, combineAttendanceOverviews([summaries.get(day.dayId)])]),
     ),
   };
 }
@@ -538,9 +495,7 @@ export async function loadDaysIndex(
   const page = await loadDaysFeedPage(filteredDays, filters, 0);
   const fullSummaries =
     view === 'calendar' || view === 'planner'
-      ? await dayAttendanceSummaryStore.getByDayIds(
-          filteredDays.map((day) => day.dayId),
-        )
+      ? await dayAttendanceSummaryStore.getByDayIds(filteredDays.map((day) => day.dayId))
       : null;
   const attendanceSummaries = fullSummaries
     ? Object.fromEntries(
@@ -552,8 +507,7 @@ export async function loadDaysIndex(
     : page.attendanceSummaries;
   const plannerRange = getPlannerRange(url, filteredDays);
   const maxMiles = getMaxMiles(url);
-  const calendarDays =
-    view === 'calendar' || view === 'planner' ? filteredDays.map(toDayRow) : [];
+  const calendarDays = view === 'calendar' || view === 'planner' ? filteredDays.map(toDayRow) : [];
   const distanceResult =
     view === 'planner'
       ? await loadCircuitDistanceMatrix()
@@ -581,12 +535,7 @@ export async function loadDaysIndex(
 
   if (selectedDayRecord) {
     [selectedDayAttendance, selectedDayPlan] = await Promise.all([
-      listAttendanceByDay(
-        selectedDayRecord.dayId,
-        undefined,
-        undefined,
-        user.id,
-      ),
+      listAttendanceByDay(selectedDayRecord.dayId, undefined, undefined, user.id),
       getSharedDayPlan(selectedDayRecord.dayId),
     ]);
     selectedDayCostSummary = await loadEventCostSummary(
@@ -648,9 +597,7 @@ export async function loadDaysIndex(
     selectedDay: selectedDayRecord ? toDayRow(selectedDayRecord) : null,
     selectedDayPosition: selectedDayRecord ? selectedDayIndex + 1 : null,
     selectedDayPrevious:
-      selectedDayIndex > 0
-        ? toDayRow(filteredDays[selectedDayIndex - 1]!)
-        : null,
+      selectedDayIndex > 0 ? toDayRow(filteredDays[selectedDayIndex - 1]!) : null,
     selectedDayNext:
       selectedDayIndex >= 0 && selectedDayIndex < filteredDays.length - 1
         ? toDayRow(filteredDays[selectedDayIndex + 1]!)
@@ -664,9 +611,5 @@ export async function loadDaysIndex(
 
 export async function loadDaysFeed(url: URL): Promise<DaysFeedData> {
   const { filters, filteredDays } = await loadFilteredDays(url);
-  return loadDaysFeedPage(
-    filteredDays,
-    filters,
-    getOffset(url.searchParams.get('offset')),
-  );
+  return loadDaysFeedPage(filteredDays, filters, getOffset(url.searchParams.get('offset')));
 }

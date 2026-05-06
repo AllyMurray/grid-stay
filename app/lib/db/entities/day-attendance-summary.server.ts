@@ -33,6 +33,4 @@ export const DayAttendanceSummaryEntity = new Entity(
   { client, table: tableName },
 );
 
-export type DayAttendanceSummaryRecord = EntityItem<
-  typeof DayAttendanceSummaryEntity
->;
+export type DayAttendanceSummaryRecord = EntityItem<typeof DayAttendanceSummaryEntity>;

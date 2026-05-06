@@ -9,9 +9,7 @@ const BETTER_AUTH_DONT_REMEMBER_COOKIES = [
   },
 ];
 
-export function cloneHeadersPreservingSetCookie(
-  headers?: HeadersInit,
-): Headers {
+export function cloneHeadersPreservingSetCookie(headers?: HeadersInit): Headers {
   const nextHeaders = new Headers();
 
   if (!headers) {
@@ -35,9 +33,7 @@ export function cloneHeadersPreservingSetCookie(
   return new Headers(headers);
 }
 
-export function appendClearDontRememberCookieHeaders(
-  headers?: HeadersInit,
-): Headers {
+export function appendClearDontRememberCookieHeaders(headers?: HeadersInit): Headers {
   const nextHeaders = cloneHeadersPreservingSetCookie(headers);
 
   for (const cookie of BETTER_AUTH_DONT_REMEMBER_COOKIES) {

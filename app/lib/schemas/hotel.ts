@@ -36,9 +36,7 @@ export const HotelReviewSchema = z.object({
     (value) => (value === '' || value == null ? undefined : value),
     z.coerce.number().int().min(1).max(5).optional(),
   ),
-  trailerParking: z
-    .enum(['unknown', 'good', 'limited', 'none'])
-    .default('unknown'),
+  trailerParking: z.enum(['unknown', 'good', 'limited', 'none']).default('unknown'),
   secureParking: z.enum(['unknown', 'yes', 'mixed', 'no']).default('unknown'),
   lateCheckIn: z.enum(['unknown', 'yes', 'limited', 'no']).default('unknown'),
   parkingNotes: z.string().trim().max(500).optional().default(''),

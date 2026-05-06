@@ -1,16 +1,10 @@
-import {
-  MemberProfileEntity,
-  type MemberProfileRecord,
-} from '../entities/member-profile.server';
+import { MemberProfileEntity, type MemberProfileRecord } from '../entities/member-profile.server';
 
 const MEMBER_PROFILE_SCOPE = 'profile';
 
 export interface MemberProfilePersistence {
   create(item: MemberProfileRecord): Promise<MemberProfileRecord>;
-  update(
-    userId: string,
-    changes: Partial<MemberProfileRecord>,
-  ): Promise<MemberProfileRecord>;
+  update(userId: string, changes: Partial<MemberProfileRecord>): Promise<MemberProfileRecord>;
   delete(userId: string): Promise<void>;
   getByUser(userId: string): Promise<MemberProfileRecord | null>;
   listAll(): Promise<MemberProfileRecord[]>;

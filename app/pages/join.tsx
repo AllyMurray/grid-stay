@@ -1,22 +1,8 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Paper,
-  Stack,
-  Text,
-  ThemeIcon,
-  Title,
-} from '@mantine/core';
+import { Alert, Box, Button, Container, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { IconLinkOff, IconRoad } from '@tabler/icons-react';
 import { Link } from 'react-router';
 
-export type JoinLinkFailureReason =
-  | 'not_found'
-  | 'revoked'
-  | 'expired'
-  | 'full';
+export type JoinLinkFailureReason = 'not_found' | 'revoked' | 'expired' | 'full';
 
 export interface JoinLinkPageProps {
   reason: JoinLinkFailureReason;

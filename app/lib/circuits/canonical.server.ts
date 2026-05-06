@@ -1,7 +1,4 @@
-import {
-  normalizeCircuitLabel,
-  normalizeCircuitText,
-} from '~/lib/circuit-sources/shared.server';
+import { normalizeCircuitLabel, normalizeCircuitText } from '~/lib/circuit-sources/shared.server';
 
 export interface CanonicalCircuit {
   circuitId?: string;
@@ -104,10 +101,7 @@ const CIRCUIT_CATALOG: CircuitCatalogEntry[] = [
 
 const CATALOG_BY_KEY = new Map(
   CIRCUIT_CATALOG.flatMap((entry) =>
-    [entry.name, ...(entry.aliases ?? [])].map((value) => [
-      toLookupKey(value),
-      entry,
-    ]),
+    [entry.name, ...(entry.aliases ?? [])].map((value) => [toLookupKey(value), entry]),
   ),
 );
 
@@ -146,10 +140,7 @@ function splitCircuitAndLayout(value: string): {
   };
 }
 
-export function resolveCanonicalCircuit(
-  circuit: string,
-  layout?: string,
-): CanonicalCircuit {
+export function resolveCanonicalCircuit(circuit: string, layout?: string): CanonicalCircuit {
   const split = splitCircuitAndLayout(circuit);
   const normalizedLayout = normalizeCircuitLabel(layout ?? split.layout ?? '');
   const lookupKey = toLookupKey(split.circuitName);

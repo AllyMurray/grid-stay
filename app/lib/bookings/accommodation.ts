@@ -14,30 +14,23 @@ export interface AccommodationStatusInput {
   hotelId?: string | null;
 }
 
-export const ACCOMMODATION_STATUS_LABELS: Record<AccommodationStatus, string> =
-  {
-    unknown: 'Accommodation not set',
-    not_required: 'No hotel needed',
-    staying_at_track: 'Staying at the track',
-    looking: 'Need a hotel',
-    booked: 'Hotel booked',
-  };
+export const ACCOMMODATION_STATUS_LABELS: Record<AccommodationStatus, string> = {
+  unknown: 'Accommodation not set',
+  not_required: 'No hotel needed',
+  staying_at_track: 'Staying at the track',
+  looking: 'Need a hotel',
+  booked: 'Hotel booked',
+};
 
-export const ACCOMMODATION_STATUS_DESCRIPTIONS: Record<
-  AccommodationStatus,
-  string
-> = {
+export const ACCOMMODATION_STATUS_DESCRIPTIONS: Record<AccommodationStatus, string> = {
   unknown: 'No accommodation plan has been shared yet.',
   not_required: 'This is a day trip or no hotel is needed.',
-  staying_at_track:
-    'Camping, campervan, tentbox, or another overnight stay at the circuit.',
+  staying_at_track: 'Camping, campervan, tentbox, or another overnight stay at the circuit.',
   looking: 'Accommodation is still being arranged.',
   booked: 'A hotel or stay has been added.',
 };
 
-export function isAccommodationStatus(
-  value: unknown,
-): value is AccommodationStatus {
+export function isAccommodationStatus(value: unknown): value is AccommodationStatus {
   return ACCOMMODATION_STATUS_VALUES.includes(value as AccommodationStatus);
 }
 
@@ -59,9 +52,7 @@ export function resolveAccommodationStatus(
   return 'unknown';
 }
 
-export function getAccommodationPlanSummary(
-  input: AccommodationStatusInput | null | undefined,
-) {
+export function getAccommodationPlanSummary(input: AccommodationStatusInput | null | undefined) {
   const status = resolveAccommodationStatus(input);
 
   if (status === 'booked' && input) {
@@ -71,22 +62,14 @@ export function getAccommodationPlanSummary(
   return ACCOMMODATION_STATUS_LABELS[status];
 }
 
-export function hasBookedAccommodation(
-  input: AccommodationStatusInput | null | undefined,
-) {
+export function hasBookedAccommodation(input: AccommodationStatusInput | null | undefined) {
   return resolveAccommodationStatus(input) === 'booked';
 }
 
-export function hasArrangedAccommodation(
-  input: AccommodationStatusInput | null | undefined,
-) {
-  return ['booked', 'staying_at_track'].includes(
-    resolveAccommodationStatus(input),
-  );
+export function hasArrangedAccommodation(input: AccommodationStatusInput | null | undefined) {
+  return ['booked', 'staying_at_track'].includes(resolveAccommodationStatus(input));
 }
 
-export function needsAccommodationPlan(
-  input: AccommodationStatusInput | null | undefined,
-) {
+export function needsAccommodationPlan(input: AccommodationStatusInput | null | undefined) {
   return ['unknown', 'looking'].includes(resolveAccommodationStatus(input));
 }

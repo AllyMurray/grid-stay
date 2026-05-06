@@ -1,14 +1,8 @@
 import { ulid } from 'ulid';
 import { isAdminUser } from '~/lib/auth/authorization';
-import {
-  type AdminMemberDirectoryEntry,
-  listAdminSiteMembers,
-} from '~/lib/auth/members.server';
+import { type AdminMemberDirectoryEntry, listAdminSiteMembers } from '~/lib/auth/members.server';
 import { filterAvailableDays } from '~/lib/days/aggregation.server';
-import {
-  getSavedDaysFilters,
-  type SavedDaysFilters,
-} from '~/lib/days/preferences.server';
+import { getSavedDaysFilters, type SavedDaysFilters } from '~/lib/days/preferences.server';
 import type { AvailableDay } from '~/lib/days/types';
 import {
   ExternalNotificationEntity,
@@ -46,9 +40,7 @@ export interface ExternalAlertDependencies {
 
 export const externalNotificationStore: ExternalNotificationPersistence = {
   async putMany(items) {
-    await Promise.all(
-      items.map((item) => ExternalNotificationEntity.put(item).go()),
-    );
+    await Promise.all(items.map((item) => ExternalNotificationEntity.put(item).go()));
   },
   async listAll() {
     const response = await ExternalNotificationEntity.query
@@ -58,10 +50,7 @@ export const externalNotificationStore: ExternalNotificationPersistence = {
   },
 };
 
-function sortNewestFirst(
-  left: ExternalNotificationRecord,
-  right: ExternalNotificationRecord,
-) {
+function sortNewestFirst(left: ExternalNotificationRecord, right: ExternalNotificationRecord) {
   if (left.createdAt !== right.createdAt) {
     return right.createdAt.localeCompare(left.createdAt);
   }
@@ -69,9 +58,7 @@ function sortNewestFirst(
   return right.notificationId.localeCompare(left.notificationId);
 }
 
-function createRecord(
-  input: ExternalNotificationInput,
-): ExternalNotificationRecord {
+function createRecord(input: ExternalNotificationInput): ExternalNotificationRecord {
   const now = input.createdAt ?? new Date().toISOString();
 
   return {
@@ -122,7 +109,7 @@ export async function listRecentExternalNotifications(
   store: ExternalNotificationPersistence = externalNotificationStore,
 ): Promise<ExternalNotificationRecord[]> {
   const records = await store.listAll();
-  return records.sort(sortNewestFirst).slice(0, limit);
+  return records.toSorted(sortNewestFirst).slice(0, limit);
 }
 
 function buildDayAlertBody(day: AvailableDay) {
@@ -196,9 +183,7 @@ export async function queueAdminExternalAlertSafely(
   }
 
   try {
-    const admins = (
-      await (dependencies.loadMembers ?? listAdminSiteMembers)()
-    ).filter((member) =>
+    const admins = (await (dependencies.loadMembers ?? listAdminSiteMembers)()).filter((member) =>
       isAdminUser({ email: member.email, role: member.role }),
     );
     return createExternalNotificationsSafely(

@@ -24,6 +24,4 @@ export const AvailableDaysCacheEntity = new Entity(
   { client, table: tableName },
 );
 
-export type AvailableDaysCacheRecord = EntityItem<
-  typeof AvailableDaysCacheEntity
->;
+export type AvailableDaysCacheRecord = EntityItem<typeof AvailableDaysCacheEntity>;

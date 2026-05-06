@@ -9,14 +9,8 @@ import type {
   CostGroupUpsertInput,
   CostSettlementStatusInput,
 } from '~/lib/schemas/cost-splitting';
-import {
-  CostExpenseEntity,
-  type CostExpenseRecord,
-} from '../entities/cost-expense.server';
-import {
-  CostGroupEntity,
-  type CostGroupRecord,
-} from '../entities/cost-group.server';
+import { CostExpenseEntity, type CostExpenseRecord } from '../entities/cost-expense.server';
+import { CostGroupEntity, type CostGroupRecord } from '../entities/cost-group.server';
 import {
   CostSettlementEntity,
   type CostSettlementRecord,
@@ -111,10 +105,7 @@ export interface EventCostSummary {
 
 export interface CostGroupPersistence {
   create(item: CostGroupRecord): Promise<CostGroupRecord>;
-  update(
-    groupId: string,
-    changes: Partial<CostGroupRecord>,
-  ): Promise<CostGroupRecord>;
+  update(groupId: string, changes: Partial<CostGroupRecord>): Promise<CostGroupRecord>;
   delete(groupId: string): Promise<void>;
   get(groupId: string): Promise<CostGroupRecord | null>;
   listByDay(dayId: string): Promise<CostGroupRecord[]>;
@@ -123,10 +114,7 @@ export interface CostGroupPersistence {
 
 export interface CostExpensePersistence {
   create(item: CostExpenseRecord): Promise<CostExpenseRecord>;
-  update(
-    expenseId: string,
-    changes: Partial<CostExpenseRecord>,
-  ): Promise<CostExpenseRecord>;
+  update(expenseId: string, changes: Partial<CostExpenseRecord>): Promise<CostExpenseRecord>;
   delete(expenseId: string): Promise<void>;
   get(expenseId: string): Promise<CostExpenseRecord | null>;
   listByDay(dayId: string): Promise<CostExpenseRecord[]>;
@@ -182,13 +170,11 @@ export const costGroupStore: CostGroupPersistence = {
   },
   async listByDay(dayId) {
     const response = await CostGroupEntity.query.byDay({ dayId }).go();
-    return response.data.sort(compareCreatedAt);
+    return response.data.toSorted(compareCreatedAt);
   },
   async listAll() {
-    const response = await CostGroupEntity.query
-      .group({ groupScope: COST_GROUP_SCOPE })
-      .go();
-    return response.data.sort(compareCreatedAt);
+    const response = await CostGroupEntity.query.group({ groupScope: COST_GROUP_SCOPE }).go();
+    return response.data.toSorted(compareCreatedAt);
   },
 };
 
@@ -225,17 +211,17 @@ export const costExpenseStore: CostExpensePersistence = {
   },
   async listByDay(dayId) {
     const response = await CostExpenseEntity.query.byDay({ dayId }).go();
-    return response.data.sort(compareCreatedAt);
+    return response.data.toSorted(compareCreatedAt);
   },
   async listByGroup(groupId) {
     const response = await CostExpenseEntity.query.byGroup({ groupId }).go();
-    return response.data.sort(compareCreatedAt);
+    return response.data.toSorted(compareCreatedAt);
   },
   async listAll() {
     const response = await CostExpenseEntity.query
       .expense({ expenseScope: COST_EXPENSE_SCOPE })
       .go();
-    return response.data.sort(compareCreatedAt);
+    return response.data.toSorted(compareCreatedAt);
   },
 };
 
@@ -267,9 +253,10 @@ export const costSettlementStore: CostSettlementPersistence = {
   },
 };
 
-function compareCreatedAt<
-  T extends { createdAt: string; groupId?: string; expenseId?: string },
->(left: T, right: T) {
+function compareCreatedAt<T extends { createdAt: string; groupId?: string; expenseId?: string }>(
+  left: T,
+  right: T,
+) {
   if (left.createdAt !== right.createdAt) {
     return left.createdAt.localeCompare(right.createdAt);
   }
@@ -294,19 +281,11 @@ function settlementId(input: {
   creditorUserId: string;
   currency: string;
 }) {
-  return [
-    input.dayId,
-    input.debtorUserId,
-    input.creditorUserId,
-    input.currency,
-  ].join('#');
+  return [input.dayId, input.debtorUserId, input.creditorUserId, input.currency].join('#');
 }
 
 function hashSettlement(input: unknown) {
-  return createHash('sha256')
-    .update(JSON.stringify(input))
-    .digest('hex')
-    .slice(0, 24);
+  return createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 24);
 }
 
 function parseParticipantNames(record: CostGroupRecord): Map<string, string> {
@@ -318,9 +297,7 @@ function parseParticipantNames(record: CostGroupRecord): Map<string, string> {
 
     return new Map(
       Object.entries(parsed)
-        .filter(
-          (entry): entry is [string, string] => typeof entry[1] === 'string',
-        )
+        .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
         .map(([userId, userName]) => [userId, userName]),
     );
   } catch {
@@ -331,24 +308,19 @@ function parseParticipantNames(record: CostGroupRecord): Map<string, string> {
 function serializeParticipantNames(participants: CostParticipant[]) {
   return JSON.stringify(
     Object.fromEntries(
-      participants.map((participant) => [
-        participant.userId,
-        participant.userName,
-      ]),
+      participants.map((participant) => [participant.userId, participant.userName]),
     ),
   );
 }
 
-function participantsFromAttendance(
-  attendance: DayAttendanceSummary,
-): CostParticipant[] {
+function participantsFromAttendance(attendance: DayAttendanceSummary): CostParticipant[] {
   return attendance.attendees
     .filter((attendee) => attendee.status !== 'cancelled')
     .map((attendee) => ({
       userId: attendee.userId,
       userName: attendee.userName,
     }))
-    .sort((left, right) => left.userName.localeCompare(right.userName));
+    .toSorted((left, right) => left.userName.localeCompare(right.userName));
 }
 
 async function listActiveParticipants(
@@ -362,28 +334,18 @@ async function listActiveParticipants(
       userId: booking.userId,
       userName: booking.userName,
     }))
-    .sort((left, right) => left.userName.localeCompare(right.userName));
+    .toSorted((left, right) => left.userName.localeCompare(right.userName));
 }
 
 function getParticipantMap(participants: CostParticipant[]) {
-  return new Map(
-    participants.map((participant) => [participant.userId, participant]),
-  );
+  return new Map(participants.map((participant) => [participant.userId, participant]));
 }
 
-function requireActiveParticipant(
-  activeParticipants: CostParticipant[],
-  userId: string,
-) {
-  if (
-    !activeParticipants.some((participant) => participant.userId === userId)
-  ) {
-    throw new Response(
-      'Add this day to your bookings before splitting costs.',
-      {
-        status: 400,
-      },
-    );
+function requireActiveParticipant(activeParticipants: CostParticipant[], userId: string) {
+  if (!activeParticipants.some((participant) => participant.userId === userId)) {
+    throw new Response('Add this day to your bookings before splitting costs.', {
+      status: 400,
+    });
   }
 }
 
@@ -436,33 +398,22 @@ function requireGroupOwner(group: CostGroupRecord, user: Pick<User, 'id'>) {
 
 function getParticipantName(group: CostGroupRecord, userId: string) {
   return (
-    getGroupParticipants(group).find(
-      (participant) => participant.userId === userId,
-    )?.userName ?? userId
+    getGroupParticipants(group).find((participant) => participant.userId === userId)?.userName ??
+    userId
   );
 }
 
-function updateBalance(
-  balances: Map<string, number>,
-  userId: string,
-  amountPence: number,
-) {
+function updateBalance(balances: Map<string, number>, userId: string, amountPence: number) {
   balances.set(userId, (balances.get(userId) ?? 0) + amountPence);
 }
 
-function expenseShares(
-  expense: CostExpenseRecord,
-  participantUserIds: string[],
-) {
-  const sortedUserIds = [...participantUserIds].sort();
+function expenseShares(expense: CostExpenseRecord, participantUserIds: string[]) {
+  const sortedUserIds = [...participantUserIds].toSorted();
   const base = Math.floor(expense.amountPence / sortedUserIds.length);
   const remainder = expense.amountPence % sortedUserIds.length;
 
   return new Map(
-    sortedUserIds.map((userId, index) => [
-      userId,
-      base + (index < remainder ? 1 : 0),
-    ]),
+    sortedUserIds.map((userId, index) => [userId, base + (index < remainder ? 1 : 0)]),
   );
 }
 
@@ -470,9 +421,7 @@ function calculateGroupBalances(
   group: CostGroupRecord,
   expenses: CostExpenseRecord[],
 ): Map<string, number> {
-  const balances = new Map(
-    group.participantUserIds.map((userId) => [userId, 0]),
-  );
+  const balances = new Map(group.participantUserIds.map((userId) => [userId, 0]));
 
   for (const expense of expenses) {
     if (!group.participantUserIds.includes(expense.paidByUserId)) {
@@ -480,10 +429,7 @@ function calculateGroupBalances(
     }
 
     updateBalance(balances, expense.paidByUserId, expense.amountPence);
-    for (const [userId, sharePence] of expenseShares(
-      expense,
-      group.participantUserIds,
-    )) {
+    for (const [userId, sharePence] of expenseShares(expense, group.participantUserIds)) {
       updateBalance(balances, userId, -sharePence);
     }
   }
@@ -491,10 +437,7 @@ function calculateGroupBalances(
   return balances;
 }
 
-function toExpenseSummary(
-  expense: CostExpenseRecord,
-  currentUserId: string,
-): CostExpenseSummary {
+function toExpenseSummary(expense: CostExpenseRecord, currentUserId: string): CostExpenseSummary {
   return {
     expenseId: expense.expenseId,
     groupId: expense.groupId,
@@ -509,9 +452,7 @@ function toExpenseSummary(
     createdByName: expense.createdByName,
     createdAt: expense.createdAt,
     updatedAt: expense.updatedAt,
-    canEdit:
-      expense.createdByUserId === currentUserId ||
-      expense.paidByUserId === currentUserId,
+    canEdit: expense.createdByUserId === currentUserId || expense.paidByUserId === currentUserId,
   };
 }
 
@@ -526,14 +467,9 @@ function toGroupSummary(
     name: group.name,
     category: group.category,
     participants: getGroupParticipants(group),
-    totalPence: expenses.reduce(
-      (total, expense) => total + expense.amountPence,
-      0,
-    ),
+    totalPence: expenses.reduce((total, expense) => total + expense.amountPence, 0),
     currency: COST_CURRENCY,
-    expenses: expenses.map((expense) =>
-      toExpenseSummary(expense, currentUserId),
-    ),
+    expenses: expenses.map((expense) => toExpenseSummary(expense, currentUserId)),
     createdByUserId: group.createdByUserId,
     createdByName: group.createdByName,
     createdAt: group.createdAt,
@@ -580,10 +516,7 @@ function buildSettlementBreakdown(
         creditorSharePence: Math.max(balances.get(creditorUserId) ?? 0, 0),
       };
     })
-    .filter(
-      (breakdown) =>
-        breakdown.debtorSharePence > 0 && breakdown.creditorSharePence > 0,
-    );
+    .filter((breakdown) => breakdown.debtorSharePence > 0 && breakdown.creditorSharePence > 0);
 }
 
 function buildNetSettlements(input: {
@@ -599,7 +532,7 @@ function buildNetSettlements(input: {
   const debtors = [...input.balances.entries()]
     .filter(([, amount]) => amount < 0)
     .map(([userId, amount]) => ({ userId, amountPence: -amount }))
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       (input.participantNames.get(left.userId) ?? left.userId).localeCompare(
         input.participantNames.get(right.userId) ?? right.userId,
       ),
@@ -607,7 +540,7 @@ function buildNetSettlements(input: {
   const creditors = [...input.balances.entries()]
     .filter(([, amount]) => amount > 0)
     .map(([userId, amount]) => ({ userId, amountPence: amount }))
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       (input.participantNames.get(left.userId) ?? left.userId).localeCompare(
         input.participantNames.get(right.userId) ?? right.userId,
       ),
@@ -660,19 +593,15 @@ function buildNetSettlements(input: {
       debtorUserId: debtor.userId,
       debtorName: input.participantNames.get(debtor.userId) ?? debtor.userId,
       creditorUserId: creditor.userId,
-      creditorName:
-        input.participantNames.get(creditor.userId) ?? creditor.userId,
+      creditorName: input.participantNames.get(creditor.userId) ?? creditor.userId,
       amountPence,
       currency: COST_CURRENCY,
       status,
       breakdownHash,
       breakdown,
-      paymentPreference: preference
-        ? { label: preference.label, url: preference.url }
-        : undefined,
+      paymentPreference: preference ? { label: preference.label, url: preference.url } : undefined,
       canMarkSent: input.currentUserId === debtor.userId && status === 'open',
-      canConfirmReceived:
-        input.currentUserId === creditor.userId && status === 'sent',
+      canConfirmReceived: input.currentUserId === creditor.userId && status === 'sent',
     });
 
     debtor.amountPence -= amountPence;
@@ -710,9 +639,7 @@ export async function loadEventCostSummary(
     group.participantUserIds.includes(currentUserId),
   );
   const visibleGroupIds = new Set(visibleGroups.map((group) => group.groupId));
-  const visibleExpenses = dayExpenses.filter((expense) =>
-    visibleGroupIds.has(expense.groupId),
-  );
+  const visibleExpenses = dayExpenses.filter((expense) => visibleGroupIds.has(expense.groupId));
   const expensesByGroupId = new Map<string, CostExpenseRecord[]>();
 
   for (const expense of visibleExpenses) {
@@ -725,17 +652,10 @@ export async function loadEventCostSummary(
   }
 
   const groupSummaries = visibleGroups.map((group) =>
-    toGroupSummary(
-      group,
-      expensesByGroupId.get(group.groupId) ?? [],
-      currentUserId,
-    ),
+    toGroupSummary(group, expensesByGroupId.get(group.groupId) ?? [], currentUserId),
   );
   const participantNames = new Map(
-    activeParticipants.map((participant) => [
-      participant.userId,
-      participant.userName,
-    ]),
+    activeParticipants.map((participant) => [participant.userId, participant.userName]),
   );
   const aggregateBalances = new Map<string, number>();
   const groupBalances = new Map<string, Map<string, number>>();
@@ -748,10 +668,7 @@ export async function loadEventCostSummary(
       }
     }
 
-    const balances = calculateGroupBalances(
-      group,
-      expensesByGroupId.get(group.groupId) ?? [],
-    );
+    const balances = calculateGroupBalances(group, expensesByGroupId.get(group.groupId) ?? []);
     groupBalances.set(group.groupId, balances);
     for (const [userId, amountPence] of balances) {
       updateBalance(aggregateBalances, userId, amountPence);
@@ -782,10 +699,7 @@ export async function loadEventCostSummary(
     availableParticipants: activeParticipants,
     groups: groupSummaries,
     netSettlements,
-    totalPence: groupSummaries.reduce(
-      (total, group) => total + group.totalPence,
-      0,
-    ),
+    totalPence: groupSummaries.reduce((total, group) => total + group.totalPence, 0),
   };
 }
 
@@ -796,16 +710,10 @@ export async function createCostGroup(
 ): Promise<CostGroupRecord> {
   const groups = dependencies.groupStore ?? costGroupStore;
   const bookings = dependencies.bookingStore ?? bookingStore;
-  const activeParticipants = await listActiveParticipants(
-    input.dayId,
-    bookings,
-  );
+  const activeParticipants = await listActiveParticipants(input.dayId, bookings);
   requireActiveParticipant(activeParticipants, user.id);
   const participantUserIds = unique([...input.participantUserIds, user.id]);
-  const participants = buildParticipantSnapshot(
-    participantUserIds,
-    activeParticipants,
-  );
+  const participants = buildParticipantSnapshot(participantUserIds, activeParticipants);
   const now = new Date().toISOString();
 
   return groups.create({
@@ -838,19 +746,9 @@ export async function updateCostGroup(
 
   requireGroupOwner(existing, user);
 
-  const activeParticipants = await listActiveParticipants(
-    input.dayId,
-    bookings,
-  );
-  const participantUserIds = unique([
-    ...input.participantUserIds,
-    existing.createdByUserId,
-  ]);
-  const participants = buildParticipantSnapshot(
-    participantUserIds,
-    activeParticipants,
-    existing,
-  );
+  const activeParticipants = await listActiveParticipants(input.dayId, bookings);
+  const participantUserIds = unique([...input.participantUserIds, existing.createdByUserId]);
+  const participants = buildParticipantSnapshot(participantUserIds, activeParticipants, existing);
 
   return groups.update(existing.groupId, {
     name: input.name.trim(),
@@ -1011,12 +909,7 @@ export async function updateCostSettlementStatus(
     });
   }
 
-  const summary = await loadEventCostSummary(
-    input.dayId,
-    user.id,
-    null,
-    dependencies,
-  );
+  const summary = await loadEventCostSummary(input.dayId, user.id, null, dependencies);
   const currentSettlement = summary.netSettlements.find(
     (settlement) =>
       settlement.debtorUserId === input.debtorUserId &&
@@ -1065,8 +958,7 @@ export async function updateCostSettlementStatus(
       input.status === 'sent'
         ? (existing?.sentAt ?? now)
         : (existing?.sentAt ?? (input.status === 'received' ? now : undefined)),
-    receivedAt:
-      input.status === 'received' ? (existing?.receivedAt ?? now) : undefined,
+    receivedAt: input.status === 'received' ? (existing?.receivedAt ?? now) : undefined,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   } as CostSettlementRecord);

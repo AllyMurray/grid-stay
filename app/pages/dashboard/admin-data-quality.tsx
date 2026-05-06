@@ -175,8 +175,8 @@ export function AdminDataQualityPage({
                 No issues found
               </Badge>
               <Text size="sm" c="dimmed">
-                All checked days have canonical circuit data and no obvious
-                duplicate normalized identities.
+                All checked days have canonical circuit data and no obvious duplicate normalized
+                identities.
               </Text>
             </Stack>
           ) : (
@@ -202,10 +202,7 @@ export function AdminDataQualityPage({
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Badge
-                          color={statusColor(issue.status)}
-                          variant="light"
-                        >
+                        <Badge color={statusColor(issue.status)} variant="light">
                           {issue.status}
                         </Badge>
                       </Table.Td>

@@ -36,6 +36,4 @@ export const DataQualityIssueStateEntity = new Entity(
   { client, table: tableName },
 );
 
-export type DataQualityIssueStateRecord = EntityItem<
-  typeof DataQualityIssueStateEntity
->;
+export type DataQualityIssueStateRecord = EntityItem<typeof DataQualityIssueStateEntity>;

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 
 vi.mock('~/lib/db/services/garage-sharing.server', () => ({
@@ -6,10 +6,7 @@ vi.mock('~/lib/db/services/garage-sharing.server', () => ({
   updateGarageShareRequestStatus: vi.fn(),
 }));
 
-import {
-  submitGarageShareDecision,
-  submitGarageShareRequest,
-} from './actions.server';
+import { submitGarageShareDecision, submitGarageShareRequest } from './actions.server';
 
 const user: User = {
   id: 'user-1',
@@ -28,9 +25,9 @@ describe('garage sharing action helpers', () => {
 
     const saveRequest = vi.fn(async () => ({ requestId: 'request-1' }));
 
-    await expect(
-      submitGarageShareRequest(formData, user, saveRequest as never),
-    ).resolves.toEqual({ ok: true });
+    await expect(submitGarageShareRequest(formData, user, saveRequest as never)).resolves.toEqual({
+      ok: true,
+    });
     expect(saveRequest).toHaveBeenCalledWith(
       {
         dayId: 'day-1',
@@ -59,12 +56,9 @@ describe('garage sharing action helpers', () => {
     formData.set('status', 'approved');
     const saveDecision = vi.fn(async () => ({ requestId: 'request-1' }));
 
-    await expect(
-      submitGarageShareDecision(formData, user, saveDecision as never),
-    ).resolves.toEqual({ ok: true });
-    expect(saveDecision).toHaveBeenCalledWith(
-      { requestId: 'request-1', status: 'approved' },
-      user,
+    await expect(submitGarageShareDecision(formData, user, saveDecision as never)).resolves.toEqual(
+      { ok: true },
     );
+    expect(saveDecision).toHaveBeenCalledWith({ requestId: 'request-1', status: 'approved' }, user);
   });
 });

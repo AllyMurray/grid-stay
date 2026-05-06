@@ -39,9 +39,7 @@ function formatDateRange(range: AdminFeedPageProps['dateRange']) {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function healthColor(status: AdminFeedPageProps['health']['status']) {
@@ -68,11 +66,7 @@ export function AdminFeedPage({
 }: AdminFeedPageProps) {
   const hasErrors = sourceErrors.length > 0;
   const healthIcon =
-    health.status === 'healthy' ? (
-      <IconCircleCheck size={18} />
-    ) : (
-      <IconAlertCircle size={18} />
-    );
+    health.status === 'healthy' ? <IconCircleCheck size={18} /> : <IconAlertCircle size={18} />;
 
   return (
     <Stack gap="xl">
@@ -103,8 +97,7 @@ export function AdminFeedPage({
           <Stack gap={2}>
             <Title order={3}>Latest source check</Title>
             <Text size="sm" c="dimmed">
-              Last refresh {formatRefreshedAt(refreshedAt)} •{' '}
-              {formatDateRange(dateRange)}
+              Last refresh {formatRefreshedAt(refreshedAt)} • {formatDateRange(dateRange)}
             </Text>
           </Stack>
 
@@ -147,8 +140,7 @@ export function AdminFeedPage({
                 </Text>
               </Stack>
               <Badge variant="light" color="gray">
-                {recentChanges.length}{' '}
-                {recentChanges.length === 1 ? 'change' : 'changes'}
+                {recentChanges.length} {recentChanges.length === 1 ? 'change' : 'changes'}
               </Badge>
             </Group>
 
@@ -169,9 +161,7 @@ export function AdminFeedPage({
                       <Table.Tr key={change.changeId}>
                         <Table.Td>
                           <Badge
-                            color={
-                              change.severity === 'warning' ? 'yellow' : 'blue'
-                            }
+                            color={change.severity === 'warning' ? 'yellow' : 'blue'}
                             variant="light"
                           >
                             {titleCase(change.changeType)}
@@ -181,8 +171,7 @@ export function AdminFeedPage({
                         <Table.Td>{change.circuit}</Table.Td>
                         <Table.Td>{change.provider}</Table.Td>
                         <Table.Td>
-                          {change.changedFields &&
-                          change.changedFields.length > 0
+                          {change.changedFields && change.changedFields.length > 0
                             ? change.changedFields.join(', ')
                             : 'Whole event'}
                         </Table.Td>
@@ -209,8 +198,7 @@ export function AdminFeedPage({
                 </Text>
               </Stack>
               <Badge variant="light" color="gray">
-                {sourceSummaries.length}{' '}
-                {sourceSummaries.length === 1 ? 'source' : 'sources'}
+                {sourceSummaries.length} {sourceSummaries.length === 1 ? 'source' : 'sources'}
               </Badge>
             </Group>
 

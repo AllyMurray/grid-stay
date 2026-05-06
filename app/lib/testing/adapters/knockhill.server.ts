@@ -6,20 +6,13 @@
  * 1. Calendar dates from AJAX HTML (onclick="loadTestClass('YYYY-MM-DD')")
  * 2. Session details via POST /ajax/getTestlist.php
  */
-import type {
-  FetchFunction,
-  TestingAdapter,
-  TestingDay,
-  TestingFetchOptions,
-} from '../types';
+import type { FetchFunction, TestingAdapter, TestingDay, TestingFetchOptions } from '../types';
 
 const KNOCKHILL_CIRCUIT_ID = '01HQ8VXMN0KNOCKHILL';
 
 export const KNOCKHILL_URL = 'https://www.knockhill.com/testing/Car-Testing';
-export const KNOCKHILL_AJAX_CAL_URL =
-  'https://www.knockhill.com/ajax/getTestCal.php';
-export const KNOCKHILL_AJAX_URL =
-  'https://www.knockhill.com/ajax/getTestlist.php';
+export const KNOCKHILL_AJAX_CAL_URL = 'https://www.knockhill.com/ajax/getTestCal.php';
+export const KNOCKHILL_AJAX_URL = 'https://www.knockhill.com/ajax/getTestlist.php';
 
 /** Knockhill fixture/category IDs for car testing calendar */
 const KNOCKHILL_FIX_ID = '944';
@@ -122,16 +115,12 @@ export function parseKnockhillSessions(html: string): KnockhillSession[] {
       if (!name) continue;
 
       // Time from h4 before the first eventbox
-      const preEventbox = block.split(
-        /<div[^>]*class="[^"]*eventbox[^"]*"/i,
-      )[0];
+      const preEventbox = block.split(/<div[^>]*class="[^"]*eventbox[^"]*"/i)[0];
       const timeMatch = preEventbox?.match(/<h4[^>]*>([\s\S]*?)<\/h4>/i);
       const time = timeMatch ? stripHtml(timeMatch[1]) : undefined;
 
       // Split at eventbox boundaries
-      const eventboxParts = block.split(
-        /<div[^>]*class="[^"]*eventbox[^"]*"[^>]*>/i,
-      );
+      const eventboxParts = block.split(/<div[^>]*class="[^"]*eventbox[^"]*"[^>]*>/i);
 
       if (eventboxParts.length <= 1) {
         // No eventboxes — just use the session name/time
@@ -283,8 +272,7 @@ export function createKnockhillAdapter(fetchFn: FetchFunction): TestingAdapter {
       }
 
       // Determine month range to query
-      const fromDate =
-        options?.fromDate ?? new Date().toISOString().slice(0, 10);
+      const fromDate = options?.fromDate ?? new Date().toISOString().slice(0, 10);
       const toDate = options?.toDate ?? `${new Date().getFullYear()}-12-31`;
       const months = getMonthStarts(fromDate, toDate);
 

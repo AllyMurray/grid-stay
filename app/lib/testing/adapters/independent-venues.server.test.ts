@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import {
   extractCroftTestingUrls,
   parseAngleseyTestingDays,
@@ -110,10 +110,7 @@ describe('Croft testing sitemap parsing', () => {
     `;
 
     expect(
-      parseCroftTestingPage(
-        html,
-        'https://croftcircuit.co.uk/racing/test-day-16mar26',
-      ),
+      parseCroftTestingPage(html, 'https://croftcircuit.co.uk/racing/test-day-16mar26'),
     ).toEqual(
       expect.objectContaining({
         date: '2026-03-16',
@@ -128,9 +125,7 @@ describe('Croft testing sitemap parsing', () => {
 describe('parseThruxtonTestingDays', () => {
   it('returns no events while the official test day section has no dates', () => {
     expect(
-      parseThruxtonTestingDays(
-        '<h5>Test Days Available On: Information coming soon</h5>',
-      ),
+      parseThruxtonTestingDays('<h5>Test Days Available On: Information coming soon</h5>'),
     ).toEqual([]);
   });
 });

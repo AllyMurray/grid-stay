@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 import { theme } from '~/theme';
 import { AccountPage } from './account';
@@ -48,9 +48,7 @@ describe('AccountPage', () => {
     expect(screen.getByText('Password sign-in')).toBeVisible();
     expect(screen.getByText('Email reset required')).toBeVisible();
     expect(container.querySelector('input[name="password"]')).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Set password' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Set password' })).not.toBeInTheDocument();
     expect(screen.getAllByText('Payment link').length).toBeGreaterThan(0);
   });
 
@@ -59,9 +57,7 @@ describe('AccountPage', () => {
 
     expect(screen.getByText('Password enabled')).toBeVisible();
     expect(screen.getAllByText('Available')).toHaveLength(2);
-    expect(
-      screen.queryByRole('button', { name: 'Set password' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Set password' })).not.toBeInTheDocument();
   });
 
   it('shows reset-required status for accounts without password credentials', () => {

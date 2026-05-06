@@ -10,10 +10,7 @@ export interface CircuitAliasRule {
   canonicalLayout?: string;
 }
 
-export function createCircuitAliasKey(
-  circuit: string,
-  layout?: string,
-): string {
+export function createCircuitAliasKey(circuit: string, layout?: string): string {
   return normalizeCircuitLabel([circuit, layout].filter(Boolean).join(' '))
     .toLowerCase()
     .replace(/&/g, 'and')
@@ -26,9 +23,7 @@ function getDayAliasKeys(day: AvailableDay): string[] {
   return [
     createCircuitAliasKey(day.circuit, day.layout),
     createCircuitAliasKey(day.circuit),
-    day.circuitName
-      ? createCircuitAliasKey(day.circuitName, day.layout)
-      : undefined,
+    day.circuitName ? createCircuitAliasKey(day.circuitName, day.layout) : undefined,
     day.circuitName ? createCircuitAliasKey(day.circuitName) : undefined,
   ].filter((key): key is string => Boolean(key));
 }
@@ -52,10 +47,7 @@ export function applyCircuitAliases(
       return day;
     }
 
-    const canonical = resolveCanonicalCircuit(
-      alias.canonicalCircuit,
-      alias.canonicalLayout,
-    );
+    const canonical = resolveCanonicalCircuit(alias.canonicalCircuit, alias.canonicalLayout);
 
     return {
       ...day,

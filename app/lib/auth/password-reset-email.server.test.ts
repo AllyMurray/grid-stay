@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { sendTransactionalEmail } = vi.hoisted(() => ({
   sendTransactionalEmail: vi.fn(),
@@ -8,10 +8,7 @@ vi.mock('~/lib/email/ses.server', () => ({
   sendTransactionalEmail,
 }));
 
-import {
-  createPasswordResetUrl,
-  sendPasswordResetEmail,
-} from './password-reset-email.server';
+import { createPasswordResetUrl, sendPasswordResetEmail } from './password-reset-email.server';
 
 describe('password reset email', () => {
   beforeEach(() => {
@@ -45,9 +42,7 @@ describe('password reset email', () => {
     });
     expect(sendTransactionalEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining(
-          'https://gridstay.app/auth/reset-password?token=reset-token',
-        ),
+        text: expect.stringContaining('https://gridstay.app/auth/reset-password?token=reset-token'),
         html: expect.stringContaining(
           'href="https://gridstay.app/auth/reset-password?token=reset-token"',
         ),

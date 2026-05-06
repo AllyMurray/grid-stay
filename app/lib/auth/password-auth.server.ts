@@ -31,10 +31,7 @@ const PasswordSignUpSchema = z.object({
   email: EmailSchema,
   password: z
     .string()
-    .min(
-      PASSWORD_MIN_LENGTH,
-      `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-    ),
+    .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`),
 });
 
 const PasswordResetRequestSchema = z.object({
@@ -45,10 +42,7 @@ const PasswordResetSchema = z.object({
   token: z.string().min(1, 'Reset token is required.'),
   password: z
     .string()
-    .min(
-      PASSWORD_MIN_LENGTH,
-      `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-    ),
+    .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`),
 });
 
 type SignUpResponseBody = {
@@ -59,10 +53,7 @@ type SignUpResponseBody = {
   };
 };
 
-function errorResponse(
-  data: PasswordAuthActionData,
-  headers?: HeadersInit,
-): Response {
+function errorResponse(data: PasswordAuthActionData, headers?: HeadersInit): Response {
   return Response.json(data, { status: 400, headers });
 }
 
@@ -91,10 +82,7 @@ async function readAuthError(response: Response, fallback: string) {
       return 'This email already has an account. Use Forgot password to add password sign-in, or continue with Google.';
     }
 
-    if (
-      body.code === 'INVALID_EMAIL_OR_PASSWORD' ||
-      body.code === 'CREDENTIAL_ACCOUNT_NOT_FOUND'
-    ) {
+    if (body.code === 'INVALID_EMAIL_OR_PASSWORD' || body.code === 'CREDENTIAL_ACCOUNT_NOT_FOUND') {
       return 'Email or password is incorrect.';
     }
 
@@ -167,10 +155,7 @@ async function grantJoinLinkAccessAfterSignUp({
 
     return { ok: result.ok };
   } catch (error) {
-    console.warn(
-      'Unable to grant join-link member access after sign-up',
-      error,
-    );
+    console.warn('Unable to grant join-link member access after sign-up', error);
     return { ok: false as const };
   }
 }
@@ -245,8 +230,7 @@ export async function submitPasswordSignUp(
   ) {
     return errorResponse({
       intent: 'passwordSignUp',
-      formError:
-        'Ask an existing member to invite this email before creating an account.',
+      formError: 'Ask an existing member to invite this email before creating an account.',
       fieldErrors: {},
     });
   }
@@ -309,9 +293,7 @@ export async function getPasswordAccountStatus(
 
   const accounts = (await response.json()) as Array<{ providerId: string }>;
   return {
-    hasPassword: accounts.some(
-      (account) => account.providerId === 'credential',
-    ),
+    hasPassword: accounts.some((account) => account.providerId === 'credential'),
     headers,
   };
 }
@@ -320,9 +302,7 @@ export async function submitPasswordResetRequest(
   request: Request,
   formData: FormData,
 ): Promise<Response> {
-  const parsed = PasswordResetRequestSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = PasswordResetRequestSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return passwordResetRequestErrorResponse({
@@ -346,10 +326,7 @@ export async function submitPasswordResetRequest(
     return passwordResetRequestErrorResponse(
       {
         ok: false,
-        formError: await readAuthError(
-          response,
-          'Unable to send password reset link.',
-        ),
+        formError: await readAuthError(response, 'Unable to send password reset link.'),
         fieldErrors: {},
       },
       headers,
@@ -359,18 +336,14 @@ export async function submitPasswordResetRequest(
   return Response.json(
     {
       ok: true,
-      message:
-        'If there is an account for that email, we sent a password reset link.',
+      message: 'If there is an account for that email, we sent a password reset link.',
       fieldErrors: {},
     } satisfies PasswordResetRequestActionData,
     { headers },
   );
 }
 
-export async function submitPasswordReset(
-  request: Request,
-  formData: FormData,
-): Promise<Response> {
+export async function submitPasswordReset(request: Request, formData: FormData): Promise<Response> {
   const parsed = PasswordResetSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {

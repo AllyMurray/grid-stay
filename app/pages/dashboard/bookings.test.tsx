@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { HotelInsight } from '~/lib/db/services/hotel.server';
 import { theme } from '~/theme';
@@ -11,8 +11,7 @@ import { MyBookingsPage } from './bookings';
 const useMediaQueryMock = vi.fn(() => false);
 
 vi.mock('@mantine/hooks', async () => {
-  const actual =
-    await vi.importActual<typeof import('@mantine/hooks')>('@mantine/hooks');
+  const actual = await vi.importActual<typeof import('@mantine/hooks')>('@mantine/hooks');
 
   return {
     ...actual,
@@ -25,9 +24,7 @@ function renderWithProviders(
   action?: (args: ActionFunctionArgs) => Promise<unknown>,
   initialEntries: string[] | string = ['/?view=manage'],
 ) {
-  const entries = Array.isArray(initialEntries)
-    ? initialEntries
-    : [initialEntries];
+  const entries = Array.isArray(initialEntries) ? initialEntries : [initialEntries];
   const Stub = createRoutesStub([
     {
       path: '/',
@@ -88,8 +85,7 @@ const hotelInsight: HotelInsight = {
   },
   reviewCount: 1,
   averageRating: 5,
-  summary:
-    'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
+  summary: 'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
   summarySource: 'bedrock',
   summaryGeneratedAt: '2026-04-01T10:05:00.000Z',
   reviews: [
@@ -125,39 +121,28 @@ describe('MyBookingsPage', () => {
       ['/'],
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'My Bookings' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'My Bookings' })).toBeInTheDocument();
     expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Upcoming trips' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /sync calendar/i }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: /manage in my bookings/i }),
-    ).toHaveAttribute('href', '/dashboard/bookings?view=manage');
+    expect(screen.getByRole('heading', { name: 'Upcoming trips' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sync calendar/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /manage in my bookings/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?view=manage',
+    );
   });
 
   it('renders booking editor tabs directly from page props', async () => {
     const user = userEvent.setup();
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);
 
-    expect(
-      screen.getByRole('heading', { name: 'My Bookings' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'My Bookings' })).toBeInTheDocument();
     expect(screen.getByText('2 trips tracked')).toBeInTheDocument();
     expect(screen.getByText('1 confirmed')).toBeInTheDocument();
     expect(screen.getByText('1 maybe')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: '1 confirmed, 1 maybe' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '1 confirmed, 1 maybe' })).toBeInTheDocument();
     expect(screen.getByText('2 with accommodation')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /donington park/i }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: /donington park/i })).toBeVisible();
     expect(screen.getByRole('tab', { name: 'Trip' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Stay' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Garage' })).toBeInTheDocument();
@@ -168,17 +153,13 @@ describe('MyBookingsPage', () => {
     await user.click(screen.getByRole('tab', { name: 'Private' }));
 
     expect(screen.getByText('Private to you')).toBeInTheDocument();
-    expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue('REF-123')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
 
     expect(screen.getByText('Sat 2 May 2026, 20:00')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue(
-      'Trackside Hotel',
-    );
+    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue('Trackside Hotel');
     expect(screen.getByRole('button', { name: /save stay/i })).toBeVisible();
   });
 
@@ -193,24 +174,16 @@ describe('MyBookingsPage', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
 
+    expect(screen.getAllByText('1 Circuit Road, Towcester').length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText('1 Circuit Road, Towcester').length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getByText(
-        'Based on 1 Grid Stay review: 1 member says trailer parking is good.',
-      ),
+      screen.getByText('Based on 1 Grid Stay review: 1 member says trailer parking is good.'),
     ).toBeInTheDocument();
     expect(screen.getByText('5/5')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /hotel feedback/i }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /hotel feedback/i })).toHaveAttribute(
       'href',
       '/dashboard/hotels/hotel-1/feedback?booking=booking-1',
     );
-    expect(
-      screen.queryByDisplayValue('Plenty of room for trailers.'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Plenty of room for trailers.')).not.toBeInTheDocument();
   });
 
   it('opens hotel lookup from the stay section', async () => {
@@ -220,25 +193,18 @@ describe('MyBookingsPage', () => {
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
     await user.click(screen.getByRole('button', { name: /find hotel/i }));
 
-    expect(
-      await screen.findByRole('dialog', { name: /find hotel/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /hotel search/i })).toHaveValue(
-      'Trackside Hotel',
-    );
+    expect(await screen.findByRole('dialog', { name: /find hotel/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /hotel search/i })).toHaveValue('Trackside Hotel');
   });
 
   it('submits the shared arrival time when saving a booking', async () => {
     const user = userEvent.setup();
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
-    renderWithProviders(
-      <MyBookingsPage bookings={[booking]} />,
-      async ({ request }) => {
-        submitted = Object.fromEntries(await request.formData());
-        return { ok: true };
-      },
-    );
+    renderWithProviders(<MyBookingsPage bookings={[booking]} />, async ({ request }) => {
+      submitted = Object.fromEntries(await request.formData());
+      return { ok: true };
+    });
 
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
     await user.click(screen.getByRole('button', { name: /save stay/i }));
@@ -260,13 +226,10 @@ describe('MyBookingsPage', () => {
     const user = userEvent.setup();
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
-    renderWithProviders(
-      <MyBookingsPage bookings={[booking]} />,
-      async ({ request }) => {
-        submitted = Object.fromEntries(await request.formData());
-        return { ok: true };
-      },
-    );
+    renderWithProviders(<MyBookingsPage bookings={[booking]} />, async ({ request }) => {
+      submitted = Object.fromEntries(await request.formData());
+      return { ok: true };
+    });
 
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
     const accommodationPlan = screen.getByRole('combobox', {
@@ -277,9 +240,7 @@ describe('MyBookingsPage', () => {
     await user.click(accommodationPlan);
     await user.keyboard('{ArrowUp}{ArrowUp}{ArrowUp}{Enter}');
 
-    expect(
-      screen.queryByRole('textbox', { name: /hotel or stay/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /hotel or stay/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /save stay/i }));
 
@@ -299,13 +260,10 @@ describe('MyBookingsPage', () => {
     const user = userEvent.setup();
     let submitted: Record<string, FormDataEntryValue> | null = null;
 
-    renderWithProviders(
-      <MyBookingsPage bookings={[booking]} />,
-      async ({ request }) => {
-        submitted = Object.fromEntries(await request.formData());
-        return { ok: true };
-      },
-    );
+    renderWithProviders(<MyBookingsPage bookings={[booking]} />, async ({ request }) => {
+      submitted = Object.fromEntries(await request.formData());
+      return { ok: true };
+    });
 
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
     const accommodationPlan = screen.getByRole('combobox', {
@@ -315,12 +273,8 @@ describe('MyBookingsPage', () => {
     await user.click(accommodationPlan);
     await user.keyboard('{ArrowUp}{ArrowUp}{Enter}');
 
-    expect(
-      screen.queryByRole('textbox', { name: /hotel or stay/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/camping, campervan, tentbox/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /hotel or stay/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/camping, campervan, tentbox/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /save stay/i }));
 
@@ -354,12 +308,8 @@ describe('MyBookingsPage', () => {
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
     await user.click(screen.getByRole('button', { name: /arrival/i }));
 
-    await waitFor(() =>
-      expect(document.querySelector('[data-dates-dropdown]')).toBeTruthy(),
-    );
-    const dropdown = document.querySelector(
-      '[data-dates-dropdown]',
-    ) as HTMLElement;
+    await waitFor(() => expect(document.querySelector('[data-dates-dropdown]')).toBeTruthy());
+    const dropdown = document.querySelector('[data-dates-dropdown]') as HTMLElement;
     expect(within(dropdown).getByText('September 2026')).toBeInTheDocument();
   });
 
@@ -456,9 +406,7 @@ describe('MyBookingsPage', () => {
     await user.click(screen.getByRole('tab', { name: 'Garage' }));
     await user.click(screen.getByRole('button', { name: 'Approve' }));
 
-    expect(
-      await screen.findByText('This garage no longer has a free space.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('This garage no longer has a free space.')).toBeInTheDocument();
   });
 
   it('switches the editor when a condensed booking row is selected', async () => {
@@ -467,15 +415,11 @@ describe('MyBookingsPage', () => {
 
     await user.click(screen.getByRole('button', { name: /donington park/i }));
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Private' }));
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
-    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue(
-      'Paddock Lodge',
-    );
+    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue('Paddock Lodge');
     expect(screen.queryByDisplayValue('REF-123')).not.toBeInTheDocument();
   });
 
@@ -483,17 +427,11 @@ describe('MyBookingsPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);
 
-    await user.click(
-      screen.getByRole('combobox', { name: /filter trips by status/i }),
-    );
+    await user.click(screen.getByRole('combobox', { name: /filter trips by status/i }));
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
 
-    expect(
-      screen.queryByRole('button', { name: /silverstone/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /silverstone/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Private' }));
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
   });
@@ -506,9 +444,7 @@ describe('MyBookingsPage', () => {
       '/?booking=booking-2',
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Private' }));
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
   });
@@ -519,25 +455,17 @@ describe('MyBookingsPage', () => {
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);
 
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { name: 'Silverstone' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Silverstone' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /donington park/i }));
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /back to trips/i }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back to trips/i })).toBeVisible();
 
     await user.click(screen.getByRole('button', { name: /back to trips/i }));
 
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('heading', { name: 'Donington Park' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Donington Park' })).not.toBeInTheDocument();
   });
 
   it('confirms before leaving a dirty booking section', async () => {
@@ -546,17 +474,12 @@ describe('MyBookingsPage', () => {
     renderWithProviders(<MyBookingsPage bookings={[booking]} />);
 
     await user.click(screen.getByRole('tab', { name: 'Private' }));
-    await user.type(
-      screen.getByRole('textbox', { name: /private notes/i }),
-      ' updated',
-    );
+    await user.type(screen.getByRole('textbox', { name: /private notes/i }), ' updated');
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Stay' }));
 
-    expect(confirm).toHaveBeenCalledWith(
-      'Discard unsaved changes in this section?',
-    );
+    expect(confirm).toHaveBeenCalledWith('Discard unsaved changes in this section?');
     expect(screen.getByText('Private to you')).toBeInTheDocument();
   });
 
@@ -566,12 +489,8 @@ describe('MyBookingsPage', () => {
 
     await user.type(screen.getByLabelText(/search trips/i), 'donington');
 
-    expect(
-      screen.queryByRole('button', { name: /silverstone/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /donington park/i }),
-    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: /silverstone/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /donington park/i })).toBeVisible();
   });
 
   it('submits a delete intent for the selected booking', async () => {
@@ -615,8 +534,9 @@ describe('MyBookingsPage', () => {
     renderWithProviders(<MyBookingsPage bookings={[]} />);
 
     expect(screen.getByText(/no bookings yet/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /browse available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByRole('link', { name: /browse available days/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
   });
 });

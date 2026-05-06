@@ -8,21 +8,13 @@
  *
  * IDs (fix_Id, fixcat_Id) are discovered at runtime from the main page HTML.
  */
-import type {
-  FetchFunction,
-  TrackDay,
-  TrackDayAdapter,
-  TrackDayFetchOptions,
-} from '../types';
+import type { FetchFunction, TrackDay, TrackDayAdapter, TrackDayFetchOptions } from '../types';
 
 const KNOCKHILL_CIRCUIT_ID = '01HQ8VXMN0KNOCKHILL';
 
-export const KNOCKHILL_TRACKDAY_URL =
-  'https://www.knockhill.com/trackdays/CarTrackday';
-export const KNOCKHILL_TRACKDAY_AJAX_CAL_URL =
-  'https://www.knockhill.com/ajax/getTrackCal.php';
-export const KNOCKHILL_TRACKDAY_AJAX_URL =
-  'https://www.knockhill.com/ajax/getTrackList.php';
+export const KNOCKHILL_TRACKDAY_URL = 'https://www.knockhill.com/trackdays/CarTrackday';
+export const KNOCKHILL_TRACKDAY_AJAX_CAL_URL = 'https://www.knockhill.com/ajax/getTrackCal.php';
+export const KNOCKHILL_TRACKDAY_AJAX_URL = 'https://www.knockhill.com/ajax/getTrackList.php';
 
 /**
  * A date entry parsed from the Knockhill calendar grid.
@@ -47,20 +39,14 @@ export interface KnockhillTrackDaySession {
  * Discovers fix_Id and fixcat_Id from the Knockhill track days page HTML.
  * These IDs are embedded in hidden form inputs and differ from testing page IDs.
  */
-export function discoverKnockhillIds(
-  html: string,
-): { fixId: string; fixcatId: string } | null {
-  const fixIdMatch = html.match(
-    /<input[^>]*name=["']fix_Id["'][^>]*value=["'](\d+)["'][^>]*>/i,
-  );
+export function discoverKnockhillIds(html: string): { fixId: string; fixcatId: string } | null {
+  const fixIdMatch = html.match(/<input[^>]*name=["']fix_Id["'][^>]*value=["'](\d+)["'][^>]*>/i);
   const fixcatIdMatch = html.match(
     /<input[^>]*name=["']fixcat_Id["'][^>]*value=["'](\d+)["'][^>]*>/i,
   );
 
   // Also try value before name ordering
-  const fixIdMatch2 = html.match(
-    /<input[^>]*value=["'](\d+)["'][^>]*name=["']fix_Id["'][^>]*>/i,
-  );
+  const fixIdMatch2 = html.match(/<input[^>]*value=["'](\d+)["'][^>]*name=["']fix_Id["'][^>]*>/i);
   const fixcatIdMatch2 = html.match(
     /<input[^>]*value=["'](\d+)["'][^>]*name=["']fixcat_Id["'][^>]*>/i,
   );
@@ -79,9 +65,7 @@ export function discoverKnockhillIds(
  * Dates use: onclick="loadTrackClass('YYYY-MM-DD')" on elements with class `viewdate showday`.
  * Availability via CSS: `viewdate showday` (no colour) = available, `orange` = limited, `lightred` = sold out.
  */
-export function parseKnockhillTrackDayCalendar(
-  html: string,
-): KnockhillTrackDayCalendarDate[] {
+export function parseKnockhillTrackDayCalendar(html: string): KnockhillTrackDayCalendarDate[] {
   const dates: KnockhillTrackDayCalendarDate[] = [];
 
   const pattern =
@@ -132,9 +116,7 @@ function stripHtml(html: string): string {
 /**
  * Parses session details from the Knockhill track day AJAX response HTML.
  */
-export function parseKnockhillTrackDaySessions(
-  html: string,
-): KnockhillTrackDaySession[] {
+export function parseKnockhillTrackDaySessions(html: string): KnockhillTrackDaySession[] {
   const sessions: KnockhillTrackDaySession[] = [];
   const hasFixname = /<div[^>]*class="[^"]*fixname[^"]*"[^>]*>/i.test(html);
 
@@ -146,9 +128,7 @@ export function parseKnockhillTrackDaySessions(
       const name = nameMatch ? stripHtml(nameMatch[1]) : undefined;
       if (!name) continue;
 
-      const preEventbox = block.split(
-        /<div[^>]*class="[^"]*eventbox[^"]*"/i,
-      )[0];
+      const preEventbox = block.split(/<div[^>]*class="[^"]*eventbox[^"]*"/i)[0];
       const timeMatch = preEventbox?.match(/<h4[^>]*>([\s\S]*?)<\/h4>/i);
       const time = timeMatch ? stripHtml(timeMatch[1]) : undefined;
 
@@ -162,9 +142,7 @@ export function parseKnockhillTrackDaySessions(
         duration = 'Full Day';
       }
 
-      const eventboxParts = block.split(
-        /<div[^>]*class="[^"]*eventbox[^"]*"[^>]*>/i,
-      );
+      const eventboxParts = block.split(/<div[^>]*class="[^"]*eventbox[^"]*"[^>]*>/i);
 
       if (eventboxParts.length <= 1) {
         sessions.push({ name, time, duration });
@@ -297,9 +275,7 @@ function filterDates(
 /**
  * Creates a Knockhill track day adapter with injectable fetch.
  */
-export function createKnockhillTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createKnockhillTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   let cachedIds: { fixId: string; fixcatId: string } | null = null;
 
   return {
@@ -323,8 +299,7 @@ export function createKnockhillTrackDayAdapter(
       const { fixId, fixcatId } = cachedIds;
 
       // Determine month range to query
-      const fromDate =
-        options?.fromDate ?? new Date().toISOString().slice(0, 10);
+      const fromDate = options?.fromDate ?? new Date().toISOString().slice(0, 10);
       const toDate = options?.toDate ?? `${new Date().getFullYear()}-12-31`;
       const months = getMonthStarts(fromDate, toDate);
 
@@ -357,12 +332,7 @@ export function createKnockhillTrackDayAdapter(
       // Phase 2: Fetch session details for each date in parallel
       const sessionResults = await Promise.all(
         filteredDates.map(async (d) => {
-          const sessions = await fetchSessionsForDate(
-            fetchFn,
-            d.date,
-            fixId,
-            fixcatId,
-          );
+          const sessions = await fetchSessionsForDate(fetchFn, d.date, fixId, fixcatId);
           return { calendarDate: d, sessions };
         }),
       );
@@ -404,5 +374,4 @@ export function createKnockhillTrackDayAdapter(
 /**
  * Pre-configured Knockhill track day adapter.
  */
-export const knockhillTrackDayAdapter =
-  createKnockhillTrackDayAdapter(defaultFetch);
+export const knockhillTrackDayAdapter = createKnockhillTrackDayAdapter(defaultFetch);

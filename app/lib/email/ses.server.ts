@@ -19,10 +19,7 @@ const sesClient = new SESv2Client({});
 const SSTResource = Resource as unknown as LinkedEmailResource;
 
 function getFromEmailAddress() {
-  return (
-    process.env.GRID_STAY_EMAIL_FROM ??
-    `Grid Stay <noreply@${SSTResource.Email.sender}>`
-  );
+  return process.env.GRID_STAY_EMAIL_FROM ?? `Grid Stay <noreply@${SSTResource.Email.sender}>`;
 }
 
 export async function sendTransactionalEmail({

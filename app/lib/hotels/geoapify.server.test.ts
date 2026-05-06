@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { searchGeoapifyHotels } from './geoapify.server';
 
 describe('Geoapify hotel lookup', () => {
@@ -42,8 +42,7 @@ describe('Geoapify hotel lookup', () => {
         postcode: 'DE74 2TZ',
         source: 'geoapify',
         sourcePlaceId: 'hotel-geoapify-1',
-        attribution:
-          'Hotel data powered by Geoapify. © OpenStreetMap contributors.',
+        attribution: 'Hotel data powered by Geoapify. © OpenStreetMap contributors.',
       }),
     ]);
   });
@@ -92,8 +91,7 @@ describe('Geoapify hotel lookup', () => {
               properties: {
                 place_id: 'radisson-east-midlands',
                 name: 'Radisson Blu',
-                formatted:
-                  'Radisson Blu, Herald Way, Derby, DE74 2TZ, United Kingdom',
+                formatted: 'Radisson Blu, Herald Way, Derby, DE74 2TZ, United Kingdom',
                 postcode: 'DE74 2TZ',
                 country: 'United Kingdom',
                 lat: 52.8242,
@@ -122,15 +120,9 @@ describe('Geoapify hotel lookup', () => {
 
     expect(fetcher).toHaveBeenCalledTimes(4);
     expect(fetcher.mock.calls[1][0].searchParams.get('type')).toBeNull();
-    expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe(
-      'East Midlands Airport',
-    );
-    expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe(
-      'place:east-midlands-airport',
-    );
-    expect(fetcher.mock.calls[3][0].searchParams.get('name')).toBe(
-      'Radisson Blu',
-    );
+    expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe('East Midlands Airport');
+    expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe('place:east-midlands-airport');
+    expect(fetcher.mock.calls[3][0].searchParams.get('name')).toBe('Radisson Blu');
   });
 
   it('uses place fallback candidates for hotel searches without a comma', async () => {
@@ -195,12 +187,8 @@ describe('Geoapify hotel lookup', () => {
     expect(fetcher).toHaveBeenCalledTimes(4);
     expect(fetcher.mock.calls[0][0].searchParams.get('type')).toBe('amenity');
     expect(fetcher.mock.calls[1][0].searchParams.get('type')).toBeNull();
-    expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe(
-      'Brands Hatch',
-    );
-    expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe(
-      'place:brands-hatch',
-    );
+    expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe('Brands Hatch');
+    expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe('place:brands-hatch');
     expect(fetcher.mock.calls[3][0].searchParams.get('name')).toBe('Mercure');
   });
 });
