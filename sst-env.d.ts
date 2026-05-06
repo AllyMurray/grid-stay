@@ -18,6 +18,10 @@ declare module 'sst' {
       sender: string;
       type: 'sst.aws.Email';
     };
+    GeoapifyApiKey: {
+      type: 'sst.sst.Secret';
+      value: string;
+    };
     GoogleClientId: {
       type: 'sst.sst.Secret';
       value: string;
@@ -25,6 +29,10 @@ declare module 'sst' {
     GoogleClientSecret: {
       type: 'sst.sst.Secret';
       value: string;
+    };
+    HotelSummaryQueue: {
+      type: 'sst.aws.Queue';
+      url: string;
     };
     OpenRouteServiceApiKey: {
       type: 'sst.sst.Secret';

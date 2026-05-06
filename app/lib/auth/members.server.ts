@@ -7,6 +7,12 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { z } from 'zod';
+import {
+  type AccommodationStatus,
+  hasBookedAccommodation,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
+import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
 import type { CreateBookingInput } from '~/lib/schemas/booking';
@@ -41,6 +47,7 @@ export interface MemberDirectoryEntry {
         date: string;
         circuit: string;
         provider: string;
+        accommodationStatus?: AccommodationStatus;
         accommodationName?: string;
       }
     | undefined;
@@ -62,12 +69,54 @@ export interface MemberBookedDay {
   circuitKnown?: boolean;
   provider: string;
   description: string;
+  arrivalDateTime?: string;
+  arrivalTime?: string;
+  accommodationStatus?: AccommodationStatus;
   accommodationName?: string;
 }
 
 export interface MemberBookedDaysData {
   member: Pick<AuthUserRecord, 'id' | 'name' | 'image' | 'role'>;
   days: MemberBookedDay[];
+}
+
+export interface GroupCalendarMember {
+  id: string;
+  name: string;
+  picture?: string;
+  role: User['role'];
+}
+
+export interface GroupCalendarAttendee {
+  userId: string;
+  userName: string;
+  userImage?: string;
+  status: 'booked' | 'maybe';
+  arrivalDateTime?: string;
+  accommodationStatus?: AccommodationStatus;
+  accommodationName?: string;
+}
+
+export interface GroupCalendarEvent {
+  dayId: string;
+  date: string;
+  type: BookingRecord['type'];
+  circuit: string;
+  circuitId?: string;
+  circuitName?: string;
+  layout?: string;
+  circuitKnown?: boolean;
+  provider: string;
+  description: string;
+  bookedCount: number;
+  maybeCount: number;
+  attendees: GroupCalendarAttendee[];
+}
+
+export interface GroupCalendarData {
+  members: GroupCalendarMember[];
+  events: GroupCalendarEvent[];
+  today: string;
 }
 
 type MemberProfileSummary = Pick<MemberProfileRecord, 'userId' | 'displayName'>;
@@ -168,6 +217,8 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
     return null;
   }
 
+  const arrivalDateTime = resolveArrivalDateTime(booking);
+
   return {
     dayId: booking.dayId,
     date: booking.date,
@@ -180,8 +231,53 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
     ...(booking.circuitKnown !== undefined ? { circuitKnown: booking.circuitKnown } : {}),
     provider: booking.provider,
     description: booking.description,
+    ...(arrivalDateTime ? { arrivalDateTime } : {}),
+    accommodationStatus: resolveAccommodationStatus(booking),
     ...(booking.accommodationName ? { accommodationName: booking.accommodationName } : {}),
   };
+}
+
+function compareGroupCalendarAttendees(left: GroupCalendarAttendee, right: GroupCalendarAttendee) {
+  if (left.status !== right.status) {
+    return left.status === 'booked' ? -1 : 1;
+  }
+
+  return left.userName.localeCompare(right.userName);
+}
+
+function toGroupCalendarMember(user: AuthUserRecord): GroupCalendarMember {
+  return {
+    id: user.id,
+    name: user.name,
+    picture: user.image,
+    role: user.role ?? 'member',
+  };
+}
+
+function ensureGroupCalendarEvent(events: Map<string, GroupCalendarEvent>, booking: BookingRecord) {
+  const existing = events.get(booking.dayId);
+  if (existing) {
+    return existing;
+  }
+
+  const event: GroupCalendarEvent = {
+    dayId: booking.dayId,
+    date: booking.date,
+    type: booking.type,
+    circuit: booking.circuit,
+    ...(booking.circuitId ? { circuitId: booking.circuitId } : {}),
+    ...(booking.circuitName ? { circuitName: booking.circuitName } : {}),
+    ...(booking.layout ? { layout: booking.layout } : {}),
+    ...(booking.circuitKnown !== undefined ? { circuitKnown: booking.circuitKnown } : {}),
+    provider: booking.provider,
+    description: booking.description,
+    bookedCount: 0,
+    maybeCount: 0,
+    attendees: [],
+  };
+
+  events.set(booking.dayId, event);
+  return event;
 }
 
 function toCreateBookingInput(
@@ -252,6 +348,7 @@ function summarizeMember(
     activeTripsCount: activeBookings.length,
     sharedStayCount: new Set(
       activeBookings
+        .filter(hasBookedAccommodation)
         .map((booking) => booking.accommodationName?.trim())
         .filter((name): name is string => Boolean(name)),
     ).size,
@@ -260,6 +357,7 @@ function summarizeMember(
           date: nextTrip.date,
           circuit: nextTrip.circuit,
           provider: nextTrip.provider,
+          accommodationStatus: resolveAccommodationStatus(nextTrip),
           accommodationName: nextTrip.accommodationName,
         }
       : undefined,
@@ -397,6 +495,74 @@ export async function getSiteMemberBookedDays(
       role: member.role ?? 'member',
     },
     days,
+  };
+}
+
+export async function listGroupCalendarData(
+  loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
+  loadBookings: LoadBookings = loadBookingsDefault,
+  today = new Date().toISOString().slice(0, 10),
+  loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
+  loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
+): Promise<GroupCalendarData> {
+  const [users, profiles, invites] = await Promise.all([
+    loadUsers(),
+    loadProfiles(),
+    loadInvites(),
+  ]);
+  const members = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
+  const events = new Map<string, GroupCalendarEvent>();
+
+  await Promise.all(
+    members.map(async (member) => {
+      const activeBookings = getActiveBookings(await loadBookings(member.id), today);
+
+      for (const booking of activeBookings) {
+        if (booking.status !== 'booked' && booking.status !== 'maybe') {
+          continue;
+        }
+
+        const event = ensureGroupCalendarEvent(events, booking);
+        const arrivalDateTime = resolveArrivalDateTime(booking);
+
+        event.attendees.push({
+          userId: member.id,
+          userName: member.name,
+          ...(member.image || booking.userImage
+            ? { userImage: member.image ?? booking.userImage }
+            : {}),
+          status: booking.status,
+          ...(arrivalDateTime ? { arrivalDateTime } : {}),
+          accommodationStatus: resolveAccommodationStatus(booking),
+          ...(booking.accommodationName ? { accommodationName: booking.accommodationName } : {}),
+        });
+      }
+    }),
+  );
+
+  const calendarEvents = [...events.values()]
+    .map((event) => {
+      const attendees = event.attendees.toSorted(compareGroupCalendarAttendees);
+
+      return {
+        ...event,
+        bookedCount: attendees.filter((attendee) => attendee.status === 'booked').length,
+        maybeCount: attendees.filter((attendee) => attendee.status === 'maybe').length,
+        attendees,
+      };
+    })
+    .toSorted((left, right) =>
+      left.date === right.date
+        ? left.circuit.localeCompare(right.circuit)
+        : left.date.localeCompare(right.date),
+    );
+
+  return {
+    members: members
+      .map(toGroupCalendarMember)
+      .toSorted((left, right) => left.name.localeCompare(right.name)),
+    events: calendarEvents,
+    today,
   };
 }
 

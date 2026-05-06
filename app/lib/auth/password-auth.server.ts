@@ -6,7 +6,11 @@ import {
   appendClearDontRememberCookieHeaders,
   cloneHeadersPreservingSetCookie,
 } from './cookies.server';
-import { canCreateMemberAccountForEmail } from './member-invites.server';
+import {
+  canCreateMemberAccountForEmail,
+  grantMemberAccessFromJoinLink,
+} from './member-invites.server';
+import { readMemberJoinLinkTokenFromRequest } from './member-join-links.server';
 import {
   PASSWORD_MIN_LENGTH,
   type PasswordAuthActionData,
@@ -40,6 +44,14 @@ const PasswordResetSchema = z.object({
     .string()
     .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`),
 });
+
+type SignUpResponseBody = {
+  user?: {
+    id?: unknown;
+    email?: unknown;
+    name?: unknown;
+  };
+};
 
 function errorResponse(data: PasswordAuthActionData, headers?: HeadersInit): Response {
   return Response.json(data, { status: 400, headers });
@@ -104,6 +116,50 @@ function getResetPasswordRedirectTo(request: Request) {
   return new URL('/auth/reset-password', request.url).toString();
 }
 
+async function readCreatedUserFromSignUpResponse(response: Response) {
+  const body = (await response.clone().json()) as SignUpResponseBody;
+  const user = body.user;
+
+  if (!user || typeof user.id !== 'string' || typeof user.email !== 'string') {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: typeof user.name === 'string' ? user.name : user.email,
+  };
+}
+
+async function grantJoinLinkAccessAfterSignUp({
+  joinToken,
+  response,
+}: {
+  joinToken: string | null;
+  response: Response;
+}) {
+  if (!joinToken) {
+    return { ok: true as const };
+  }
+
+  try {
+    const user = await readCreatedUserFromSignUpResponse(response);
+    if (!user) {
+      return { ok: false as const };
+    }
+
+    const result = await grantMemberAccessFromJoinLink({
+      token: joinToken,
+      user,
+    });
+
+    return { ok: result.ok };
+  } catch (error) {
+    console.warn('Unable to grant join-link member access after sign-up', error);
+    return { ok: false as const };
+  }
+}
+
 export function sanitizeRedirectTo(value: FormDataEntryValue | string | null) {
   const raw = value?.toString() || '/dashboard';
   return raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard';
@@ -156,6 +212,7 @@ export async function submitPasswordSignUp(
 ): Promise<Response> {
   const parsed = PasswordSignUpSchema.safeParse(Object.fromEntries(formData));
   const redirectTo = sanitizeRedirectTo(formData.get('redirectTo'));
+  const joinToken = readMemberJoinLinkTokenFromRequest({ request });
 
   if (!parsed.success) {
     return errorResponse({
@@ -165,7 +222,12 @@ export async function submitPasswordSignUp(
     });
   }
 
-  if (!(await canCreateMemberAccountForEmail(parsed.data.email))) {
+  if (
+    !(await canCreateMemberAccountForEmail({
+      email: parsed.data.email,
+      joinToken,
+    }))
+  ) {
     return errorResponse({
       intent: 'passwordSignUp',
       formError: 'Ask an existing member to invite this email before creating an account.',
@@ -191,6 +253,22 @@ export async function submitPasswordSignUp(
       {
         intent: 'passwordSignUp',
         formError: await readAuthError(response, 'Unable to create account.'),
+        fieldErrors: {},
+      },
+      headers,
+    );
+  }
+
+  const joinLinkGrant = await grantJoinLinkAccessAfterSignUp({
+    joinToken,
+    response,
+  });
+  if (!joinLinkGrant.ok) {
+    return errorResponse(
+      {
+        intent: 'passwordSignUp',
+        formError:
+          'Your account was created, but this join link is no longer available. Ask for a fresh invite, then sign in.',
         fieldErrors: {},
       },
       headers,

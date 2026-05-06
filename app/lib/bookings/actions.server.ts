@@ -1,4 +1,5 @@
 import type { User } from '~/lib/auth/schemas';
+import { hasBookedAccommodation, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
 import { normalizeAvailableDayCircuit } from '~/lib/days/aggregation.server';
 import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
@@ -9,24 +10,43 @@ import {
   deleteBooking,
   ensureBookingsForDays,
   updateBooking,
+  updateBookingGarage,
+  updateBookingPrivate,
+  updateBookingStay,
+  updateBookingTrip,
 } from '~/lib/db/services/booking.server';
+import {
+  createOrUpdateHotelFromSelection,
+  getHotelById,
+  upsertHotelReview,
+} from '~/lib/db/services/hotel.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { upsertSeriesSubscription } from '~/lib/db/services/series-subscription.server';
+import { queueHotelSummaryRefreshSafely } from '~/lib/hotels/summary-queue.server';
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
   CreateBookingRequestInput,
   DeleteBookingInput,
   SharedStaySelectionRequestInput,
+  UpdateBookingGarageInput,
   UpdateBookingInput,
+  UpdateBookingPrivateInput,
+  UpdateBookingStayInput,
+  UpdateBookingTripInput,
 } from '~/lib/schemas/booking';
 import {
   BulkRaceSeriesBookingSchema,
   CreateBookingRequestSchema,
   DeleteBookingSchema,
   SharedStaySelectionRequestSchema,
+  UpdateBookingGarageSchema,
+  UpdateBookingPrivateSchema,
   UpdateBookingSchema,
+  UpdateBookingStaySchema,
+  UpdateBookingTripSchema,
 } from '~/lib/schemas/booking';
+import { HotelReviewSchema } from '~/lib/schemas/hotel';
 
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
@@ -40,7 +60,13 @@ export type CreateBookingActionResult =
       fieldErrors: FieldErrors<keyof CreateBookingRequestInput>;
     };
 
-type BookingEditorFieldName = keyof UpdateBookingInput | keyof DeleteBookingInput;
+type BookingEditorFieldName =
+  | keyof UpdateBookingInput
+  | keyof UpdateBookingTripInput
+  | keyof UpdateBookingStayInput
+  | keyof UpdateBookingGarageInput
+  | keyof UpdateBookingPrivateInput
+  | keyof DeleteBookingInput;
 
 export type BookingEditorActionResult =
   | {
@@ -54,6 +80,28 @@ export type BookingEditorActionResult =
 
 export type UpdateBookingActionResult = BookingEditorActionResult;
 export type DeleteBookingActionResult = BookingEditorActionResult;
+export type UpdateBookingTripActionResult = BookingEditorActionResult;
+export type UpdateBookingStayActionResult = BookingEditorActionResult;
+export type UpdateBookingGarageActionResult = BookingEditorActionResult;
+export type UpdateBookingPrivateActionResult = BookingEditorActionResult;
+
+export type HotelReviewActionResult =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<
+        | 'hotelId'
+        | 'rating'
+        | 'trailerParking'
+        | 'secureParking'
+        | 'lateCheckIn'
+        | 'parkingNotes'
+        | 'generalNotes'
+      >;
+    };
 
 export type SharedStaySelectionActionResult =
   | {
@@ -154,7 +202,7 @@ export async function submitSharedStaySelection(
   if (!parsed.success) {
     return {
       ok: false,
-      formError: 'Could not save this shared stay yet.',
+      formError: 'Could not save this accommodation yet.',
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -256,6 +304,7 @@ export async function submitBookingUpdate(
   formData: FormData,
   userId: string,
   saveBooking: typeof updateBooking = updateBooking,
+  resolveHotel: typeof createOrUpdateHotelFromSelection = createOrUpdateHotelFromSelection,
 ): Promise<UpdateBookingActionResult> {
   const parsed = UpdateBookingSchema.safeParse(Object.fromEntries(formData));
 
@@ -267,7 +316,134 @@ export async function submitBookingUpdate(
     };
   }
 
+  const bookingUpdate = {
+    ...parsed.data,
+    accommodationStatus: resolveAccommodationStatus(parsed.data),
+  };
+  const accommodationBooked = hasBookedAccommodation(bookingUpdate);
+  const hotel = accommodationBooked ? await resolveHotel(bookingUpdate, userId) : null;
+  await saveBooking(userId, {
+    ...bookingUpdate,
+    hotelId: hotel?.hotelId,
+    accommodationName: accommodationBooked ? (hotel?.name ?? bookingUpdate.accommodationName) : '',
+  });
+  return { ok: true };
+}
+
+export async function submitBookingTripUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingTrip = updateBookingTrip,
+): Promise<UpdateBookingTripActionResult> {
+  const parsed = UpdateBookingTripSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save trip details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
   await saveBooking(userId, parsed.data);
+  return { ok: true };
+}
+
+export async function submitBookingStayUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingStay = updateBookingStay,
+  resolveHotel: typeof createOrUpdateHotelFromSelection = createOrUpdateHotelFromSelection,
+): Promise<UpdateBookingStayActionResult> {
+  const parsed = UpdateBookingStaySchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save stay details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const bookingUpdate = {
+    ...parsed.data,
+    accommodationStatus: resolveAccommodationStatus(parsed.data),
+  };
+  const accommodationBooked = hasBookedAccommodation(bookingUpdate);
+  const hotel = accommodationBooked ? await resolveHotel(bookingUpdate, userId) : null;
+  await saveBooking(userId, {
+    ...bookingUpdate,
+    hotelId: hotel?.hotelId,
+    accommodationName: accommodationBooked ? (hotel?.name ?? bookingUpdate.accommodationName) : '',
+  });
+  return { ok: true };
+}
+
+export async function submitBookingGarageUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingGarage = updateBookingGarage,
+): Promise<UpdateBookingGarageActionResult> {
+  const parsed = UpdateBookingGarageSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save garage details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await saveBooking(userId, parsed.data);
+  return { ok: true };
+}
+
+export async function submitBookingPrivateUpdate(
+  formData: FormData,
+  userId: string,
+  saveBooking: typeof updateBookingPrivate = updateBookingPrivate,
+): Promise<UpdateBookingPrivateActionResult> {
+  const parsed = UpdateBookingPrivateSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save private details yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await saveBooking(userId, parsed.data);
+  return { ok: true };
+}
+
+export async function submitHotelReview(
+  formData: FormData,
+  user: User,
+): Promise<HotelReviewActionResult> {
+  const parsed = HotelReviewSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not save this hotel feedback yet.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const hotel = await getHotelById(parsed.data.hotelId);
+  if (!hotel) {
+    return {
+      ok: false,
+      formError: 'Choose or save a hotel before adding feedback.',
+      fieldErrors: {
+        hotelId: ['Choose or save a hotel before adding feedback.'],
+      },
+    };
+  }
+
+  await upsertHotelReview(parsed.data, user);
+  await queueHotelSummaryRefreshSafely(parsed.data.hotelId);
   return { ok: true };
 }
 

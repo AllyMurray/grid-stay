@@ -26,7 +26,7 @@ function getAuthErrorMessage(error: string | null): string | undefined {
     error === 'signup_disabled' ||
     error === 'account_not_linked'
   ) {
-    return 'Google could not create an account for that address. Check the invited email matches the Google account, or use password sign-up.';
+    return 'Google could not create an account for that address. Check the invited email or join link, or use password sign-up.';
   }
 
   if (error === 'state_mismatch' || error === 'please_restart_the_process') {

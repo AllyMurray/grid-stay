@@ -14,7 +14,9 @@ import type {
   MemberBookedDaysData,
   MemberDayBookingActionResult,
 } from '~/lib/auth/members.server';
+import { getAccommodationPlanSummary } from '~/lib/bookings/accommodation';
 import type { BookingStatus } from '~/lib/constants/enums';
+import { formatArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 
 interface MyMemberDayBooking {
@@ -182,10 +184,14 @@ function MemberDayRow({
           </Group>
         </Group>
 
-        {day.accommodationName ? (
+        <Group gap="xs" c="dimmed">
+          <IconHotelService size={16} />
+          <Text size="sm">Accommodation: {getAccommodationPlanSummary(day)}</Text>
+        </Group>
+        {day.arrivalDateTime ? (
           <Group gap="xs" c="dimmed">
-            <IconHotelService size={16} />
-            <Text size="sm">Shared stay: {day.accommodationName}</Text>
+            <IconClock size={16} />
+            <Text size="sm">Arrival: {formatArrivalDateTime(day.arrivalDateTime)}</Text>
           </Group>
         ) : null}
       </Stack>

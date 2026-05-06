@@ -15,7 +15,7 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
 
-import { setSharedDayPlan, submitSharedDayPlan } from './shared-plan.server';
+import { getSharedDayPlan, setSharedDayPlan, submitSharedDayPlan } from './shared-plan.server';
 
 function createStore(existing: DayPlanRecord | null = null): DayPlanPersistence {
   return {
@@ -46,8 +46,10 @@ describe('shared day plan notes', () => {
       {
         dayId: 'day-1',
         notes: '  Book dinner near the circuit. ',
-        dinnerPlan: '  19:30 at pub ',
-        carShare: ' Meet at services ',
+        dinnerVenue: '  The Paddock Arms ',
+        dinnerTime: '  19:30 ',
+        dinnerHeadcount: ' 6 ',
+        dinnerNotes: '  Ask for the window table ',
         user,
       },
       store,
@@ -56,10 +58,10 @@ describe('shared day plan notes', () => {
     expect(plan).toMatchObject({
       dayId: 'day-1',
       notes: 'Book dinner near the circuit.',
-      dinnerPlan: '19:30 at pub',
-      carShare: 'Meet at services',
-      checklist: '',
-      costSplit: '',
+      dinnerVenue: 'The Paddock Arms',
+      dinnerTime: '19:30',
+      dinnerHeadcount: '6',
+      dinnerNotes: 'Ask for the window table',
       updatedByName: 'Driver One',
     });
     expect(store.create).toHaveBeenCalledWith(
@@ -67,11 +69,30 @@ describe('shared day plan notes', () => {
         dayId: 'day-1',
         planScope: 'shared',
         notes: 'Book dinner near the circuit.',
-        dinnerPlan: '19:30 at pub',
-        carShare: 'Meet at services',
+        dinnerVenue: 'The Paddock Arms',
+        dinnerTime: '19:30',
+        dinnerHeadcount: '6',
+        dinnerNotes: 'Ask for the window table',
         updatedByUserId: 'user-1',
       }),
     );
+  });
+
+  it('uses legacy dinner text as dinner notes', async () => {
+    const store = createStore({
+      dayId: 'day-1',
+      planScope: 'shared',
+      notes: 'Meet by garage 4.',
+      dinnerPlan: 'Probably arrive at 8.',
+      updatedByUserId: 'user-1',
+      updatedByName: 'Driver One',
+      createdAt: '2026-05-03T10:00:00.000Z',
+      updatedAt: '2026-05-03T11:00:00.000Z',
+    } as DayPlanRecord);
+
+    await expect(getSharedDayPlan('day-1', store)).resolves.toMatchObject({
+      dinnerNotes: 'Probably arrive at 8.',
+    });
   });
 
   it('keeps a shared plan when any planning field is present', async () => {
@@ -82,7 +103,7 @@ describe('shared day plan notes', () => {
         {
           dayId: 'day-1',
           notes: '   ',
-          checklist: 'Bring awning',
+          dinnerVenue: 'The Paddock Arms',
           user,
         },
         store,
@@ -90,7 +111,7 @@ describe('shared day plan notes', () => {
     ).resolves.toMatchObject({
       dayId: 'day-1',
       notes: '',
-      checklist: 'Bring awning',
+      dinnerVenue: 'The Paddock Arms',
     });
     expect(store.create).toHaveBeenCalled();
     expect(store.delete).not.toHaveBeenCalled();
@@ -117,7 +138,10 @@ describe('shared day plan notes', () => {
     const formData = new FormData();
     formData.set('dayId', 'day-1');
     formData.set('notes', 'Meet at 08:30');
-    formData.set('dinnerPlan', 'Pub at 19:30');
+    formData.set('dinnerVenue', 'The Paddock Arms');
+    formData.set('dinnerTime', '19:30');
+    formData.set('dinnerHeadcount', '6');
+    formData.set('dinnerNotes', 'Booking under Grid Stay');
     const store = createStore();
 
     const result = await submitSharedDayPlan(
@@ -149,7 +173,10 @@ describe('shared day plan notes', () => {
     expect(store.create).toHaveBeenCalledWith(
       expect.objectContaining({
         notes: 'Meet at 08:30',
-        dinnerPlan: 'Pub at 19:30',
+        dinnerVenue: 'The Paddock Arms',
+        dinnerTime: '19:30',
+        dinnerHeadcount: '6',
+        dinnerNotes: 'Booking under Grid Stay',
       }),
     );
   });

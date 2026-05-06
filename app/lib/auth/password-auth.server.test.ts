@@ -1,14 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
-const { authApi, canCreateMemberAccountForEmail } = vi.hoisted(() => ({
-  authApi: {
-    listUserAccounts: vi.fn(),
-    requestPasswordReset: vi.fn(),
-    resetPassword: vi.fn(),
-    signInEmail: vi.fn(),
-    signUpEmail: vi.fn(),
-  },
-  canCreateMemberAccountForEmail: vi.fn(),
+const { authApi, canCreateMemberAccountForEmail, grantMemberAccessFromJoinLink } = vi.hoisted(
+  () => ({
+    authApi: {
+      listUserAccounts: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      resetPassword: vi.fn(),
+      signInEmail: vi.fn(),
+      signUpEmail: vi.fn(),
+    },
+    canCreateMemberAccountForEmail: vi.fn(),
+    grantMemberAccessFromJoinLink: vi.fn(),
+  }),
+);
+const { readMemberJoinLinkTokenFromRequest } = vi.hoisted(() => ({
+  readMemberJoinLinkTokenFromRequest: vi.fn(),
 }));
 
 vi.mock('./auth.server', () => ({
@@ -19,6 +25,11 @@ vi.mock('./auth.server', () => ({
 
 vi.mock('./member-invites.server', () => ({
   canCreateMemberAccountForEmail,
+  grantMemberAccessFromJoinLink,
+}));
+
+vi.mock('./member-join-links.server', () => ({
+  readMemberJoinLinkTokenFromRequest,
 }));
 
 import {
@@ -73,6 +84,11 @@ describe('password auth helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    grantMemberAccessFromJoinLink.mockResolvedValue({
+      ok: true,
+      link: {},
+    });
+    readMemberJoinLinkTokenFromRequest.mockReturnValue(null);
   });
 
   it('signs in with email and preserves Better Auth cookies on redirect', async () => {
@@ -165,7 +181,10 @@ describe('password auth helpers', () => {
       ),
     );
 
-    expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith('new.driver@example.com');
+    expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith({
+      email: 'new.driver@example.com',
+      joinToken: null,
+    });
     expect(authApi.signUpEmail).toHaveBeenCalledWith({
       body: {
         name: 'New Driver',
@@ -181,6 +200,48 @@ describe('password auth helpers', () => {
     expect(response.headers.getSetCookie()).toEqual(
       expect.arrayContaining([expect.stringMatching(/^__Secure-better-auth\.session_token=def/)]),
     );
+  });
+
+  it('passes join-link cookies into the password sign-up gate', async () => {
+    readMemberJoinLinkTokenFromRequest.mockReturnValue('join-token');
+    canCreateMemberAccountForEmail.mockResolvedValue(true);
+    authApi.signUpEmail.mockResolvedValue(
+      jsonResponse({
+        user: {
+          id: 'user-2',
+          email: 'new.driver@example.com',
+          name: 'New Driver',
+        },
+      }),
+    );
+
+    await expectRedirect(
+      submitPasswordSignUp(
+        new Request('https://gridstay.app/auth/login', {
+          headers: { cookie: 'grid_stay_join_token=join-token' },
+        }),
+        createFormData({
+          firstName: 'New',
+          lastName: 'Driver',
+          email: 'new.driver@example.com',
+          password: 'password123',
+          redirectTo: '/join/abcdefghijklmnopqrstuvwxyzABCDEFGH',
+        }),
+      ),
+    );
+
+    expect(canCreateMemberAccountForEmail).toHaveBeenCalledWith({
+      email: 'new.driver@example.com',
+      joinToken: 'join-token',
+    });
+    expect(grantMemberAccessFromJoinLink).toHaveBeenCalledWith({
+      token: 'join-token',
+      user: {
+        id: 'user-2',
+        email: 'new.driver@example.com',
+        name: 'New Driver',
+      },
+    });
   });
 
   it('reports whether the current user already has a credential account', async () => {

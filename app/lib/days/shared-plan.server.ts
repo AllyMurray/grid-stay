@@ -8,16 +8,23 @@ import {
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 
 const MAX_SHARED_PLAN_NOTES_LENGTH = 1000;
-const SHARED_PLAN_FIELDS = ['notes', 'dinnerPlan', 'carShare', 'checklist', 'costSplit'] as const;
+const MAX_SHARED_PLAN_SHORT_FIELD_LENGTH = 120;
+const SHARED_PLAN_FIELDS = [
+  'notes',
+  'dinnerVenue',
+  'dinnerTime',
+  'dinnerHeadcount',
+  'dinnerNotes',
+] as const;
 type SharedPlanField = (typeof SHARED_PLAN_FIELDS)[number];
 
 export interface SharedDayPlan {
   dayId: string;
   notes: string;
-  dinnerPlan: string;
-  carShare: string;
-  checklist: string;
-  costSplit: string;
+  dinnerVenue: string;
+  dinnerTime: string;
+  dinnerHeadcount: string;
+  dinnerNotes: string;
   updatedByName: string;
   updatedAt: string;
 }
@@ -36,20 +43,21 @@ export type SharedDayPlanActionResult =
 function toSharedDayPlan(record: {
   dayId: string;
   notes: string;
+  dinnerVenue?: string;
+  dinnerTime?: string;
+  dinnerHeadcount?: string;
+  dinnerNotes?: string;
   dinnerPlan?: string;
-  carShare?: string;
-  checklist?: string;
-  costSplit?: string;
   updatedByName: string;
   updatedAt: string;
 }): SharedDayPlan {
   return {
     dayId: record.dayId,
     notes: record.notes,
-    dinnerPlan: record.dinnerPlan ?? '',
-    carShare: record.carShare ?? '',
-    checklist: record.checklist ?? '',
-    costSplit: record.costSplit ?? '',
+    dinnerVenue: record.dinnerVenue ?? '',
+    dinnerTime: record.dinnerTime ?? '',
+    dinnerHeadcount: record.dinnerHeadcount ?? '',
+    dinnerNotes: record.dinnerNotes ?? record.dinnerPlan ?? '',
     updatedByName: record.updatedByName,
     updatedAt: record.updatedAt,
   };
@@ -81,21 +89,21 @@ export async function setSharedDayPlan(
   input: {
     dayId: string;
     notes: string;
-    dinnerPlan?: string;
-    carShare?: string;
-    checklist?: string;
-    costSplit?: string;
+    dinnerVenue?: string;
+    dinnerTime?: string;
+    dinnerHeadcount?: string;
+    dinnerNotes?: string;
     user: Pick<User, 'id' | 'name'>;
   },
   store: DayPlanPersistence = dayPlanStore,
 ): Promise<SharedDayPlan | null> {
   const notes = sanitizeNotes(input.notes);
-  const dinnerPlan = sanitizeNotes(input.dinnerPlan ?? '');
-  const carShare = sanitizeNotes(input.carShare ?? '');
-  const checklist = sanitizeNotes(input.checklist ?? '');
-  const costSplit = sanitizeNotes(input.costSplit ?? '');
+  const dinnerVenue = sanitizeNotes(input.dinnerVenue ?? '');
+  const dinnerTime = sanitizeNotes(input.dinnerTime ?? '');
+  const dinnerHeadcount = sanitizeNotes(input.dinnerHeadcount ?? '');
+  const dinnerNotes = sanitizeNotes(input.dinnerNotes ?? '');
 
-  if (!notes && !dinnerPlan && !carShare && !checklist && !costSplit) {
+  if (!notes && !dinnerVenue && !dinnerTime && !dinnerHeadcount && !dinnerNotes) {
     await store.delete(input.dayId);
     return null;
   }
@@ -104,10 +112,11 @@ export async function setSharedDayPlan(
   const now = new Date().toISOString();
   const changes = {
     notes,
-    dinnerPlan,
-    carShare,
-    checklist,
-    costSplit,
+    dinnerVenue,
+    dinnerTime,
+    dinnerHeadcount,
+    dinnerNotes,
+    dinnerPlan: '',
     updatedByUserId: input.user.id,
     updatedByName: input.user.name,
     updatedAt: now,
@@ -150,12 +159,32 @@ export async function submitSharedDayPlan(
   }
 
   const fieldErrors: Partial<Record<SharedPlanField, string[]>> = {};
-  for (const field of SHARED_PLAN_FIELDS) {
-    if (values[field].length <= MAX_SHARED_PLAN_NOTES_LENGTH) {
-      continue;
-    }
+  const fieldLimits: Record<SharedPlanField, number> = {
+    notes: MAX_SHARED_PLAN_NOTES_LENGTH,
+    dinnerVenue: MAX_SHARED_PLAN_SHORT_FIELD_LENGTH,
+    dinnerTime: MAX_SHARED_PLAN_SHORT_FIELD_LENGTH,
+    dinnerHeadcount: 3,
+    dinnerNotes: MAX_SHARED_PLAN_NOTES_LENGTH,
+  };
 
-    fieldErrors[field] = [`Keep this field under ${MAX_SHARED_PLAN_NOTES_LENGTH} characters.`];
+  for (const field of SHARED_PLAN_FIELDS) {
+    const limit = fieldLimits[field];
+    if (values[field].length > limit) {
+      fieldErrors[field] = [`Keep this field under ${limit} characters.`];
+    }
+  }
+
+  if (values.dinnerTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(values.dinnerTime)) {
+    fieldErrors.dinnerTime = ['Use a 24-hour time, for example 19:30.'];
+  }
+
+  if (
+    values.dinnerHeadcount &&
+    (!/^\d+$/.test(values.dinnerHeadcount) ||
+      Number(values.dinnerHeadcount) < 1 ||
+      Number(values.dinnerHeadcount) > 99)
+  ) {
+    fieldErrors.dinnerHeadcount = ['Use a whole number between 1 and 99.'];
   }
 
   if (Object.keys(fieldErrors).length > 0) {

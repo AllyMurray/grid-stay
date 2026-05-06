@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { type AuthUserRecord, getSiteMemberById, setAuthUserRole } from '~/lib/auth/members.server';
 import type { User } from '~/lib/auth/schemas';
+import { type AccommodationStatus, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
 import { USER_ROLE_VALUES } from '~/lib/constants/enums';
 import {
   getLinkedSeriesKey,
@@ -57,6 +58,7 @@ export interface AdminMemberBooking {
   circuit: string;
   provider: string;
   description: string;
+  accommodationStatus?: AccommodationStatus;
   accommodationName?: string;
 }
 
@@ -141,6 +143,7 @@ function toAdminMemberBooking(booking: BookingRecord): AdminMemberBooking {
     circuit: booking.circuit,
     provider: booking.provider,
     description: booking.description,
+    accommodationStatus: resolveAccommodationStatus(booking),
     accommodationName: booking.accommodationName,
   };
 }

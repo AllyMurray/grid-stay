@@ -56,7 +56,7 @@ import { listAttendanceByDay, listMyBookings } from '~/lib/db/services/booking.s
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
-import { loadDaysIndex } from './dashboard-feed.server';
+import { loadDaysIndex, loadUpcomingAvailableDaysOverview } from './dashboard-feed.server';
 import { getSavedDaysFilters } from './preferences.server';
 import { getSharedDayPlan } from './shared-plan.server';
 
@@ -152,6 +152,58 @@ describe('days dashboard feed', () => {
     });
     expect(data.circuitOptions).toEqual(['Donington Park', 'Snetterton']);
     expect(data.providerOptions).toEqual(['Caterham Motorsport']);
+  });
+
+  it('loads overview available days from the same future merged source', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-04-17T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'past:1',
+          date: '2026-05-01',
+          type: 'track_day',
+          circuit: 'Past Circuit',
+          provider: 'MSV',
+          description: 'Past day',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'MSV',
+          },
+        },
+        {
+          dayId: 'future:1',
+          date: '2026-05-10',
+          type: 'track_day',
+          circuit: 'Sntterton 300',
+          provider: 'MSV',
+          description: 'Future day',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'MSV',
+          },
+        },
+      ],
+    });
+    vi.mocked(listManualDays).mockResolvedValue([
+      {
+        dayId: 'manual:1',
+        date: '2026-05-05',
+        type: 'road_drive',
+        circuit: 'North Coast',
+        provider: 'Grid Stay',
+        description: 'Group drive',
+        source: {
+          sourceType: 'manual',
+          sourceName: 'manual',
+        },
+      },
+    ]);
+
+    const overview = await loadUpcomingAvailableDaysOverview();
+
+    expect(overview.days.map((day) => day.dayId)).toEqual(['manual:1', 'future:1']);
+    expect(overview.days.map((day) => day.circuit)).toEqual(['North Coast', 'Snetterton']);
   });
 
   it('returns saved available-days filters for the signed-in member', async () => {
@@ -315,18 +367,20 @@ describe('days dashboard feed', () => {
         role: 'member',
       },
       new URL(
-        'https://gridstay.app/dashboard/days?view=planner&start=2026-06-01&end=2026-06-30&maxMiles=100',
+        'https://gridstay.app/dashboard/days?view=planner&start=2026-06-01&end=2026-06-30&maxMiles=100&plannerDay=day-1',
       ),
     );
 
     expect(data.view).toBe('planner');
     expect(data.calendarDays.map((day) => day.dayId)).toEqual(['day-1', 'day-2']);
     expect(data.planner.stops.map((stop) => stop.day.dayId)).toEqual(['day-1', 'day-2']);
+    expect(data.planner.selectedDayIds).toEqual([]);
+    expect(data.planner.stops[0]?.selectedByUser).toBe(false);
     expect(data.planner.totalMiles).toBe(55);
     expect(loadCircuitDistanceMatrix).toHaveBeenCalledOnce();
   });
 
-  it('defaults the planner range to the next matching day instead of a past feed month', async () => {
+  it('defaults the planner range to a three-day window from the next matching day', async () => {
     vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
       refreshedAt: '2026-04-17T09:30:00.000Z',
       errors: [],
@@ -383,7 +437,7 @@ describe('days dashboard feed', () => {
     );
 
     expect(data.planner.start).toBe('2026-06-08');
-    expect(data.planner.end).toBe('2026-06-30');
+    expect(data.planner.end).toBe('2026-06-11');
     expect(data.planner.candidateCount).toBe(2);
   });
 
@@ -412,10 +466,10 @@ describe('days dashboard feed', () => {
     vi.mocked(getSharedDayPlan).mockResolvedValue({
       dayId: 'race:1',
       notes: 'Meet in paddock bay 12.',
-      dinnerPlan: '',
-      carShare: '',
-      checklist: '',
-      costSplit: '',
+      dinnerVenue: '',
+      dinnerTime: '',
+      dinnerHeadcount: '',
+      dinnerNotes: '',
       updatedByName: 'Driver One',
       updatedAt: '2026-04-27T10:00:00.000Z',
     });
@@ -433,10 +487,10 @@ describe('days dashboard feed', () => {
     expect(data.selectedDayPlan).toEqual({
       dayId: 'race:1',
       notes: 'Meet in paddock bay 12.',
-      dinnerPlan: '',
-      carShare: '',
-      checklist: '',
-      costSplit: '',
+      dinnerVenue: '',
+      dinnerTime: '',
+      dinnerHeadcount: '',
+      dinnerNotes: '',
       updatedByName: 'Driver One',
       updatedAt: '2026-04-27T10:00:00.000Z',
     });

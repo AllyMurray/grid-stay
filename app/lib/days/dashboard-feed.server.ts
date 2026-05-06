@@ -1,4 +1,6 @@
 import type { User } from '~/lib/auth/schemas';
+import { type AccommodationStatus, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
+import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listAttendanceByDay, listMyBookings } from '~/lib/db/services/booking.server';
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
@@ -35,11 +37,15 @@ import { getSharedDayPlan, type SharedDayPlan } from './shared-plan.server';
 import type { AvailableDay, AvailableDayType, DayAttendanceSummary, DaySourceError } from './types';
 
 export const DAYS_PAGE_SIZE = 30;
+const DEFAULT_PLANNER_WINDOW_DAYS = 3;
 
 export interface DayBookingSnapshot {
   bookingId: string;
   userId: string;
   status: 'booked' | 'maybe' | 'cancelled';
+  arrivalDateTime?: string;
+  arrivalTime?: string;
+  accommodationStatus?: AccommodationStatus;
   accommodationName?: string;
   garageBooked?: boolean;
   garageCapacity?: number;
@@ -216,14 +222,14 @@ function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function endOfMonth(month: string) {
-  const [year, monthIndex] = month.split('-').map(Number);
-  if (!year || !monthIndex) {
+function addDays(date: string, days: number) {
+  const [year, monthIndex, day] = date.split('-').map(Number);
+  if (!year || !monthIndex || !day) {
     return '';
   }
 
-  const date = new Date(Date.UTC(year, monthIndex, 0));
-  return date.toISOString().slice(0, 10);
+  const nextDate = new Date(Date.UTC(year, monthIndex - 1, day + days));
+  return nextDate.toISOString().slice(0, 10);
 }
 
 function getTodayDate() {
@@ -240,7 +246,11 @@ function getPlannerRange(url: URL, filteredDays: AvailableDay[]) {
   const startParam = url.searchParams.get('start')?.trim() ?? '';
   const endParam = url.searchParams.get('end')?.trim() ?? '';
   const start = isIsoDate(startParam) ? startParam : defaultStart;
-  let end = isIsoDate(endParam) ? endParam : endOfMonth(start.slice(0, 7));
+  let end = isIsoDate(endParam)
+    ? endParam
+    : start
+      ? addDays(start, DEFAULT_PLANNER_WINDOW_DAYS)
+      : '';
 
   if (start && end && end < start) {
     end = start;
@@ -257,6 +267,17 @@ function getMaxMiles(url: URL) {
   }
 
   return Math.min(Math.max(parsed, 25), 1000);
+}
+
+function getPlannerSelectedDayIds(url: URL) {
+  return [
+    ...new Set(
+      url.searchParams
+        .getAll('plannerDay')
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function getCircuitFilters(url: URL): string[] {
@@ -386,6 +407,28 @@ async function loadFilteredDays(url: URL) {
   };
 }
 
+export async function loadUpcomingAvailableDaysOverview() {
+  const [snapshot, manualDays, dayMerges] = await Promise.all([
+    getAvailableDaysSnapshot(),
+    listManualDays(),
+    loadDayMergesSafely(),
+  ]);
+  const raw = snapshot ?? {
+    days: [],
+    errors: EMPTY_ERRORS,
+  };
+  const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
+    .map(normalizeAvailableDayCircuit)
+    .toSorted(compareAvailableDays);
+  const today = getTodayDate();
+  const upcomingDays = allDays.filter((day) => day.date >= today);
+
+  return {
+    days: upcomingDays,
+    refreshedAt: snapshot?.refreshedAt ?? '',
+  };
+}
+
 async function loadDayMergesSafely(): Promise<DayMergeRule[]> {
   try {
     if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
@@ -474,6 +517,7 @@ export async function loadDaysIndex(
     {
       ...plannerRange,
       maxMiles,
+      selectedDayIds: getPlannerSelectedDayIds(url),
     },
     distanceResult,
   );
@@ -539,6 +583,8 @@ export async function loadDaysIndex(
               bookingId: booking.bookingId,
               userId: booking.userId,
               status: booking.status,
+              arrivalDateTime: resolveArrivalDateTime(booking),
+              accommodationStatus: resolveAccommodationStatus(booking),
               accommodationName: booking.accommodationName,
               garageBooked: booking.garageBooked,
               garageCapacity: booking.garageCapacity,

@@ -30,7 +30,13 @@ export const BookingEntity = new Entity(
       circuitKnown: { type: 'boolean' },
       provider: { type: 'string', required: true },
       bookingReference: { type: 'string' },
+      arrivalDateTime: { type: 'string' },
+      arrivalTime: { type: 'string' },
       description: { type: 'string', required: true },
+      hotelId: { type: 'string' },
+      accommodationStatus: {
+        type: ['unknown', 'not_required', 'staying_at_track', 'looking', 'booked'] as const,
+      },
       accommodationName: { type: 'string' },
       accommodationReference: { type: 'string' },
       garageBooked: { type: 'boolean' },

@@ -65,7 +65,7 @@ describe('ManualDaysPage', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Manual Days' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Manual days' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Add a manual day' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Manually added days' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Feed source status' })).not.toBeInTheDocument();

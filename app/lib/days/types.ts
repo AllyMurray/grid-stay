@@ -1,3 +1,4 @@
+import type { AccommodationStatus } from '~/lib/bookings/accommodation';
 import type { BookingStatus } from '~/lib/constants/enums';
 
 export type AvailableDayType = 'race_day' | 'test_day' | 'track_day' | 'road_drive';
@@ -27,6 +28,9 @@ export interface SharedAttendee {
   userId: string;
   userName: string;
   status: BookingStatus;
+  arrivalDateTime?: string;
+  arrivalTime?: string;
+  accommodationStatus?: AccommodationStatus;
   accommodationName?: string;
   garageBooked?: boolean;
   garageCapacity?: number;
@@ -46,6 +50,8 @@ export interface GarageShareOption {
   garageBookingId: string;
   ownerUserId: string;
   ownerName: string;
+  ownerArrivalDateTime?: string;
+  ownerArrivalTime?: string;
   garageLabel?: string;
   garageCapacity: number;
   approvedRequestCount: number;

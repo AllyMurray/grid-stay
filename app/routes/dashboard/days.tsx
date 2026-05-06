@@ -97,7 +97,7 @@ export async function action({ request }: Route.ActionArgs) {
       await recordAppEventSafely({
         category: 'audit',
         action: 'booking.sharedStay.selected',
-        message: 'Shared stay selected from available days.',
+        message: 'Accommodation selected from available days.',
         actor: { userId: user.id, name: user.name },
         subject: {
           type: 'day',

@@ -40,7 +40,7 @@ export function AccountPage({ hasPassword, paymentPreference, user }: AccountPag
         description="Manage sign-in methods for your account."
       />
 
-      <Paper className="shell-card" p="xl">
+      <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="lg">
           <Group justify="space-between" align="flex-start">
             <Group gap="md">
@@ -86,7 +86,7 @@ export function AccountPage({ hasPassword, paymentPreference, user }: AccountPag
         </Stack>
       </Paper>
 
-      <Paper className="shell-card" p="xl">
+      <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="lg">
           <Group gap="md">
             <ThemeIcon size={44} radius="sm" variant="light" color="green">

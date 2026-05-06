@@ -2,21 +2,10 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { theme } from '~/theme';
 import { BookingSchedulePage } from './schedule';
-
-const useMediaQueryMock = vi.fn(() => false);
-
-vi.mock('@mantine/hooks', async () => {
-  const actual = await vi.importActual<typeof import('@mantine/hooks')>('@mantine/hooks');
-
-  return {
-    ...actual,
-    useMediaQuery: () => useMediaQueryMock(),
-  };
-});
 
 vi.mock('@mantine/schedule', async () => {
   const actual = await vi.importActual<typeof import('@mantine/schedule')>('@mantine/schedule');
@@ -26,23 +15,67 @@ vi.mock('@mantine/schedule', async () => {
     Schedule: ({
       events = [],
       onEventClick,
+      view = 'month',
+      onViewChange,
+      weekViewProps,
+      monthViewProps,
+      yearViewProps,
     }: {
-      events?: Array<{ id: string; title: string; end: string }>;
+      events?: Array<{
+        id: string;
+        title: string;
+        end: string;
+        payload?: { bookingId?: string };
+      }>;
       onEventClick?: (event: { id: string }, reactEvent: Event) => void;
-    }) => (
-      <div data-testid="schedule">
-        {events.map((event) => (
-          <button
-            key={event.id}
-            type="button"
-            data-end={event.end}
-            onClick={(reactEvent) => onEventClick?.(event, reactEvent.nativeEvent)}
-          >
-            {event.title}
-          </button>
-        ))}
-      </div>
-    ),
+      view?: 'day' | 'week' | 'month' | 'year';
+      onViewChange?: (view: 'day' | 'week' | 'month' | 'year') => void;
+      weekViewProps?: {
+        viewSelectProps?: { views?: Array<'day' | 'week' | 'month' | 'year'> };
+      };
+      monthViewProps?: {
+        viewSelectProps?: { views?: Array<'day' | 'week' | 'month' | 'year'> };
+      };
+      yearViewProps?: {
+        viewSelectProps?: { views?: Array<'day' | 'week' | 'month' | 'year'> };
+      };
+    }) => {
+      const viewSelectProps =
+        view === 'week'
+          ? weekViewProps?.viewSelectProps
+          : view === 'year'
+            ? yearViewProps?.viewSelectProps
+            : monthViewProps?.viewSelectProps;
+      const views = viewSelectProps?.views ?? ['day', 'week', 'month', 'year'];
+
+      return (
+        <div data-testid="schedule" data-view={view}>
+          <div role="tablist" aria-label="Calendar views">
+            {views.map((viewOption) => (
+              <button
+                key={viewOption}
+                type="button"
+                role="tab"
+                aria-selected={viewOption === view}
+                onClick={() => onViewChange?.(viewOption)}
+              >
+                {viewOption}
+              </button>
+            ))}
+          </div>
+          {events.map((event) => (
+            <button
+              key={event.id}
+              type="button"
+              data-end={event.end}
+              onClick={(reactEvent) => onEventClick?.(event, reactEvent.nativeEvent)}
+            >
+              {event.title}
+            </button>
+          ))}
+        </div>
+      );
+    },
   };
 });
 
@@ -74,6 +107,7 @@ const bookingOne: BookingRecord = {
   provider: 'MSV',
   bookingReference: 'REF-123',
   description: 'GT weekend',
+  accommodationStatus: 'booked',
   accommodationName: 'Trackside Hotel',
   accommodationReference: 'HOTEL-7',
   notes: 'Quiet room',
@@ -91,18 +125,14 @@ const bookingTwo: BookingRecord = {
   provider: 'Javelin',
   bookingReference: '',
   description: 'Track evening',
+  accommodationStatus: 'not_required',
   accommodationName: '',
   accommodationReference: '',
   notes: '',
 };
 
 describe('BookingSchedulePage', () => {
-  beforeEach(() => {
-    useMediaQueryMock.mockReset();
-    useMediaQueryMock.mockReturnValue(false);
-  });
-
-  it('renders the desktop schedule and selected booking summary', () => {
+  it('renders the list view by default and selected booking summary', () => {
     renderWithProviders(
       <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
@@ -112,22 +142,106 @@ describe('BookingSchedulePage', () => {
     expect(screen.getByText('1 confirmed')).toBeInTheDocument();
     expect(screen.getByText('1 maybe')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '1 confirmed, 1 maybe' })).toBeInTheDocument();
-    expect(screen.getByText('1 shared stay')).toBeInTheDocument();
-    expect(screen.getByTestId('schedule')).toBeInTheDocument();
+    expect(screen.getByText('1 with accommodation')).toBeInTheDocument();
+    expect(screen.queryByTestId('schedule')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Upcoming trips' })).toBeInTheDocument();
+    expect(screen.getByText(/showing 2 of 2 upcoming trips/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: /select silverstone on sun, 3 may 2026/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: /select donington park on sun, 14 june 2026/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('All upcoming trips loaded.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Silverstone' })).toBeInTheDocument();
+    expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /manage in my bookings/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?view=manage',
+    );
+    expect(screen.getByRole('link', { name: /view all bookings/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings?view=manage',
+    );
+  });
+
+  it('renders the calendar without the day view when selected', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
+    );
+
+    await user.click(screen.getByText('Calendar'));
+
+    expect(screen.getByTestId('schedule')).toHaveAttribute('data-view', 'month');
+    expect(screen.queryByRole('tab', { name: 'day' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'week' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'month' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'year' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Silverstone' })).toHaveAttribute(
       'data-end',
       '2026-05-03 23:59:59',
     );
-    expect(screen.getByRole('heading', { name: 'Silverstone' })).toBeInTheDocument();
-    expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /manage in my bookings/i })).toHaveAttribute(
-      'href',
-      '/dashboard/bookings',
+  });
+
+  it('updates the selected booking when a calendar event is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
-    expect(screen.getByRole('link', { name: /view all bookings/i })).toHaveAttribute(
-      'href',
-      '/dashboard/bookings',
+
+    await user.click(screen.getByText('Calendar'));
+    await user.click(screen.getByRole('button', { name: 'Donington Park' }));
+
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
+    expect(screen.getAllByText('No hotel needed').length).toBeGreaterThan(0);
+    expect(screen.getByText('No booking reference saved')).toBeInTheDocument();
+  });
+
+  it('loads upcoming trips in batches from the list view', async () => {
+    const user = userEvent.setup();
+    const bookings = Array.from({ length: 8 }, (_, index) => ({
+      ...bookingOne,
+      bookingId: `booking-${index + 1}`,
+      dayId: `day-${index + 1}`,
+      date: `2026-05-${String(index + 3).padStart(2, '0')}`,
+      circuit: `Circuit ${index + 1}`,
+      description: `Trip ${index + 1}`,
+    }));
+
+    renderWithProviders(<BookingSchedulePage bookings={bookings} today="2026-05-03" />);
+
+    expect(screen.getByText(/showing 7 of 8 upcoming trips/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select circuit 7/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /select circuit 8/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /load next 7 trips/i }));
+
+    expect(screen.getByText(/showing 8 of 8 upcoming trips/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select circuit 8/i })).toBeInTheDocument();
+  });
+
+  it('gives unset accommodation enough context in the trip list', () => {
+    renderWithProviders(
+      <BookingSchedulePage
+        bookings={[
+          {
+            ...bookingOne,
+            accommodationStatus: 'unknown',
+            accommodationName: '',
+            accommodationReference: '',
+          },
+        ]}
+        today="2026-05-03"
+      />,
     );
+
+    expect(screen.getAllByText('Accommodation not set').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Not set')).not.toBeInTheDocument();
   });
 
   it('shows only upcoming active bookings on the schedule', () => {
@@ -157,9 +271,11 @@ describe('BookingSchedulePage', () => {
     expect(screen.getByText('1 trip tracked')).toBeInTheDocument();
     expect(screen.getByText('0 confirmed')).toBeInTheDocument();
     expect(screen.getByText('1 maybe')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Donington Park' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Past Circuit' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Cancelled Circuit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /select donington park/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /select past circuit/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /select cancelled circuit/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
   });
 
@@ -187,7 +303,7 @@ describe('BookingSchedulePage', () => {
       expect.stringContaining('https%3A%2F%2Fgridstay.app'),
     );
     expect(screen.getByRole('checkbox', { name: /include trips marked maybe/i })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: /include shared stay names/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /include accommodation details/i })).toBeChecked();
   });
 
   it('creates the calendar feed through the schedule route action', async () => {
@@ -258,7 +374,7 @@ describe('BookingSchedulePage', () => {
         name: /include trips marked maybe/i,
       }),
     );
-    await user.click(screen.getByRole('checkbox', { name: /include shared stay names/i }));
+    await user.click(screen.getByRole('checkbox', { name: /include accommodation details/i }));
     await user.click(screen.getByRole('button', { name: /save options/i }));
 
     await waitFor(() =>
@@ -308,31 +424,17 @@ describe('BookingSchedulePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('updates the selected booking when a schedule event is clicked', async () => {
+  it('updates the selected booking when a list item is clicked', async () => {
     const user = userEvent.setup();
     renderWithProviders(
       <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Donington Park' }));
+    await user.click(screen.getByRole('button', { name: /select donington park/i }));
 
     expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
-    expect(screen.getByText('No shared stay added yet')).toBeInTheDocument();
+    expect(screen.getAllByText('No hotel needed').length).toBeGreaterThan(0);
     expect(screen.getByText('No booking reference saved')).toBeInTheDocument();
-  });
-
-  it('renders a mobile list instead of the calendar on narrow screens', () => {
-    useMediaQueryMock.mockReturnValue(true);
-
-    renderWithProviders(
-      <BookingSchedulePage bookings={[bookingOne, bookingTwo]} today="2026-05-03" />,
-    );
-
-    expect(screen.queryByTestId('schedule')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Upcoming trips' })).toBeInTheDocument();
-    expect(screen.getByText('May 2026')).toBeInTheDocument();
-    expect(screen.getByText('June 2026')).toBeInTheDocument();
-    expect(screen.getByText('Track evening')).toBeInTheDocument();
   });
 
   it('renders the empty state when there are no bookings', () => {
@@ -353,7 +455,7 @@ describe('BookingSchedulePage', () => {
     expect(
       screen
         .getAllByRole('link', { name: /view all bookings/i })
-        .every((link) => link.getAttribute('href') === '/dashboard/bookings'),
+        .every((link) => link.getAttribute('href') === '/dashboard/bookings?view=manage'),
     ).toBe(true);
   });
 });

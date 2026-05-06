@@ -4,6 +4,7 @@ import {
   getSiteMemberBookedDays,
   getSiteMemberById,
   listAdminSiteMembers,
+  listGroupCalendarData,
   listSiteMembers,
   submitMemberDayBooking,
 } from './members.server';
@@ -47,8 +48,10 @@ const bookingsByUser: Record<string, BookingRecord[]> = {
       layout: 'GP',
       provider: 'MSV',
       bookingReference: 'REF-123',
+      arrivalDateTime: '2026-05-02 20:00:00',
       description: 'GT weekend',
       accommodationName: 'Trackside Hotel',
+      accommodationStatus: 'booked',
       accommodationReference: 'HOTEL-7',
       notes: 'Quiet room',
       createdAt: '2026-04-01T10:00:00.000Z',
@@ -275,12 +278,84 @@ describe('listSiteMembers', () => {
         layout: 'GP',
         provider: 'MSV',
         description: 'GT weekend',
+        arrivalDateTime: '2026-05-02 20:00:00',
+        accommodationStatus: 'booked',
         accommodationName: 'Trackside Hotel',
       },
     ]);
     expect(result?.days[0]).not.toHaveProperty('bookingReference');
     expect(result?.days[0]).not.toHaveProperty('accommodationReference');
     expect(result?.days[0]).not.toHaveProperty('notes');
+  });
+
+  it('returns grouped public calendar events for invited members', async () => {
+    const calendarBookingsByUser: Record<string, BookingRecord[]> = {
+      ...bookingsByUser,
+      'user-2': [
+        {
+          ...bookingsByUser['user-2']![0]!,
+          bookingId: 'booking-5',
+          dayId: 'day-1',
+          date: '2026-05-03',
+          status: 'maybe',
+          circuit: 'Silverstone',
+          circuitId: 'silverstone',
+          circuitName: 'Silverstone',
+          layout: 'GP',
+          provider: 'MSV',
+          description: 'GT weekend',
+          bookingReference: 'PRIVATE-REF',
+          accommodationReference: 'PRIVATE-HOTEL',
+          notes: 'Private note',
+        },
+        ...bookingsByUser['user-2']!,
+      ],
+    };
+
+    const result = await listGroupCalendarData(
+      async () => userRecords,
+      async (userId) => calendarBookingsByUser[userId] ?? [],
+      '2026-04-16',
+      async () => [
+        {
+          userId: 'user-2',
+          displayName: 'Adam Mann',
+        },
+      ],
+      async () => acceptedInvites,
+    );
+
+    expect(result.members.map((member) => member.name)).toEqual([
+      'Adam Mann',
+      'Ally Murray',
+      'New Member',
+    ]);
+    expect(result.events.map((event) => event.dayId)).toEqual(['day-1', 'day-2']);
+    expect(result.events[0]).toMatchObject({
+      dayId: 'day-1',
+      date: '2026-05-03',
+      circuit: 'Silverstone',
+      provider: 'MSV',
+      bookedCount: 1,
+      maybeCount: 1,
+    });
+    expect(result.events[0]?.attendees).toEqual([
+      expect.objectContaining({
+        userId: 'user-1',
+        userName: 'Ally Murray',
+        status: 'booked',
+        accommodationStatus: 'booked',
+        accommodationName: 'Trackside Hotel',
+      }),
+      expect.objectContaining({
+        userId: 'user-2',
+        userName: 'Adam Mann',
+        status: 'maybe',
+      }),
+    ]);
+    expect(result.events[0]?.attendees[1]).not.toHaveProperty('bookingReference');
+    expect(result.events[0]?.attendees[1]).not.toHaveProperty('accommodationReference');
+    expect(result.events[0]?.attendees[1]).not.toHaveProperty('notes');
   });
 
   it('creates my booking from another member day without private fields', async () => {
@@ -318,6 +393,7 @@ describe('listSiteMembers', () => {
               layout: 'GP',
               provider: 'MSV',
               description: 'GT weekend',
+              accommodationStatus: 'booked',
               accommodationName: 'Trackside Hotel',
             },
           ],

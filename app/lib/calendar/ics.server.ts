@@ -1,3 +1,7 @@
+import {
+  getAccommodationPlanSummary,
+  hasArrangedAccommodation,
+} from '~/lib/bookings/accommodation';
 import type { AvailableDayType } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 
@@ -68,8 +72,8 @@ function buildDescription(booking: BookingRecord, options: { includeStay: boolea
     dayTypeLabel ? `Type: ${dayTypeLabel}` : null,
     `Provider: ${booking.provider}`,
     `Status: ${titleCase(booking.status)}`,
-    options.includeStay && booking.accommodationName?.trim()
-      ? `Stay: ${booking.accommodationName.trim()}`
+    options.includeStay && hasArrangedAccommodation(booking)
+      ? `Accommodation: ${getAccommodationPlanSummary(booking)}`
       : null,
   ]
     .filter((value): value is string => Boolean(value?.trim()))

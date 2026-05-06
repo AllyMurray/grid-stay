@@ -62,6 +62,7 @@ async function ensureLinkedSeriesBookingsForUser(
       createdAt: now,
       updatedAt: now,
       bookingReference: undefined,
+      accommodationStatus: 'unknown',
       accommodationName: undefined,
       accommodationReference: undefined,
       notes: undefined,

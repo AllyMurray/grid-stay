@@ -1,12 +1,23 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { DaysFeedData, DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import type { DayAttendanceSummary } from '~/lib/days/types';
 import type { EventCostSummary } from '~/lib/db/services/cost-splitting.server';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
+
+const useMediaQueryMock = vi.fn(() => false);
+
+vi.mock('@mantine/hooks', async () => {
+  const actual = await vi.importActual<typeof import('@mantine/hooks')>('@mantine/hooks');
+
+  return {
+    ...actual,
+    useMediaQuery: () => useMediaQueryMock(),
+  };
+});
 
 vi.mock('@mantine/schedule', async () => {
   const actual = await vi.importActual<typeof import('@mantine/schedule')>('@mantine/schedule');
@@ -292,6 +303,7 @@ const defaultAttendanceByDay: Record<string, DayAttendanceSummary> = {
         userId: 'user-4',
         userName: 'Driver Four',
         status: 'booked',
+        arrivalDateTime: '2026-05-06 19:30:00',
         accommodationName: 'Brands Hatch Lodge',
       },
     ],
@@ -299,6 +311,11 @@ const defaultAttendanceByDay: Record<string, DayAttendanceSummary> = {
 };
 
 describe('AvailableDaysPage', () => {
+  beforeEach(() => {
+    useMediaQueryMock.mockReset();
+    useMediaQueryMock.mockReturnValue(false);
+  });
+
   it('renders the live schedule from props', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
@@ -653,6 +670,26 @@ describe('AvailableDaysPage', () => {
     );
   });
 
+  it('renders the day list instead of the calendar below the desktop breakpoint', () => {
+    useMediaQueryMock.mockReturnValue(true);
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'calendar',
+          calendarDays: defaultData.days,
+          attendanceSummaries: defaultData.attendanceSummaries,
+        }}
+      />,
+      '/dashboard/days?view=calendar',
+    );
+
+    expect(screen.queryByTestId('available-days-calendar')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
+  });
+
   it('links the view tabs to their matching views', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
@@ -711,8 +748,45 @@ describe('AvailableDaysPage', () => {
             candidateCount: 2,
             unknownDistanceDays: [],
             stops: [
-              { day: defaultData.days[0]!, alternatives: [] },
-              { day: defaultData.days[1]!, alternatives: [] },
+              {
+                day: defaultData.days[0]!,
+                alternatives: [],
+                recommendationReason:
+                  'Recommended to maximise route stops, then minimise road miles.',
+                options: [
+                  {
+                    day: defaultData.days[0]!,
+                    selected: true,
+                    recommended: true,
+                    reason: 'Same circuit option',
+                  },
+                  {
+                    day: {
+                      ...defaultData.days[0]!,
+                      dayId: 'same-date-option',
+                      circuit: 'Donington Park',
+                      provider: 'Option Provider',
+                      description: 'Alternative same-day track day',
+                    },
+                    selected: false,
+                    recommended: false,
+                    reason: 'Alternative circuit on this date',
+                  },
+                ],
+              },
+              {
+                day: defaultData.days[1]!,
+                alternatives: [],
+                recommendationReason: 'Keeps the route within the max miles per leg.',
+                options: [
+                  {
+                    day: defaultData.days[1]!,
+                    selected: true,
+                    recommended: true,
+                    reason: 'Same circuit option',
+                  },
+                ],
+              },
             ],
             legs: [
               {
@@ -737,8 +811,106 @@ describe('AvailableDaysPage', () => {
     expect(screen.getAllByRole('heading', { name: 'Journey planner' })).toHaveLength(1);
     expect(screen.getByText('Stop 1')).toBeInTheDocument();
     expect(screen.getByText('Stop 2')).toBeInTheDocument();
+    expect(screen.getAllByText('Recommended')).toHaveLength(2);
+    expect(screen.getByText('Other options for this date')).toBeInTheDocument();
+    expect(screen.getByText('Donington Park')).toBeInTheDocument();
+    expect(screen.getByText('Alternative circuit on this date')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /use donington park for/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('plannerDay=same-date-option'),
+    );
     expect(screen.getAllByText('92 miles').length).toBeGreaterThan(0);
     expect(screen.getByText(/openrouteservice\.org/i)).toBeInTheDocument();
+  });
+
+  it('shows selected planner swaps without hiding the recommended option', () => {
+    const selectedOption = {
+      ...defaultData.days[0]!,
+      dayId: 'same-date-option',
+      circuit: 'Donington Park',
+      provider: 'Option Provider',
+      description: 'Alternative same-day track day',
+    };
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          view: 'planner',
+          calendarDays: defaultData.days,
+          planner: {
+            status: 'ready',
+            start: '2026-05-01',
+            end: '2026-05-31',
+            maxMiles: 80,
+            selectedDayIds: ['same-date-option'],
+            candidateCount: 2,
+            unknownDistanceDays: [],
+            stops: [
+              {
+                day: selectedOption,
+                alternatives: [],
+                selectedByUser: true,
+                recommendationReason:
+                  'Selected by you. Other stops stay fixed while route miles update around this option.',
+                options: [
+                  {
+                    day: defaultData.days[0]!,
+                    selected: false,
+                    recommended: true,
+                    reason: 'Alternative circuit on this date',
+                  },
+                  {
+                    day: selectedOption,
+                    selected: true,
+                    recommended: false,
+                    reason: 'Same circuit option',
+                  },
+                ],
+              },
+              {
+                day: defaultData.days[1]!,
+                alternatives: [],
+                recommendationReason: 'Keeps the route within the max miles per leg.',
+                options: [
+                  {
+                    day: defaultData.days[1]!,
+                    selected: true,
+                    recommended: true,
+                    reason: 'Same circuit option',
+                  },
+                ],
+              },
+            ],
+            legs: [
+              {
+                fromDayId: 'same-date-option',
+                toDayId: 'day-2',
+                fromCircuit: 'Donington Park',
+                toCircuit: 'Brands Hatch',
+                miles: 92,
+                durationMinutes: 110,
+                exceedsMaxMiles: true,
+              },
+            ],
+            totalMiles: 92,
+            totalDurationMinutes: 110,
+            attribution: 'ORS attribution',
+          },
+        }}
+      />,
+      '/dashboard/days?view=planner&plannerDay=same-date-option',
+    );
+
+    expect(screen.getByText('Selected')).toBeInTheDocument();
+    expect(screen.getByText('Over max')).toBeInTheDocument();
+    expect(screen.getAllByText(defaultData.days[0]!.circuit).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Recommended').length).toBeGreaterThan(0);
+
+    const recommendedLink = screen.getByRole('link', {
+      name: /use silverstone for/i,
+    });
+    expect(recommendedLink.getAttribute('href') ?? '').not.toContain('plannerDay=');
   });
 
   it('shows a planner fallback when distances are unavailable', () => {
@@ -815,10 +987,10 @@ describe('AvailableDaysPage', () => {
           selectedDayPlan: {
             dayId: 'day-1',
             notes: 'Meet by garage 4.',
-            dinnerPlan: 'Dinner at 19:30.',
-            carShare: 'Two spaces from hotel.',
-            checklist: 'Tickets and wristbands.',
-            costSplit: 'Settle fuel after the weekend.',
+            dinnerVenue: 'The Paddock Arms',
+            dinnerTime: '19:30',
+            dinnerHeadcount: '6',
+            dinnerNotes: 'Booking under Grid Stay.',
             updatedByName: 'Driver One',
             updatedAt: '2026-04-27T10:00:00.000Z',
           },
@@ -840,8 +1012,12 @@ describe('AvailableDaysPage', () => {
       name: 'Shared planning note',
     });
     expect(note).toHaveDisplayValue('Meet by garage 4.');
-    expect(screen.getByLabelText('Dinner')).toHaveDisplayValue('Dinner at 19:30.');
-    expect(screen.getByLabelText('Car share')).toHaveDisplayValue('Two spaces from hotel.');
+    expect(screen.getByLabelText('Venue')).toHaveDisplayValue('The Paddock Arms');
+    expect(screen.getByLabelText('Time')).toHaveDisplayValue('19:30');
+    expect(screen.getByLabelText('Dinner notes')).toHaveDisplayValue('Booking under Grid Stay.');
+    expect(screen.queryByLabelText('Car share')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Checklist')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Cost split')).not.toBeInTheDocument();
     expect(screen.getByText('Updated by Driver One')).toBeInTheDocument();
 
     fireEvent.change(note, {
@@ -854,10 +1030,10 @@ describe('AvailableDaysPage', () => {
         intent: 'saveSharedDayPlan',
         dayId: 'day-1',
         notes: 'Meet by garage 6.',
-        dinnerPlan: 'Dinner at 19:30.',
-        carShare: 'Two spaces from hotel.',
-        checklist: 'Tickets and wristbands.',
-        costSplit: 'Settle fuel after the weekend.',
+        dinnerVenue: 'The Paddock Arms',
+        dinnerTime: '19:30',
+        dinnerHeadcount: '6',
+        dinnerNotes: 'Booking under Grid Stay.',
       }),
     );
   });
@@ -1071,21 +1247,151 @@ describe('AvailableDaysPage', () => {
   });
 
   it('shows a compact roster first and expands one status group at a time', async () => {
-    renderWithProviders(<AvailableDaysPage data={defaultData} />, '/dashboard/days?day=day-2');
+    const selectedDay = defaultData.days[1]!;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 2,
+          selectedDayPrevious: defaultData.days[0] ?? null,
+          selectedDayNext: null,
+          selectedDaySummary: defaultData.attendanceSummaries[selectedDay.dayId],
+          selectedDayAttendance: defaultAttendanceByDay[selectedDay.dayId],
+        }}
+      />,
+      '/dashboard/days?day=day-2',
+    );
 
     await screen.findByText('Attendee roster');
-    expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
+    expect(screen.queryByText('Arriving Wed 6 May, 19:30')).not.toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole('button', { name: /view booked attendees/i }));
 
+    expect(screen.getByRole('button', { name: /hide booked attendees/i })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(0);
 
     expect(screen.getAllByText('Brands Hatch Lodge').length).toBeGreaterThan(0);
+    expect(screen.getByText('Arriving Wed 6 May, 19:30')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /back to available days/i })).toHaveAttribute(
       'href',
       '/dashboard/days',
     );
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
+  });
+
+  it('does not duplicate member initials on roster groups with full names', async () => {
+    const selectedDay = defaultData.days[0]!;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDayPrevious: null,
+          selectedDayNext: defaultData.days[1] ?? null,
+          selectedDaySummary: defaultData.attendanceSummaries[selectedDay.dayId],
+          selectedDayAttendance: defaultAttendanceByDay[selectedDay.dayId],
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+    );
+
+    await screen.findByText('Attendee roster');
+
+    expect(
+      screen.queryByRole('img', { name: /1 booked attendee: Driver One/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: /1 maybe attendee: Driver Two/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('DO')).not.toBeInTheDocument();
+    expect(screen.queryByText('DT')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /cancelled attendee/i })).not.toBeInTheDocument();
+  });
+
+  it('refreshes stale selected-day details when summary counts have changed', async () => {
+    const selectedDay = defaultData.days[0]!;
+    const updatedSummary = {
+      attendeeCount: 1,
+      accommodationNames: [],
+      garageOwnerCount: 1,
+      garageOpenSpaceCount: 1,
+    };
+    const staleAttendance: DayAttendanceSummary = {
+      attendeeCount: 0,
+      accommodationNames: [],
+      attendees: [],
+      garageOwnerCount: 0,
+      garageOpenSpaceCount: 0,
+      garageShareOptions: [],
+    };
+    const liveAttendance: DayAttendanceSummary = {
+      attendeeCount: 1,
+      accommodationNames: [],
+      attendees: [
+        {
+          bookingId: selectedDay.dayId,
+          userId: 'william',
+          userName: 'William Mulholland',
+          status: 'booked',
+          arrivalDateTime: '2026-05-02 20:00:00',
+          garageBooked: true,
+          garageCapacity: 2,
+        },
+      ],
+      garageOwnerCount: 1,
+      garageOpenSpaceCount: 1,
+      garageShareOptions: [
+        {
+          garageBookingId: selectedDay.dayId,
+          ownerUserId: 'william',
+          ownerName: 'William Mulholland',
+          ownerArrivalDateTime: '2026-05-02 20:00:00',
+          garageCapacity: 2,
+          approvedRequestCount: 0,
+          pendingRequestCount: 0,
+          openSpaceCount: 1,
+          requests: [],
+        },
+      ],
+    };
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDayPrevious: null,
+          selectedDayNext: defaultData.days[1] ?? null,
+          selectedDaySummary: updatedSummary,
+          selectedDayAttendance: staleAttendance,
+          attendanceSummaries: {
+            ...defaultData.attendanceSummaries,
+            [selectedDay.dayId]: updatedSummary,
+          },
+        }}
+      />,
+      `/dashboard/days?day=${selectedDay.dayId}`,
+      {
+        ...defaultAttendanceByDay,
+        [selectedDay.dayId]: liveAttendance,
+      },
+    );
+
+    expect(await screen.findByText('1 of 1 shareable spaces open')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByRole('button', { name: /view booked attendees/i }));
+
+    await waitFor(() =>
+      expect(screen.getAllByText('William Mulholland').length).toBeGreaterThan(1),
+    );
   });
 
   it('shows the header action as open my booking when a trip already exists', async () => {
@@ -1115,14 +1421,14 @@ describe('AvailableDaysPage', () => {
     expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
 
-  it('offers saved shared stays as direct actions in the selected-day view', async () => {
+  it('offers saved accommodation as direct actions in the selected-day view', async () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />, '/dashboard/days?day=day-1');
 
     expect(await screen.findByRole('button', { name: /join stay/i })).toBeInTheDocument();
     expect(screen.getAllByText('Your state').length).toBeGreaterThan(0);
-    expect(screen.getByText('Not in your plan')).toBeInTheDocument();
+    expect(screen.getAllByText('Not in your plan').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
-    expect(screen.getByText('Wait for someone to name the stay.')).toBeInTheDocument();
+    expect(screen.getByText('No accommodation to join yet.')).toBeInTheDocument();
   });
 
   it('submits garage share requests from the selected-day view', async () => {
@@ -1153,6 +1459,7 @@ describe('AvailableDaysPage', () => {
               garageBookingId: 'booking-2',
               ownerUserId: 'user-2',
               ownerName: 'Driver Two',
+              ownerArrivalDateTime: '2026-05-02 20:00:00',
               garageLabel: 'Garage 4',
               garageCapacity: 2,
               approvedRequestCount: 0,
@@ -1169,6 +1476,8 @@ describe('AvailableDaysPage', () => {
         return { ok: true };
       },
     );
+
+    expect(await screen.findByText('Arriving Sat 2 May, 20:00')).toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole('button', { name: /request space/i }));
 

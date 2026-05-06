@@ -39,7 +39,7 @@ describe('buildCalendarIcs', () => {
     expect(calendar).toContain('STATUS:CONFIRMED\r\n');
     expect(unfoldedCalendar).toContain('Type: Race day');
     expect(unfoldedCalendar).toContain('Provider: MSV');
-    expect(unfoldedCalendar).toContain('Stay: Trackside Hotel');
+    expect(unfoldedCalendar).toContain('Accommodation: Trackside Hotel');
   });
 
   it('marks maybe bookings in the event summary', () => {
@@ -75,7 +75,7 @@ describe('buildCalendarIcs', () => {
     expect(calendar).not.toContain('Quiet room');
   });
 
-  it('can exclude maybe bookings and shared stay names', () => {
+  it('can exclude maybe bookings and accommodation details', () => {
     const calendar = buildCalendarIcs(
       [
         booking,
@@ -96,6 +96,20 @@ describe('buildCalendarIcs', () => {
     expect(calendar).toContain('Silverstone');
     expect(calendar).not.toContain('Donington Park');
     expect(calendar).not.toContain('Trackside Hotel');
+  });
+
+  it('includes track stays when accommodation details are enabled', () => {
+    const calendar = buildCalendarIcs([
+      {
+        ...booking,
+        accommodationStatus: 'staying_at_track',
+        accommodationName: undefined,
+        accommodationReference: undefined,
+      },
+    ]);
+    const unfoldedCalendar = calendar.replace(/\r\n /g, '');
+
+    expect(unfoldedCalendar).toContain('Accommodation: Staying at the track');
   });
 
   it('escapes reserved ICS text characters', () => {

@@ -18,6 +18,7 @@ const members = [
       date: '2026-05-03',
       circuit: 'Silverstone',
       provider: 'MSV',
+      accommodationStatus: 'booked' as const,
       accommodationName: 'Trackside Hotel',
     },
   },
@@ -55,7 +56,7 @@ describe('MembersPage', () => {
     expect(screen.getByText('No upcoming trips yet')).toBeInTheDocument();
     expect(screen.queryByText('2 members')).not.toBeInTheDocument();
     expect(screen.queryByText('1 with trip')).not.toBeInTheDocument();
-    expect(screen.queryByText('Shared stays')).not.toBeInTheDocument();
+    expect(screen.queryByText('Accommodations')).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'View days' })[0]).toHaveAttribute(
       'href',
       '/dashboard/members/user-1',

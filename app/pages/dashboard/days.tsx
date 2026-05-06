@@ -22,11 +22,18 @@ import {
   Title,
   UnstyledButton,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { Schedule, type ScheduleEventData, type ScheduleViewLevel } from '@mantine/schedule';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Form, Link, useFetcher, useNavigate, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
+import {
+  type AccommodationStatus,
+  getAccommodationPlanSummary,
+  hasBookedAccommodation,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import type {
   BulkRaceSeriesBookingActionResult,
   CreateBookingActionResult,
@@ -34,6 +41,7 @@ import type {
 } from '~/lib/bookings/actions.server';
 import type { BookingStatus } from '~/lib/constants/enums';
 import type { CostSplittingActionResult } from '~/lib/cost-splitting/actions.server';
+import { formatArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type {
   AvailableDaysView,
@@ -61,8 +69,6 @@ import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/action
 export interface AvailableDaysPageProps {
   data: DaysIndexData;
 }
-
-const UNSHARED_STAY_LABEL = 'No shared stay yet';
 
 function titleCase(value: string) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
@@ -130,6 +136,7 @@ interface DaysViewState {
   start?: string;
   end?: string;
   maxMiles?: number;
+  plannerDayIds?: string[];
 }
 
 function appendDaysViewState(params: URLSearchParams, viewState?: DaysViewState) {
@@ -147,6 +154,9 @@ function appendDaysViewState(params: URLSearchParams, viewState?: DaysViewState)
     }
     if (viewState.maxMiles) {
       params.set('maxMiles', String(viewState.maxMiles));
+    }
+    for (const dayId of viewState.plannerDayIds ?? []) {
+      params.append('plannerDay', dayId);
     }
   }
 }
@@ -190,6 +200,18 @@ function createDaysIndexHref(
 
 function createDaysViewHref(filters: DaysIndexData['filters'], viewState: DaysViewState) {
   return createDaysIndexHref(filters, null, null, viewState);
+}
+
+function replacePlannerSelection(
+  currentDayIds: string[] | undefined,
+  dayIdsForDate: string[],
+  nextDayId: string,
+  shouldSelect = true,
+) {
+  const dayIdsForDateSet = new Set(dayIdsForDate);
+  const remainingDayIds = (currentDayIds ?? []).filter((dayId) => !dayIdsForDateSet.has(dayId));
+
+  return shouldSelect ? [...remainingDayIds, nextDayId] : remainingDayIds;
 }
 
 function countActiveFilters(filters: DaysIndexData['filters']) {
@@ -271,6 +293,9 @@ function DaysViewHiddenInputs({ viewState }: { viewState: DaysViewState }) {
           <input type="hidden" name="start" value={viewState.start ?? ''} />
           <input type="hidden" name="end" value={viewState.end ?? ''} />
           <input type="hidden" name="maxMiles" value={String(viewState.maxMiles ?? '')} />
+          {(viewState.plannerDayIds ?? []).map((dayId) => (
+            <input key={dayId} type="hidden" name="plannerDay" value={dayId} />
+          ))}
         </>
       ) : null}
     </>
@@ -488,6 +513,7 @@ interface AttendeeStatusGroup {
 
 interface SharedStayGroup {
   label: string;
+  accommodationStatus: AccommodationStatus;
   attendees: SharedAttendee[];
 }
 
@@ -519,11 +545,11 @@ function createLoadedDaysState(data: DaysIndexData): LoadedDaysState {
 }
 
 function createDayAttendeesHref(dayId: string) {
-  return `/api/days/${dayId}/attendees`;
+  return `/api/days/${encodeURIComponent(dayId)}/attendees`;
 }
 
 function createDayCostsHref(dayId: string) {
-  return `/api/days/${dayId}/costs`;
+  return `/api/days/${encodeURIComponent(dayId)}/costs`;
 }
 
 function getAttendanceSummary(
@@ -540,13 +566,43 @@ function getAttendanceSummary(
   );
 }
 
+function getAttendanceSummaryFromDetails(
+  details: DayAttendanceDetails,
+): DayAttendanceSummaryPreview {
+  return {
+    attendeeCount: details.attendeeCount,
+    accommodationNames: details.accommodationNames,
+    garageOwnerCount: details.garageOwnerCount ?? 0,
+    garageOpenSpaceCount: details.garageOpenSpaceCount ?? 0,
+  };
+}
+
+function attendanceDetailsMatchSummary(
+  details: DayAttendanceDetails,
+  summary: DayAttendanceSummaryPreview,
+) {
+  const summaryGarageOwnerCount = summary.garageOwnerCount ?? 0;
+  const summaryGarageOpenSpaceCount = summary.garageOpenSpaceCount ?? 0;
+  const hasRequiredGarageDetails =
+    Array.isArray(details.garageShareOptions) ||
+    (summaryGarageOwnerCount === 0 && summaryGarageOpenSpaceCount === 0);
+
+  return (
+    Array.isArray(details.attendees) &&
+    hasRequiredGarageDetails &&
+    details.attendeeCount === summary.attendeeCount &&
+    (details.garageOwnerCount ?? 0) === summaryGarageOwnerCount &&
+    (details.garageOpenSpaceCount ?? 0) === summaryGarageOpenSpaceCount
+  );
+}
+
 function getAttendanceLabel(summary: DayAttendanceSummaryPreview) {
   return `${summary.attendeeCount} attending`;
 }
 
 function getAccommodationLabel(summary: DayAttendanceSummaryPreview) {
   if (summary.accommodationNames.length === 0) {
-    return 'No shared stay added yet';
+    return 'No accommodation added yet';
   }
 
   return summary.accommodationNames.join(', ');
@@ -609,7 +665,7 @@ function getMyPlanSharedStay(booking?: DayBookingSnapshot) {
     return 'No booking yet';
   }
 
-  return booking.accommodationName?.trim() || 'No stay selected';
+  return getAccommodationPlanSummary(booking);
 }
 
 function getMyPlanGarage(booking?: DayBookingSnapshot) {
@@ -656,7 +712,7 @@ function groupAttendeesBySharedStay(attendees: SharedAttendee[]): SharedStayGrou
       continue;
     }
 
-    const label = attendee.accommodationName?.trim() || UNSHARED_STAY_LABEL;
+    const label = getAccommodationPlanSummary(attendee);
     const current = groups.get(label);
 
     if (current) {
@@ -667,20 +723,25 @@ function groupAttendeesBySharedStay(attendees: SharedAttendee[]): SharedStayGrou
     groups.set(label, [attendee]);
   }
 
+  const statusOrder: Record<AccommodationStatus, number> = {
+    booked: 0,
+    looking: 1,
+    staying_at_track: 2,
+    not_required: 3,
+    unknown: 4,
+  };
+
   return [...groups.entries()]
-    .toSorted(([left], [right]) => {
-      if (left === UNSHARED_STAY_LABEL) {
-        return 1;
-      }
-      if (right === UNSHARED_STAY_LABEL) {
-        return -1;
-      }
-      return left.localeCompare(right);
-    })
     .map(([label, groupAttendees]) => ({
       label,
+      accommodationStatus: resolveAccommodationStatus(groupAttendees[0]!),
       attendees: groupAttendees,
-    }));
+    }))
+    .toSorted((left, right) => {
+      const statusCompare =
+        statusOrder[left.accommodationStatus] - statusOrder[right.accommodationStatus];
+      return statusCompare || left.label.localeCompare(right.label);
+    });
 }
 
 function DayBookingAction({ day, booking }: { day: DayRow; booking?: DayBookingSnapshot }) {
@@ -1047,6 +1108,9 @@ function AvailableDaysCalendarPanel({
   viewState: DaysViewState;
 }) {
   const navigate = useNavigate();
+  const isCompactCalendar = useMediaQuery('(max-width: 62em)', false, {
+    getInitialValueInEffect: false,
+  });
   const events = useMemo(() => buildAvailableDayCalendarEvents(days), [days]);
   const groupedDays = useMemo(() => groupDaysByDate(days), [days]);
   const [view, setView] = useState<ScheduleViewLevel>('month');
@@ -1088,7 +1152,7 @@ function AvailableDaysCalendarPanel({
         <DayTypeLegend />
       </Group>
 
-      <Box visibleFrom="sm">
+      {!isCompactCalendar ? (
         <Schedule
           date={currentDate}
           onDateChange={setCurrentDate}
@@ -1113,9 +1177,7 @@ function AvailableDaysCalendarPanel({
             firstDayOfWeek: 1,
           }}
         />
-      </Box>
-
-      <Box hiddenFrom="sm">
+      ) : (
         <DayListPanel
           days={days}
           filters={filters}
@@ -1124,9 +1186,9 @@ function AvailableDaysCalendarPanel({
           selectedDayId={null}
           viewState={viewState}
         />
-      </Box>
+      )}
 
-      {daysForSelectedDate.length > 0 ? (
+      {!isCompactCalendar && daysForSelectedDate.length > 0 ? (
         <Stack gap="sm">
           <Group justify="space-between" align="center">
             <Text fw={800}>{formatDayLongDate(selectedDate)}</Text>
@@ -1178,6 +1240,9 @@ function PlannerRangeForm({
       <Stack gap="md">
         <DaysFilterHiddenInputs filters={filters} />
         <input type="hidden" name="view" value="planner" />
+        {(planner.selectedDayIds ?? []).map((dayId) => (
+          <input key={dayId} type="hidden" name="plannerDay" value={dayId} />
+        ))}
         <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
           <TextInput type="date" name="start" label="Start date" defaultValue={planner.start} />
           <TextInput type="date" name="end" label="End date" defaultValue={planner.end} />
@@ -1256,11 +1321,27 @@ function JourneyPlannerPanel({
           {planner.candidateCount} matching {planner.candidateCount === 1 ? 'stop' : 'stops'} from{' '}
           {planner.start || 'any date'} to {planner.end || 'any date'}.
         </Text>
-        {planner.status === 'stale' ? (
-          <Badge color="yellow" variant="light">
-            Distances need refresh
-          </Badge>
-        ) : null}
+        <Group gap="xs">
+          {(planner.selectedDayIds ?? []).length > 0 ? (
+            <Button
+              component={Link}
+              to={createDaysViewHref(filters, {
+                ...viewState,
+                plannerDayIds: [],
+              })}
+              variant="default"
+              size="xs"
+              preventScrollReset
+            >
+              Clear choices
+            </Button>
+          ) : null}
+          {planner.status === 'stale' ? (
+            <Badge color="yellow" variant="light">
+              Distances need refresh
+            </Badge>
+          ) : null}
+        </Group>
       </Group>
 
       <PlannerRangeForm filters={filters} planner={planner} />
@@ -1299,6 +1380,8 @@ function JourneyPlannerPanel({
           <Stack gap={0}>
             {planner.stops.map((stop, index) => {
               const leg = index > 0 ? planner.legs[index - 1] : null;
+              const optionDayIdsForDate = stop.options.map((option) => option.day.dayId);
+              const otherOptions = stop.options.filter((option) => !option.selected);
 
               return (
                 <Fragment key={stop.day.dayId}>
@@ -1307,6 +1390,11 @@ function JourneyPlannerPanel({
                       <Badge variant="light" color="gray">
                         {formatPlannerDistance(leg.miles)}
                       </Badge>
+                      {leg.exceedsMaxMiles ? (
+                        <Badge color="red" variant="light">
+                          Over max
+                        </Badge>
+                      ) : null}
                       <Text size="sm" c="dimmed">
                         {formatPlannerDuration(leg.durationMinutes)} from {leg.fromCircuit}
                       </Text>
@@ -1317,6 +1405,9 @@ function JourneyPlannerPanel({
                       <Group gap="xs" wrap="wrap">
                         <Badge color="brand" variant="light">
                           Stop {index + 1}
+                        </Badge>
+                        <Badge color={stop.selectedByUser ? 'blue' : 'green'} variant="light">
+                          {stop.selectedByUser ? 'Selected' : 'Recommended'}
                         </Badge>
                         <Badge color={typeColor(stop.day.type)} variant="light">
                           {titleCase(stop.day.type)}
@@ -1336,6 +1427,9 @@ function JourneyPlannerPanel({
                       <Text size="sm" lineClamp={2}>
                         {getDaySessionText(stop.day)}
                       </Text>
+                      <Text size="xs" c="dimmed">
+                        {stop.recommendationReason}
+                      </Text>
                     </Stack>
                     <Button
                       component={Link}
@@ -1347,6 +1441,59 @@ function JourneyPlannerPanel({
                       View day
                     </Button>
                   </Group>
+                  {otherOptions.length > 0 ? (
+                    <Stack gap="xs" pb="sm" pl={{ base: 0, sm: 'xl' }}>
+                      <Text size="sm" fw={700}>
+                        Other options for this date
+                      </Text>
+                      {otherOptions.map((option) => (
+                        <Group
+                          key={option.day.dayId}
+                          justify="space-between"
+                          align="flex-start"
+                          gap="md"
+                          wrap="nowrap"
+                        >
+                          <Stack gap={2} style={{ minWidth: 0 }}>
+                            <Group gap="xs" wrap="wrap">
+                              <Badge color={typeColor(option.day.type)} variant="light">
+                                {titleCase(option.day.type)}
+                              </Badge>
+                              <Badge color={option.recommended ? 'green' : 'gray'} variant="light">
+                                {option.recommended ? 'Recommended' : option.reason}
+                              </Badge>
+                            </Group>
+                            <Text size="sm" fw={700} lineClamp={1}>
+                              {option.day.circuit}
+                            </Text>
+                            <Text size="xs" c="dimmed" lineClamp={1}>
+                              {option.day.provider} • {getDaySessionText(option.day)}
+                            </Text>
+                          </Stack>
+                          <Button
+                            component={Link}
+                            to={createDaysViewHref(filters, {
+                              ...viewState,
+                              plannerDayIds: replacePlannerSelection(
+                                planner.selectedDayIds,
+                                optionDayIdsForDate,
+                                option.day.dayId,
+                                !option.recommended,
+                              ),
+                            })}
+                            variant="default"
+                            size="xs"
+                            aria-label={`Use ${option.day.circuit} for ${formatDayLongDate(
+                              option.day.date,
+                            )}`}
+                            preventScrollReset
+                          >
+                            Use this
+                          </Button>
+                        </Group>
+                      ))}
+                    </Stack>
+                  ) : null}
                   {index < planner.stops.length - 1 ? <Divider /> : null}
                 </Fragment>
               );
@@ -1406,6 +1553,11 @@ function getAttendeeGroupPreview(attendees: SharedAttendee[]) {
   return `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
 }
 
+function getArrivalDateTimeLabel(arrivalDateTime?: string) {
+  const formatted = formatArrivalDateTime(arrivalDateTime);
+  return formatted ? `Arriving ${formatted}` : null;
+}
+
 function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
   const [openGroupKey, setOpenGroupKey] = useState<BookingStatus | null>(null);
 
@@ -1427,19 +1579,21 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
               }
             >
               <Group justify="space-between" align="flex-start" gap="md">
-                <Stack gap={6} className="attendee-roster-summary">
-                  <Group gap="xs" wrap="wrap">
-                    <Badge variant="light" color={bookingColor(group.key)} size="sm">
-                      {group.label}
-                    </Badge>
-                    <Text size="sm" fw={700}>
-                      {group.attendees.length}
+                <Group gap="sm" align="center" wrap="nowrap" className="attendee-roster-summary">
+                  <Stack gap={6} className="attendee-roster-summary-copy">
+                    <Group gap="xs" wrap="wrap">
+                      <Badge variant="light" color={bookingColor(group.key)} size="sm">
+                        {group.label}
+                      </Badge>
+                      <Text size="sm" fw={700}>
+                        {group.attendees.length}
+                      </Text>
+                    </Group>
+                    <Text size="sm" c="dimmed" lineClamp={1}>
+                      {getAttendeeGroupPreview(group.attendees)}
                     </Text>
-                  </Group>
-                  <Text size="sm" c="dimmed" lineClamp={1}>
-                    {getAttendeeGroupPreview(group.attendees)}
-                  </Text>
-                </Stack>
+                  </Stack>
+                </Group>
                 <Text size="sm" fw={700} c={isOpen ? 'brand.7' : 'dimmed'}>
                   <span className="row-toggle-label">{isOpen ? 'Hide' : 'View'}</span>
                 </Text>
@@ -1450,19 +1604,32 @@ function AttendeeRosterList({ groups }: { groups: AttendeeStatusGroup[] }) {
               <Box className="attendee-roster-panel">
                 {group.attendees.length > 0 ? (
                   <Stack gap="xs">
-                    {group.attendees.map((attendee, attendeeIndex) => (
-                      <Fragment key={attendee.bookingId}>
-                        <Group justify="space-between" align="flex-start" gap="md">
-                          <Text size="sm" fw={600}>
-                            {attendee.userName}
-                          </Text>
-                          <Text size="sm" c="dimmed" ta="right">
-                            {attendee.accommodationName?.trim() || UNSHARED_STAY_LABEL}
-                          </Text>
-                        </Group>
-                        {attendeeIndex < group.attendees.length - 1 ? <Divider /> : null}
-                      </Fragment>
-                    ))}
+                    {group.attendees.map((attendee, attendeeIndex) => {
+                      const arrivalDateTimeLabel = getArrivalDateTimeLabel(
+                        attendee.arrivalDateTime,
+                      );
+
+                      return (
+                        <Fragment key={attendee.bookingId}>
+                          <Group justify="space-between" align="flex-start" gap="md">
+                            <Text size="sm" fw={600}>
+                              {attendee.userName}
+                            </Text>
+                            <Stack gap={2} align="flex-end">
+                              <Text size="sm" c="dimmed" ta="right">
+                                {getAccommodationPlanSummary(attendee)}
+                              </Text>
+                              {arrivalDateTimeLabel ? (
+                                <Text size="xs" c="dimmed" ta="right">
+                                  {arrivalDateTimeLabel}
+                                </Text>
+                              ) : null}
+                            </Stack>
+                          </Group>
+                          {attendeeIndex < group.attendees.length - 1 ? <Divider /> : null}
+                        </Fragment>
+                      );
+                    })}
                   </Stack>
                 ) : (
                   <Text size="sm" c="dimmed">
@@ -1530,7 +1697,7 @@ function SharedStayAction({
   );
 }
 
-function getSharedStayState(booking: DayBookingSnapshot | undefined, accommodationName: string) {
+function getSharedStayState(booking: DayBookingSnapshot | undefined, group: SharedStayGroup) {
   if (!booking) {
     return {
       label: 'Not in your plan',
@@ -1545,14 +1712,26 @@ function getSharedStayState(booking: DayBookingSnapshot | undefined, accommodati
     };
   }
 
-  if (booking.accommodationName?.trim() === accommodationName) {
+  if (group.accommodationStatus !== 'booked') {
+    return resolveAccommodationStatus(booking) === group.accommodationStatus
+      ? {
+          label: 'Same plan',
+          color: 'green' as const,
+        }
+      : {
+          label: getAccommodationPlanSummary(booking),
+          color: 'gray' as const,
+        };
+  }
+
+  if (hasBookedAccommodation(booking) && booking.accommodationName?.trim() === group.label) {
     return {
       label: 'Current stay',
       color: 'green' as const,
     };
   }
 
-  if (booking.accommodationName?.trim()) {
+  if (hasBookedAccommodation(booking) && booking.accommodationName?.trim()) {
     return {
       label: 'On another stay',
       color: 'yellow' as const,
@@ -1560,9 +1739,23 @@ function getSharedStayState(booking: DayBookingSnapshot | undefined, accommodati
   }
 
   return {
-    label: 'No stay selected',
+    label: getAccommodationPlanSummary(booking),
     color: 'gray' as const,
   };
+}
+
+function getSharedStayActionText(status: AccommodationStatus) {
+  switch (status) {
+    case 'not_required':
+      return 'No accommodation action needed.';
+    case 'staying_at_track':
+      return 'Track stay noted.';
+    case 'looking':
+    case 'unknown':
+      return 'No accommodation to join yet.';
+    case 'booked':
+      return '';
+  }
 }
 
 function SharedStayAssignments({
@@ -1603,26 +1796,17 @@ function SharedStayAssignments({
 
       <Stack gap={0}>
         {groups.map((group, index) => {
-          const state =
-            group.label === UNSHARED_STAY_LABEL
-              ? {
-                  label:
-                    booking?.status === 'cancelled'
-                      ? 'Cancelled'
-                      : booking?.accommodationName?.trim()
-                        ? 'On another stay'
-                        : 'No stay selected',
-                  color: 'gray' as const,
-                }
-              : getSharedStayState(booking, group.label);
+          const state = getSharedStayState(booking, group);
 
           return (
             <Fragment key={group.label}>
               <Box
                 className="shared-stay-row"
                 data-current={
-                  group.label !== UNSHARED_STAY_LABEL &&
+                  group.accommodationStatus === 'booked' &&
                   booking?.status !== 'cancelled' &&
+                  booking &&
+                  hasBookedAccommodation(booking) &&
                   booking?.accommodationName?.trim() === group.label
                     ? 'true'
                     : undefined
@@ -1662,9 +1846,9 @@ function SharedStayAssignments({
                   <Text size="xs" fw={700} c="dimmed" className="shared-stay-cell-label">
                     Action
                   </Text>
-                  {group.label === UNSHARED_STAY_LABEL ? (
+                  {group.accommodationStatus !== 'booked' ? (
                     <Text size="sm" c="dimmed" ta="right">
-                      Wait for someone to name the stay.
+                      {getSharedStayActionText(group.accommodationStatus)}
                     </Text>
                   ) : (
                     <SharedStayAction day={day} booking={booking} accommodationName={group.label} />
@@ -1793,6 +1977,11 @@ function GarageShareAssignments({
                     </Badge>
                   ) : null}
                 </Group>
+                {option.ownerArrivalDateTime ? (
+                  <Text size="xs" c="dimmed">
+                    {getArrivalDateTimeLabel(option.ownerArrivalDateTime)}
+                  </Text>
+                ) : null}
               </Stack>
 
               <Stack gap={4} className="shared-stay-cell">
@@ -2442,14 +2631,14 @@ function SharedPlanNoteEditor({ day, plan }: { day: DayRow; plan?: SharedDayPlan
   const isSubmitting = fetcher.state !== 'idle';
   const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const noteError = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.notes?.[0] : null;
-  const dinnerPlanError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerPlan?.[0] : null;
-  const carShareError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.carShare?.[0] : null;
-  const checklistError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.checklist?.[0] : null;
-  const costSplitError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.costSplit?.[0] : null;
+  const dinnerVenueError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerVenue?.[0] : null;
+  const dinnerTimeError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerTime?.[0] : null;
+  const dinnerHeadcountError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerHeadcount?.[0] : null;
+  const dinnerNotesError =
+    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors.dinnerNotes?.[0] : null;
 
   return (
     <Stack gap="sm">
@@ -2474,50 +2663,57 @@ function SharedPlanNoteEditor({ day, plan }: { day: DayRow; plan?: SharedDayPlan
           <Textarea
             name="notes"
             aria-label="Shared planning note"
-            placeholder="Meeting point, dinner booking, convoy notes..."
+            placeholder="Meeting point, convoy notes, garage location..."
             rows={4}
             maxLength={1000}
             defaultValue={plan?.notes ?? ''}
             error={noteError}
           />
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
+          <Stack gap="xs">
+            <Stack gap={2}>
+              <Text fw={700}>Dinner</Text>
+              <Text size="sm" c="dimmed">
+                Add the group dinner details when there is a booking or plan.
+              </Text>
+            </Stack>
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="xs">
+              <TextInput
+                name="dinnerVenue"
+                label="Venue"
+                placeholder="Restaurant or pub"
+                maxLength={120}
+                defaultValue={plan?.dinnerVenue ?? ''}
+                error={dinnerVenueError}
+              />
+              <TextInput
+                name="dinnerTime"
+                label="Time"
+                type="time"
+                defaultValue={plan?.dinnerTime ?? ''}
+                error={dinnerTimeError}
+              />
+              <NumberInput
+                name="dinnerHeadcount"
+                label="Headcount"
+                placeholder="People"
+                min={1}
+                max={99}
+                allowDecimal={false}
+                allowNegative={false}
+                defaultValue={plan?.dinnerHeadcount ? Number(plan.dinnerHeadcount) : ''}
+                error={dinnerHeadcountError}
+              />
+            </SimpleGrid>
             <Textarea
-              name="dinnerPlan"
-              label="Dinner"
-              placeholder="Restaurant, booking time, headcount..."
-              rows={3}
+              name="dinnerNotes"
+              label="Dinner notes"
+              placeholder="Booking name, dietary notes, deposit details..."
+              rows={2}
               maxLength={1000}
-              defaultValue={plan?.dinnerPlan ?? ''}
-              error={dinnerPlanError}
+              defaultValue={plan?.dinnerNotes ?? ''}
+              error={dinnerNotesError}
             />
-            <Textarea
-              name="carShare"
-              label="Car share"
-              placeholder="Passenger spaces, convoy timings, lifts..."
-              rows={3}
-              maxLength={1000}
-              defaultValue={plan?.carShare ?? ''}
-              error={carShareError}
-            />
-            <Textarea
-              name="checklist"
-              label="Checklist"
-              placeholder="Tickets, fuel, kit, tools..."
-              rows={3}
-              maxLength={1000}
-              defaultValue={plan?.checklist ?? ''}
-              error={checklistError}
-            />
-            <Textarea
-              name="costSplit"
-              label="Cost split"
-              placeholder="Shared costs, who paid, settlement notes..."
-              rows={3}
-              maxLength={1000}
-              defaultValue={plan?.costSplit ?? ''}
-              error={costSplitError}
-            />
-          </SimpleGrid>
+          </Stack>
           <Group justify="space-between" align="center" gap="md">
             <Text size="xs" c={formError ? 'red' : 'dimmed'}>
               {formError ?? 'Leave every field blank and save to clear it.'}
@@ -2628,7 +2824,7 @@ function DayDetailContent({
             </Box>
             <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
-                Shared stay
+                Accommodation
               </Text>
               <Text size="sm" fw={700} lineClamp={2} className="selected-day-summary-value">
                 {getMyPlanSharedStay(booking)}
@@ -2660,7 +2856,7 @@ function DayDetailContent({
             </Box>
             <Box className="selected-day-summary-item">
               <Text size="xs" c="dimmed">
-                Saved stays
+                Accommodation plans
               </Text>
               <Text size="sm" fw={700} className="selected-day-summary-value">
                 {getSavedStayCountLabel(summary.accommodationNames.length)}
@@ -2779,10 +2975,10 @@ function DayDetailContent({
       <Stack gap="sm">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
-            <Text fw={700}>Shared stay</Text>
+            <Text fw={700}>Accommodation</Text>
             <Text size="sm" c="dimmed">
-              See who is attached to each shared stay name, then copy one into your booking without
-              leaving this page.
+              See who is attached to each hotel or stay name, then copy one into your booking
+              without leaving this page.
             </Text>
           </Stack>
           <Text size="sm" fw={700} c="dimmed">
@@ -2794,7 +2990,7 @@ function DayDetailContent({
           <Group gap="sm">
             <Loader size="sm" color="brand" />
             <Text size="sm" c="dimmed">
-              Loading shared stay assignments
+              Loading accommodation assignments
             </Text>
           </Group>
         ) : attendanceDetails ? (
@@ -2805,7 +3001,7 @@ function DayDetailContent({
           />
         ) : (
           <Text size="sm" c="dimmed">
-            Shared stay assignments are not available yet.
+            Accommodation assignments are not available yet.
           </Text>
         )}
       </Stack>
@@ -2889,8 +3085,15 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       start: data.planner.start,
       end: data.planner.end,
       maxMiles: data.planner.maxMiles,
+      plannerDayIds: data.planner.selectedDayIds ?? [],
     }),
-    [data.planner.end, data.planner.maxMiles, data.planner.start, data.view],
+    [
+      data.planner.end,
+      data.planner.maxMiles,
+      data.planner.selectedDayIds,
+      data.planner.start,
+      data.view,
+    ],
   );
   const preferenceSubmitting = preferenceFetcher.state !== 'idle';
   const preferenceMessage = !preferenceFetcher.data
@@ -3090,9 +3293,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
         : selectedDayIndex >= 0 && selectedDayIndex < orderedLoadedDays.length - 1
           ? orderedLoadedDays[selectedDayIndex + 1]
           : null;
-  const selectedDayAttendanceDetails = selectedDayFromUrl
+  const selectedDaySummaryPreview = selectedDayFromUrl
+    ? getAttendanceSummary(loadedDays.attendanceSummaries, selectedDayFromUrl.dayId)
+    : null;
+  const cachedSelectedDayAttendanceDetails = selectedDayFromUrl
     ? (attendanceDetailsByDay[selectedDayFromUrl.dayId] ?? null)
     : null;
+  const selectedDayAttendanceDetails =
+    cachedSelectedDayAttendanceDetails && selectedDaySummaryPreview
+      ? attendanceDetailsMatchSummary(cachedSelectedDayAttendanceDetails, selectedDaySummaryPreview)
+        ? cachedSelectedDayAttendanceDetails
+        : null
+      : cachedSelectedDayAttendanceDetails;
   const hasSelectedDayCostSummary =
     selectedDayFromUrl && Object.hasOwn(costSummariesByDay, selectedDayFromUrl.dayId);
   const selectedDayCostSummary =
@@ -3136,10 +3348,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     }
 
     const dayId = pendingAttendanceDayIdRef.current;
+    const attendance = attendanceFetcher.data;
     pendingAttendanceDayIdRef.current = null;
     setAttendanceDetailsByDay((current) => ({
       ...current,
-      [dayId]: attendanceFetcher.data!,
+      [dayId]: attendance,
+    }));
+    setLoadedDays((current) => ({
+      ...current,
+      attendanceSummaries: {
+        ...current.attendanceSummaries,
+        [dayId]: getAttendanceSummaryFromDetails(attendance),
+      },
     }));
   }, [attendanceFetcher.data]);
 
@@ -3212,10 +3432,18 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
     }
 
     const dayId = pendingAdjacentAttendanceDayIdRef.current;
+    const attendance = adjacentAttendanceFetcher.data;
     pendingAdjacentAttendanceDayIdRef.current = null;
     setAttendanceDetailsByDay((current) => ({
       ...current,
-      [dayId]: adjacentAttendanceFetcher.data!,
+      [dayId]: attendance,
+    }));
+    setLoadedDays((current) => ({
+      ...current,
+      attendanceSummaries: {
+        ...current.attendanceSummaries,
+        [dayId]: getAttendanceSummaryFromDetails(attendance),
+      },
     }));
   }, [adjacentAttendanceFetcher.data]);
 
@@ -3234,7 +3462,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
       <PageHeader
         eyebrow="Shared schedule"
         title="Available Days"
-        description="Open one live date at a time to review the group plan, shared stay, and your next trip action."
+        description="Open one live date at a time to review the group plan, accommodation, and your next trip action."
         meta={
           <AvailableDaysHeaderMeta
             totalCount={loadedDays.totalCount}
@@ -3536,10 +3764,10 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
           {selectedDayFromUrl ? (
             <DayDetailPanel
               day={selectedDayFromUrl}
-              summary={getAttendanceSummary(
-                loadedDays.attendanceSummaries,
-                selectedDayFromUrl.dayId,
-              )}
+              summary={
+                selectedDaySummaryPreview ??
+                getAttendanceSummary(loadedDays.attendanceSummaries, selectedDayFromUrl.dayId)
+              }
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
               series={selectedDaySeries ?? undefined}
               sharedPlan={selectedDayMatchesRouteData ? data.selectedDayPlan : null}

@@ -10,6 +10,11 @@ import {
   normalizeEmail,
   normalizeMemberAccessEmail,
 } from './authorization';
+import {
+  acceptMemberJoinLink,
+  canUseMemberJoinLinkForAccountCreation,
+  type MemberJoinLinkLookupResult,
+} from './member-join-links.server';
 import type { User } from './schemas';
 
 const MEMBER_INVITE_SCOPE = 'member';
@@ -257,6 +262,49 @@ export async function acceptMemberInviteForUser(
   });
 }
 
+export async function createAcceptedMemberInviteForUser({
+  user,
+  invitedBy,
+  store = memberInviteStore,
+  nowDate = new Date(),
+}: {
+  user: Pick<User, 'id' | 'email'>;
+  invitedBy: Pick<User, 'id' | 'name'>;
+  store?: MemberInvitePersistence;
+  nowDate?: Date;
+}): Promise<MemberInviteRecord> {
+  const existing = await findMemberInviteForAccessEmail(user.email, store, nowDate);
+  if (existing?.status === 'accepted') {
+    return existing;
+  }
+
+  const now = nowDate.toISOString();
+  const changes: Partial<MemberInviteRecord> = {
+    invitedByUserId: invitedBy.id,
+    invitedByName: invitedBy.name,
+    status: 'accepted',
+    acceptedByUserId: user.id,
+    acceptedAt: now,
+    updatedAt: now,
+  };
+
+  if (existing) {
+    return store.update(existing.inviteEmail, changes);
+  }
+
+  return store.create({
+    inviteEmail: normalizeEmail(user.email),
+    inviteScope: MEMBER_INVITE_SCOPE,
+    invitedByUserId: invitedBy.id,
+    invitedByName: invitedBy.name,
+    status: 'accepted',
+    acceptedByUserId: user.id,
+    acceptedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  } as MemberInviteRecord);
+}
+
 export async function ensureUserMemberAccess(
   user: User,
   store: MemberInvitePersistence = memberInviteStore,
@@ -268,11 +316,17 @@ export async function ensureUserMemberAccess(
   return Boolean(await acceptMemberInviteForUser(user, store));
 }
 
-export async function canCreateMemberAccountForEmail(
-  email: string,
-  store: MemberInvitePersistence = memberInviteStore,
+export async function canCreateMemberAccountForEmail({
+  email,
+  store = memberInviteStore,
   now = new Date(),
-): Promise<boolean> {
+  joinToken,
+}: {
+  email: string;
+  store?: MemberInvitePersistence;
+  now?: Date;
+  joinToken?: string | null;
+}): Promise<boolean> {
   const normalizedEmail = normalizeEmail(email);
 
   if (
@@ -284,10 +338,40 @@ export async function canCreateMemberAccountForEmail(
 
   const invite = await findMemberInviteForAccessEmail(normalizedEmail, store, now);
   if (!invite || !isInviteUsableForMemberAccess(invite, now)) {
-    return false;
+    return canUseMemberJoinLinkForAccountCreation({ token: joinToken, now });
   }
 
   return invite.status === 'pending' || invite.status === 'accepted';
+}
+
+export async function grantMemberAccessFromJoinLink({
+  token,
+  user,
+  store = memberInviteStore,
+}: {
+  token: string | null | undefined;
+  user: Pick<User, 'id' | 'email' | 'name'>;
+  store?: MemberInvitePersistence;
+}): Promise<MemberJoinLinkLookupResult> {
+  const accepted = await acceptMemberJoinLink({
+    token: token ?? '',
+    user,
+  });
+
+  if (!accepted.ok) {
+    return accepted;
+  }
+
+  await createAcceptedMemberInviteForUser({
+    user,
+    invitedBy: {
+      id: accepted.link.createdByUserId,
+      name: accepted.link.createdByName,
+    },
+    store,
+  });
+
+  return accepted;
 }
 
 export async function listMemberInvites(

@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from 'vite-plus/test';
 vi.mock('~/lib/auth/member-invites.server', () => ({
   listMemberInvites: vi.fn(),
 }));
+vi.mock('~/lib/auth/member-join-links.server', () => ({
+  listMemberJoinLinks: vi.fn(),
+}));
 vi.mock('~/lib/auth/members.server', () => ({
   listAdminSiteMembers: vi.fn(),
 }));
@@ -111,6 +114,9 @@ vi.mock('~/lib/db/entities/manual-day.server', () => ({
 vi.mock('~/lib/db/entities/member-invite.server', () => ({
   MemberInviteEntity: {},
 }));
+vi.mock('~/lib/db/entities/member-join-link.server', () => ({
+  MemberJoinLinkEntity: {},
+}));
 vi.mock('~/lib/db/entities/member-payment-preference.server', () => ({
   MemberPaymentPreferenceEntity: {},
 }));
@@ -167,6 +173,19 @@ describe('admin data export', () => {
         },
       ],
       loadMemberInvites: async () => [],
+      loadMemberJoinLinks: async () => [
+        {
+          tokenHash: 'join-hash-1',
+          tokenHint: 'token123',
+          mode: 'usage_limit' as const,
+          maxUses: 5,
+          acceptedCount: 2,
+          state: 'active' as const,
+          createdByName: 'Admin One',
+          expiresAt: '2026-04-28T10:00:00.000Z',
+          createdAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
       loadBookings: async () => [booking],
       loadAvailableDaysSnapshot: async () => ({
         refreshedAt: '2026-04-27T09:00:00.000Z',
@@ -318,8 +337,15 @@ describe('admin data export', () => {
       ],
     });
 
-    expect(dataExport.exportVersion).toBe(7);
+    expect(dataExport.exportVersion).toBe(8);
     expect(dataExport.exportedAt).toBe('2026-04-27T10:00:00.000Z');
+    expect(dataExport.memberJoinLinks).toEqual([
+      expect.objectContaining({
+        tokenHash: 'join-hash-1',
+        tokenHint: 'token123',
+      }),
+    ]);
+    expect(JSON.stringify(dataExport.memberJoinLinks)).not.toContain('/join/');
     expect(dataExport.bookings).toEqual([booking]);
     expect(dataExport.costGroups).toEqual([expect.objectContaining({ groupId: 'group-1' })]);
     expect(dataExport.costExpenses).toEqual([expect.objectContaining({ expenseId: 'expense-1' })]);
@@ -345,6 +371,7 @@ describe('admin data export', () => {
     expect(JSON.stringify(dataExport.calendarFeeds)).not.toContain('plain-token');
     expect(summarizeAdminDataExport(dataExport)).toMatchObject({
       memberCount: 1,
+      joinLinkCount: 1,
       bookingCount: 1,
       calendarFeedCount: 1,
       circuitAliasCount: 1,

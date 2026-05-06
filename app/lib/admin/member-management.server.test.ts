@@ -85,6 +85,7 @@ const booking: BookingRecord = {
   provider: 'Caterham Motorsport',
   bookingReference: 'PRIVATE-REF',
   description: 'Round 1',
+  accommodationStatus: 'booked',
   accommodationName: 'Trackside Hotel',
   accommodationReference: 'PRIVATE-HOTEL',
   notes: 'Private notes',
@@ -128,6 +129,7 @@ describe('admin member management helpers', () => {
       bookings: [
         {
           bookingId: 'booking-1',
+          accommodationStatus: 'booked',
           accommodationName: 'Trackside Hotel',
         },
       ],

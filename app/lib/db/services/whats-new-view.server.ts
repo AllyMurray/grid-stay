@@ -1,4 +1,9 @@
-import { countWhatsNewEntriesAfter, type WhatsNewEntry, whatsNewEntries } from '~/lib/whats-new';
+import {
+  countWhatsNewEntriesAfter,
+  resolveWhatsNewViewedAt,
+  type WhatsNewEntry,
+  whatsNewEntries,
+} from '~/lib/whats-new';
 import { WhatsNewViewEntity, type WhatsNewViewRecord } from '../entities/whats-new-view.server';
 
 export const WHATS_NEW_VIEW_SCOPE = 'whats-new';
@@ -54,12 +59,14 @@ export async function markWhatsNewViewed(
   viewedAt = new Date().toISOString(),
 ): Promise<WhatsNewViewRecord> {
   const store = dependencies.store ?? whatsNewViewStore;
+  const entries = dependencies.entries ?? whatsNewEntries;
+  const lastViewedAt = resolveWhatsNewViewedAt(viewedAt, entries);
   const existing = await store.getByUser(userId);
 
   return store.put({
     userId,
     viewScope: WHATS_NEW_VIEW_SCOPE,
-    lastViewedAt: viewedAt,
+    lastViewedAt,
     createdAt: existing?.createdAt ?? viewedAt,
     updatedAt: viewedAt,
   } as WhatsNewViewRecord);
