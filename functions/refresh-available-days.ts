@@ -5,6 +5,7 @@ import {
   getAvailableDaysSnapshot,
   refreshAvailableDaysSnapshot,
 } from '../app/lib/db/services/available-days-cache.server';
+import { upsertAvailableDayCatalogue } from '../app/lib/db/services/available-day-catalogue.server';
 import { syncDayAttendanceSummaries } from '../app/lib/db/services/booking.server';
 import {
   createAvailableDayNotificationsSafely,
@@ -21,6 +22,8 @@ export async function handler() {
   try {
     const previousSnapshot = await getAvailableDaysSnapshot();
     const result = await listAvailableDays();
+    let catalogueRecords: Awaited<ReturnType<typeof upsertAvailableDayCatalogue>> = [];
+    let catalogueError: string | undefined;
     const newDays = findNewAvailableDays(
       previousSnapshot ? previousSnapshot.days : null,
       result.days,
@@ -30,6 +33,25 @@ export async function handler() {
       result.days,
       new Date().toISOString(),
     );
+    try {
+      catalogueRecords = await upsertAvailableDayCatalogue(result.days);
+    } catch (error) {
+      catalogueError = error instanceof Error ? error.message : String(error);
+      console.error('Failed to update available day catalogue', { error });
+      await recordAppEventSafely({
+        category: 'error',
+        action: 'availableDayCatalogue.upsert.failed',
+        message: 'Failed to update the retained available day catalogue.',
+        subject: {
+          type: 'availableDays',
+          id: 'catalogue',
+        },
+        metadata: {
+          dayCount: result.days.length,
+          error: catalogueError,
+        },
+      });
+    }
     const snapshot = await refreshAvailableDaysSnapshot(result);
     const recordedFeedChanges = await recordFeedChangesSafely(feedChanges);
     const notifications = await createAvailableDayNotificationsSafely(newDays);
@@ -55,6 +77,7 @@ export async function handler() {
         message: 'Available days cache refreshed',
         refreshedAt: snapshot.refreshedAt,
         dayCount: snapshot.days.length,
+        catalogueDayCount: catalogueRecords.length,
         errorCount: snapshot.errors.length,
         newDayCount: notifications.length,
         changedDayCount: changedNotifications.length,
@@ -62,16 +85,17 @@ export async function handler() {
         linkedSeriesCount: linkedSeriesResults.length,
         linkedSeriesSubscriptions,
         linkedSeriesBookings,
+        catalogueError,
       }),
     );
 
     await recordAppEventSafely({
       category: 'operational',
-      severity: snapshot.errors.length > 0 ? 'warning' : 'info',
+      severity: snapshot.errors.length > 0 || catalogueError ? 'warning' : 'info',
       action: 'availableDays.refresh.completed',
       message:
-        snapshot.errors.length > 0
-          ? 'Available days refresh completed with source errors.'
+        snapshot.errors.length > 0 || catalogueError
+          ? 'Available days refresh completed with source or catalogue errors.'
           : 'Available days refresh completed.',
       subject: {
         type: 'availableDays',
@@ -80,6 +104,7 @@ export async function handler() {
       metadata: {
         refreshedAt: snapshot.refreshedAt,
         dayCount: snapshot.days.length,
+        catalogueDayCount: catalogueRecords.length,
         errorCount: snapshot.errors.length,
         newDayCount: notifications.length,
         changedDayCount: changedNotifications.length,
@@ -87,16 +112,19 @@ export async function handler() {
         linkedSeriesCount: linkedSeriesResults.length,
         linkedSeriesSubscriptions,
         linkedSeriesBookings,
+        catalogueError,
       },
     });
 
     return {
       refreshedAt: snapshot.refreshedAt,
       dayCount: snapshot.days.length,
+      catalogueDayCount: catalogueRecords.length,
       errorCount: snapshot.errors.length,
       newDayCount: notifications.length,
       changedDayCount: changedNotifications.length,
       linkedSeriesCount: linkedSeriesResults.length,
+      catalogueError,
     };
   } catch (error) {
     await recordAppEventSafely({

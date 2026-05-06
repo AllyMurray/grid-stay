@@ -4,6 +4,10 @@ vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
 }));
 
+vi.mock('~/lib/db/services/available-day-catalogue.server', () => ({
+  loadAvailableDayCatalogueSafely: vi.fn(),
+}));
+
 vi.mock('~/lib/db/services/manual-day.server', () => ({
   listManualDays: vi.fn(),
 }));
@@ -52,6 +56,7 @@ vi.mock('~/lib/days/shared-plan.server', () => ({
 }));
 
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import { loadAvailableDayCatalogueSafely } from '~/lib/db/services/available-day-catalogue.server';
 import { listAttendanceByDay, listMyBookings } from '~/lib/db/services/booking.server';
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import { dayAttendanceSummaryStore } from '~/lib/db/services/day-attendance-summary.server';
@@ -69,6 +74,8 @@ describe('days dashboard feed', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-04T12:00:00.000Z'));
     vi.mocked(getAvailableDaysSnapshot).mockReset();
+    vi.mocked(loadAvailableDayCatalogueSafely).mockReset();
+    vi.mocked(loadAvailableDayCatalogueSafely).mockResolvedValue([]);
     vi.mocked(listManualDays).mockReset();
     vi.mocked(listAttendanceByDay).mockReset();
     vi.mocked(listAttendanceByDay).mockResolvedValue({
@@ -304,6 +311,83 @@ describe('days dashboard feed', () => {
     expect(showPastData.days.map((day) => day.dayId)).toEqual(['past-day', 'future-day']);
     expect(showPastData.totalCount).toBe(2);
     expect(showPastData.filters.showPast).toBe(true);
+    expect(showPastData.monthOptions).toEqual(['2026-04', '2026-06']);
+  });
+
+  it('restores retained catalogue history only when show-past is enabled', async () => {
+    vi.mocked(getAvailableDaysSnapshot).mockResolvedValue({
+      refreshedAt: '2026-05-04T09:30:00.000Z',
+      errors: [],
+      days: [
+        {
+          dayId: 'current-day',
+          date: '2026-06-08',
+          type: 'track_day',
+          circuit: 'Silverstone',
+          provider: 'Future Provider',
+          description: 'Current source detail',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'future-source',
+          },
+        },
+      ],
+    });
+    vi.mocked(loadAvailableDayCatalogueSafely).mockResolvedValue([
+      {
+        dayId: 'retained-past-day',
+        date: '2026-04-20',
+        type: 'track_day',
+        circuit: 'Brands Hatch',
+        provider: 'Past Provider',
+        description: 'Retained past source day',
+        source: {
+          sourceType: 'trackdays',
+          sourceName: 'past-source',
+        },
+      },
+      {
+        dayId: 'current-day',
+        date: '2026-06-08',
+        type: 'track_day',
+        circuit: 'Silverstone',
+        provider: 'Future Provider',
+        description: 'Stale catalogue detail',
+        source: {
+          sourceType: 'trackdays',
+          sourceName: 'future-source',
+        },
+      },
+    ]);
+    vi.mocked(listManualDays).mockResolvedValue([]);
+    vi.mocked(listMyBookings).mockResolvedValue([]);
+    vi.mocked(dayAttendanceSummaryStore.getByDayIds).mockResolvedValue(new Map());
+
+    const defaultData = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days'),
+    );
+    const showPastData = await loadDaysIndex(
+      {
+        id: 'user-1',
+        email: 'driver@example.com',
+        role: 'member',
+      },
+      new URL('https://gridstay.app/dashboard/days?showPast=true'),
+    );
+
+    expect(defaultData.days.map((day) => day.dayId)).toEqual(['current-day']);
+    expect(showPastData.days.map((day) => day.dayId)).toEqual([
+      'retained-past-day',
+      'current-day',
+    ]);
+    expect(showPastData.days.find((day) => day.dayId === 'current-day')?.description).toBe(
+      'Current source detail',
+    );
     expect(showPastData.monthOptions).toEqual(['2026-04', '2026-06']);
   });
 

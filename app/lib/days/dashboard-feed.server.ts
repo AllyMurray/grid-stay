@@ -2,6 +2,7 @@ import type { User } from '~/lib/auth/schemas';
 import { type AccommodationStatus, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
 import { resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
+import { loadAvailableDayCatalogueSafely } from '~/lib/db/services/available-day-catalogue.server';
 import { listAttendanceByDay, listMyBookings } from '~/lib/db/services/booking.server';
 import { loadCircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
 import {
@@ -160,6 +161,15 @@ function compareAvailableDays(left: AvailableDay, right: AvailableDay) {
   }
 
   return left.dayId.localeCompare(right.dayId);
+}
+
+function mergeAvailableDaysById(days: AvailableDay[]): AvailableDay[] {
+  const daysById = new Map<string, AvailableDay>();
+  for (const day of days) {
+    daysById.set(day.dayId, day);
+  }
+
+  return [...daysById.values()];
 }
 
 function combineAttendanceOverviews(
@@ -370,22 +380,26 @@ function listRaceSeriesOptions(days: AvailableDay[]): RaceSeriesFilterOption[] {
 }
 
 async function loadFilteredDays(url: URL) {
-  const [snapshot, manualDays, dayMerges] = await Promise.all([
+  const filters = getFilters(url);
+  const [snapshot, manualDays, catalogueDays, dayMerges] = await Promise.all([
     getAvailableDaysSnapshot(),
     listManualDays(),
+    filters.showPast ? loadAvailableDayCatalogueSafely() : Promise.resolve([]),
     loadDayMergesSafely(),
   ]);
-  const filters = getFilters(url);
   const raw = snapshot ?? {
     days: [],
     errors: EMPTY_ERRORS,
   };
-  const allDays = applyDayMerges([...raw.days, ...manualDays], dayMerges)
+  const today = getTodayDate();
+  const historicalCatalogueDays = catalogueDays.filter((day) => day.date < today);
+  const allDays = applyDayMerges(
+    mergeAvailableDaysById([...historicalCatalogueDays, ...raw.days, ...manualDays]),
+    dayMerges,
+  )
     .map(normalizeAvailableDayCircuit)
     .toSorted(compareAvailableDays);
-  const dateScopedDays = filters.showPast
-    ? allDays
-    : allDays.filter((day) => day.date >= getTodayDate());
+  const dateScopedDays = filters.showPast ? allDays : allDays.filter((day) => day.date >= today);
   const filteredDays = filterAvailableDays(dateScopedDays, {
     month: filters.month || undefined,
     series: filters.series || undefined,
