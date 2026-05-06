@@ -21,16 +21,8 @@ describe('WhatsNewPage', () => {
     renderWhatsNewPage();
 
     expect(screen.getByRole('heading', { name: "What's new" })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {
-        name: 'Most dates leaderboard',
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/track, test, and race day counts/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /open leaderboard/i })).toHaveAttribute(
-      'href',
-      '/dashboard/members/leaderboard',
-    );
+    expect(screen.queryByRole('heading', { name: 'Most dates leaderboard' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /open leaderboard/i })).toBeNull();
     expect(
       screen.getByRole('heading', {
         name: 'Pending invites are now private to the sender',

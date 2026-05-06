@@ -225,11 +225,6 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
         eyebrow="Members"
         title="Site members"
         description="See who is on the site, invite new members, and check who already has accommodation plans in play."
-        actions={
-          <Button component={Link} to="/dashboard/members/leaderboard" variant="default">
-            Most dates
-          </Button>
-        }
       />
 
       <MemberInvitePanel pendingInvites={pendingInvites} />

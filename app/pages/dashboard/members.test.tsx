@@ -49,10 +49,7 @@ describe('MembersPage', () => {
     renderWithProviders(<MembersPage members={members} pendingInvites={[]} />);
 
     expect(screen.getByRole('heading', { name: 'Site members' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Most dates' })).toHaveAttribute(
-      'href',
-      '/dashboard/members/leaderboard',
-    );
+    expect(screen.queryByRole('link', { name: 'Most dates' })).not.toBeInTheDocument();
     expect(screen.getByText('Ally Murray')).toBeInTheDocument();
     expect(screen.getByText(/Silverstone/)).toBeInTheDocument();
     expect(screen.getByText(/trackside hotel/i)).toBeInTheDocument();
