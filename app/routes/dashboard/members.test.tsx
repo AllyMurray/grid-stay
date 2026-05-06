@@ -7,7 +7,8 @@ const { listPendingMemberInvitesForUser, submitMemberInviteAction } = vi.hoisted
   listPendingMemberInvitesForUser: vi.fn(),
   submitMemberInviteAction: vi.fn(),
 }));
-const { listSiteMembers } = vi.hoisted(() => ({
+const { listMemberDateLeaderboard, listSiteMembers } = vi.hoisted(() => ({
+  listMemberDateLeaderboard: vi.fn(),
   listSiteMembers: vi.fn(),
 }));
 const { recordAppEventSafely } = vi.hoisted(() => ({
@@ -24,6 +25,7 @@ vi.mock('~/lib/auth/member-invites.server', () => ({
 }));
 
 vi.mock('~/lib/auth/members.server', () => ({
+  listMemberDateLeaderboard,
   listSiteMembers,
 }));
 
@@ -53,6 +55,8 @@ describe('members route', () => {
     requireUser.mockResolvedValue({ user, headers: new Headers() });
     listSiteMembers.mockReset();
     listSiteMembers.mockResolvedValue([]);
+    listMemberDateLeaderboard.mockReset();
+    listMemberDateLeaderboard.mockResolvedValue([]);
     listPendingMemberInvitesForUser.mockReset();
     listPendingMemberInvitesForUser.mockResolvedValue([invite]);
     submitMemberInviteAction.mockReset();
@@ -75,7 +79,9 @@ describe('members route', () => {
     await expect(response.json()).resolves.toEqual({
       members: [],
       pendingInvites: [invite],
+      leaderboard: [],
     });
+    expect(listMemberDateLeaderboard).toHaveBeenCalledOnce();
     expect(listPendingMemberInvitesForUser).toHaveBeenCalledWith('user-1');
   });
 
