@@ -43,16 +43,23 @@ function renderDashboard(
   user: User = dashboardUser,
   options: {
     initialEntries?: string[];
+    unreadNotificationCount?: number;
     newWhatsNewCount?: number;
   } = {},
 ) {
+  const badgeCounts = {
+    unreadNotificationCount: options.unreadNotificationCount ?? 0,
+    newWhatsNewCount: options.newWhatsNewCount ?? 0,
+  };
   const Stub = createRoutesStub([
+    {
+      path: '/api/dashboard/badge-counts',
+      loader: () => badgeCounts,
+    },
     {
       path: '/dashboard',
       loader: () => ({
         user,
-        unreadNotificationCount: 0,
-        newWhatsNewCount: options.newWhatsNewCount ?? 0,
       }),
       Component: () => (
         <MantineProvider theme={theme}>
@@ -66,7 +73,10 @@ function renderDashboard(
         },
         {
           path: 'whats-new',
-          Component: () => <div>What's new content</div>,
+          Component: () => {
+            badgeCounts.newWhatsNewCount = 0;
+            return <div>What's new content</div>;
+          },
         },
       ],
     },
@@ -158,7 +168,7 @@ describe('DashboardLayoutRoute', () => {
     await user.click(await screen.findByRole('button', { name: 'Open menu' }));
 
     const drawer = await screen.findByRole('dialog', { name: 'Navigation' });
-    const whatsNewLink = within(drawer).getByRole('link', {
+    const whatsNewLink = await within(drawer).findByRole('link', {
       name: "What's New, 2 new updates",
     });
 
@@ -191,7 +201,7 @@ describe('DashboardLayoutRoute', () => {
 
     let drawer = await screen.findByRole('dialog', { name: 'Navigation' });
     await user.click(
-      within(drawer).getByRole('link', {
+      await within(drawer).findByRole('link', {
         name: "What's New, 2 new updates",
       }),
     );

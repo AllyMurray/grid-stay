@@ -34,9 +34,10 @@ import {
 } from '@tabler/icons-react';
 import type { ComponentType } from 'react';
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useRevalidator } from 'react-router';
+import { Link, Outlet, useFetcher, useLocation, useRevalidator } from 'react-router';
 import { isAdminUser } from '~/lib/auth/authorization';
 import type { User } from '~/lib/auth/schemas';
+import type { DashboardBadgeCountsData } from '~/routes/api.dashboard.badge-counts';
 
 interface DashboardNavItem {
   label: string;
@@ -49,8 +50,8 @@ interface DashboardNavItem {
 
 export interface DashboardShellProps {
   user: User;
-  unreadNotificationCount: number;
-  newWhatsNewCount: number;
+  unreadNotificationCount?: number;
+  newWhatsNewCount?: number;
 }
 
 interface DashboardNavContentProps {
@@ -157,8 +158,8 @@ function DashboardNavContent({
 
 export function DashboardShell({
   user,
-  unreadNotificationCount,
-  newWhatsNewCount,
+  unreadNotificationCount: initialUnreadNotificationCount = 0,
+  newWhatsNewCount: initialNewWhatsNewCount = 0,
 }: DashboardShellProps) {
   const location = useLocation();
   const { toggleColorScheme } = useMantineColorScheme();
@@ -167,15 +168,36 @@ export function DashboardShell({
   });
   const [opened, { toggle, close }] = useDisclosure(false);
   const revalidator = useRevalidator();
+  const badgeCountsFetcher = useFetcher<DashboardBadgeCountsData>();
   const isAdmin = isAdminUser(user);
   const mobileMenuId = 'dashboard-mobile-menu';
-  const [visibleWhatsNewCount, setVisibleWhatsNewCount] = useState(newWhatsNewCount);
+  const [visibleUnreadNotificationCount, setVisibleUnreadNotificationCount] = useState(
+    initialUnreadNotificationCount,
+  );
+  const [visibleWhatsNewCount, setVisibleWhatsNewCount] = useState(initialNewWhatsNewCount);
   const isWhatsNewPage = location.pathname.startsWith('/dashboard/whats-new');
   const whatsNewCount = isWhatsNewPage ? 0 : visibleWhatsNewCount;
 
   useEffect(() => {
-    setVisibleWhatsNewCount(newWhatsNewCount);
-  }, [newWhatsNewCount]);
+    setVisibleUnreadNotificationCount(initialUnreadNotificationCount);
+  }, [initialUnreadNotificationCount]);
+
+  useEffect(() => {
+    setVisibleWhatsNewCount(initialNewWhatsNewCount);
+  }, [initialNewWhatsNewCount]);
+
+  useEffect(() => {
+    badgeCountsFetcher.load('/api/dashboard/badge-counts');
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!badgeCountsFetcher.data) {
+      return;
+    }
+
+    setVisibleUnreadNotificationCount(badgeCountsFetcher.data.unreadNotificationCount);
+    setVisibleWhatsNewCount(badgeCountsFetcher.data.newWhatsNewCount);
+  }, [badgeCountsFetcher.data]);
 
   useEffect(() => {
     if (isWhatsNewPage) {
@@ -191,6 +213,7 @@ export function DashboardShell({
 
       close();
       revalidator.revalidate();
+      badgeCountsFetcher.load('/api/dashboard/badge-counts');
     }
 
     window.addEventListener('pageshow', handlePageShow);
@@ -198,7 +221,7 @@ export function DashboardShell({
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [close, revalidator]);
+  }, [badgeCountsFetcher, close, revalidator]);
 
   const navItems = [
     {
@@ -242,8 +265,9 @@ export function DashboardShell({
       to: '/dashboard/notifications',
       icon: IconBell,
       active: location.pathname.startsWith('/dashboard/notifications'),
-      count: unreadNotificationCount,
-      countLabel: unreadNotificationCount === 1 ? 'pending notification' : 'pending notifications',
+      count: visibleUnreadNotificationCount,
+      countLabel:
+        visibleUnreadNotificationCount === 1 ? 'pending notification' : 'pending notifications',
     },
     {
       label: 'Feedback',
@@ -314,8 +338,8 @@ export function DashboardShell({
 
           <Group gap="xs" wrap="nowrap">
             <Indicator
-              disabled={unreadNotificationCount === 0}
-              label={unreadNotificationCount}
+              disabled={visibleUnreadNotificationCount === 0}
+              label={visibleUnreadNotificationCount}
               size={18}
               color="brand"
             >
@@ -326,9 +350,9 @@ export function DashboardShell({
                 size="lg"
                 radius="sm"
                 aria-label={
-                  unreadNotificationCount === 0
+                  visibleUnreadNotificationCount === 0
                     ? 'Open notifications'
-                    : `Open notifications, ${unreadNotificationCount} pending`
+                    : `Open notifications, ${visibleUnreadNotificationCount} pending`
                 }
               >
                 <IconBell size={18} />
