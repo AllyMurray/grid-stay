@@ -33,7 +33,16 @@ import {
   IconSearch,
   IconUsers,
 } from '@tabler/icons-react';
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useFetcher, useSearchParams } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
@@ -56,7 +65,11 @@ import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { UserGarageShareRequest } from '~/lib/db/services/garage-sharing.server';
 import type { HotelInsight, HotelSuggestion } from '~/lib/db/services/hotel.server';
 import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
-import { BookingSchedulePanel } from './schedule';
+import type { DashboardHotelInsightData } from '~/routes/api.dashboard.hotel-insight';
+
+const BookingSchedulePanel = lazy(() =>
+  import('./schedule').then((module) => ({ default: module.BookingSchedulePanel })),
+);
 
 export interface MyBookingsPageProps {
   bookings: BookingRecord[];
@@ -75,6 +88,7 @@ type BookingEditorTab = 'trip' | 'stay' | 'garage' | 'private';
 const bookingEditorTabs: BookingEditorTab[] = ['trip', 'stay', 'garage', 'private'];
 
 type MyBookingsView = 'bookings' | 'calendar';
+const EMPTY_HOTEL_INSIGHTS: Record<string, HotelInsight> = {};
 
 function parseBookingsView(value: string | null): MyBookingsView {
   if (value === 'calendar') {
@@ -1343,7 +1357,7 @@ function BookingEditorPanel({
 export function MyBookingsPage({
   bookings,
   garageShareRequests = [],
-  hotelInsights = {},
+  hotelInsights = EMPTY_HOTEL_INSIGHTS,
   calendarFeedExists = false,
   calendarFeedUrl = null,
   calendarFeedTokenHint = null,
@@ -1362,6 +1376,10 @@ export function MyBookingsPage({
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     selectedBookingParam ?? bookings[0]?.bookingId ?? null,
   );
+  const hotelInsightFetcher = useFetcher<DashboardHotelInsightData>();
+  const [hotelInsightsById, setHotelInsightsById] =
+    useState<Record<string, HotelInsight>>(hotelInsights);
+  const requestedHotelInsightIdsRef = useRef(new Set<string>());
   const [statusFilter, setStatusFilter] = useState<BookingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasEditorDirtyChanges, setHasEditorDirtyChanges] = useState(false);
@@ -1424,6 +1442,42 @@ export function MyBookingsPage({
     : -1;
   const editorOpen =
     activeView === 'bookings' && (!isCompact || Boolean(selectedBookingParam));
+  const selectedHotelId = selectedBooking?.hotelId ?? null;
+  const selectedHotelInsight =
+    selectedHotelId && hotelInsightsById[selectedHotelId]
+      ? hotelInsightsById[selectedHotelId]
+      : undefined;
+
+  useEffect(() => {
+    setHotelInsightsById(hotelInsights);
+  }, [hotelInsights]);
+
+  useEffect(() => {
+    if (
+      !selectedHotelId ||
+      hotelInsightsById[selectedHotelId] ||
+      requestedHotelInsightIdsRef.current.has(selectedHotelId)
+    ) {
+      return;
+    }
+
+    requestedHotelInsightIdsRef.current.add(selectedHotelId);
+    hotelInsightFetcher.load(
+      `/api/dashboard/hotel-insight?hotelId=${encodeURIComponent(selectedHotelId)}`,
+    );
+  }, [hotelInsightFetcher, hotelInsightsById, selectedHotelId]);
+
+  useEffect(() => {
+    const insight = hotelInsightFetcher.data?.hotelInsight;
+    if (!insight) {
+      return;
+    }
+
+    setHotelInsightsById((current) => ({
+      ...current,
+      [insight.hotel.hotelId]: insight,
+    }));
+  }, [hotelInsightFetcher.data]);
 
   const updateSelectedBookingParam = useCallback(
     (bookingId: string | null) => {
@@ -1664,7 +1718,7 @@ export function MyBookingsPage({
     <BookingEditorPanel
       key={selectedBooking.bookingId}
       booking={selectedBooking}
-      hotelInsight={selectedBooking.hotelId ? hotelInsights[selectedBooking.hotelId] : undefined}
+      hotelInsight={selectedHotelInsight}
       garageShareRequests={garageShareRequests}
       selectedIndex={selectedIndex}
       totalBookings={filteredBookings.length}
@@ -1755,18 +1809,26 @@ export function MyBookingsPage({
           <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
             {pastDatesToggle}
           </Paper>
-          <BookingSchedulePanel
-            bookings={dateFilteredBookings}
-            displayMode="calendar"
-            showDisplayModeControl={false}
-            manageBookingsHref="/dashboard/bookings"
-            calendarFeedExists={calendarFeedExists}
-            calendarFeedUrl={calendarFeedUrl}
-            calendarFeedTokenHint={calendarFeedTokenHint}
-            calendarFeedOptions={calendarFeedOptions}
-            today={todayDate}
-            showPastBookings={showPastBookings}
-          />
+          <Suspense
+            fallback={
+              <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+                <Text c="dimmed">Loading calendar</Text>
+              </Paper>
+            }
+          >
+            <BookingSchedulePanel
+              bookings={dateFilteredBookings}
+              displayMode="calendar"
+              showDisplayModeControl={false}
+              manageBookingsHref="/dashboard/bookings"
+              calendarFeedExists={calendarFeedExists}
+              calendarFeedUrl={calendarFeedUrl}
+              calendarFeedTokenHint={calendarFeedTokenHint}
+              calendarFeedOptions={calendarFeedOptions}
+              today={todayDate}
+              showPastBookings={showPastBookings}
+            />
+          </Suspense>
         </Stack>
       ) : (
         <Grid gap={{ base: 'md', sm: 'lg' }} align="start">

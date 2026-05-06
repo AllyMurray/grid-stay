@@ -25,7 +25,6 @@ import {
   listGarageShareRequestsForUser,
   type UserGarageShareRequest,
 } from '~/lib/db/services/garage-sharing.server';
-import { type HotelInsight, listHotelInsights } from '~/lib/db/services/hotel.server';
 import { submitGarageShareDecision } from '~/lib/garage-sharing/actions.server';
 import { MyBookingsPage } from '~/pages/dashboard/bookings';
 import type { Route } from './+types/bookings';
@@ -47,18 +46,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     listGarageShareRequestsForUser(user.id),
     getActiveCalendarFeedForUser(user.id),
   ]);
-  const hotelInsights = Object.fromEntries(
-    await listHotelInsights(
-      bookings
-        .map((booking) => booking.hotelId)
-        .filter((hotelId): hotelId is string => Boolean(hotelId)),
-    ),
-  );
+
   return Response.json(
     {
       bookings,
       garageShareRequests,
-      hotelInsights,
       calendarFeedExists: Boolean(calendarFeed),
       calendarFeedUrl: calendarFeed?.token
         ? buildCalendarFeedUrl(request, calendarFeed.token)
@@ -205,7 +197,6 @@ export default function MyBookingsRoute() {
   const data = useLoaderData<typeof loader>() as {
     bookings: BookingRecord[];
     garageShareRequests: UserGarageShareRequest[];
-    hotelInsights: Record<string, HotelInsight>;
     calendarFeedExists: boolean;
     calendarFeedUrl: string | null;
     calendarFeedTokenHint: string | null;
@@ -216,7 +207,6 @@ export default function MyBookingsRoute() {
     <MyBookingsPage
       bookings={data.bookings}
       garageShareRequests={data.garageShareRequests}
-      hotelInsights={data.hotelInsights}
       calendarFeedExists={data.calendarFeedExists}
       calendarFeedUrl={data.calendarFeedUrl}
       calendarFeedTokenHint={data.calendarFeedTokenHint}
