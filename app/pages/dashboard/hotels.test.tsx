@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { HotelInsight } from '~/lib/db/services/hotel.server';
 import { theme } from '~/theme';
 import { HotelsPage } from './hotels';
