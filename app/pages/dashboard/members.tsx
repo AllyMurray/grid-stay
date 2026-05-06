@@ -1,6 +1,7 @@
 import {
   Alert,
   Avatar,
+  Badge,
   Button,
   Divider,
   Group,
@@ -8,8 +9,9 @@ import {
   Stack,
   Text,
   TextInput,
+  ThemeIcon,
 } from '@mantine/core';
-import { IconMail, IconSearch } from '@tabler/icons-react';
+import { IconMail, IconSearch, IconTrophy } from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
@@ -18,13 +20,17 @@ import type {
   MemberInviteActionResult,
   MemberInviteSummary,
 } from '~/lib/auth/member-invites.server';
-import type { MemberDirectoryEntry } from '~/lib/auth/members.server';
+import type {
+  MemberDateLeaderboardEntry,
+  MemberDirectoryEntry,
+} from '~/lib/auth/members.server';
 import { getAccommodationPlanSummary } from '~/lib/bookings/accommodation';
 import { formatDateOnly } from '~/lib/dates/date-only';
 
 export interface MembersPageProps {
   members: MemberDirectoryEntry[];
   pendingInvites: MemberInviteSummary[];
+  leaderboard: MemberDateLeaderboardEntry[];
 }
 
 function formatMemberDate(value: string) {
@@ -72,6 +78,108 @@ function matchesMemberQuery(member: MemberDirectoryEntry, query: string) {
     member.nextTrip?.accommodationName,
     member.nextTrip ? getAccommodationPlanSummary(member.nextTrip) : undefined,
   ].some((field) => field?.toLowerCase().includes(value));
+}
+
+function formatDateCount(count: number) {
+  return `${count} ${count === 1 ? 'date' : 'dates'}`;
+}
+
+function LeaderboardCountBadge({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <Badge variant="light" color={color} radius="sm">
+      {label} {value}
+    </Badge>
+  );
+}
+
+function MemberDateLeaderboardPanel({
+  leaderboard,
+}: {
+  leaderboard: MemberDateLeaderboardEntry[];
+}) {
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Group justify="space-between" gap="md" align="flex-start">
+          <Group gap="sm" align="flex-start" wrap="nowrap">
+            <ThemeIcon radius="sm" variant="light" color="brand">
+              <IconTrophy size={18} />
+            </ThemeIcon>
+            <Stack gap={2}>
+              <Text fw={700}>Most dates</Text>
+              <Text size="sm" c="dimmed">
+                Confirmed race, test, and track days across the group.
+              </Text>
+            </Stack>
+          </Group>
+        </Group>
+
+        {leaderboard.length > 0 ? (
+          <Stack gap="sm">
+            {leaderboard.map((entry, index) => (
+              <Stack key={entry.id} gap="sm">
+                <Group justify="space-between" gap="md" align="center" wrap="wrap">
+                  <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+                    <Text fw={800} c="dimmed" w={28} ta="center">
+                      {index + 1}
+                    </Text>
+                    <Avatar src={entry.picture} alt={entry.name} radius="sm" size={36}>
+                      {entry.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Stack gap={2} style={{ minWidth: 0 }}>
+                      <Text fw={700} truncate>
+                        {entry.name}
+                      </Text>
+                      <Group gap={6} wrap="wrap">
+                        <LeaderboardCountBadge
+                          label="Track"
+                          value={entry.trackDayCount}
+                          color="orange"
+                        />
+                        <LeaderboardCountBadge label="Test" value={entry.testDayCount} color="blue" />
+                        <LeaderboardCountBadge
+                          label="Race"
+                          value={entry.raceDayCount}
+                          color="brand"
+                        />
+                      </Group>
+                    </Stack>
+                  </Group>
+
+                  <Group gap="sm" wrap="nowrap">
+                    <Text fw={800} ta="right">
+                      {formatDateCount(entry.totalCount)}
+                    </Text>
+                    <Button
+                      component={Link}
+                      to={`/dashboard/members/${entry.id}`}
+                      size="xs"
+                      variant="default"
+                    >
+                      Open days
+                    </Button>
+                  </Group>
+                </Group>
+                {index < leaderboard.length - 1 ? <Divider /> : null}
+              </Stack>
+            ))}
+          </Stack>
+        ) : (
+          <Text size="sm" c="dimmed">
+            No confirmed race, test, or track days have been booked yet.
+          </Text>
+        )}
+      </Stack>
+    </Paper>
+  );
 }
 
 function MemberRow({ member }: { member: MemberDirectoryEntry }) {
@@ -212,7 +320,7 @@ function MemberInvitePanel({ pendingInvites }: { pendingInvites: MemberInviteSum
   );
 }
 
-export function MembersPage({ members, pendingInvites }: MembersPageProps) {
+export function MembersPage({ members, pendingInvites, leaderboard }: MembersPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const filteredMembers = useMemo(
     () => members.filter((member) => matchesMemberQuery(member, searchQuery.trim())),
@@ -226,6 +334,8 @@ export function MembersPage({ members, pendingInvites }: MembersPageProps) {
         title="Site members"
         description="See who is on the site, invite new members, and check who already has accommodation plans in play."
       />
+
+      <MemberDateLeaderboardPanel leaderboard={leaderboard} />
 
       <MemberInvitePanel pendingInvites={pendingInvites} />
 

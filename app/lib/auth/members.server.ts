@@ -59,6 +59,16 @@ export interface AdminMemberDirectoryEntry extends MemberDirectoryEntry {
   email: string;
 }
 
+export interface MemberDateLeaderboardEntry {
+  id: string;
+  name: string;
+  picture?: string;
+  totalCount: number;
+  raceDayCount: number;
+  testDayCount: number;
+  trackDayCount: number;
+}
+
 export interface MemberBookedDay {
   dayId: string;
   date: string;
@@ -417,6 +427,51 @@ function createEmptyMemberSummary(user: AuthUserRecord): MemberDirectoryEntry {
   };
 }
 
+function summarizeMemberDateLeaderboardEntry(
+  user: AuthUserRecord,
+  bookings: BookingRecord[],
+): MemberDateLeaderboardEntry | null {
+  let raceDayCount = 0;
+  let testDayCount = 0;
+  let trackDayCount = 0;
+
+  for (const booking of bookings) {
+    if (booking.status !== 'booked') {
+      continue;
+    }
+
+    switch (booking.type) {
+      case 'race_day':
+        raceDayCount += 1;
+        break;
+      case 'test_day':
+        testDayCount += 1;
+        break;
+      case 'track_day':
+        trackDayCount += 1;
+        break;
+      case 'road_drive':
+        break;
+    }
+  }
+
+  const totalCount = raceDayCount + testDayCount + trackDayCount;
+
+  if (totalCount === 0) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    picture: user.image,
+    totalCount,
+    raceDayCount,
+    testDayCount,
+    trackDayCount,
+  };
+}
+
 function toGroupCalendarAttendee(
   attendee: DayAttendanceSummary['attendees'][number],
   member: AuthUserRecord,
@@ -539,6 +594,19 @@ function compareMembers(left: MemberDirectoryEntry, right: MemberDirectoryEntry)
   return left.name.localeCompare(right.name);
 }
 
+function compareMemberDateLeaderboardEntries(
+  left: MemberDateLeaderboardEntry,
+  right: MemberDateLeaderboardEntry,
+): number {
+  return (
+    right.totalCount - left.totalCount ||
+    right.raceDayCount - left.raceDayCount ||
+    right.testDayCount - left.testDayCount ||
+    right.trackDayCount - left.trackDayCount ||
+    left.name.localeCompare(right.name)
+  );
+}
+
 function filterInvitedUsers(users: AuthUserRecord[], invites: MemberInviteAccessRecord[]) {
   const acceptedInviteEmails = new Set(
     invites
@@ -655,6 +723,29 @@ export async function listAdminSiteMembers(
   );
 
   return members.toSorted(compareMembers);
+}
+
+export async function listMemberDateLeaderboard(
+  loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
+  loadBookings: LoadBookings = loadBookingsDefault,
+  loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
+  loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
+): Promise<MemberDateLeaderboardEntry[]> {
+  const [users, profiles, invites] = await Promise.all([
+    loadUsers(),
+    loadProfiles(),
+    loadInvites(),
+  ]);
+  const usersWithProfiles = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
+  const entries = await Promise.all(
+    usersWithProfiles.map(async (user) =>
+      summarizeMemberDateLeaderboardEntry(user, await loadBookings(user.id)),
+    ),
+  );
+
+  return entries
+    .filter((entry): entry is MemberDateLeaderboardEntry => Boolean(entry))
+    .toSorted(compareMemberDateLeaderboardEntries);
 }
 
 export async function getSiteMemberById(
