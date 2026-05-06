@@ -238,3 +238,99 @@ export function summarizeAdminDataExport(dataExport: AdminDataExport): AdminData
     whatsNewViewCount: dataExport.whatsNewViews.length,
   };
 }
+
+export async function createAdminDataExportSummary(
+  dependencies: AdminExportDependencies = {},
+): Promise<AdminDataExportSummary> {
+  const loadMembers = dependencies.loadMembers ?? listAdminSiteMembers;
+  const loadMemberInvites = dependencies.loadMemberInvites ?? listMemberInvites;
+  const loadMemberJoinLinks = dependencies.loadMemberJoinLinks ?? listMemberJoinLinks;
+  const loadBookings = dependencies.loadBookings ?? listMyBookings;
+  const loadAvailableDaysSnapshot =
+    dependencies.loadAvailableDaysSnapshot ?? getAvailableDaysSnapshot;
+  const loadManualDays = dependencies.loadManualDays ?? listManagedManualDays;
+  const loadSharedDayPlans = dependencies.loadSharedDayPlans ?? dayPlanStore.listAll;
+  const loadSeriesSubscriptions =
+    dependencies.loadSeriesSubscriptions ?? seriesSubscriptionStore.listByUser;
+  const loadCalendarFeeds = dependencies.loadCalendarFeeds ?? calendarFeedStore.listByUser;
+  const loadCircuitAliasRecords = dependencies.loadCircuitAliases ?? listCircuitAliases;
+  const loadDayMergeRecords = dependencies.loadDayMerges ?? listDayMerges;
+  const loadExternalNotificationRecords =
+    dependencies.loadExternalNotifications ?? externalNotificationStore.listAll;
+  const loadFeedbackRecords = dependencies.loadFeedback ?? feedbackStore.listAll;
+  const loadGarageShareRequestRecords =
+    dependencies.loadGarageShareRequests ?? garageShareRequestStore.listAll;
+  const loadCostGroupRecords = dependencies.loadCostGroups ?? costGroupStore.listAll;
+  const loadCostExpenseRecords = dependencies.loadCostExpenses ?? costExpenseStore.listAll;
+  const loadCostSettlementRecords = dependencies.loadCostSettlements ?? costSettlementStore.listAll;
+  const loadMemberPaymentPreferenceRecords =
+    dependencies.loadMemberPaymentPreferences ?? memberPaymentPreferenceStore.listAll;
+  const loadWhatsNewViewRecords = dependencies.loadWhatsNewViews ?? whatsNewViewStore.listAll;
+  const exportedAt = (dependencies.now ?? new Date()).toISOString();
+  const [
+    members,
+    memberInvites,
+    memberJoinLinks,
+    availableDaysSnapshot,
+    manualDays,
+    dayPlans,
+    circuitAliases,
+    dayMerges,
+    externalNotifications,
+    garageShareRequests,
+    feedback,
+    costGroups,
+    costExpenses,
+    costSettlements,
+    memberPaymentPreferences,
+    whatsNewViews,
+  ] = await Promise.all([
+    loadMembers(),
+    loadMemberInvites(),
+    loadMemberJoinLinks(),
+    loadAvailableDaysSnapshot(),
+    loadManualDays(),
+    loadSharedDayPlans(),
+    loadCircuitAliasRecords(),
+    loadDayMergeRecords(),
+    loadExternalNotificationRecords(),
+    loadGarageShareRequestRecords(),
+    loadFeedbackRecords(),
+    loadCostGroupRecords(),
+    loadCostExpenseRecords(),
+    loadCostSettlementRecords(),
+    loadMemberPaymentPreferenceRecords(),
+    loadWhatsNewViewRecords(),
+  ]);
+  const [bookingsByMember, subscriptionsByMember, feedsByMember] = await Promise.all([
+    Promise.all(members.map((member) => loadBookings(member.id))),
+    Promise.all(members.map((member) => loadSeriesSubscriptions(member.id))),
+    Promise.all(members.map((member) => loadCalendarFeeds(member.id))),
+  ]);
+
+  return {
+    exportedAt,
+    memberCount: members.length,
+    inviteCount: memberInvites.length,
+    joinLinkCount: memberJoinLinks.length,
+    bookingCount: bookingsByMember.reduce((count, bookings) => count + bookings.length, 0),
+    manualDayCount: manualDays.length,
+    sharedPlanCount: dayPlans.length,
+    seriesSubscriptionCount: subscriptionsByMember.reduce(
+      (count, subscriptions) => count + subscriptions.length,
+      0,
+    ),
+    calendarFeedCount: feedsByMember.reduce((count, feeds) => count + feeds.length, 0),
+    availableDayCount: availableDaysSnapshot?.days.length ?? 0,
+    circuitAliasCount: circuitAliases.length,
+    dayMergeCount: dayMerges.length,
+    externalNotificationCount: externalNotifications.length,
+    garageShareRequestCount: garageShareRequests.length,
+    feedbackCount: feedback.length,
+    costGroupCount: costGroups.length,
+    costExpenseCount: costExpenses.length,
+    costSettlementCount: costSettlements.length,
+    memberPaymentPreferenceCount: memberPaymentPreferences.length,
+    whatsNewViewCount: whatsNewViews.length,
+  };
+}

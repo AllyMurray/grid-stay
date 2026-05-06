@@ -129,7 +129,11 @@ vi.mock('~/lib/db/entities/whats-new-view.server', () => ({
 
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { CalendarFeedRecord } from '~/lib/db/entities/calendar-feed.server';
-import { createAdminDataExport, summarizeAdminDataExport } from './export.server';
+import {
+  createAdminDataExport,
+  createAdminDataExportSummary,
+  summarizeAdminDataExport,
+} from './export.server';
 
 describe('admin data export', () => {
   it('collects production data and redacts calendar feed tokens', async () => {
@@ -385,5 +389,58 @@ describe('admin data export', () => {
       memberPaymentPreferenceCount: 1,
       whatsNewViewCount: 1,
     });
+  });
+
+  it('builds the admin export summary without returning export records', async () => {
+    const loadBookings = vi.fn(async () => [{} as BookingRecord]);
+
+    const summary = await createAdminDataExportSummary({
+      now: new Date('2026-04-27T10:00:00.000Z'),
+      loadMembers: async () => [
+        {
+          id: 'user-1',
+          name: 'Driver One',
+          email: 'driver@example.com',
+          role: 'member',
+          activeTripsCount: 1,
+          sharedStayCount: 0,
+          nextTrip: undefined,
+        },
+      ],
+      loadMemberInvites: async () => [{} as never],
+      loadMemberJoinLinks: async () => [{} as never],
+      loadBookings,
+      loadAvailableDaysSnapshot: async () => ({
+        refreshedAt: '2026-04-27T09:00:00.000Z',
+        days: [{} as never, {} as never],
+        errors: [],
+      }),
+      loadManualDays: async () => [{} as never],
+      loadSharedDayPlans: async () => [{} as never],
+      loadSeriesSubscriptions: async () => [{} as never, {} as never],
+      loadCalendarFeeds: async () => [{} as never],
+      loadCircuitAliases: async () => [{} as never],
+      loadDayMerges: async () => [{} as never],
+      loadExternalNotifications: async () => [{} as never],
+      loadGarageShareRequests: async () => [{} as never],
+      loadFeedback: async () => [{} as never],
+      loadCostGroups: async () => [{} as never],
+      loadCostExpenses: async () => [{} as never],
+      loadCostSettlements: async () => [{} as never],
+      loadMemberPaymentPreferences: async () => [{} as never],
+      loadWhatsNewViews: async () => [{} as never],
+    });
+
+    expect(summary).toMatchObject({
+      exportedAt: '2026-04-27T10:00:00.000Z',
+      memberCount: 1,
+      inviteCount: 1,
+      joinLinkCount: 1,
+      bookingCount: 1,
+      availableDayCount: 2,
+      seriesSubscriptionCount: 2,
+      calendarFeedCount: 1,
+    });
+    expect(loadBookings).toHaveBeenCalledWith('user-1');
   });
 });

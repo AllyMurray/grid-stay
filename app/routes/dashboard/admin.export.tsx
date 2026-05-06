@@ -1,5 +1,9 @@
 import { useLoaderData } from 'react-router';
-import { createAdminDataExport, summarizeAdminDataExport } from '~/lib/admin/export.server';
+import {
+  createAdminDataExport,
+  createAdminDataExportSummary,
+  summarizeAdminDataExport,
+} from '~/lib/admin/export.server';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { AdminExportPage, type AdminExportPageProps } from '~/pages/dashboard/admin-export';
@@ -12,9 +16,10 @@ function createExportFilename(exportedAt: string) {
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireAdmin(request);
   const url = new URL(request.url);
-  const dataExport = await createAdminDataExport();
 
   if (url.searchParams.get('download') === 'json') {
+    const dataExport = await createAdminDataExport();
+
     await recordAppEventSafely({
       category: 'audit',
       action: 'admin.export.downloaded',
@@ -41,7 +46,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return Response.json(
     {
-      summary: summarizeAdminDataExport(dataExport),
+      summary: await createAdminDataExportSummary(),
     } satisfies AdminExportPageProps,
     { headers },
   );
