@@ -24,8 +24,6 @@ export function createDayIdentity(input: DayIdentityInput): string {
   const stableSegment = input.stableKey
     ? `stable-${hashSegment(input.stableKey)}`
     : `dated-${sanitizeSegment(input.date)}-${hashSegment(input.fallbackKey)}`;
-  const variantSegment = input.variantKey
-    ? `variant-${hashSegment(input.variantKey)}`
-    : 'base';
+  const variantSegment = input.variantKey ? `variant-${hashSegment(input.variantKey)}` : 'base';
   return `${input.type}:${input.sourceName}:${DAY_ID_VERSION}:${stableSegment}:${variantSegment}`;
 }

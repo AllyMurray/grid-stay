@@ -13,11 +13,7 @@ import {
   ThemeIcon,
   Title,
 } from '@mantine/core';
-import {
-  IconCalendarEvent,
-  IconHotelService,
-  IconUsersGroup,
-} from '@tabler/icons-react';
+import { IconCalendarEvent, IconHotelService, IconUsersGroup } from '@tabler/icons-react';
 import { Link } from 'react-router';
 
 const HERO_IMAGE =
@@ -53,25 +49,17 @@ export function HomePage({ hasSession }: HomePageProps) {
                 Built for race weekends
               </Badge>
               <Title order={1} c="white" fz={{ base: 46, sm: 64 }}>
-                Leave the date chasing, booking screenshots, and hotel guesswork
-                behind.
+                Leave the date chasing, booking screenshots, and hotel guesswork behind.
               </Title>
               <Text size="lg" c="gray.1" maw={620}>
-                Track every race day, test day, and track day, then see who is
-                going and where other drivers are staying so it is easier to
-                meet up for food or beers.
+                Track every race day, test day, and track day, then see who is going and where other
+                drivers are staying so it is easier to meet up for food or beers.
               </Text>
               <Group>
                 <Button component={Link} to={cta} size="lg" color="brand">
                   {hasSession ? 'Open dashboard' : 'Sign in'}
                 </Button>
-                <Button
-                  component="a"
-                  href="#product"
-                  size="lg"
-                  variant="white"
-                  color="dark"
-                >
+                <Button component="a" href="#product" size="lg" variant="white" color="dark">
                   See the flow
                 </Button>
               </Group>
@@ -95,9 +83,8 @@ export function HomePage({ hasSession }: HomePageProps) {
                   Know who is going and where people are staying.
                 </Title>
                 <Text c="dimmed" maw={520}>
-                  Grid Stay keeps the calendar, who is going, and where people
-                  are staying together so it is easier to sort the weekend and
-                  know where to head in the evening.
+                  Grid Stay keeps the calendar, who is going, and where people are staying together
+                  so it is easier to sort the weekend and know where to head in the evening.
                 </Text>
                 <Stack gap="md">
                   {[
@@ -118,12 +105,7 @@ export function HomePage({ hasSession }: HomePageProps) {
                     },
                   ].map((item) => (
                     <Group key={item.title} align="flex-start" wrap="nowrap">
-                      <ThemeIcon
-                        size={38}
-                        radius="sm"
-                        variant="light"
-                        color="brand"
-                      >
+                      <ThemeIcon size={38} radius="sm" variant="light" color="brand">
                         <item.icon size={18} />
                       </ThemeIcon>
                       <Stack gap={2}>

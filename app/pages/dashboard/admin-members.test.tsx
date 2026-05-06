@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminMembersPage } from './admin-members';
 
@@ -46,9 +46,7 @@ describe('AdminMembersPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminMembersPage members={members} />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Member management' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Member management' })).toBeInTheDocument();
     expect(screen.getByText('Ally Murray')).toBeInTheDocument();
     expect(screen.getByText('ally@example.com')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /ally murray/i })).toHaveAttribute(

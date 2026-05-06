@@ -21,7 +21,7 @@ const router = createMemoryRouter(
       path: '/dashboard',
       element: (
         <MantineProvider theme={theme}>
-          <DashboardShell user={dashboardUser} unreadNotificationCount={2} />
+          <DashboardShell user={dashboardUser} unreadNotificationCount={2} newWhatsNewCount={0} />
         </MantineProvider>
       ),
       children: [

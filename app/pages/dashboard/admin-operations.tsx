@@ -1,13 +1,4 @@
-import {
-  Badge,
-  Group,
-  Paper,
-  ScrollArea,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Badge, Group, Paper, ScrollArea, Stack, Table, Text, Title } from '@mantine/core';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
 import type { AdminOperationsReport } from '~/lib/admin/operations.server';
@@ -27,9 +18,7 @@ function formatTimestamp(value: string | undefined) {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/[._-]/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/[._-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function severityColor(severity: AppEvent['severity']) {
@@ -109,10 +98,7 @@ export function AdminOperationsPage({
                     <Table.Tr key={event.eventId}>
                       <Table.Td>{formatTimestamp(event.createdAt)}</Table.Td>
                       <Table.Td>
-                        <Badge
-                          color={severityColor(event.severity)}
-                          variant="light"
-                        >
+                        <Badge color={severityColor(event.severity)} variant="light">
                           {titleCase(event.severity)}
                         </Badge>
                       </Table.Td>

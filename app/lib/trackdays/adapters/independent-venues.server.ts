@@ -8,12 +8,7 @@ import {
   parseMonthDayWithYear,
   stripHtml,
 } from '~/lib/circuit-sources/shared.server';
-import type {
-  FetchFunction,
-  TrackDay,
-  TrackDayAdapter,
-  TrackDayFetchOptions,
-} from '../types';
+import type { FetchFunction, TrackDay, TrackDayAdapter, TrackDayFetchOptions } from '../types';
 
 export const ANGLESEY_CIRCUIT_ID = '01HQ8VXMN0ANGLESEY';
 export const CASTLE_COMBE_CIRCUIT_ID = '01HQ8VXMN0CASTLECOMBE';
@@ -29,15 +24,12 @@ export const LYDDEN_HILL_CIRCUIT_NAME = 'Lydden Hill';
 export const MALLORY_PARK_CIRCUIT_NAME = 'Mallory Park';
 export const THRUXTON_CIRCUIT_NAME = 'Thruxton';
 
-export const ANGLESEY_EVENTS_URL =
-  'https://www.angleseycircuit.co.uk/wp-json/tml/v1/events';
-export const CASTLE_COMBE_TRACKDAY_URL =
-  'https://castlecombecircuit.co.uk/shop/car-track-day/';
+export const ANGLESEY_EVENTS_URL = 'https://www.angleseycircuit.co.uk/wp-json/tml/v1/events';
+export const CASTLE_COMBE_TRACKDAY_URL = 'https://castlecombecircuit.co.uk/shop/car-track-day/';
 export const CROFT_SITEMAP_URL = 'https://croftcircuit.co.uk/sitemap.xml';
 export const LYDDEN_TRACKDAY_URL = 'https://lyddenhill.co.uk/trackdays/cars/';
 export const MALLORY_EVENTS_URL = 'https://www.malloryparkcircuit.com/events/';
-export const THRUXTON_TRACKDAYS_URL =
-  'https://shop.thruxtonracing.co.uk/trackdays';
+export const THRUXTON_TRACKDAYS_URL = 'https://shop.thruxtonracing.co.uk/trackdays';
 
 interface AngleseyEventCategory {
   slug?: string;
@@ -60,10 +52,7 @@ interface AngleseyEvent {
   title?: string;
 }
 
-function filterTrackDaysByDate(
-  days: TrackDay[],
-  options?: TrackDayFetchOptions,
-): TrackDay[] {
+function filterTrackDaysByDate(days: TrackDay[], options?: TrackDayFetchOptions): TrackDay[] {
   return days.filter((day) => {
     if (options?.fromDate && day.date < options.fromDate) {
       return false;
@@ -101,13 +90,8 @@ function getOrganizerName(value: unknown): string | undefined {
   return getString((value as JsonLdObject).name);
 }
 
-function parseThruxtonSectionDates(
-  html: string,
-  label: 'Track Days' | 'Test Days',
-): string[] {
-  const match = html.match(
-    new RegExp(`${label} Available On:\\s*([^<]+)`, 'i'),
-  );
+function parseThruxtonSectionDates(html: string, label: 'Track Days' | 'Test Days'): string[] {
+  const match = html.match(new RegExp(`${label} Available On:\\s*([^<]+)`, 'i'));
   const sectionText = stripHtml(match?.[1] ?? '');
   if (
     !sectionText ||
@@ -153,9 +137,7 @@ export function parseAngleseyTrackDays(json: string): TrackDay[] {
         circuitName: ANGLESEY_CIRCUIT_NAME,
         circuitId: ANGLESEY_CIRCUIT_ID,
         layout: getString(event.meta?.circuit) ?? undefined,
-        format: event.content
-          ? extractHtmlLabelValue(event.content, 'Format')
-          : undefined,
+        format: event.content ? extractHtmlLabelValue(event.content, 'Format') : undefined,
         organizer: event.organiser?.[0] ?? 'Anglesey Circuit',
         availability: 'unknown',
         bookingUrl: getString(event.meta?.booking) || event.permalink,
@@ -168,8 +150,7 @@ export function parseAngleseyTrackDays(json: string): TrackDay[] {
 
 export function parseCastleCombeTrackDays(html: string): TrackDay[] {
   const productGroup = extractJsonLdEntries(html).find(
-    (entry) =>
-      hasType(entry, 'ProductGroup') && Array.isArray(entry.hasVariant),
+    (entry) => hasType(entry, 'ProductGroup') && Array.isArray(entry.hasVariant),
   );
   if (!productGroup || !Array.isArray(productGroup.hasVariant)) {
     return [];
@@ -222,13 +203,9 @@ export function parseLyddenTrackDays(html: string): TrackDay[] {
   }
 
   const availableDatesSection =
-    html.match(
-      /Available dates\s*(?:&#8211;|–|-)\s*\d{4}<\/h2>\s*<p>([\s\S]*?)<\/p>/i,
-    )?.[1] ?? '';
+    html.match(/Available dates\s*(?:&#8211;|–|-)\s*\d{4}<\/h2>\s*<p>([\s\S]*?)<\/p>/i)?.[1] ?? '';
 
-  return [
-    ...availableDatesSection.matchAll(/(\d{1,2}(?:st|nd|rd|th)\s+[A-Za-z]+)/gi),
-  ]
+  return [...availableDatesSection.matchAll(/(\d{1,2}(?:st|nd|rd|th)\s+[A-Za-z]+)/gi)]
     .map((match) => parseMonthDayWithYear(match[1], year))
     .filter((date): date is string => Boolean(date))
     .map((date) => ({
@@ -286,16 +263,11 @@ export function extractCroftTrackDayUrls(sitemapXml: string): string[] {
         ),
       ].map((match) => match[1]),
     ),
-  ].sort();
+  ].toSorted();
 }
 
-export function parseCroftTrackDayPage(
-  html: string,
-  url: string,
-): TrackDay | null {
-  const event = extractJsonLdEntries(html).find((entry) =>
-    hasType(entry, 'SportsEvent'),
-  );
+export function parseCroftTrackDayPage(html: string, url: string): TrackDay | null {
+  const event = extractJsonLdEntries(html).find((entry) => hasType(entry, 'SportsEvent'));
   if (!event) {
     return null;
   }
@@ -350,9 +322,7 @@ async function loadCroftTrackDays(fetchFn: FetchFunction): Promise<TrackDay[]> {
     .filter((day): day is TrackDay => Boolean(day));
 }
 
-export function createAngleseyTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createAngleseyTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'anglesey-trackday',
     description: 'Anglesey Circuit car track day feed',
@@ -368,9 +338,7 @@ export function createAngleseyTrackDayAdapter(
   };
 }
 
-export function createCastleCombeTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createCastleCombeTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'castle-combe-trackday',
     description: 'Castle Combe Circuit car track day feed',
@@ -386,9 +354,7 @@ export function createCastleCombeTrackDayAdapter(
   };
 }
 
-export function createCroftTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createCroftTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'croft-trackday',
     description: 'Croft Circuit car track day feed',
@@ -404,9 +370,7 @@ export function createCroftTrackDayAdapter(
   };
 }
 
-export function createLyddenTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createLyddenTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'lydden-trackday',
     description: 'Lydden Hill car track day feed',
@@ -422,9 +386,7 @@ export function createLyddenTrackDayAdapter(
   };
 }
 
-export function createMalloryTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createMalloryTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'mallory-trackday',
     description: 'Mallory Park car track day feed',
@@ -440,9 +402,7 @@ export function createMalloryTrackDayAdapter(
   };
 }
 
-export function createThruxtonTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createThruxtonTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'thruxton-trackday',
     description: 'Thruxton track day feed',
@@ -458,15 +418,9 @@ export function createThruxtonTrackDayAdapter(
   };
 }
 
-export const angleseyTrackDayAdapter =
-  createAngleseyTrackDayAdapter(defaultTextFetch);
-export const castleCombeTrackDayAdapter =
-  createCastleCombeTrackDayAdapter(defaultTextFetch);
-export const croftTrackDayAdapter =
-  createCroftTrackDayAdapter(defaultTextFetch);
-export const lyddenTrackDayAdapter =
-  createLyddenTrackDayAdapter(defaultTextFetch);
-export const malloryTrackDayAdapter =
-  createMalloryTrackDayAdapter(defaultTextFetch);
-export const thruxtonTrackDayAdapter =
-  createThruxtonTrackDayAdapter(defaultTextFetch);
+export const angleseyTrackDayAdapter = createAngleseyTrackDayAdapter(defaultTextFetch);
+export const castleCombeTrackDayAdapter = createCastleCombeTrackDayAdapter(defaultTextFetch);
+export const croftTrackDayAdapter = createCroftTrackDayAdapter(defaultTextFetch);
+export const lyddenTrackDayAdapter = createLyddenTrackDayAdapter(defaultTextFetch);
+export const malloryTrackDayAdapter = createMalloryTrackDayAdapter(defaultTextFetch);
+export const thruxtonTrackDayAdapter = createThruxtonTrackDayAdapter(defaultTextFetch);

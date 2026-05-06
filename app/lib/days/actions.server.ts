@@ -57,10 +57,7 @@ export async function submitCreateManualDay(
   await notifyAvailableDays([selectedDay]);
 
   if (day.series) {
-    const [snapshot, manualDays] = await Promise.all([
-      loadSnapshot(),
-      loadManualDays(),
-    ]);
+    const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
     const allDays = [...(snapshot?.days ?? []), ...manualDays];
     const series = getRaceSeriesDaysForDay(
       allDays.some((entry) => entry.dayId === selectedDay.dayId)

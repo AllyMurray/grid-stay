@@ -22,10 +22,8 @@ export function TripStatusSummary({
   sharedStayCount,
 }: TripStatusSummaryProps) {
   const statusTotal = confirmedCount + maybeCount;
-  const confirmedWidth =
-    statusTotal > 0 ? `${(confirmedCount / statusTotal) * 100}%` : '0%';
-  const maybeWidth =
-    statusTotal > 0 ? `${(maybeCount / statusTotal) * 100}%` : '0%';
+  const confirmedWidth = statusTotal > 0 ? `${(confirmedCount / statusTotal) * 100}%` : '0%';
+  const maybeWidth = statusTotal > 0 ? `${(maybeCount / statusTotal) * 100}%` : '0%';
 
   return (
     <Stack gap={6} className="trip-status-summary">

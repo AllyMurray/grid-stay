@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { RaceSeriesDetailPage } from './series-detail';
 
@@ -48,15 +48,14 @@ describe('RaceSeriesDetailPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Caterham Academy' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Caterham Academy' })).toBeInTheDocument();
     expect(screen.getByText('Snetterton 300')).toBeInTheDocument();
     expect(screen.getByText('Official test day')).toBeInTheDocument();
     expect(screen.getByText('Not added')).toBeInTheDocument();
     expect(screen.getByText('Manual')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Open filtered days' }),
-    ).toHaveAttribute('href', '/dashboard/days?series=caterham-academy');
+    expect(screen.getByRole('link', { name: 'Open filtered days' })).toHaveAttribute(
+      'href',
+      '/dashboard/days?series=caterham-academy',
+    );
   });
 });

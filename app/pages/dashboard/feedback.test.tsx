@@ -2,14 +2,12 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { FeedbackThread } from '~/lib/db/services/feedback.server';
 import { theme } from '~/theme';
 import { FeedbackPage } from './feedback';
 
-function createFeedback(
-  overrides: Partial<FeedbackThread> = {},
-): FeedbackThread {
+function createFeedback(overrides: Partial<FeedbackThread> = {}): FeedbackThread {
   return {
     feedbackId: 'feedback-1',
     feedbackScope: 'feedback',
@@ -51,12 +49,8 @@ describe('FeedbackPage', () => {
   it('renders the feedback form and member history', () => {
     renderFeedbackPage(undefined);
 
-    expect(
-      screen.getByRole('heading', { name: 'Send feedback' }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('heading', { name: 'Your feedback' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Send feedback' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Your feedback' })).toBeVisible();
     expect(screen.getByText('Saved filter presets')).toBeVisible();
     expect(screen.getByText('No admin updates yet.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Send feedback' })).toBeVisible();
@@ -80,12 +74,8 @@ describe('FeedbackPage', () => {
       [],
     );
 
-    expect(
-      screen.getByText('Check the highlighted fields and try again.'),
-    ).toBeVisible();
-    expect(
-      screen.getByDisplayValue('The menu closes unexpectedly.'),
-    ).toBeVisible();
+    expect(screen.getByText('Check the highlighted fields and try again.')).toBeVisible();
+    expect(screen.getByDisplayValue('The menu closes unexpectedly.')).toBeVisible();
     expect(screen.getByDisplayValue('Mobile menu')).toBeVisible();
   });
 
@@ -113,9 +103,7 @@ describe('FeedbackPage', () => {
     ]);
 
     expect(screen.getAllByText('Done').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText('This is scheduled for the next release.'),
-    ).toBeVisible();
+    expect(screen.getByText('This is scheduled for the next release.')).toBeVisible();
     expect(screen.getByText('This is now live.')).toBeVisible();
   });
 });

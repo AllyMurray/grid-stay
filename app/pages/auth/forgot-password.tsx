@@ -27,10 +27,7 @@ export function ForgotPasswordPage({ actionData }: ForgotPasswordPageProps) {
   const isSubmitting = navigation.state !== 'idle';
 
   return (
-    <Box
-      className="auth-login-shell"
-      style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE})` }}
-    >
+    <Box className="auth-login-shell" style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE})` }}>
       <Container size="xl" className="auth-login-container">
         <Stack className="auth-login-stage" justify="center" align="center">
           <Paper className="auth-login-panel" radius="sm" p="xl" shadow="xl">

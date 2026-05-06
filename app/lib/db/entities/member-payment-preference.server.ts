@@ -26,6 +26,4 @@ export const MemberPaymentPreferenceEntity = new Entity(
   { client, table: tableName },
 );
 
-export type MemberPaymentPreferenceRecord = EntityItem<
-  typeof MemberPaymentPreferenceEntity
->;
+export type MemberPaymentPreferenceRecord = EntityItem<typeof MemberPaymentPreferenceEntity>;

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('~/lib/db/services/available-days-cache.server', () => ({
   getAvailableDaysSnapshot: vi.fn(),
@@ -87,14 +87,8 @@ describe('loadDaysDataQualityReport', () => {
       ignoredIssueCount: 0,
       resolvedIssueCount: 0,
     });
-    expect(
-      report.issues.map((issue) => [issue.issueId, issue.dayId, issue.type]),
-    ).toEqual([
-      [
-        'layout_in_circuit_name:legacy-snetterton',
-        'legacy-snetterton',
-        'layout_in_circuit_name',
-      ],
+    expect(report.issues.map((issue) => [issue.issueId, issue.dayId, issue.type])).toEqual([
+      ['layout_in_circuit_name:legacy-snetterton', 'legacy-snetterton', 'layout_in_circuit_name'],
       [
         'missing_canonical_fields:legacy-snetterton',
         'legacy-snetterton',

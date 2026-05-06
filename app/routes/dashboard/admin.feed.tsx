@@ -1,10 +1,7 @@
 import { useLoaderData } from 'react-router';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { loadAdminFeedStatusReport } from '~/lib/days/admin-feed.server';
-import {
-  AdminFeedPage,
-  type AdminFeedPageProps,
-} from '~/pages/dashboard/admin-feed';
+import { AdminFeedPage, type AdminFeedPageProps } from '~/pages/dashboard/admin-feed';
 import type { Route } from './+types/admin.feed';
 
 export async function loader({ request }: Route.LoaderArgs) {

@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  type AuthUserRecord,
-  getSiteMemberById,
-  setAuthUserRole,
-} from '~/lib/auth/members.server';
+import { type AuthUserRecord, getSiteMemberById, setAuthUserRole } from '~/lib/auth/members.server';
 import type { User } from '~/lib/auth/schemas';
 import { USER_ROLE_VALUES } from '~/lib/constants/enums';
 import {
@@ -15,10 +11,7 @@ import type { AvailableDay } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { SeriesSubscriptionRecord } from '~/lib/db/entities/series-subscription.server';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
-import {
-  ensureBookingsForDays,
-  listMyBookings,
-} from '~/lib/db/services/booking.server';
+import { ensureBookingsForDays, listMyBookings } from '~/lib/db/services/booking.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 import { setMemberDisplayName } from '~/lib/db/services/member-profile.server';
 import {
@@ -135,10 +128,7 @@ function sortBookings(left: BookingRecord, right: BookingRecord) {
   return left.circuit.localeCompare(right.circuit);
 }
 
-function sortSubscriptions(
-  left: SeriesSubscriptionRecord,
-  right: SeriesSubscriptionRecord,
-) {
+function sortSubscriptions(left: SeriesSubscriptionRecord, right: SeriesSubscriptionRecord) {
   return left.seriesName.localeCompare(right.seriesName);
 }
 
@@ -189,17 +179,12 @@ async function loadAvailableAndManualDays(
   loadSnapshot: typeof getAvailableDaysSnapshot,
   loadManual: typeof listManualDays,
 ) {
-  const [snapshot, manualDays] = await Promise.all([
-    loadSnapshot(),
-    loadManual(),
-  ]);
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManual()]);
 
   return [...(snapshot?.days ?? []), ...manualDays];
 }
 
-export function buildAdminSeriesOptions(
-  days: AvailableDay[],
-): AdminSeriesOption[] {
+export function buildAdminSeriesOptions(days: AvailableDay[]): AdminSeriesOption[] {
   const seriesByKey = new Map<string, AdminSeriesOption>();
 
   for (const day of days) {
@@ -223,7 +208,7 @@ export function buildAdminSeriesOptions(
     });
   }
 
-  return [...seriesByKey.values()].sort((left, right) =>
+  return [...seriesByKey.values()].toSorted((left, right) =>
     left.seriesName.localeCompare(right.seriesName),
   );
 }
@@ -259,9 +244,9 @@ export async function getAdminMemberProfile(
     role: member.role ?? 'member',
     bookings: bookings
       .filter((booking) => booking.date >= today)
-      .sort(sortBookings)
+      .toSorted(sortBookings)
       .map(toAdminMemberBooking),
-    subscriptions: subscriptions.sort(sortSubscriptions),
+    subscriptions: subscriptions.toSorted(sortSubscriptions),
   };
 }
 
@@ -280,15 +265,10 @@ export async function submitAdminMemberAction(
   }
 
   if (intent === 'updateDisplayName') {
-    const parsed = AdminMemberDisplayNameSchema.safeParse(
-      Object.fromEntries(formData),
-    );
+    const parsed = AdminMemberDisplayNameSchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
-      return formError(
-        'Could not update this display name.',
-        parsed.error.flatten().fieldErrors,
-      );
+      return formError('Could not update this display name.', parsed.error.flatten().fieldErrors);
     }
 
     await (dependencies.saveDisplayName ?? setMemberDisplayName)({
@@ -306,15 +286,10 @@ export async function submitAdminMemberAction(
   }
 
   if (intent === 'updateRole') {
-    const parsed = AdminMemberRoleSchema.safeParse(
-      Object.fromEntries(formData),
-    );
+    const parsed = AdminMemberRoleSchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
-      return formError(
-        'Could not update this member role.',
-        parsed.error.flatten().fieldErrors,
-      );
+      return formError('Could not update this member role.', parsed.error.flatten().fieldErrors);
     }
 
     if (member.id === adminUser.id && parsed.data.role !== member.role) {
@@ -323,10 +298,7 @@ export async function submitAdminMemberAction(
       });
     }
 
-    await (dependencies.saveRole ?? setAuthUserRole)(
-      member.id,
-      parsed.data.role,
-    );
+    await (dependencies.saveRole ?? setAuthUserRole)(member.id, parsed.data.role);
 
     return {
       ok: true,
@@ -335,9 +307,7 @@ export async function submitAdminMemberAction(
   }
 
   if (intent === 'removeSeries') {
-    const parsed = AdminMemberSeriesKeySchema.safeParse(
-      Object.fromEntries(formData),
-    );
+    const parsed = AdminMemberSeriesKeySchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
       return formError(
@@ -357,9 +327,7 @@ export async function submitAdminMemberAction(
     };
   }
 
-  const parsed = AdminMemberSeriesSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = AdminMemberSeriesSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return formError(
@@ -439,10 +407,5 @@ export async function submitAdminMemberSeriesAction(
   memberId: string,
   dependencies: AdminMemberActionDependencies = {},
 ): Promise<AdminMemberActionResult> {
-  return submitAdminMemberAction(
-    formData,
-    memberId,
-    { id: 'system' },
-    dependencies,
-  );
+  return submitAdminMemberAction(formData, memberId, { id: 'system' }, dependencies);
 }

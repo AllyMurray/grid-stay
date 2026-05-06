@@ -32,18 +32,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const activeBookings = bookings.filter(
     (booking) => booking.status !== 'cancelled' && booking.date >= today,
   );
-  const maybeBookingsCount = activeBookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
+  const maybeBookingsCount = activeBookings.filter((booking) => booking.status === 'maybe').length;
   const tripsWithSharedStayCount = activeBookings.filter((booking) =>
     Boolean(booking.accommodationName?.trim()),
   ).length;
-  const tripsMissingStayCount =
-    activeBookings.length - tripsWithSharedStayCount;
+  const tripsMissingStayCount = activeBookings.length - tripsWithSharedStayCount;
   const privateRefsOpenCount = activeBookings.filter(
-    (booking) =>
-      !booking.bookingReference?.trim() &&
-      !booking.accommodationReference?.trim(),
+    (booking) => !booking.bookingReference?.trim() && !booking.accommodationReference?.trim(),
   ).length;
   const sharedStayCount = new Set(
     activeBookings
@@ -55,9 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     {
       firstName: user.name.split(' ')[0] ?? user.name,
       availableDaysCount: snapshot?.days.length ?? 0,
-      daysThisMonth:
-        snapshot?.days.filter((day) => day.date.startsWith(monthPrefix))
-          .length ?? 0,
+      daysThisMonth: snapshot?.days.filter((day) => day.date.startsWith(monthPrefix)).length ?? 0,
       activeBookingsCount: activeBookings.length,
       sharedStayCount,
       maybeBookingsCount,
@@ -72,7 +65,5 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function DashboardIndexRoute() {
-  return (
-    <DashboardIndexPage {...(useLoaderData<typeof loader>() as LoaderData)} />
-  );
+  return <DashboardIndexPage {...(useLoaderData<typeof loader>() as LoaderData)} />;
 }

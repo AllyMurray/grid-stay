@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 
 vi.mock('~/lib/db/services/manual-day.server', () => ({
@@ -71,11 +71,7 @@ describe('manual day action helper', () => {
       dayId: 'manual:day-1',
     }));
 
-    const result = await submitCreateManualDay(
-      formData,
-      allowedUser,
-      saveManualDay as never,
-    );
+    const result = await submitCreateManualDay(formData, allowedUser, saveManualDay as never);
 
     expect(result).toEqual({
       ok: true,
@@ -209,8 +205,6 @@ describe('manual day action helper', () => {
     if (result.ok) {
       throw new Error('Expected validation failure');
     }
-    expect(result.fieldErrors.bookingUrl?.[0]).toBe(
-      'Enter a full http:// or https:// URL',
-    );
+    expect(result.fieldErrors.bookingUrl?.[0]).toBe('Enter a full http:// or https:// URL');
   });
 });

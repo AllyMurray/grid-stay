@@ -2,14 +2,11 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { NotificationsPage } from './notifications';
 
-function renderWithProviders(
-  ui: React.ReactElement,
-  action?: () => Promise<unknown>,
-) {
+function renderWithProviders(ui: React.ReactElement, action?: () => Promise<unknown>) {
   const Stub = createRoutesStub([
     {
       path: '/dashboard/notifications',
@@ -48,9 +45,7 @@ describe('NotificationsPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'New available days' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'New available days' })).toBeInTheDocument();
     expect(screen.getByText('Brands Hatch')).toBeInTheDocument();
     expect(screen.getByText('1 unread day.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open day' })).toHaveAttribute(
@@ -61,14 +56,13 @@ describe('NotificationsPage', () => {
   });
 
   it('shows an empty state before any notifications exist', () => {
-    renderWithProviders(
-      <NotificationsPage notifications={[]} garageShareRequests={[]} />,
-    );
+    renderWithProviders(<NotificationsPage notifications={[]} garageShareRequests={[]} />);
 
     expect(screen.getByText('No day notifications yet')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Open available days' }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByRole('link', { name: 'Open available days' })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
   });
 
   it('renders pending garage share requests with owner actions', () => {
@@ -143,8 +137,6 @@ describe('NotificationsPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Approve' }));
 
-    expect(
-      await screen.findByText('This garage no longer has a free space.'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('This garage no longer has a free space.')).toBeInTheDocument();
   });
 });

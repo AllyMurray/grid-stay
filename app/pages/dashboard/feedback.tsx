@@ -22,10 +22,7 @@ import {
 import { Form, useNavigation } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
-import type {
-  FeedbackActionResult,
-  FeedbackThread,
-} from '~/lib/db/services/feedback.server';
+import type { FeedbackActionResult, FeedbackThread } from '~/lib/db/services/feedback.server';
 
 export interface FeedbackPageProps {
   actionData?: FeedbackActionResult;
@@ -43,9 +40,7 @@ function getFieldValues(actionData: FeedbackActionResult | undefined) {
 }
 
 function getTypeDefault(value: string | undefined) {
-  return feedbackTypeOptions.some((option) => option.value === value)
-    ? value
-    : 'feature_request';
+  return feedbackTypeOptions.some((option) => option.value === value) ? value : 'feature_request';
 }
 
 function formatTimestamp(value: string) {
@@ -56,9 +51,7 @@ function formatTimestamp(value: string) {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function typeColor(type: FeedbackThread['type']) {
@@ -128,13 +121,7 @@ function FeedbackTimeline({ item }: { item: FeedbackThread }) {
   );
 }
 
-function FeedbackHistoryItem({
-  item,
-  isLast,
-}: {
-  item: FeedbackThread;
-  isLast: boolean;
-}) {
+function FeedbackHistoryItem({ item, isLast }: { item: FeedbackThread; isLast: boolean }) {
   return (
     <Stack gap="md">
       <Stack gap="xs">
@@ -174,8 +161,7 @@ export function FeedbackPage({ actionData, feedback }: FeedbackPageProps) {
   const navigation = useNavigation();
   const isSubmitting = navigation.state !== 'idle';
   const values = getFieldValues(actionData);
-  const fieldErrors =
-    actionData && !actionData.ok ? actionData.fieldErrors : undefined;
+  const fieldErrors = actionData && !actionData.ok ? actionData.fieldErrors : undefined;
 
   return (
     <Stack gap="xl">
@@ -195,8 +181,8 @@ export function FeedbackPage({ actionData, feedback }: FeedbackPageProps) {
               What should change?
             </Title>
             <Text size="sm" c="dimmed">
-              Requests go to the site admins with your account details attached
-              so they can follow up if needed.
+              Requests go to the site admins with your account details attached so they can follow
+              up if needed.
             </Text>
           </Stack>
 

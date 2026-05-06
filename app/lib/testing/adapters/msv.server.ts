@@ -5,8 +5,7 @@
  */
 import type { FetchFunction, TestingAdapter, TestingDay } from '../types';
 
-export const MSV_API_URL =
-  'https://ebes-cms-api-v1.azurewebsites.net/api/TrackEntry/Events';
+export const MSV_API_URL = 'https://ebes-cms-api-v1.azurewebsites.net/api/TrackEntry/Events';
 
 export const MSV_BOOKING_BASE = 'https://testing-v4.msv.com';
 
@@ -49,10 +48,7 @@ export interface MsvApiEvent {
 /**
  * Resolves an MSV venue ID + layout to an internal circuit ID.
  */
-export function resolveCircuitId(
-  venueId: string,
-  layout: string | null,
-): string | undefined {
+export function resolveCircuitId(venueId: string, layout: string | null): string | undefined {
   // Try specific venue:layout first
   if (layout) {
     const specific = MSV_CIRCUIT_MAP[`${venueId}:${layout}`];
@@ -77,9 +73,7 @@ export function parseMsvEvents(events: MsvApiEvent[]): TestingDay[] {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
     const pricePennies =
-      event.minUnitPriceIncVat != null
-        ? Math.round(event.minUnitPriceIncVat * 100)
-        : undefined;
+      event.minUnitPriceIncVat != null ? Math.round(event.minUnitPriceIncVat * 100) : undefined;
 
     let availability: TestingDay['availability'] = 'unknown';
     if (event.availableSpaces !== undefined) {
@@ -102,9 +96,7 @@ export function parseMsvEvents(events: MsvApiEvent[]): TestingDay[] {
       format: event.name,
       pricePennies,
       availability,
-      bookingUrl: event.moreInfoUrl
-        ? `${MSV_BOOKING_BASE}${event.moreInfoUrl}`
-        : undefined,
+      bookingUrl: event.moreInfoUrl ? `${MSV_BOOKING_BASE}${event.moreInfoUrl}` : undefined,
       source: 'msv',
       externalId: event.id,
     });
@@ -119,8 +111,7 @@ export function parseMsvEvents(events: MsvApiEvent[]): TestingDay[] {
 async function defaultFetch(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
-      'User-Agent':
-        'Mozilla/5.0 (compatible; ApexBook/1.0; +https://apexbook.racing)',
+      'User-Agent': 'Mozilla/5.0 (compatible; ApexBook/1.0; +https://apexbook.racing)',
       Accept: 'application/json',
       Origin: 'https://testing-v4.msv.com',
       'session-id': crypto.randomUUID(),
@@ -146,9 +137,7 @@ export function createMsvAdapter(fetchFn: FetchFunction): TestingAdapter {
 
     async fetchSchedule(circuitIds, options) {
       // Check if any requested circuits are MSV circuits
-      const relevantIds = circuitIds.filter((id) =>
-        MSV_CIRCUIT_IDS.includes(id),
-      );
+      const relevantIds = circuitIds.filter((id) => MSV_CIRCUIT_IDS.includes(id));
       if (relevantIds.length === 0) return [];
 
       // Single API call returns all venues

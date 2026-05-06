@@ -3,10 +3,7 @@ import type { User } from '~/lib/auth/schemas';
 import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
 import type { AvailableDay } from '~/lib/days/types';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
-import {
-  ManualDayEntity,
-  type ManualDayRecord,
-} from '../entities/manual-day.server';
+import { ManualDayEntity, type ManualDayRecord } from '../entities/manual-day.server';
 
 const GLOBAL_MANUAL_DAY_SCOPE = 'global';
 
@@ -120,5 +117,5 @@ export async function listManagedManualDays(
 ): Promise<ManualDayRecord[]> {
   const manualDays = await store.listAll();
 
-  return manualDays.sort(compareManualDays);
+  return manualDays.toSorted(compareManualDays);
 }

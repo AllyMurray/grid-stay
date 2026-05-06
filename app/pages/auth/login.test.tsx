@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { theme } from '~/theme';
 
 const { signInSocial } = vi.hoisted(() => ({
@@ -52,9 +52,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLoginPage();
 
-    await user.click(
-      screen.getByRole('button', { name: /continue with google/i }),
-    );
+    await user.click(screen.getByRole('button', { name: /continue with google/i }));
 
     expect(signInSocial).toHaveBeenCalledWith({
       provider: 'google',
@@ -72,9 +70,10 @@ describe('LoginPage', () => {
       'autocomplete',
       'current-password',
     );
-    expect(
-      screen.getByRole('link', { name: 'Forgot password?' }),
-    ).toHaveAttribute('href', '/auth/forgot-password');
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute(
+      'href',
+      '/auth/forgot-password',
+    );
   });
 
   it('collects first and last name when creating a password account', async () => {
@@ -104,9 +103,7 @@ describe('LoginPage', () => {
       },
     });
 
-    expect(
-      screen.getByText('Ask an existing member to invite this email.'),
-    ).toBeVisible();
+    expect(screen.getByText('Ask an existing member to invite this email.')).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'First name' })).toBeVisible();
   });
 
@@ -117,9 +114,7 @@ describe('LoginPage', () => {
     });
 
     expect(
-      screen.getByText(
-        'Password reset. You can sign in with your new password.',
-      ),
+      screen.getByText('Password reset. You can sign in with your new password.'),
     ).toBeVisible();
   });
 
@@ -142,8 +137,6 @@ describe('LoginPage', () => {
 
     expect(screen.getByRole('tab', { name: 'Sign in' })).toBeVisible();
     expect(screen.getByRole('tab', { name: 'Create account' })).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: 'Forgot password?' }),
-    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toBeVisible();
   });
 });

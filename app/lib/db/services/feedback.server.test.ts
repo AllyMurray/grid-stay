@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 
 vi.mock('../entities/feedback.server', () => ({
@@ -95,10 +95,7 @@ describe('feedback service', () => {
     const formData = new FormData();
     formData.set('type', 'feature_request');
     formData.set('title', 'Improve filtering');
-    formData.set(
-      'message',
-      'Please let me save a few different filter presets.',
-    );
+    formData.set('message', 'Please let me save a few different filter presets.');
     formData.set('context', 'Available Days');
 
     const result = await submitFeedbackAction(formData, user, memory.store);
@@ -227,9 +224,10 @@ describe('feedback service', () => {
     );
 
     expect(second.feedback.adminUpdates).toHaveLength(2);
-    expect(
-      second.feedback.adminUpdates.map((update) => update.message),
-    ).toEqual(['We have started work on this.', 'This is now shipped.']);
+    expect(second.feedback.adminUpdates.map((update) => update.message)).toEqual([
+      'We have started work on this.',
+      'This is now shipped.',
+    ]);
 
     const stored = await listMyFeedback('user-1', 20, memory.store);
     expect(stored[0]?.adminUpdates).toHaveLength(2);
@@ -265,9 +263,7 @@ describe('feedback service', () => {
     formData.set('intent', 'deleteFeedback');
     formData.set('feedbackId', 'missing');
 
-    await expect(
-      submitAdminFeedbackAction(formData, admin, memory.store),
-    ).resolves.toMatchObject({
+    await expect(submitAdminFeedbackAction(formData, admin, memory.store)).resolves.toMatchObject({
       ok: false,
       formError: 'Could not delete this feedback yet.',
       fieldErrors: {

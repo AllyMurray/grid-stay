@@ -28,9 +28,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function ResetPasswordRoute() {
   const { token } = useLoaderData<typeof loader>() as LoaderData;
-  const actionData = useActionData<typeof action>() as
-    | PasswordResetActionData
-    | undefined;
+  const actionData = useActionData<typeof action>() as PasswordResetActionData | undefined;
 
   return <ResetPasswordPage actionData={actionData} token={token} />;
 }

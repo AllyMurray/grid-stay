@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminExportPage } from './admin-export';
 
@@ -44,9 +44,7 @@ describe('AdminExportPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Data export' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Data export' })).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
     expect(screen.getByText('Calendar feeds')).toBeInTheDocument();
     expect(screen.getByText('Circuit aliases')).toBeInTheDocument();
@@ -58,11 +56,10 @@ describe('AdminExportPage', () => {
     expect(screen.getByText('Cost settlements')).toBeInTheDocument();
     expect(screen.getByText('Payment preferences')).toBeInTheDocument();
     expect(screen.getByText("What's new views")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Calendar feed tokens are redacted/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /download json/i }),
-    ).toHaveAttribute('href', '/dashboard/admin/export?download=json');
+    expect(screen.getByText(/Calendar feed tokens are redacted/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /download json/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/export?download=json',
+    );
   });
 });

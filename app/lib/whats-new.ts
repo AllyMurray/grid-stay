@@ -200,6 +200,5 @@ export function countWhatsNewEntriesAfter(
   viewedAt: string | undefined,
   entries: WhatsNewEntry[] = whatsNewEntries,
 ) {
-  return entries.filter((entry) => !viewedAt || entry.publishedAt > viewedAt)
-    .length;
+  return entries.filter((entry) => !viewedAt || entry.publishedAt > viewedAt).length;
 }

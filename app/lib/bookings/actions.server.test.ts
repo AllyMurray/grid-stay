@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 
 vi.mock('~/lib/db/services/booking.server', () => ({
@@ -216,11 +216,7 @@ describe('booking action helpers', () => {
 
     const removeBooking = vi.fn(async () => undefined);
 
-    const result = await submitBookingDelete(
-      formData,
-      user.id,
-      removeBooking as never,
-    );
+    const result = await submitBookingDelete(formData, user.id, removeBooking as never);
 
     expect(result).toEqual({ ok: true });
     expect(removeBooking).toHaveBeenCalledWith(user.id, {
@@ -517,35 +513,29 @@ describe('booking action helpers', () => {
     formData.set('dayId', 'day-1');
     formData.set('status', 'booked');
 
-    const result = await submitBulkRaceSeriesBooking(
-      formData,
-      user,
-      async () => ({
-        days: [
-          {
-            dayId: 'day-1',
-            date: '2026-05-10',
-            type: 'track_day',
-            circuit: 'Snetterton',
-            provider: 'MSV Trackdays',
-            description: 'Open pit lane',
-            source: {
-              sourceType: 'trackdays',
-              sourceName: 'msv',
-            },
+    const result = await submitBulkRaceSeriesBooking(formData, user, async () => ({
+      days: [
+        {
+          dayId: 'day-1',
+          date: '2026-05-10',
+          type: 'track_day',
+          circuit: 'Snetterton',
+          provider: 'MSV Trackdays',
+          description: 'Open pit lane',
+          source: {
+            sourceType: 'trackdays',
+            sourceName: 'msv',
           },
-        ],
-        errors: [],
-        refreshedAt: '2026-04-17T09:00:00.000Z',
-      }),
-    );
+        },
+      ],
+      errors: [],
+      refreshedAt: '2026-04-17T09:00:00.000Z',
+    }));
 
     expect(result.ok).toBe(false);
     if (result.ok) {
       throw new Error('Expected race series failure');
     }
-    expect(result.formError).toBe(
-      'This day is not linked to a race series yet.',
-    );
+    expect(result.formError).toBe('This day is not linked to a race series yet.');
   });
 });

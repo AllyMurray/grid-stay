@@ -20,12 +20,7 @@ import {
   THRUXTON_CIRCUIT_NAME,
   THRUXTON_TRACKDAYS_URL,
 } from '~/lib/trackdays/adapters/independent-venues.server';
-import type {
-  FetchFunction,
-  TestingAdapter,
-  TestingDay,
-  TestingFetchOptions,
-} from '../types';
+import type { FetchFunction, TestingAdapter, TestingDay, TestingFetchOptions } from '../types';
 
 interface AngleseyEventCategory {
   slug?: string;
@@ -46,10 +41,7 @@ interface AngleseyEvent {
   title?: string;
 }
 
-function filterTestingDaysByDate(
-  days: TestingDay[],
-  options?: TestingFetchOptions,
-): TestingDay[] {
+function filterTestingDaysByDate(days: TestingDay[], options?: TestingFetchOptions): TestingDay[] {
   return days.filter((day) => {
     if (options?.fromDate && day.date < options.fromDate) {
       return false;
@@ -146,10 +138,7 @@ export function parseMalloryTestingDays(html: string): TestingDay[] {
 
     const name = stripHtml(getString(entry.name) ?? '');
     const description = stripHtml(getString(entry.description) ?? '');
-    if (
-      !/test day/i.test(name) ||
-      (!/cars/i.test(name) && !/car test day/i.test(description))
-    ) {
+    if (!/test day/i.test(name) || (!/cars/i.test(name) && !/car test day/i.test(description))) {
       return [];
     }
 
@@ -183,16 +172,11 @@ export function extractCroftTestingUrls(sitemapXml: string): string[] {
         ),
       ].map((match) => match[1]),
     ),
-  ].sort();
+  ].toSorted();
 }
 
-export function parseCroftTestingPage(
-  html: string,
-  url: string,
-): TestingDay | null {
-  const event = extractJsonLdEntries(html).find((entry) =>
-    hasType(entry, 'SportsEvent'),
-  );
+export function parseCroftTestingPage(html: string, url: string): TestingDay | null {
+  const event = extractJsonLdEntries(html).find((entry) => hasType(entry, 'SportsEvent'));
   if (!event) {
     return null;
   }
@@ -233,9 +217,7 @@ export function parseThruxtonTestingDays(html: string): TestingDay[] {
   }));
 }
 
-async function loadCroftTestingDays(
-  fetchFn: FetchFunction,
-): Promise<TestingDay[]> {
+async function loadCroftTestingDays(fetchFn: FetchFunction): Promise<TestingDay[]> {
   const sitemapXml = await fetchFn(CROFT_SITEMAP_URL);
   const pageUrls = extractCroftTestingUrls(sitemapXml);
   if (pageUrls.length === 0) {
@@ -248,9 +230,7 @@ async function loadCroftTestingDays(
     .filter((day): day is TestingDay => Boolean(day));
 }
 
-export function createAngleseyTestingAdapter(
-  fetchFn: FetchFunction,
-): TestingAdapter {
+export function createAngleseyTestingAdapter(fetchFn: FetchFunction): TestingAdapter {
   return {
     name: 'anglesey-testing',
     description: 'Anglesey Circuit testing feed',
@@ -266,9 +246,7 @@ export function createAngleseyTestingAdapter(
   };
 }
 
-export function createCroftTestingAdapter(
-  fetchFn: FetchFunction,
-): TestingAdapter {
+export function createCroftTestingAdapter(fetchFn: FetchFunction): TestingAdapter {
   return {
     name: 'croft-testing',
     description: 'Croft Circuit testing feed',
@@ -284,9 +262,7 @@ export function createCroftTestingAdapter(
   };
 }
 
-export function createMalloryTestingAdapter(
-  fetchFn: FetchFunction,
-): TestingAdapter {
+export function createMalloryTestingAdapter(fetchFn: FetchFunction): TestingAdapter {
   return {
     name: 'mallory-testing',
     description: 'Mallory Park testing feed',
@@ -302,9 +278,7 @@ export function createMalloryTestingAdapter(
   };
 }
 
-export function createThruxtonTestingAdapter(
-  fetchFn: FetchFunction,
-): TestingAdapter {
+export function createThruxtonTestingAdapter(fetchFn: FetchFunction): TestingAdapter {
   return {
     name: 'thruxton-testing',
     description: 'Thruxton testing feed',
@@ -320,10 +294,7 @@ export function createThruxtonTestingAdapter(
   };
 }
 
-export const angleseyTestingAdapter =
-  createAngleseyTestingAdapter(defaultTextFetch);
+export const angleseyTestingAdapter = createAngleseyTestingAdapter(defaultTextFetch);
 export const croftTestingAdapter = createCroftTestingAdapter(defaultTextFetch);
-export const malloryTestingAdapter =
-  createMalloryTestingAdapter(defaultTextFetch);
-export const thruxtonTestingAdapter =
-  createThruxtonTestingAdapter(defaultTextFetch);
+export const malloryTestingAdapter = createMalloryTestingAdapter(defaultTextFetch);
+export const thruxtonTestingAdapter = createThruxtonTestingAdapter(defaultTextFetch);

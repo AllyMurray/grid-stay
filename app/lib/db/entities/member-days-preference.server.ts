@@ -41,6 +41,4 @@ export const MemberDaysPreferenceEntity = new Entity(
   { client, table: tableName },
 );
 
-export type MemberDaysPreferenceRecord = EntityItem<
-  typeof MemberDaysPreferenceEntity
->;
+export type MemberDaysPreferenceRecord = EntityItem<typeof MemberDaysPreferenceEntity>;

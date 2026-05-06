@@ -22,15 +22,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     getAvailableDaysSnapshot(),
     listManualDays(),
   ]);
-  const seriesOptions = buildAdminSeriesOptions([
-    ...(snapshot?.days ?? []),
-    ...manualDays,
-  ]);
+  const seriesOptions = buildAdminSeriesOptions([...(snapshot?.days ?? []), ...manualDays]);
 
-  return Response.json(
-    { profile, seriesOptions } satisfies AdminMemberDetailPageProps,
-    { headers },
-  );
+  return Response.json({ profile, seriesOptions } satisfies AdminMemberDetailPageProps, {
+    headers,
+  });
 }
 
 export async function action({ request, params }: Route.ActionArgs) {

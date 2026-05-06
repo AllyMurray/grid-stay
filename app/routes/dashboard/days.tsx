@@ -16,10 +16,7 @@ import {
 } from '~/lib/cost-splitting/actions.server';
 import type { DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import { loadDaysIndex } from '~/lib/days/dashboard-feed.server';
-import {
-  submitClearSavedDaysFilters,
-  submitSaveDaysFilters,
-} from '~/lib/days/preferences.server';
+import { submitClearSavedDaysFilters, submitSaveDaysFilters } from '~/lib/days/preferences.server';
 import { submitSharedDayPlan } from '~/lib/days/shared-plan.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { submitMemberEventAction } from '~/lib/db/services/member-event.server';
@@ -115,9 +112,7 @@ export async function action({ request }: Route.ActionArgs) {
       await recordAppEventSafely({
         category: 'audit',
         action: savedPlan ? 'dayPlan.saved' : 'dayPlan.deleted',
-        message: savedPlan
-          ? 'Shared day plan saved.'
-          : 'Shared day plan deleted.',
+        message: savedPlan ? 'Shared day plan saved.' : 'Shared day plan deleted.',
         actor: { userId: user.id, name: user.name },
         subject: {
           type: 'day',
@@ -157,14 +152,8 @@ export async function action({ request }: Route.ActionArgs) {
     } else if (intent?.toString().startsWith('createCost')) {
       await recordAppEventSafely({
         category: 'audit',
-        action:
-          intent === 'createCostGroup'
-            ? 'costGroup.created'
-            : 'costExpense.created',
-        message:
-          intent === 'createCostGroup'
-            ? 'Cost group created.'
-            : 'Cost expense created.',
+        action: intent === 'createCostGroup' ? 'costGroup.created' : 'costExpense.created',
+        message: intent === 'createCostGroup' ? 'Cost group created.' : 'Cost expense created.',
         actor: { userId: user.id, name: user.name },
         subject: {
           type: 'day',
@@ -190,10 +179,7 @@ export async function action({ request }: Route.ActionArgs) {
     } else if (intent?.toString().startsWith('deleteCost')) {
       await recordAppEventSafely({
         category: 'audit',
-        action:
-          intent === 'deleteCostGroup'
-            ? 'costGroup.deleted'
-            : 'costExpense.deleted',
+        action: intent === 'deleteCostGroup' ? 'costGroup.deleted' : 'costExpense.deleted',
         message: 'Cost split item deleted.',
         actor: { userId: user.id, name: user.name },
         subject: {
@@ -226,10 +212,7 @@ export async function action({ request }: Route.ActionArgs) {
           existingCount: seriesResult.existingCount,
         },
       });
-    } else if (
-      intent !== 'saveDaysFilters' &&
-      intent !== 'clearSavedDaysFilters'
-    ) {
+    } else if (intent !== 'saveDaysFilters' && intent !== 'clearSavedDaysFilters') {
       await recordAppEventSafely({
         category: 'audit',
         action: 'booking.created',
@@ -269,7 +252,5 @@ export function shouldRevalidate({
 }
 
 export default function AvailableDaysRoute() {
-  return (
-    <AvailableDaysPage data={useLoaderData<typeof loader>() as DaysIndexData} />
-  );
+  return <AvailableDaysPage data={useLoaderData<typeof loader>() as DaysIndexData} />;
 }

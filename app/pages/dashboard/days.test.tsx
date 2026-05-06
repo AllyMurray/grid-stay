@@ -1,21 +1,15 @@
 import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
-import type {
-  DaysFeedData,
-  DaysIndexData,
-} from '~/lib/days/dashboard-feed.server';
+import { describe, expect, it, vi } from 'vite-plus/test';
+import type { DaysFeedData, DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import type { DayAttendanceSummary } from '~/lib/days/types';
 import type { EventCostSummary } from '~/lib/db/services/cost-splitting.server';
 import { theme } from '~/theme';
 import { AvailableDaysPage } from './days';
 
 vi.mock('@mantine/schedule', async () => {
-  const actual =
-    await vi.importActual<typeof import('@mantine/schedule')>(
-      '@mantine/schedule',
-    );
+  const actual = await vi.importActual<typeof import('@mantine/schedule')>('@mantine/schedule');
 
   return {
     ...actual,
@@ -33,9 +27,7 @@ vi.mock('@mantine/schedule', async () => {
           <button
             key={event.id}
             type="button"
-            onClick={(reactEvent) =>
-              onEventClick?.(event, reactEvent.nativeEvent)
-            }
+            onClick={(reactEvent) => onEventClick?.(event, reactEvent.nativeEvent)}
           >
             {event.title}
           </button>
@@ -51,10 +43,7 @@ vi.mock('@mantine/schedule', async () => {
 function renderWithProviders(
   ui: React.ReactElement,
   initialEntry = '/dashboard/days',
-  attendanceByDay: Record<
-    string,
-    DayAttendanceSummary
-  > = defaultAttendanceByDay,
+  attendanceByDay: Record<string, DayAttendanceSummary> = defaultAttendanceByDay,
   feedPagesByOffset: Record<number, DaysFeedData> = {},
   action: (args: ActionFunctionArgs) => Promise<unknown> = async () => null,
   costSummaryByDay: Record<string, EventCostSummary | null> = {},
@@ -88,9 +77,7 @@ function renderWithProviders(
     {
       path: '/api/dashboard/days-feed',
       loader({ request }) {
-        const offset = Number(
-          new URL(request.url).searchParams.get('offset') ?? '0',
-        );
+        const offset = Number(new URL(request.url).searchParams.get('offset') ?? '0');
 
         return (
           feedPagesByOffset[offset] ?? {
@@ -315,21 +302,15 @@ describe('AvailableDaysPage', () => {
   it('renders the live schedule from props', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Available Days' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Available Days' })).toBeInTheDocument();
     expect(screen.getByText('2 matching days')).toBeInTheDocument();
     expect(screen.getByText('No filters')).toBeInTheDocument();
     expect(screen.queryByText(/Circuits tracked/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Providers tracked/i)).not.toBeInTheDocument();
     expect(screen.getAllByText('Silverstone').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/2 attending/i).length).toBeGreaterThan(0);
-    expect(
-      screen.queryByRole('button', { name: /^maybe$/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /^booked$/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^maybe$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^booked$/i })).not.toBeInTheDocument();
   });
 
   it('surfaces same-day session labels directly on the list rows', () => {
@@ -345,8 +326,7 @@ describe('AvailableDaysPage', () => {
               type: 'track_day',
               circuit: 'Donington Park',
               provider: 'MSV Car Trackdays',
-              description:
-                'National • MSV Car Trackdays - General Track Day • Full Day',
+              description: 'National • MSV Car Trackdays - General Track Day • Full Day',
             },
             {
               dayId: 'day-b',
@@ -354,8 +334,7 @@ describe('AvailableDaysPage', () => {
               type: 'track_day',
               circuit: 'Donington Park',
               provider: 'MSV Car Trackdays',
-              description:
-                'National • MSV Car Trackdays - General Track Evening • Evening',
+              description: 'National • MSV Car Trackdays - General Track Evening • Evening',
             },
           ],
           attendanceSummaries: {
@@ -396,9 +375,7 @@ describe('AvailableDaysPage', () => {
       />,
     );
 
-    expect(screen.getByRole('combobox', { name: 'Month' })).toHaveDisplayValue(
-      'May 2026',
-    );
+    expect(screen.getByRole('combobox', { name: 'Month' })).toHaveDisplayValue('May 2026');
   });
 
   it('renders selected circuit filters as repeatable form values', () => {
@@ -421,9 +398,9 @@ describe('AvailableDaysPage', () => {
       name: 'Available days filters',
     });
     expect(
-      Array.from(
-        filtersForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]'),
-      ).map((input) => input.value),
+      Array.from(filtersForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]')).map(
+        (input) => input.value,
+      ),
     ).toEqual(['Brands Hatch', 'Silverstone']);
   });
 
@@ -454,9 +431,9 @@ describe('AvailableDaysPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('combobox', { name: 'Race series' }),
-    ).toHaveDisplayValue('Caterham Academy');
+    expect(screen.getByRole('combobox', { name: 'Race series' })).toHaveDisplayValue(
+      'Caterham Academy',
+    );
     await waitFor(() => {
       expect(
         Array.from(
@@ -503,9 +480,7 @@ describe('AvailableDaysPage', () => {
     );
 
     expect(screen.getByText('Saved view')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Apply saved view' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Apply saved view' })).toHaveAttribute(
       'href',
       '/dashboard/days?month=2026-06&series=caterham-academy&circuit=Snetterton',
     );
@@ -513,21 +488,15 @@ describe('AvailableDaysPage', () => {
     const saveForm = screen.getByRole('form', {
       name: 'Save applied filters',
     });
+    expect(saveForm.querySelector<HTMLInputElement>('input[name="month"]')?.value).toBe('2026-05');
     expect(
-      saveForm.querySelector<HTMLInputElement>('input[name="month"]')?.value,
-    ).toBe('2026-05');
-    expect(
-      Array.from(
-        saveForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]'),
-      ).map((input) => input.value),
+      Array.from(saveForm.querySelectorAll<HTMLInputElement>('input[name="circuit"]')).map(
+        (input) => input.value,
+      ),
     ).toEqual(['Brands Hatch', 'Snetterton']);
     expect(screen.getByLabelText('Use for notifications')).toBeChecked();
-    expect(
-      screen.getByText('Notifications limited to this saved view'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('External alert channel'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Notifications limited to this saved view')).toBeInTheDocument();
+    expect(screen.queryByLabelText('External alert channel')).not.toBeInTheDocument();
     expect(
       view.container.querySelector<HTMLInputElement>(
         'input[name="intent"][value="clearSavedDaysFilters"]',
@@ -545,16 +514,12 @@ describe('AvailableDaysPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('link', { name: 'Manage manual days' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Manage manual days' })).toBeInTheDocument();
 
     view.unmount();
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
-    expect(
-      screen.queryByRole('link', { name: 'Manage manual days' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Manage manual days' })).not.toBeInTheDocument();
   });
 
   it('adds missing events from the feed', async () => {
@@ -588,11 +553,8 @@ describe('AvailableDaysPage', () => {
     )?.form;
 
     expect(memberEventForm).toBeTruthy();
-    const field = (name: string) =>
-      memberEventForm!.elements.namedItem(name) as HTMLElement;
-    const dateField = memberEventForm!.querySelector(
-      'input[name="date"]',
-    ) as HTMLInputElement;
+    const field = (name: string) => memberEventForm!.elements.namedItem(name) as HTMLElement;
+    const dateField = memberEventForm!.querySelector('input[name="date"]') as HTMLInputElement;
 
     fireEvent.change(dateField, {
       target: { value: '2026-06-14' },
@@ -633,9 +595,7 @@ describe('AvailableDaysPage', () => {
   it('does not render the source loading warning in the member feed', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
-    expect(
-      screen.queryByText(/Some sources could not be loaded/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Some sources could not be loaded/i)).not.toBeInTheDocument();
   });
 
   it('updates the selected detail when another day link is opened', async () => {
@@ -646,36 +606,26 @@ describe('AvailableDaysPage', () => {
     });
 
     fireEvent.click(brandsHatchLink);
-    expect(
-      await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
-    ).not.toHaveLength(0);
+    expect(await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays')).not.toHaveLength(0);
     expect(screen.getByText('2 of 2 matching days')).toBeInTheDocument();
     expect(screen.getByText('My plan')).toBeInTheDocument();
     expect(screen.getByText('Group plan')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /add as maybe/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /add as booked/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /book on provider site/i }),
-    ).toHaveAttribute('href', 'https://example.com/brands-hatch/book');
+    expect(screen.getByRole('button', { name: /add as maybe/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add as booked/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /book on provider site/i })).toHaveAttribute(
+      'href',
+      'https://example.com/brands-hatch/book',
+    );
     expect(screen.getByText('Attendee roster')).toBeInTheDocument();
     expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
     fireEvent.click(
-      await screen.findByRole(
-        'button',
-        { name: /view booked attendees/i },
-        { timeout: 3000 },
-      ),
+      await screen.findByRole('button', { name: /view booked attendees/i }, { timeout: 3000 }),
     );
-    expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
-      0,
+    expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /back to available days/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
     );
-    expect(
-      screen.getByRole('link', { name: /back to available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
   });
 
   it('renders the calendar view and opens details from a calendar event', async () => {
@@ -696,21 +646,17 @@ describe('AvailableDaysPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Brands Hatch' }));
 
-    expect(
-      await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays'),
-    ).not.toHaveLength(0);
-    expect(
-      screen.getByRole('link', { name: /back to available days/i }),
-    ).toHaveAttribute('href', expect.stringContaining('view=calendar'));
+    expect(await screen.findAllByText('Thu, 7 May 2026 • Focus Trackdays')).not.toHaveLength(0);
+    expect(screen.getByRole('link', { name: /back to available days/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('view=calendar'),
+    );
   });
 
   it('links the view tabs to their matching views', () => {
     renderWithProviders(<AvailableDaysPage data={defaultData} />);
 
-    expect(screen.getByRole('tab', { name: 'List' })).toHaveAttribute(
-      'href',
-      '/dashboard/days',
-    );
+    expect(screen.getByRole('tab', { name: 'List' })).toHaveAttribute('href', '/dashboard/days');
     expect(screen.getByRole('tab', { name: 'Calendar' })).toHaveAttribute(
       'href',
       '/dashboard/days?view=calendar',
@@ -735,9 +681,7 @@ describe('AvailableDaysPage', () => {
       '/dashboard/days?showPast=true',
     );
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Show past dates' }),
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Show past dates' })).toBeChecked();
     expect(screen.getByRole('tab', { name: 'List' })).toHaveAttribute(
       'href',
       '/dashboard/days?showPast=true',
@@ -782,20 +726,15 @@ describe('AvailableDaysPage', () => {
             ],
             totalMiles: 92,
             totalDurationMinutes: 110,
-            attribution:
-              '© openrouteservice.org by HeiGIT | Map data © OpenStreetMap contributors',
+            attribution: '© openrouteservice.org by HeiGIT | Map data © OpenStreetMap contributors',
           },
         }}
       />,
       '/dashboard/days?view=planner',
     );
 
-    expect(
-      screen.getByRole('form', { name: 'Journey planner filters' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getAllByRole('heading', { name: 'Journey planner' }),
-    ).toHaveLength(1);
+    expect(screen.getByRole('form', { name: 'Journey planner filters' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'Journey planner' })).toHaveLength(1);
     expect(screen.getByText('Stop 1')).toBeInTheDocument();
     expect(screen.getByText('Stop 2')).toBeInTheDocument();
     expect(screen.getAllByText('92 miles').length).toBeGreaterThan(0);
@@ -854,15 +793,12 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByText('7 events in the series • 2 already in My Bookings'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Open series page' }),
-    ).toHaveAttribute('href', '/dashboard/series/caterham-academy');
-    expect(
-      screen.getByRole('button', { name: /add missing as maybe/i }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: /add missing as booked/i }),
-    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open series page' })).toHaveAttribute(
+      'href',
+      '/dashboard/series/caterham-academy',
+    );
+    expect(screen.getByRole('button', { name: /add missing as maybe/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /add missing as booked/i })).toBeVisible();
   });
 
   it('renders and submits the shared planning note for a selected day', async () => {
@@ -904,12 +840,8 @@ describe('AvailableDaysPage', () => {
       name: 'Shared planning note',
     });
     expect(note).toHaveDisplayValue('Meet by garage 4.');
-    expect(screen.getByLabelText('Dinner')).toHaveDisplayValue(
-      'Dinner at 19:30.',
-    );
-    expect(screen.getByLabelText('Car share')).toHaveDisplayValue(
-      'Two spaces from hotel.',
-    );
+    expect(screen.getByLabelText('Dinner')).toHaveDisplayValue('Dinner at 19:30.');
+    expect(screen.getByLabelText('Car share')).toHaveDisplayValue('Two spaces from hotel.');
     expect(screen.getByText('Updated by Driver One')).toBeInTheDocument();
 
     fireEvent.change(note, {
@@ -996,9 +928,7 @@ describe('AvailableDaysPage', () => {
     expect(await screen.findByText('Driver One pays Driver Two')).toBeVisible();
     expect(screen.getByText('Garage booking')).toBeVisible();
     expect(
-      screen.queryByText(
-        'Cost groups load when this day is opened directly from the dashboard.',
-      ),
+      screen.queryByText('Cost groups load when this day is opened directly from the dashboard.'),
     ).not.toBeInTheDocument();
   });
 
@@ -1045,29 +975,20 @@ describe('AvailableDaysPage', () => {
       screen.getByText('5 events in the series • 5 already in My Bookings'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'All linked events from this series are already in My Bookings.',
-      ),
+      screen.getByText('All linked events from this series are already in My Bookings.'),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /add missing as maybe/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add missing as maybe/i })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /add missing as booked/i }),
     ).not.toBeInTheDocument();
   });
 
   it('moves between loaded matching days from the selected-day header', async () => {
-    renderWithProviders(
-      <AvailableDaysPage data={defaultData} />,
-      '/dashboard/days?day=day-1',
-    );
+    renderWithProviders(<AvailableDaysPage data={defaultData} />, '/dashboard/days?day=day-1');
 
     expect(await screen.findByText('1 of 2 matching days')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
-    expect(
-      screen.queryByRole('link', { name: /book on provider site/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /book on provider site/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /next/i })).toHaveAttribute(
       'href',
       '/dashboard/days?day=day-2',
@@ -1150,26 +1071,20 @@ describe('AvailableDaysPage', () => {
   });
 
   it('shows a compact roster first and expands one status group at a time', async () => {
-    renderWithProviders(
-      <AvailableDaysPage data={defaultData} />,
-      '/dashboard/days?day=day-2',
-    );
+    renderWithProviders(<AvailableDaysPage data={defaultData} />, '/dashboard/days?day=day-2');
 
     await screen.findByText('Attendee roster');
     expect(screen.queryByText('Driver Four')).not.toBeInTheDocument();
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /view booked attendees/i }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: /view booked attendees/i }));
 
-    expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(
-      0,
-    );
+    expect((await screen.findAllByText('Driver Four')).length).toBeGreaterThan(0);
 
     expect(screen.getAllByText('Brands Hatch Lodge').length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('link', { name: /back to available days/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByRole('link', { name: /back to available days/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
     expect(screen.getAllByText('Brands Hatch').length).toBeGreaterThan(0);
   });
 
@@ -1192,28 +1107,22 @@ describe('AvailableDaysPage', () => {
     );
 
     expect(await screen.findByText('My plan')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /^open my booking$/i }),
-    ).toHaveAttribute('href', '/dashboard/bookings');
+    expect(screen.getByRole('link', { name: /^open my booking$/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings',
+    );
     expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
     expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
 
   it('offers saved shared stays as direct actions in the selected-day view', async () => {
-    renderWithProviders(
-      <AvailableDaysPage data={defaultData} />,
-      '/dashboard/days?day=day-1',
-    );
+    renderWithProviders(<AvailableDaysPage data={defaultData} />, '/dashboard/days?day=day-1');
 
-    expect(
-      await screen.findByRole('button', { name: /join stay/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /join stay/i })).toBeInTheDocument();
     expect(screen.getAllByText('Your state').length).toBeGreaterThan(0);
     expect(screen.getByText('Not in your plan')).toBeInTheDocument();
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText('Wait for someone to name the stay.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Wait for someone to name the stay.')).toBeInTheDocument();
   });
 
   it('submits garage share requests from the selected-day view', async () => {
@@ -1261,9 +1170,7 @@ describe('AvailableDaysPage', () => {
       },
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /request space/i }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: /request space/i }));
 
     await waitFor(() =>
       expect(submitted).toEqual(
@@ -1289,11 +1196,10 @@ describe('AvailableDaysPage', () => {
       />,
     );
 
-    expect(
-      screen.getByText(/no days match those filters/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /show the full feed/i }),
-    ).toHaveAttribute('href', '/dashboard/days');
+    expect(screen.getByText(/no days match those filters/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /show the full feed/i })).toHaveAttribute(
+      'href',
+      '/dashboard/days',
+    );
   });
 });

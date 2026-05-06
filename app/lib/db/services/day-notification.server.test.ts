@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { AvailableDay } from '~/lib/days/types';
 
 vi.mock('../entities/day-notification.server', () => ({
@@ -59,9 +59,7 @@ describe('day notification service', () => {
   it('detects newly available days after the first cached refresh', () => {
     expect(findNewAvailableDays(null, [existingDay])).toEqual([]);
     expect(findNewAvailableDays([], [existingDay])).toEqual([existingDay]);
-    expect(findNewAvailableDays([existingDay], [existingDay, newDay])).toEqual([
-      newDay,
-    ]);
+    expect(findNewAvailableDays([existingDay], [existingDay, newDay])).toEqual([newDay]);
   });
 
   it('creates stable notification records for available days', async () => {
@@ -129,9 +127,10 @@ describe('day notification service', () => {
       } as never,
     });
 
-    expect(
-      notifications.map((notification) => notification.notificationId),
-    ).toEqual(['new-day#new', 'new-day#old']);
+    expect(notifications.map((notification) => notification.notificationId)).toEqual([
+      'new-day#new',
+      'new-day#old',
+    ]);
     expect(notifications[0]?.isRead).toBe(false);
     expect(notifications[1]).toMatchObject({
       isRead: true,
@@ -187,9 +186,9 @@ describe('day notification service', () => {
       })),
     });
 
-    expect(
-      notifications.map((notification) => notification.notificationId),
-    ).toEqual(['new-day#matching']);
+    expect(notifications.map((notification) => notification.notificationId)).toEqual([
+      'new-day#matching',
+    ]);
   });
 
   it('counts unread notifications after saved-view filtering', async () => {

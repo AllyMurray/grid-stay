@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import {
   extractCroftTrackDayUrls,
   parseAngleseyTrackDays,
@@ -100,10 +100,7 @@ describe('parseLyddenTrackDays', () => {
       </p>
     `;
 
-    expect(parseLyddenTrackDays(html).map((day) => day.date)).toEqual([
-      '2026-02-07',
-      '2026-11-14',
-    ]);
+    expect(parseLyddenTrackDays(html).map((day) => day.date)).toEqual(['2026-02-07', '2026-11-14']);
   });
 });
 
@@ -171,10 +168,7 @@ describe('Croft track day sitemap parsing', () => {
     `;
 
     expect(
-      parseCroftTrackDayPage(
-        html,
-        'https://croftcircuit.co.uk/racing/track-day-24-april',
-      ),
+      parseCroftTrackDayPage(html, 'https://croftcircuit.co.uk/racing/track-day-24-april'),
     ).toEqual(
       expect.objectContaining({
         date: '2026-04-24',
@@ -188,9 +182,7 @@ describe('Croft track day sitemap parsing', () => {
 describe('parseThruxtonTrackDays', () => {
   it('returns no events while the official page says information is coming soon', () => {
     expect(
-      parseThruxtonTrackDays(
-        '<h5>Test Days Available On: Information coming soon</h5>',
-      ),
+      parseThruxtonTrackDays('<h5>Test Days Available On: Information coming soon</h5>'),
     ).toEqual([]);
   });
 });

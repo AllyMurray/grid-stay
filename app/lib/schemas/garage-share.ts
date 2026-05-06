@@ -13,6 +13,4 @@ export const GarageShareDecisionSchema = z.object({
 });
 
 export type GarageShareRequestInput = z.infer<typeof GarageShareRequestSchema>;
-export type GarageShareDecisionInput = z.infer<
-  typeof GarageShareDecisionSchema
->;
+export type GarageShareDecisionInput = z.infer<typeof GarageShareDecisionSchema>;

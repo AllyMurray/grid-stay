@@ -14,11 +14,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import {
-  Schedule,
-  type ScheduleEventData,
-  type ScheduleViewLevel,
-} from '@mantine/schedule';
+import { Schedule, type ScheduleEventData, type ScheduleViewLevel } from '@mantine/schedule';
 import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
@@ -65,9 +61,7 @@ interface ScheduleBookingEventPayload {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function bookingColor(status: BookingRecord['status']) {
@@ -143,13 +137,8 @@ function getDefaultSelectedBookingId(
   return nextActiveBooking?.bookingId ?? bookings[0]?.bookingId ?? null;
 }
 
-function filterUpcomingScheduleBookings(
-  bookings: BookingRecord[],
-  today: string,
-) {
-  return bookings.filter(
-    (booking) => booking.status !== 'cancelled' && booking.date >= today,
-  );
+function filterUpcomingScheduleBookings(bookings: BookingRecord[], today: string) {
+  return bookings.filter((booking) => booking.status !== 'cancelled' && booking.date >= today);
 }
 
 function buildScheduleEvents(
@@ -218,11 +207,7 @@ function ScheduleLegend() {
   return (
     <Group gap="xs" wrap="wrap">
       {(['booked', 'maybe', 'cancelled'] as const).map((status) => (
-        <Badge
-          key={status}
-          color={bookingColor(status)}
-          variant={bookingVariant(status)}
-        >
+        <Badge key={status} color={bookingColor(status)} variant={bookingVariant(status)}>
           {titleCase(status)}
         </Badge>
       ))}
@@ -256,8 +241,7 @@ function CalendarSyncModal({
   const feedUrl = actionFeedUrl ?? initialFeedUrl;
   const feedExists = actionFeedExists ?? initialFeedExists;
   const tokenHint = actionTokenHint ?? initialTokenHint;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   useEffect(() => {
     if (fetcher.data?.ok) {
@@ -274,17 +258,11 @@ function CalendarSyncModal({
   );
 
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title="Sync calendar"
-      centered
-      size="lg"
-    >
+    <Modal opened={opened} onClose={onClose} title="Sync calendar" centered size="lg">
       <Stack gap="md">
         <Text size="sm" c="dimmed">
-          Subscribe from Apple Calendar, Google Calendar, Outlook, or another
-          calendar app. Cancelled trips are always left out of the feed.
+          Subscribe from Apple Calendar, Google Calendar, Outlook, or another calendar app.
+          Cancelled trips are always left out of the feed.
         </Text>
 
         <Stack gap="xs">
@@ -351,13 +329,12 @@ function CalendarSyncModal({
         ) : feedExists ? (
           <Text size="sm">
             A private calendar feed is active
-            {tokenHint ? `, ending ${tokenHint}` : ''}. Regenerate the link to
-            copy a fresh URL.
+            {tokenHint ? `, ending ${tokenHint}` : ''}. Regenerate the link to copy a fresh URL.
           </Text>
         ) : (
           <Text size="sm">
-            Create a private calendar link first. Anyone with the link can see
-            the trips in your schedule.
+            Create a private calendar link first. Anyone with the link can see the trips in your
+            schedule.
           </Text>
         )}
 
@@ -365,17 +342,12 @@ function CalendarSyncModal({
 
         <Group justify="space-between" align="center" gap="md">
           <Text size="sm" c="dimmed">
-            Saving options updates this feed. Regenerating the link turns off
-            the previous one.
+            Saving options updates this feed. Regenerating the link turns off the previous one.
           </Text>
           <Group gap="xs" justify="flex-end">
             {feedExists ? (
               <fetcher.Form method="post">
-                <input
-                  type="hidden"
-                  name="intent"
-                  value="saveCalendarFeedOptions"
-                />
+                <input type="hidden" name="intent" value="saveCalendarFeedOptions" />
                 {optionInputs}
                 <Button type="submit" variant="default" loading={isSubmitting}>
                   Save options
@@ -386,9 +358,7 @@ function CalendarSyncModal({
               <input
                 type="hidden"
                 name="intent"
-                value={
-                  feedExists ? 'regenerateCalendarFeed' : 'createCalendarFeed'
-                }
+                value={feedExists ? 'regenerateCalendarFeed' : 'createCalendarFeed'}
               />
               {optionInputs}
               <Button type="submit" variant="default" loading={isSubmitting}>
@@ -426,11 +396,7 @@ function MobileBookingList({ bookings }: { bookings: BookingRecord[] }) {
             <Stack gap={0}>
               {section.items.map((booking, index) => (
                 <div key={booking.bookingId}>
-                  <Group
-                    align="flex-start"
-                    gap="md"
-                    className="schedule-mobile-row"
-                  >
+                  <Group align="flex-start" gap="md" className="schedule-mobile-row">
                     <Stack gap={2} className="schedule-mobile-date">
                       <Text fw={800}>{formatShortDate(booking.date)}</Text>
                       <Text size="xs" c="dimmed">
@@ -480,31 +446,19 @@ export function BookingSchedulePage({
     getInitialValueInEffect: false,
   });
   const [syncOpened, syncHandlers] = useDisclosure(false);
-  const sortedBookings = useMemo(
-    () => [...bookings].sort(sortBookings),
-    [bookings],
-  );
+  const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const scheduleBookings = useMemo(
     () => filterUpcomingScheduleBookings(sortedBookings, today),
     [sortedBookings, today],
   );
-  const confirmedCount = scheduleBookings.filter(
-    (booking) => booking.status === 'booked',
-  ).length;
-  const maybeCount = scheduleBookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
+  const confirmedCount = scheduleBookings.filter((booking) => booking.status === 'booked').length;
+  const maybeCount = scheduleBookings.filter((booking) => booking.status === 'maybe').length;
   const sharedStayCount = scheduleBookings.filter((booking) =>
     Boolean(booking.accommodationName?.trim()),
   ).length;
-  const scheduleEvents = useMemo(
-    () => buildScheduleEvents(scheduleBookings),
-    [scheduleBookings],
-  );
+  const scheduleEvents = useMemo(() => buildScheduleEvents(scheduleBookings), [scheduleBookings]);
   const [view, setView] = useState<ScheduleViewLevel>('month');
-  const [currentDate, setCurrentDate] = useState<string>(
-    scheduleBookings[0]?.date ?? today,
-  );
+  const [currentDate, setCurrentDate] = useState<string>(scheduleBookings[0]?.date ?? today);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     getDefaultSelectedBookingId(scheduleBookings, today),
   );
@@ -516,10 +470,7 @@ export function BookingSchedulePage({
     }
 
     setSelectedBookingId((current) => {
-      if (
-        current &&
-        scheduleBookings.some((booking) => booking.bookingId === current)
-      ) {
+      if (current && scheduleBookings.some((booking) => booking.bookingId === current)) {
         return current;
       }
 
@@ -536,9 +487,7 @@ export function BookingSchedulePage({
   }, [scheduleBookings]);
 
   const selectedBooking =
-    scheduleBookings.find(
-      (booking) => booking.bookingId === selectedBookingId,
-    ) ?? null;
+    scheduleBookings.find((booking) => booking.bookingId === selectedBookingId) ?? null;
 
   return (
     <Stack gap="xl">
@@ -576,11 +525,7 @@ export function BookingSchedulePage({
 
       {scheduleBookings.length === 0 ? (
         <EmptyStateCard
-          title={
-            bookings.length > 0
-              ? 'No upcoming trips'
-              : 'No trips to schedule yet'
-          }
+          title={bookings.length > 0 ? 'No upcoming trips' : 'No trips to schedule yet'}
           description={
             bookings.length > 0
               ? 'Your past and cancelled trips are still available in My Bookings.'
@@ -589,13 +534,9 @@ export function BookingSchedulePage({
           action={
             <Button
               component={Link}
-              to={
-                bookings.length > 0 ? '/dashboard/bookings' : '/dashboard/days'
-              }
+              to={bookings.length > 0 ? '/dashboard/bookings' : '/dashboard/days'}
             >
-              {bookings.length > 0
-                ? 'View all bookings'
-                : 'Browse available days'}
+              {bookings.length > 0 ? 'View all bookings' : 'Browse available days'}
             </Button>
           }
         />
@@ -609,9 +550,8 @@ export function BookingSchedulePage({
                 <Stack gap={2}>
                   <Title order={3}>Calendar</Title>
                   <Text size="sm" c="dimmed">
-                    Month and year views work best for whole-day bookings, so
-                    this page stays focused on upcoming trips rather than editor
-                    controls.
+                    Month and year views work best for whole-day bookings, so this page stays
+                    focused on upcoming trips rather than editor controls.
                   </Text>
                 </Stack>
                 <ScheduleLegend />
@@ -627,14 +567,10 @@ export function BookingSchedulePage({
                 mode="static"
                 layout="default"
                 onEventClick={(event) =>
-                  setSelectedBookingId(
-                    String(event.payload?.bookingId ?? event.id),
-                  )
+                  setSelectedBookingId(String(event.payload?.bookingId ?? event.id))
                 }
                 onDayClick={(date) => {
-                  const bookingForDay = scheduleBookings.find(
-                    (booking) => booking.date === date,
-                  );
+                  const bookingForDay = scheduleBookings.find((booking) => booking.date === date);
 
                   if (bookingForDay) {
                     setSelectedBookingId(bookingForDay.bookingId);
@@ -661,8 +597,7 @@ export function BookingSchedulePage({
                     </Text>
                     <Title order={3}>{selectedBooking.circuit}</Title>
                     <Text size="sm" c="dimmed">
-                      {formatLongDate(selectedBooking.date)} •{' '}
-                      {selectedBooking.provider}
+                      {formatLongDate(selectedBooking.date)} • {selectedBooking.provider}
                     </Text>
                     {selectedBooking.description ? (
                       <Text size="sm">{selectedBooking.description}</Text>
@@ -677,21 +612,14 @@ export function BookingSchedulePage({
                     >
                       {titleCase(selectedBooking.status)}
                     </Badge>
-                    <Button
-                      component={Link}
-                      to="/dashboard/bookings"
-                      variant="default"
-                    >
+                    <Button component={Link} to="/dashboard/bookings" variant="default">
                       Manage in My Bookings
                     </Button>
                   </Group>
                 </Group>
 
                 <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
-                  <DetailField
-                    label="Shared stay"
-                    value={getSharedStayLabel(selectedBooking)}
-                  />
+                  <DetailField label="Shared stay" value={getSharedStayLabel(selectedBooking)} />
                   <DetailField
                     label="Booking reference"
                     value={getReferenceLabel(selectedBooking)}
@@ -705,9 +633,7 @@ export function BookingSchedulePage({
                   />
                   <DetailField
                     label="Notes"
-                    value={
-                      selectedBooking.notes?.trim() || 'No private notes saved'
-                    }
+                    value={selectedBooking.notes?.trim() || 'No private notes saved'}
                   />
                 </SimpleGrid>
               </Stack>

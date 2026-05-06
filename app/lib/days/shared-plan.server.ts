@@ -8,13 +8,7 @@ import {
 import { listManualDays } from '~/lib/db/services/manual-day.server';
 
 const MAX_SHARED_PLAN_NOTES_LENGTH = 1000;
-const SHARED_PLAN_FIELDS = [
-  'notes',
-  'dinnerPlan',
-  'carShare',
-  'checklist',
-  'costSplit',
-] as const;
+const SHARED_PLAN_FIELDS = ['notes', 'dinnerPlan', 'carShare', 'checklist', 'costSplit'] as const;
 type SharedPlanField = (typeof SHARED_PLAN_FIELDS)[number];
 
 export interface SharedDayPlan {
@@ -70,14 +64,9 @@ async function dayExists(
   loadSnapshot: typeof getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays,
 ) {
-  const [snapshot, manualDays] = await Promise.all([
-    loadSnapshot(),
-    loadManualDays(),
-  ]);
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
 
-  return [...(snapshot?.days ?? []), ...manualDays].some(
-    (day) => day.dayId === dayId,
-  );
+  return [...(snapshot?.days ?? []), ...manualDays].some((day) => day.dayId === dayId);
 }
 
 export async function getSharedDayPlan(
@@ -147,10 +136,7 @@ export async function submitSharedDayPlan(
 ): Promise<SharedDayPlanActionResult> {
   const dayId = sanitizeNotes(formData.get('dayId'));
   const values = Object.fromEntries(
-    SHARED_PLAN_FIELDS.map((field) => [
-      field,
-      sanitizeNotes(formData.get(field)),
-    ]),
+    SHARED_PLAN_FIELDS.map((field) => [field, sanitizeNotes(formData.get(field))]),
   ) as Record<SharedPlanField, string>;
 
   if (!dayId) {
@@ -169,9 +155,7 @@ export async function submitSharedDayPlan(
       continue;
     }
 
-    fieldErrors[field] = [
-      `Keep this field under ${MAX_SHARED_PLAN_NOTES_LENGTH} characters.`,
-    ];
+    fieldErrors[field] = [`Keep this field under ${MAX_SHARED_PLAN_NOTES_LENGTH} characters.`];
   }
 
   if (Object.keys(fieldErrors).length > 0) {

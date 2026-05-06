@@ -51,10 +51,7 @@ export interface TrackDayAdapter {
    * Fetch track day schedule for the given circuit IDs.
    * Accepts an array to allow batch fetching (e.g. MSV covers multiple circuits in one page).
    */
-  fetchSchedule(
-    circuitIds: string[],
-    options?: TrackDayFetchOptions,
-  ): Promise<TrackDay[]>;
+  fetchSchedule(circuitIds: string[], options?: TrackDayFetchOptions): Promise<TrackDay[]>;
 }
 
 /**

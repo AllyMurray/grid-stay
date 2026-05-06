@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { AvailableDay } from '~/lib/days/types';
 import type { BookingRecord } from '../entities/booking.server';
 import type { DayMergeRecord } from '../entities/day-merge.server';
@@ -118,9 +118,7 @@ describe('day merge service', () => {
         listByUser: vi.fn(),
         findByUserAndDay: vi.fn(async () => null),
         getByUser: vi.fn(),
-        listByDay: vi.fn(async (dayId) =>
-          dayId === 'source-day' ? [sourceBooking] : [],
-        ),
+        listByDay: vi.fn(async (dayId) => (dayId === 'source-day' ? [sourceBooking] : [])),
       },
       planStore: {
         create: vi.fn(async (item) => {
@@ -215,9 +213,8 @@ describe('day merge service', () => {
       updatedAt: '2026-04-01T10:00:00.000Z',
     } as GarageShareRequestRecord;
     const createdBookings: BookingRecord[] = [];
-    const updatedGarageRequests: Array<
-      Partial<GarageShareRequestRecord> & { requestId: string }
-    > = [];
+    const updatedGarageRequests: Array<Partial<GarageShareRequestRecord> & { requestId: string }> =
+      [];
 
     await migrateMergedDayData('source-day', targetDay, {
       bookingStore: {
@@ -239,9 +236,7 @@ describe('day merge service', () => {
         get: vi.fn(),
         listAll: vi.fn(),
         listByOwner: vi.fn(),
-        listByDay: vi.fn(async (dayId) =>
-          dayId === 'source-day' ? [garageRequest] : [],
-        ),
+        listByDay: vi.fn(async (dayId) => (dayId === 'source-day' ? [garageRequest] : [])),
         update: vi.fn(async (requestId, changes) => {
           updatedGarageRequests.push({ requestId, ...changes });
           return { ...garageRequest, ...changes };
@@ -317,9 +312,7 @@ describe('day merge service', () => {
         listByUser: vi.fn(),
         findByUserAndDay: vi.fn(async () => existingTarget),
         getByUser: vi.fn(),
-        listByDay: vi.fn(async (dayId) =>
-          dayId === 'source-day' ? [sourceBooking] : [],
-        ),
+        listByDay: vi.fn(async (dayId) => (dayId === 'source-day' ? [sourceBooking] : [])),
       },
       planStore: {
         create: vi.fn(),

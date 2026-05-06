@@ -25,6 +25,4 @@ export const CircuitDistanceMatrixEntity = new Entity(
   { client, table: tableName },
 );
 
-export type CircuitDistanceMatrixRecord = EntityItem<
-  typeof CircuitDistanceMatrixEntity
->;
+export type CircuitDistanceMatrixRecord = EntityItem<typeof CircuitDistanceMatrixEntity>;

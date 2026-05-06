@@ -48,9 +48,7 @@ export default function FeedbackRoute() {
     ComponentProps<typeof FeedbackPage>,
     'feedback'
   >;
-  const actionData = useActionData<typeof action>() as
-    | FeedbackActionResult
-    | undefined;
+  const actionData = useActionData<typeof action>() as FeedbackActionResult | undefined;
 
   return <FeedbackPage actionData={actionData} feedback={data.feedback} />;
 }

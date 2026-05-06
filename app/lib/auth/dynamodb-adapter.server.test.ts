@@ -1,5 +1,5 @@
 import { QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import { dynamoDBAdapter } from './dynamodb-adapter.server';
 
 function createAdapterWithSend(send: ReturnType<typeof vi.fn>) {
@@ -46,9 +46,10 @@ describe('dynamoDBAdapter', () => {
       email: 'mulholland.william@gmail.com',
     });
 
-    expect(
-      send.mock.calls.map(([command]) => command.constructor.name),
-    ).toEqual(['QueryCommand', 'ScanCommand']);
+    expect(send.mock.calls.map(([command]) => command.constructor.name)).toEqual([
+      'QueryCommand',
+      'ScanCommand',
+    ]);
   });
 
   it('does not scan for non-Gmail email misses', async () => {
@@ -69,8 +70,6 @@ describe('dynamoDBAdapter', () => {
       }),
     ).resolves.toBeNull();
 
-    expect(
-      send.mock.calls.map(([command]) => command.constructor.name),
-    ).toEqual(['QueryCommand']);
+    expect(send.mock.calls.map(([command]) => command.constructor.name)).toEqual(['QueryCommand']);
   });
 });

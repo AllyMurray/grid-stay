@@ -102,9 +102,5 @@ export type CostGroupDeleteInput = z.infer<typeof CostGroupDeleteSchema>;
 export type CostExpenseUpsertInput = z.infer<typeof CostExpenseUpsertSchema>;
 export type CostExpenseUpdateInput = z.infer<typeof CostExpenseUpdateSchema>;
 export type CostExpenseDeleteInput = z.infer<typeof CostExpenseDeleteSchema>;
-export type CostSettlementStatusInput = z.infer<
-  typeof CostSettlementStatusSchema
->;
-export type MemberPaymentPreferenceInput = z.infer<
-  typeof MemberPaymentPreferenceSchema
->;
+export type CostSettlementStatusInput = z.infer<typeof CostSettlementStatusSchema>;
+export type MemberPaymentPreferenceInput = z.infer<typeof MemberPaymentPreferenceSchema>;

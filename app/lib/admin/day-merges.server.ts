@@ -103,14 +103,11 @@ async function loadMergeDays(
   loadSnapshot: typeof getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays,
 ): Promise<AvailableDay[]> {
-  const [snapshot, manualDays] = await Promise.all([
-    loadSnapshot(),
-    loadManualDays(),
-  ]);
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
 
   return [...(snapshot?.days ?? []), ...manualDays]
     .map(normalizeAvailableDayCircuit)
-    .sort(compareDays);
+    .toSorted(compareDays);
 }
 
 export async function loadAdminDayMergesReport(
@@ -122,9 +119,7 @@ export async function loadAdminDayMergesReport(
     loadMergeDays(loadSnapshot, loadManualDays),
     loadMerges(),
   ]);
-  const labelsByDayId = new Map(
-    days.map((day) => [day.dayId, formatDayLabel(day)]),
-  );
+  const labelsByDayId = new Map(days.map((day) => [day.dayId, formatDayLabel(day)]));
 
   return {
     days: days.map(toDayOption),
@@ -146,10 +141,7 @@ export async function submitAdminDayMergeAction(
   if (intent === 'deleteMerge') {
     const parsed = DeleteDayMergeSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
-      return formError(
-        'Could not remove this merge rule.',
-        parsed.error.flatten().fieldErrors,
-      );
+      return formError('Could not remove this merge rule.', parsed.error.flatten().fieldErrors);
     }
 
     await (dependencies.removeMerge ?? deleteDayMerge)(parsed.data.sourceDayId);
@@ -165,10 +157,7 @@ export async function submitAdminDayMergeAction(
 
   const parsed = DayMergeSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {
-    return formError(
-      'Could not save this day merge.',
-      parsed.error.flatten().fieldErrors,
-    );
+    return formError('Could not save this day merge.', parsed.error.flatten().fieldErrors);
   }
 
   if (parsed.data.sourceDayId === parsed.data.targetDayId) {

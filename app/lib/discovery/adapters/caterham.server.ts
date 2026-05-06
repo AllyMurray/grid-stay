@@ -4,12 +4,7 @@
  */
 import { normalizeCircuitLabel } from '~/lib/circuit-sources/shared.server';
 import { resolveCanonicalCircuit } from '~/lib/circuits/canonical.server';
-import type {
-  DiscoveredRound,
-  DiscoveredSeason,
-  DiscoveryResult,
-  SourceAdapter,
-} from '../types';
+import type { DiscoveredRound, DiscoveredSeason, DiscoveryResult, SourceAdapter } from '../types';
 
 /**
  * HTTP fetch function (can be overridden for testing).
@@ -19,8 +14,7 @@ export type FetchFunction = (url: string) => Promise<string>;
 /**
  * Calendar URL for Caterham Motorsport.
  */
-export const CATERHAM_CALENDAR_URL =
-  'https://caterhamcars.com/en/motorsport/championship-calendar';
+export const CATERHAM_CALENDAR_URL = 'https://caterhamcars.com/en/motorsport/championship-calendar';
 
 /**
  * Known Caterham series with their identifiers.
@@ -80,8 +74,7 @@ export function parseCalendarFromHtml(html: string): CalendarEvent[] {
   // Extract all data-order values from table rows
   // The calendar has 4 columns: date, circuit, event type, championships
   // We use data-order attributes which contain clean values for sorting
-  const rowPattern =
-    /<tr[^>]*class="[^"]*fs-table-row[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi;
+  const rowPattern = /<tr[^>]*class="[^"]*fs-table-row[^"]*"[^>]*>([\s\S]*?)<\/tr>/gi;
 
   for (const rowMatch of html.matchAll(rowPattern)) {
     const rowHtml = rowMatch[1];
@@ -141,13 +134,8 @@ export function parseCalendarFromHtml(html: string): CalendarEvent[] {
 /**
  * Filters calendar events for a specific series and returns rounds.
  */
-export function getSeriesRounds(
-  events: CalendarEvent[],
-  seriesId: string,
-): DiscoveredRound[] {
-  const seriesEvents = events.filter((e) =>
-    e.championships.includes(seriesId.toUpperCase()),
-  );
+export function getSeriesRounds(events: CalendarEvent[], seriesId: string): DiscoveredRound[] {
+  const seriesEvents = events.filter((e) => e.championships.includes(seriesId.toUpperCase()));
 
   return seriesEvents.map((event, index) => {
     const canonicalCircuit = resolveCanonicalCircuit(event.circuit);
@@ -247,15 +235,7 @@ export function parseDateRange(
  */
 function matchesCaterham(query: string): boolean {
   const queryLower = query.toLowerCase();
-  const caterhamTerms = [
-    'caterham',
-    'academy',
-    'roadsport',
-    '270r',
-    '310r',
-    'cscuk',
-    'seven',
-  ];
+  const caterhamTerms = ['caterham', 'academy', 'roadsport', '270r', '310r', 'cscuk', 'seven'];
   return caterhamTerms.some((term) => queryLower.includes(term));
 }
 
@@ -345,8 +325,7 @@ export function createCaterhamAdapter(fetchFn: FetchFunction): SourceAdapter {
 export async function defaultFetch(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
-      'User-Agent':
-        'Mozilla/5.0 (compatible; ApexBook/1.0; +https://apexbook.racing)',
+      'User-Agent': 'Mozilla/5.0 (compatible; ApexBook/1.0; +https://apexbook.racing)',
       Accept: 'text/html',
     },
   });

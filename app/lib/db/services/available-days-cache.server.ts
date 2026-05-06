@@ -30,9 +30,7 @@ export const availableDaysCacheStore: AvailableDaysCachePersistence = {
     return response.data ?? [];
   },
   async putMany(items) {
-    await Promise.all(
-      items.map((item) => AvailableDaysCacheEntity.put(item).go()),
-    );
+    await Promise.all(items.map((item) => AvailableDaysCacheEntity.put(item).go()));
   },
   async deleteScopes(scopes) {
     await Promise.all(
@@ -66,9 +64,7 @@ function isDayRecord(record: AvailableDaysCacheRecord): boolean {
   return record.scope.startsWith(AVAILABLE_DAYS_DAY_SCOPE_PREFIX);
 }
 
-function parseLegacySnapshot(
-  record: AvailableDaysCacheRecord,
-): AvailableDaysSnapshot | null {
+function parseLegacySnapshot(record: AvailableDaysCacheRecord): AvailableDaysSnapshot | null {
   const parsed = parseJson<AvailableDaysResult>(record.payload);
   if (!parsed) {
     return null;
@@ -81,19 +77,13 @@ function parseLegacySnapshot(
   };
 }
 
-function parseShardedSnapshot(
-  records: AvailableDaysCacheRecord[],
-): AvailableDaysSnapshot | null {
-  const metaRecord = records.find(
-    (record) => record.scope === AVAILABLE_DAYS_META_SCOPE,
-  );
+function parseShardedSnapshot(records: AvailableDaysCacheRecord[]): AvailableDaysSnapshot | null {
+  const metaRecord = records.find((record) => record.scope === AVAILABLE_DAYS_META_SCOPE);
   if (!metaRecord) {
     return null;
   }
 
-  const meta = parseJson<Pick<AvailableDaysSnapshot, 'errors'>>(
-    metaRecord.payload,
-  );
+  const meta = parseJson<Pick<AvailableDaysSnapshot, 'errors'>>(metaRecord.payload);
   if (!meta) {
     return null;
   }
@@ -103,7 +93,7 @@ function parseShardedSnapshot(
     .filter((record) => record.refreshedAt === metaRecord.refreshedAt)
     .map((record) => parseJson<AvailableDay>(record.payload))
     .filter((day): day is AvailableDay => Boolean(day))
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       left.date === right.date
         ? left.circuit.localeCompare(right.circuit)
         : left.date.localeCompare(right.date),
@@ -152,9 +142,7 @@ export async function getAvailableDaysSnapshot(
     return shardedSnapshot;
   }
 
-  const legacyRecord = records.find(
-    (record) => record.scope === AVAILABLE_DAYS_LEGACY_SCOPE,
-  );
+  const legacyRecord = records.find((record) => record.scope === AVAILABLE_DAYS_LEGACY_SCOPE);
   return legacyRecord ? parseLegacySnapshot(legacyRecord) : null;
 }
 
@@ -165,9 +153,7 @@ export async function refreshAvailableDaysSnapshot(
   const refreshedAt = new Date().toISOString();
   const existing = await store.list();
   const nextRecords = buildSnapshotRecords(input, refreshedAt);
-  const metaRecord = nextRecords.find(
-    (record) => record.scope === AVAILABLE_DAYS_META_SCOPE,
-  );
+  const metaRecord = nextRecords.find((record) => record.scope === AVAILABLE_DAYS_META_SCOPE);
   const dayRecords = nextRecords.filter(isDayRecord);
   const nextScopes = new Set(nextRecords.map((record) => record.scope));
   const staleScopes = existing

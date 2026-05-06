@@ -31,29 +31,18 @@ export function parseSilverstoneTrackDaySchedule(html: string): TrackDay[] {
 
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
 
-    const layout = extractFieldText(
-      rowContent,
-      'views-field-field-track-day-circuit',
-    );
+    const layout = extractFieldText(rowContent, 'views-field-field-track-day-circuit');
 
-    const format = extractFieldText(
-      rowContent,
-      'views-field-field-format-masterclass',
-    );
+    const format = extractFieldText(rowContent, 'views-field-field-format-masterclass');
 
-    const priceText = extractFieldText(
-      rowContent,
-      'views-field-field-track-day-current-price',
-    );
+    const priceText = extractFieldText(rowContent, 'views-field-field-track-day-current-price');
     const priceMatch = priceText.match(/£(\d+(?:\.\d{2})?)/);
     const pricePennies = priceMatch
       ? Math.round(Number.parseFloat(priceMatch[1]) * 100)
       : undefined;
 
     const isSoldOut = /sold-out--status/i.test(rowHtml);
-    const hasBookButton = /class="[^"]*btn[^"]*"[^>]*>.*?Book/i.test(
-      rowContent,
-    );
+    const hasBookButton = /class="[^"]*btn[^"]*"[^>]*>.*?Book/i.test(rowContent);
     let availability: TrackDay['availability'] = 'unknown';
     if (isSoldOut) {
       availability = 'sold_out';
@@ -64,9 +53,7 @@ export function parseSilverstoneTrackDaySchedule(html: string): TrackDay[] {
     const bookingMatch = rowContent.match(
       /<a[^>]*class="[^"]*btn-primary[^"]*"[^>]*href="([^"]*)"[^>]*>/i,
     );
-    const bookingUrl = bookingMatch
-      ? normalizeBookingUrl(bookingMatch[1])
-      : undefined;
+    const bookingUrl = bookingMatch ? normalizeBookingUrl(bookingMatch[1]) : undefined;
 
     days.push({
       date,
@@ -132,9 +119,7 @@ async function defaultFetch(url: string): Promise<string> {
 /**
  * Creates a Silverstone track day adapter with injectable fetch.
  */
-export function createSilverstoneTrackDayAdapter(
-  fetchFn: FetchFunction,
-): TrackDayAdapter {
+export function createSilverstoneTrackDayAdapter(fetchFn: FetchFunction): TrackDayAdapter {
   return {
     name: 'silverstone-trackday',
     description: 'Silverstone Circuit track days',
@@ -163,5 +148,4 @@ export function createSilverstoneTrackDayAdapter(
 /**
  * Pre-configured Silverstone track day adapter.
  */
-export const silverstoneTrackDayAdapter =
-  createSilverstoneTrackDayAdapter(defaultFetch);
+export const silverstoneTrackDayAdapter = createSilverstoneTrackDayAdapter(defaultFetch);

@@ -31,9 +31,7 @@ export interface NotificationsPageProps {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function typeColor(type: AvailableDay['type']) {
@@ -76,23 +74,14 @@ function NotificationRow({
   return (
     <Stack gap="md">
       <Group align="flex-start" justify="space-between" gap="lg" wrap="nowrap">
-        <Group
-          align="flex-start"
-          gap="sm"
-          wrap="nowrap"
-          style={{ minWidth: 0 }}
-        >
+        <Group align="flex-start" gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
           <ThemeIcon
             size={38}
             radius="sm"
             color={notification.isRead ? 'gray' : 'brand'}
             variant="light"
           >
-            {notification.isRead ? (
-              <IconCircleCheck size={20} />
-            ) : (
-              <IconCalendarPlus size={20} />
-            )}
+            {notification.isRead ? <IconCircleCheck size={20} /> : <IconCalendarPlus size={20} />}
           </ThemeIcon>
           <Stack gap={6} style={{ minWidth: 0 }}>
             <Group gap="xs" wrap="wrap">
@@ -103,18 +92,13 @@ function NotificationRow({
               {notification.isRead ? (
                 <Badge color="gray">Read</Badge>
               ) : (
-                <Badge color="brand">
-                  {notificationTypeLabel(notification.type)}
-                </Badge>
+                <Badge color="brand">{notificationTypeLabel(notification.type)}</Badge>
               )}
             </Group>
             <Text size="sm" c="dimmed">
-              {formatNotificationDate(notification.date)} •{' '}
-              {notification.provider}
+              {formatNotificationDate(notification.date)} • {notification.provider}
             </Text>
-            <Text size="sm">
-              {notification.description || 'No extra details'}
-            </Text>
+            <Text size="sm">{notification.description || 'No extra details'}</Text>
           </Stack>
         </Group>
 
@@ -141,18 +125,12 @@ function GarageShareRequestRow({
 }) {
   const fetcher = useFetcher<GarageShareDecisionActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
     <Stack gap="md">
       <Group align="flex-start" justify="space-between" gap="lg" wrap="nowrap">
-        <Group
-          align="flex-start"
-          gap="sm"
-          wrap="nowrap"
-          style={{ minWidth: 0 }}
-        >
+        <Group align="flex-start" gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
           <ThemeIcon size={38} radius="sm" color="orange" variant="light">
             <IconBellRinging size={20} />
           </ThemeIcon>
@@ -166,19 +144,14 @@ function GarageShareRequestRow({
               {formatNotificationDate(request.date)} • {request.provider}
             </Text>
             <Text size="sm">
-              Wants to share your garage for{' '}
-              {request.description || request.circuit}.
+              Wants to share your garage for {request.description || request.circuit}.
             </Text>
           </Stack>
         </Group>
 
         <Group gap="xs" justify="flex-end" flex="0 0 auto">
           <fetcher.Form method="post">
-            <input
-              type="hidden"
-              name="intent"
-              value="updateGarageShareRequest"
-            />
+            <input type="hidden" name="intent" value="updateGarageShareRequest" />
             <input type="hidden" name="requestId" value={request.requestId} />
             <Button
               type="submit"
@@ -191,18 +164,9 @@ function GarageShareRequestRow({
             </Button>
           </fetcher.Form>
           <fetcher.Form method="post">
-            <input
-              type="hidden"
-              name="intent"
-              value="updateGarageShareRequest"
-            />
+            <input type="hidden" name="intent" value="updateGarageShareRequest" />
             <input type="hidden" name="requestId" value={request.requestId} />
-            <Button
-              type="submit"
-              name="status"
-              value="approved"
-              loading={isSubmitting}
-            >
+            <Button type="submit" name="status" value="approved" loading={isSubmitting}>
               Approve
             </Button>
           </fetcher.Form>
@@ -218,13 +182,8 @@ function GarageShareRequestRow({
   );
 }
 
-export function NotificationsPage({
-  notifications,
-  garageShareRequests,
-}: NotificationsPageProps) {
-  const unreadCount = notifications.filter(
-    (notification) => !notification.isRead,
-  ).length;
+export function NotificationsPage({ notifications, garageShareRequests }: NotificationsPageProps) {
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
   const pendingRequestCount = garageShareRequests.length;
   const hasItems = notifications.length > 0 || pendingRequestCount > 0;
 
@@ -238,11 +197,7 @@ export function NotificationsPage({
           notifications.length > 0 ? (
             <Form method="post">
               <input type="hidden" name="intent" value="markAllRead" />
-              <Button
-                type="submit"
-                variant="default"
-                disabled={unreadCount === 0}
-              >
+              <Button type="submit" variant="default" disabled={unreadCount === 0}>
                 Mark all read
               </Button>
             </Form>
@@ -286,10 +241,7 @@ export function NotificationsPage({
                 <GarageShareRequestRow
                   key={request.requestId}
                   request={request}
-                  isLast={
-                    index === garageShareRequests.length - 1 &&
-                    notifications.length === 0
-                  }
+                  isLast={index === garageShareRequests.length - 1 && notifications.length === 0}
                 />
               ))}
               {notifications.map((notification, index) => (

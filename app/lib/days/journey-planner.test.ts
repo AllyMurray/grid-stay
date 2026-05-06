@@ -1,9 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { CircuitDistanceMatrix } from '~/lib/db/services/circuit-distance-matrix.server';
-import {
-  buildJourneyPlannerResult,
-  type JourneyPlannerDay,
-} from './journey-planner';
+import { buildJourneyPlannerResult, type JourneyPlannerDay } from './journey-planner';
 
 const matrix: CircuitDistanceMatrix = {
   provider: 'openrouteservice',
@@ -39,12 +36,7 @@ const matrix: CircuitDistanceMatrix = {
   },
 };
 
-function day(
-  dayId: string,
-  date: string,
-  circuit: string,
-  circuitId?: string,
-): JourneyPlannerDay {
+function day(dayId: string, date: string, circuit: string, circuitId?: string): JourneyPlannerDay {
   return {
     dayId,
     date,
@@ -103,13 +95,8 @@ describe('journey planner', () => {
       { status: 'ready', matrix },
     );
 
-    expect(result.stops.map((stop) => stop.day.dayId)).toEqual([
-      'silverstone-am',
-      'donington',
-    ]);
-    expect(result.stops[0]?.alternatives.map((day) => day.dayId)).toEqual([
-      'silverstone-pm',
-    ]);
+    expect(result.stops.map((stop) => stop.day.dayId)).toEqual(['silverstone-am', 'donington']);
+    expect(result.stops[0]?.alternatives.map((day) => day.dayId)).toEqual(['silverstone-pm']);
   });
 
   it('reports unknown circuits without using them in the optimized route', () => {
@@ -122,9 +109,7 @@ describe('journey planner', () => {
       { status: 'ready', matrix },
     );
 
-    expect(result.unknownDistanceDays.map((item) => item.dayId)).toEqual([
-      'unknown',
-    ]);
+    expect(result.unknownDistanceDays.map((item) => item.dayId)).toEqual(['unknown']);
     expect(result.stops.map((stop) => stop.day.dayId)).toEqual(['silverstone']);
   });
 

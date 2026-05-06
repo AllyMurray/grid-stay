@@ -1,7 +1,4 @@
-import {
-  type AppEvent,
-  listRecentAppEvents,
-} from '~/lib/db/services/app-event.server';
+import { type AppEvent, listRecentAppEvents } from '~/lib/db/services/app-event.server';
 
 export interface AdminOperationsReport {
   events: AppEvent[];

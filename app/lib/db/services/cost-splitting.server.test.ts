@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '../entities/booking.server';
 import type { CostExpenseRecord } from '../entities/cost-expense.server';
 import type { CostGroupRecord } from '../entities/cost-group.server';
@@ -56,14 +56,10 @@ vi.mock('./member-payment-preference.server', () => ({
         get(userId: string): Promise<MemberPaymentPreferenceRecord | null>;
       },
     ) => {
-      const records = await Promise.all(
-        userIds.map((userId) => store.get(userId)),
-      );
+      const records = await Promise.all(userIds.map((userId) => store.get(userId)));
       return new Map(
         records
-          .filter((record): record is MemberPaymentPreferenceRecord =>
-            Boolean(record),
-          )
+          .filter((record): record is MemberPaymentPreferenceRecord => Boolean(record))
           .map((record) => [record.userId, record]),
       );
     },
@@ -188,13 +184,8 @@ function createMemory() {
         1,
       );
     }),
-    get: vi.fn(
-      async (groupId) =>
-        groups.find((group) => group.groupId === groupId) ?? null,
-    ),
-    listByDay: vi.fn(async (dayId) =>
-      groups.filter((group) => group.dayId === dayId),
-    ),
+    get: vi.fn(async (groupId) => groups.find((group) => group.groupId === groupId) ?? null),
+    listByDay: vi.fn(async (dayId) => groups.filter((group) => group.dayId === dayId)),
     listAll: vi.fn(async () => groups),
   };
   const expenseStore: CostExpensePersistence = {
@@ -203,9 +194,7 @@ function createMemory() {
       return item;
     }),
     update: vi.fn(async (expenseId, changes) => {
-      const index = expenses.findIndex(
-        (expense) => expense.expenseId === expenseId,
-      );
+      const index = expenses.findIndex((expense) => expense.expenseId === expenseId);
       expenses[index] = { ...expenses[index]!, ...changes };
       return expenses[index]!;
     }),
@@ -216,12 +205,9 @@ function createMemory() {
       );
     }),
     get: vi.fn(
-      async (expenseId) =>
-        expenses.find((expense) => expense.expenseId === expenseId) ?? null,
+      async (expenseId) => expenses.find((expense) => expense.expenseId === expenseId) ?? null,
     ),
-    listByDay: vi.fn(async (dayId) =>
-      expenses.filter((expense) => expense.dayId === dayId),
-    ),
+    listByDay: vi.fn(async (dayId) => expenses.filter((expense) => expense.dayId === dayId)),
     listByGroup: vi.fn(async (groupId) =>
       expenses.filter((expense) => expense.groupId === groupId),
     ),
@@ -234,9 +220,7 @@ function createMemory() {
     }),
     get: vi.fn(async (settlementId) => settlements.get(settlementId) ?? null),
     listByDay: vi.fn(async (dayId) =>
-      [...settlements.values()].filter(
-        (settlement) => settlement.dayId === dayId,
-      ),
+      [...settlements.values()].filter((settlement) => settlement.dayId === dayId),
     ),
     listAll: vi.fn(async () => [...settlements.values()]),
   };
@@ -287,17 +271,9 @@ describe('cost splitting service', () => {
   it('shows only participant cost groups and nets event balances', async () => {
     const memory = createMemory();
 
-    const summary = await loadEventCostSummary(
-      'day-1',
-      'user-2',
-      null,
-      memory.dependencies,
-    );
+    const summary = await loadEventCostSummary('day-1', 'user-2', null, memory.dependencies);
 
-    expect(summary.groups.map((group) => group.groupId)).toEqual([
-      'garage',
-      'food',
-    ]);
+    expect(summary.groups.map((group) => group.groupId)).toEqual(['garage', 'food']);
     expect(summary.netSettlements).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -318,25 +294,13 @@ describe('cost splitting service', () => {
       ]),
     );
 
-    const userOneSummary = await loadEventCostSummary(
-      'day-1',
-      'user-1',
-      null,
-      memory.dependencies,
-    );
-    expect(userOneSummary.groups.map((group) => group.groupId)).toEqual([
-      'garage',
-    ]);
+    const userOneSummary = await loadEventCostSummary('day-1', 'user-1', null, memory.dependencies);
+    expect(userOneSummary.groups.map((group) => group.groupId)).toEqual(['garage']);
   });
 
   it('stores sent and received settlement status against the current amount', async () => {
     const memory = createMemory();
-    const initial = await loadEventCostSummary(
-      'day-1',
-      'user-2',
-      null,
-      memory.dependencies,
-    );
+    const initial = await loadEventCostSummary('day-1', 'user-2', null, memory.dependencies);
     const settlement = initial.netSettlements.find(
       (candidate) => candidate.creditorUserId === 'user-1',
     );
@@ -359,12 +323,7 @@ describe('cost splitting service', () => {
       memory.dependencies,
     );
 
-    const sent = await loadEventCostSummary(
-      'day-1',
-      'user-1',
-      null,
-      memory.dependencies,
-    );
+    const sent = await loadEventCostSummary('day-1', 'user-1', null, memory.dependencies);
     const sentSettlement = sent.netSettlements.find(
       (candidate) => candidate.debtorUserId === 'user-2',
     );
@@ -388,27 +347,15 @@ describe('cost splitting service', () => {
       memory.dependencies,
     );
 
-    const received = await loadEventCostSummary(
-      'day-1',
-      'user-1',
-      null,
-      memory.dependencies,
-    );
+    const received = await loadEventCostSummary('day-1', 'user-1', null, memory.dependencies);
     expect(
-      received.netSettlements.find(
-        (candidate) => candidate.debtorUserId === 'user-2',
-      )?.status,
+      received.netSettlements.find((candidate) => candidate.debtorUserId === 'user-2')?.status,
     ).toBe('received');
   });
 
   it('does not let a sent update downgrade a received settlement', async () => {
     const memory = createMemory();
-    const initial = await loadEventCostSummary(
-      'day-1',
-      'user-2',
-      null,
-      memory.dependencies,
-    );
+    const initial = await loadEventCostSummary('day-1', 'user-2', null, memory.dependencies);
     const settlement = initial.netSettlements.find(
       (candidate) => candidate.creditorUserId === 'user-1',
     );
@@ -427,12 +374,7 @@ describe('cost splitting service', () => {
       { id: 'user-2', name: 'Driver Two' },
       memory.dependencies,
     );
-    const sent = await loadEventCostSummary(
-      'day-1',
-      'user-1',
-      null,
-      memory.dependencies,
-    );
+    const sent = await loadEventCostSummary('day-1', 'user-1', null, memory.dependencies);
     const sentSettlement = sent.netSettlements.find(
       (candidate) => candidate.debtorUserId === 'user-2',
     );
@@ -469,16 +411,9 @@ describe('cost splitting service', () => {
       status: 409,
     });
 
-    const received = await loadEventCostSummary(
-      'day-1',
-      'user-1',
-      null,
-      memory.dependencies,
-    );
+    const received = await loadEventCostSummary('day-1', 'user-1', null, memory.dependencies);
     expect(
-      received.netSettlements.find(
-        (candidate) => candidate.debtorUserId === 'user-2',
-      )?.status,
+      received.netSettlements.find((candidate) => candidate.debtorUserId === 'user-2')?.status,
     ).toBe('received');
   });
 

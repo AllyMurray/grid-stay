@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { AdminMemberDirectoryEntry } from '~/lib/auth/members.server';
 import type { AvailableDay } from '~/lib/days/types';
 
@@ -104,9 +104,7 @@ describe('external notification service', () => {
       memory.store,
     );
 
-    await expect(
-      listRecentExternalNotifications(1, memory.store),
-    ).resolves.toMatchObject([
+    await expect(listRecentExternalNotifications(1, memory.store)).resolves.toMatchObject([
       {
         subject: 'Newer',
         status: 'pending',

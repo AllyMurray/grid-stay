@@ -1,14 +1,8 @@
 import { useLoaderData } from 'react-router';
-import {
-  loadAdminCircuitsReport,
-  submitAdminCircuitAction,
-} from '~/lib/admin/circuits.server';
+import { loadAdminCircuitsReport, submitAdminCircuitAction } from '~/lib/admin/circuits.server';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import {
-  AdminCircuitsPage,
-  type AdminCircuitsPageProps,
-} from '~/pages/dashboard/admin-circuits';
+import { AdminCircuitsPage, type AdminCircuitsPageProps } from '~/pages/dashboard/admin-circuits';
 import type { Route } from './+types/admin.circuits';
 
 export async function loader({ request }: Route.LoaderArgs) {

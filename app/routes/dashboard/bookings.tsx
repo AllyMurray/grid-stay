@@ -1,9 +1,6 @@
 import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
-import {
-  submitBookingDelete,
-  submitBookingUpdate,
-} from '~/lib/bookings/actions.server';
+import { submitBookingDelete, submitBookingUpdate } from '~/lib/bookings/actions.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
@@ -75,10 +72,5 @@ export default function MyBookingsRoute() {
     bookings: BookingRecord[];
     garageShareRequests: UserGarageShareRequest[];
   };
-  return (
-    <MyBookingsPage
-      bookings={data.bookings}
-      garageShareRequests={data.garageShareRequests}
-    />
-  );
+  return <MyBookingsPage bookings={data.bookings} garageShareRequests={data.garageShareRequests} />;
 }

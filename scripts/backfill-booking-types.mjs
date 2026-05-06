@@ -1,10 +1,6 @@
 #!/usr/bin/env node
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  ScanCommand,
-  UpdateCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 
 const VALID_BOOKING_TYPES = new Set(['race_day', 'test_day', 'track_day']);
@@ -15,9 +11,7 @@ const AVAILABLE_DAYS_DAY_SCOPE_PREFIX = 'day#';
 
 function readArg(name) {
   const prefix = `--${name}=`;
-  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(
-    prefix.length,
-  );
+  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
 }
 
 function hasFlag(name) {
@@ -36,9 +30,7 @@ function toPositiveInteger(value, fallback) {
 function requireResourceName(resourceName) {
   const name = Resource[resourceName]?.name;
   if (!name) {
-    throw new Error(
-      `Missing SST Resource.${resourceName}. Run this script with "sst shell".`,
-    );
+    throw new Error(`Missing SST Resource.${resourceName}. Run this script with "sst shell".`);
   }
 
   return name;
@@ -75,16 +67,10 @@ function addDayType(dayTypesById, day, source) {
 function buildDayTypeLookup(items) {
   const dayTypesById = new Map();
   const cacheRecords = items.filter(
-    (item) =>
-      item.__edb_e__ === 'availableDaysCache' &&
-      item.cacheKey === AVAILABLE_DAYS_CACHE_KEY,
+    (item) => item.__edb_e__ === 'availableDaysCache' && item.cacheKey === AVAILABLE_DAYS_CACHE_KEY,
   );
-  const metaRecord = cacheRecords.find(
-    (record) => record.scope === AVAILABLE_DAYS_META_SCOPE,
-  );
-  const legacyRecord = cacheRecords.find(
-    (record) => record.scope === AVAILABLE_DAYS_LEGACY_SCOPE,
-  );
+  const metaRecord = cacheRecords.find((record) => record.scope === AVAILABLE_DAYS_META_SCOPE);
+  const legacyRecord = cacheRecords.find((record) => record.scope === AVAILABLE_DAYS_LEGACY_SCOPE);
 
   if (metaRecord) {
     for (const record of cacheRecords) {
@@ -92,11 +78,7 @@ function buildDayTypeLookup(items) {
         record.scope?.startsWith(AVAILABLE_DAYS_DAY_SCOPE_PREFIX) &&
         record.refreshedAt === metaRecord.refreshedAt
       ) {
-        addDayType(
-          dayTypesById,
-          parseJson(record.payload),
-          'available-days-cache',
-        );
+        addDayType(dayTypesById, parseJson(record.payload), 'available-days-cache');
       }
     }
   } else if (legacyRecord) {
@@ -156,8 +138,7 @@ async function updateBookingType(docClient, tableName, booking, type) {
         sk: booking.sk,
       },
       UpdateExpression: 'SET #type = :type',
-      ConditionExpression:
-        '#entity = :entity AND attribute_not_exists(#type)',
+      ConditionExpression: '#entity = :entity AND attribute_not_exists(#type)',
       ExpressionAttributeNames: {
         '#entity': '__edb_e__',
         '#type': 'type',
@@ -227,10 +208,8 @@ const tableName = requireResourceName('Table');
 const items = await scanAllTableItems(docClient, tableName);
 const dayTypesById = buildDayTypeLookup(items);
 const bookingsMissingType = items
-  .filter(
-    (item) => item.__edb_e__ === 'booking' && !isValidBookingType(item.type),
-  )
-  .sort((left, right) =>
+  .filter((item) => item.__edb_e__ === 'booking' && !isValidBookingType(item.type))
+  .toSorted((left, right) =>
     left.date === right.date
       ? String(left.bookingId).localeCompare(String(right.bookingId))
       : String(left.date).localeCompare(String(right.date)),

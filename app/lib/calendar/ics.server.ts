@@ -10,9 +10,7 @@ const dayTypeLabels: Record<AvailableDayType, string> = {
 };
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function escapeIcsText(value: string) {
@@ -62,10 +60,7 @@ function getDayTypeLabel(booking: BookingRecord) {
   return dayTypeLabels[booking.type];
 }
 
-function buildDescription(
-  booking: BookingRecord,
-  options: { includeStay: boolean },
-) {
+function buildDescription(booking: BookingRecord, options: { includeStay: boolean }) {
   const dayTypeLabel = getDayTypeLabel(booking);
 
   return [
@@ -87,13 +82,9 @@ function eventStatus(status: BookingRecord['status']) {
 
 function eventSummary(booking: BookingRecord) {
   const dayTypeLabel = getDayTypeLabel(booking);
-  const title = dayTypeLabel
-    ? `${booking.circuit} - ${dayTypeLabel}`
-    : booking.circuit;
+  const title = dayTypeLabel ? `${booking.circuit} - ${dayTypeLabel}` : booking.circuit;
 
-  return booking.status === 'maybe'
-    ? `${title} (${titleCase(booking.status)})`
-    : title;
+  return booking.status === 'maybe' ? `${title} (${titleCase(booking.status)})` : title;
 }
 
 function buildEventLines(
@@ -137,11 +128,9 @@ export function buildCalendarIcs(
   const includeStay = options.includeStay ?? true;
   const activeBookings = bookings
     .filter(
-      (booking) =>
-        booking.status !== 'cancelled' &&
-        (includeMaybe || booking.status !== 'maybe'),
+      (booking) => booking.status !== 'cancelled' && (includeMaybe || booking.status !== 'maybe'),
     )
-    .sort((left, right) =>
+    .toSorted((left, right) =>
       left.date === right.date
         ? left.circuit.localeCompare(right.circuit)
         : left.date.localeCompare(right.date),
@@ -156,9 +145,7 @@ export function buildCalendarIcs(
     'X-WR-TIMEZONE:Europe/London',
     'REFRESH-INTERVAL;VALUE=DURATION:PT6H',
     'X-PUBLISHED-TTL:PT6H',
-    ...activeBookings.flatMap((booking) =>
-      buildEventLines(booking, generatedAt, { includeStay }),
-    ),
+    ...activeBookings.flatMap((booking) => buildEventLines(booking, generatedAt, { includeStay })),
     'END:VCALENDAR',
   ];
 

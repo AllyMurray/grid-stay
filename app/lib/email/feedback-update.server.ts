@@ -1,7 +1,4 @@
-import type {
-  FeedbackAdminUpdate,
-  FeedbackThread,
-} from '~/lib/db/services/feedback.server';
+import type { FeedbackAdminUpdate, FeedbackThread } from '~/lib/db/services/feedback.server';
 import { sendTransactionalEmail } from './ses.server';
 
 interface SendFeedbackUpdateEmailInput {
@@ -135,17 +132,7 @@ export async function sendFeedbackUpdateEmail({
   await sendTransactionalEmail({
     to: feedback.userEmail,
     subject: `Update on your Grid Stay feedback: ${feedback.title}`,
-    text: createFeedbackUpdateText(
-      feedback.title,
-      feedback.status,
-      update.message,
-      feedbackUrl,
-    ),
-    html: createFeedbackUpdateHtml(
-      feedback.title,
-      feedback.status,
-      update.message,
-      feedbackUrl,
-    ),
+    text: createFeedbackUpdateText(feedback.title, feedback.status, update.message, feedbackUrl),
+    html: createFeedbackUpdateHtml(feedback.title, feedback.status, update.message, feedbackUrl),
   });
 }

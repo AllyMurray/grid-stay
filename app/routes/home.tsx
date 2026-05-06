@@ -10,10 +10,7 @@ interface LoaderData {
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getUser(request);
 
-  return Response.json(
-    { hasSession: Boolean(session) },
-    { headers: session?.headers },
-  );
+  return Response.json({ hasSession: Boolean(session) }, { headers: session?.headers });
 }
 
 export default function Home() {

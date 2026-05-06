@@ -20,9 +20,7 @@ function getSubscriptionQualifierDays(days: AvailableDay[]) {
 }
 
 function getDerivedSubscriptionStatus(bookings: BookingRecord[]) {
-  return bookings.every((booking) => booking.status === 'booked')
-    ? 'booked'
-    : 'maybe';
+  return bookings.every((booking) => booking.status === 'booked') ? 'booked' : 'maybe';
 }
 
 async function ensureLinkedSeriesBookingsForUser(
@@ -106,9 +104,7 @@ export async function reconcileSeriesSubscriptionsForDays(
 
   const qualifierDays = getSubscriptionQualifierDays(days);
   const qualifierDayIds = new Set(qualifierDays.map((day) => day.dayId));
-  const bookingsByDay = await Promise.all(
-    days.map((day) => store.listByDay(day.dayId)),
-  );
+  const bookingsByDay = await Promise.all(days.map((day) => store.listByDay(day.dayId)));
   const members = new Map<
     string,
     {
@@ -125,10 +121,7 @@ export async function reconcileSeriesSubscriptionsForDays(
       const current = members.get(booking.userId);
       if (current) {
         current.existingDayIds.add(booking.dayId);
-        if (
-          qualifierDayIds.has(booking.dayId) &&
-          booking.status !== 'cancelled'
-        ) {
+        if (qualifierDayIds.has(booking.dayId) && booking.status !== 'cancelled') {
           current.qualifyingBookings.push(booking);
         }
         continue;
@@ -140,9 +133,7 @@ export async function reconcileSeriesSubscriptionsForDays(
         userImage: booking.userImage,
         existingDayIds: new Set([booking.dayId]),
         qualifyingBookings:
-          qualifierDayIds.has(booking.dayId) && booking.status !== 'cancelled'
-            ? [booking]
-            : [],
+          qualifierDayIds.has(booking.dayId) && booking.status !== 'cancelled' ? [booking] : [],
       });
     }
   }
@@ -154,9 +145,7 @@ export async function reconcileSeriesSubscriptionsForDays(
     const qualifyingDayIdsForUser = new Set(
       member.qualifyingBookings.map((booking) => booking.dayId),
     );
-    const isSubscribed = qualifierDays.every((day) =>
-      qualifyingDayIdsForUser.has(day.dayId),
-    );
+    const isSubscribed = qualifierDays.every((day) => qualifyingDayIdsForUser.has(day.dayId));
 
     if (!isSubscribed) {
       continue;
@@ -221,12 +210,7 @@ export async function reconcileAllSeriesSubscriptions(
   const results = [];
   for (const seriesDays of groups.values()) {
     results.push(
-      await reconcileSeriesSubscriptionsForDays(
-        seriesDays,
-        store,
-        summaryStore,
-        subscriptionStore,
-      ),
+      await reconcileSeriesSubscriptionsForDays(seriesDays, store, summaryStore, subscriptionStore),
     );
   }
 

@@ -3,14 +3,8 @@ import {
   createGarageShareRequest,
   updateGarageShareRequestStatus,
 } from '~/lib/db/services/garage-sharing.server';
-import type {
-  GarageShareDecisionInput,
-  GarageShareRequestInput,
-} from '~/lib/schemas/garage-share';
-import {
-  GarageShareDecisionSchema,
-  GarageShareRequestSchema,
-} from '~/lib/schemas/garage-share';
+import type { GarageShareDecisionInput, GarageShareRequestInput } from '~/lib/schemas/garage-share';
+import { GarageShareDecisionSchema, GarageShareRequestSchema } from '~/lib/schemas/garage-share';
 
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
@@ -51,9 +45,7 @@ export async function submitGarageShareRequest(
   user: User,
   saveRequest: typeof createGarageShareRequest = createGarageShareRequest,
 ): Promise<GarageShareRequestActionResult> {
-  const parsed = GarageShareRequestSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = GarageShareRequestSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -69,10 +61,7 @@ export async function submitGarageShareRequest(
   } catch (error) {
     return {
       ok: false,
-      formError: await getErrorMessage(
-        error,
-        'Could not send this garage request yet.',
-      ),
+      formError: await getErrorMessage(error, 'Could not send this garage request yet.'),
       fieldErrors: {},
     };
   }
@@ -83,9 +72,7 @@ export async function submitGarageShareDecision(
   user: User,
   saveDecision: typeof updateGarageShareRequestStatus = updateGarageShareRequestStatus,
 ): Promise<GarageShareDecisionActionResult> {
-  const parsed = GarageShareDecisionSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = GarageShareDecisionSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -101,10 +88,7 @@ export async function submitGarageShareDecision(
   } catch (error) {
     return {
       ok: false,
-      formError: await getErrorMessage(
-        error,
-        'Could not update this garage request yet.',
-      ),
+      formError: await getErrorMessage(error, 'Could not update this garage request yet.'),
       fieldErrors: {},
     };
   }

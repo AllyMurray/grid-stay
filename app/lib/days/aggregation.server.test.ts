@@ -1,9 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import {
-  filterAvailableDays,
-  listAvailableDays,
-  listCircuitOptions,
-} from './aggregation.server';
+import { describe, expect, it } from 'vite-plus/test';
+import { filterAvailableDays, listAvailableDays, listCircuitOptions } from './aggregation.server';
 
 describe('listAvailableDays', () => {
   it('normalizes and sorts race, test, and track days', async () => {
@@ -63,16 +59,12 @@ describe('listAvailableDays', () => {
     });
 
     expect(result.errors).toEqual([]);
-    expect(result.days.map((day) => [day.date, day.type, day.circuit])).toEqual(
-      [
-        ['2026-04-14', 'test_day', 'Silverstone'],
-        ['2026-04-22', 'track_day', 'Donington Park'],
-        ['2026-05-10', 'race_day', 'Snetterton'],
-      ],
-    );
-    expect(result.days[0]?.bookingUrl).toBe(
-      'https://example.com/silverstone/testing',
-    );
+    expect(result.days.map((day) => [day.date, day.type, day.circuit])).toEqual([
+      ['2026-04-14', 'test_day', 'Silverstone'],
+      ['2026-04-22', 'track_day', 'Donington Park'],
+      ['2026-05-10', 'race_day', 'Snetterton'],
+    ]);
+    expect(result.days[0]?.bookingUrl).toBe('https://example.com/silverstone/testing');
     expect(result.days[0]).toEqual(
       expect.objectContaining({
         circuitId: 'silverstone',
@@ -80,9 +72,7 @@ describe('listAvailableDays', () => {
         circuitKnown: true,
       }),
     );
-    expect(result.days[1]?.bookingUrl).toBe(
-      'https://example.com/donington/trackday',
-    );
+    expect(result.days[1]?.bookingUrl).toBe('https://example.com/donington/trackday');
     expect(result.days[2]?.bookingUrl).toBeUndefined();
   });
 
@@ -145,9 +135,7 @@ describe('listAvailableDays', () => {
       ],
       testingAdapters: [],
       trackDayAdapters: [],
-      loadDayMerges: async () => [
-        { sourceDayId: 'source-day', targetDayId: 'target-day' },
-      ],
+      loadDayMerges: async () => [{ sourceDayId: 'source-day', targetDayId: 'target-day' }],
     });
 
     expect(result.days.map((day) => day.dayId)).toEqual(['target-day']);

@@ -1,8 +1,5 @@
 import { ulid } from 'ulid';
-import {
-  AppEventEntity,
-  type AppEventRecord,
-} from '../entities/app-event.server';
+import { AppEventEntity, type AppEventRecord } from '../entities/app-event.server';
 
 export const APP_EVENT_SCOPE = 'app';
 
@@ -38,16 +35,12 @@ export const appEventStore: AppEventPersistence = {
     return item;
   },
   async listAll() {
-    const response = await AppEventEntity.query
-      .byScope({ eventScope: APP_EVENT_SCOPE })
-      .go();
+    const response = await AppEventEntity.query.byScope({ eventScope: APP_EVENT_SCOPE }).go();
     return response.data;
   },
 };
 
-function serializeMetadata(
-  metadata: Record<string, unknown> | undefined,
-): string | undefined {
+function serializeMetadata(metadata: Record<string, unknown> | undefined): string | undefined {
   if (!metadata || Object.keys(metadata).length === 0) {
     return undefined;
   }
@@ -55,18 +48,14 @@ function serializeMetadata(
   return JSON.stringify(metadata);
 }
 
-function parseMetadata(
-  metadataJson: string | undefined,
-): Record<string, unknown> | undefined {
+function parseMetadata(metadataJson: string | undefined): Record<string, unknown> | undefined {
   if (!metadataJson) {
     return undefined;
   }
 
   try {
     const parsed = JSON.parse(metadataJson);
-    return parsed && typeof parsed === 'object'
-      ? (parsed as Record<string, unknown>)
-      : undefined;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : undefined;
   } catch {
     return undefined;
   }
@@ -129,5 +118,5 @@ export async function listRecentAppEvents(
   store: AppEventPersistence = appEventStore,
 ): Promise<AppEvent[]> {
   const records = await store.listAll();
-  return records.sort(sortNewestFirst).slice(0, limit).map(toEvent);
+  return records.toSorted(sortNewestFirst).slice(0, limit).map(toEvent);
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { authHandler } = vi.hoisted(() => ({
   authHandler: vi.fn(),
@@ -44,12 +44,9 @@ describe('api auth route', () => {
   });
 
   it('passes other auth requests to Better Auth', async () => {
-    const request = new Request(
-      'https://gridstay.app/api/auth/reset-password',
-      {
-        method: 'POST',
-      },
-    );
+    const request = new Request('https://gridstay.app/api/auth/reset-password', {
+      method: 'POST',
+    });
 
     const response = (await action({
       request,

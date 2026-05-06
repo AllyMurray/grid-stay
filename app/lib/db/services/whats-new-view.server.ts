@@ -1,12 +1,5 @@
-import {
-  countWhatsNewEntriesAfter,
-  type WhatsNewEntry,
-  whatsNewEntries,
-} from '~/lib/whats-new';
-import {
-  WhatsNewViewEntity,
-  type WhatsNewViewRecord,
-} from '../entities/whats-new-view.server';
+import { countWhatsNewEntriesAfter, type WhatsNewEntry, whatsNewEntries } from '~/lib/whats-new';
+import { WhatsNewViewEntity, type WhatsNewViewRecord } from '../entities/whats-new-view.server';
 
 export const WHATS_NEW_VIEW_SCOPE = 'whats-new';
 
@@ -40,9 +33,7 @@ export const whatsNewViewStore: WhatsNewViewPersistence = {
   },
   async listAll() {
     const response = await WhatsNewViewEntity.scan.go();
-    return response.data.filter(
-      (record) => record.viewScope === WHATS_NEW_VIEW_SCOPE,
-    );
+    return response.data.filter((record) => record.viewScope === WHATS_NEW_VIEW_SCOPE);
   },
 };
 

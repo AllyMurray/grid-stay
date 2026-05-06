@@ -43,20 +43,10 @@ export async function action({ request }: Route.ActionArgs) {
   const options = parseCalendarFeedOptionsFromFormData(formData);
   const feed =
     intent === 'regenerateCalendarFeed'
-      ? await regenerateCalendarFeedForUser(
-          user.id,
-          undefined,
-          undefined,
-          options,
-        )
+      ? await regenerateCalendarFeedForUser(user.id, undefined, undefined, options)
       : intent === 'saveCalendarFeedOptions'
         ? await saveCalendarFeedOptionsForUser(user.id, options)
-        : await ensureCalendarFeedForUser(
-            user.id,
-            undefined,
-            undefined,
-            options,
-          );
+        : await ensureCalendarFeedForUser(user.id, undefined, undefined, options);
 
   await recordAppEventSafely({
     category: 'audit',

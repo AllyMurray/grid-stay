@@ -17,10 +17,7 @@ import {
 import { IconBrandGoogle, IconLock, IconRoad } from '@tabler/icons-react';
 import { Form, Link, useNavigation } from 'react-router';
 import { authClient } from '~/lib/auth/auth-client';
-import {
-  PASSWORD_MIN_LENGTH,
-  type PasswordAuthActionData,
-} from '~/lib/auth/password-auth.shared';
+import { PASSWORD_MIN_LENGTH, type PasswordAuthActionData } from '~/lib/auth/password-auth.shared';
 
 interface LoginPageProps {
   actionData?: PasswordAuthActionData;
@@ -37,17 +34,10 @@ function getFirstFieldError(
   intent: PasswordAuthActionData['intent'],
   field: keyof PasswordAuthActionData['fieldErrors'],
 ) {
-  return actionData?.intent === intent
-    ? actionData.fieldErrors[field]?.[0]
-    : undefined;
+  return actionData?.intent === intent ? actionData.fieldErrors[field]?.[0] : undefined;
 }
 
-export function LoginPage({
-  actionData,
-  authError,
-  notice,
-  redirectTo,
-}: LoginPageProps) {
+export function LoginPage({ actionData, authError, notice, redirectTo }: LoginPageProps) {
   const navigation = useNavigation();
   const pendingIntent = navigation.formData?.get('intent')?.toString();
 
@@ -55,17 +45,12 @@ export function LoginPage({
     authClient.signIn.social({
       provider: 'google',
       callbackURL: redirectTo,
-      errorCallbackURL: `/auth/login?redirectTo=${encodeURIComponent(
-        redirectTo,
-      )}`,
+      errorCallbackURL: `/auth/login?redirectTo=${encodeURIComponent(redirectTo)}`,
     });
   }
 
   return (
-    <Box
-      className="auth-login-shell"
-      style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE})` }}
-    >
+    <Box className="auth-login-shell" style={{ backgroundImage: `url(${LOGIN_BACKGROUND_IMAGE})` }}>
       <Container size="xl" className="auth-login-container">
         <Stack className="auth-login-stage" justify="center" align="center">
           <Paper className="auth-login-panel" radius="sm" p="xl" shadow="xl">
@@ -108,9 +93,7 @@ export function LoginPage({
               <Divider label="or" labelPosition="center" />
 
               <Tabs
-                defaultValue={
-                  actionData?.intent === 'passwordSignUp' ? 'signup' : 'signin'
-                }
+                defaultValue={actionData?.intent === 'passwordSignUp' ? 'signup' : 'signin'}
                 keepMounted={false}
               >
                 <Tabs.List grow>
@@ -121,18 +104,9 @@ export function LoginPage({
                 <Tabs.Panel value="signin" pt="lg">
                   <Form method="post">
                     <Stack gap="md">
-                      <input
-                        type="hidden"
-                        name="intent"
-                        value="passwordSignIn"
-                      />
-                      <input
-                        type="hidden"
-                        name="redirectTo"
-                        value={redirectTo}
-                      />
-                      {actionData?.intent === 'passwordSignIn' &&
-                      actionData.formError ? (
+                      <input type="hidden" name="intent" value="passwordSignIn" />
+                      <input type="hidden" name="redirectTo" value={redirectTo} />
+                      {actionData?.intent === 'passwordSignIn' && actionData.formError ? (
                         <Alert color="red" icon={<IconLock size={16} />}>
                           {actionData.formError}
                         </Alert>
@@ -143,22 +117,14 @@ export function LoginPage({
                         type="email"
                         autoComplete="email"
                         required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignIn',
-                          'email',
-                        )}
+                        error={getFirstFieldError(actionData, 'passwordSignIn', 'email')}
                       />
                       <PasswordInput
                         name="password"
                         label="Password"
                         autoComplete="current-password"
                         required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignIn',
-                          'password',
-                        )}
+                        error={getFirstFieldError(actionData, 'passwordSignIn', 'password')}
                       />
                       <Button
                         type="submit"
@@ -183,18 +149,9 @@ export function LoginPage({
                 <Tabs.Panel value="signup" pt="lg">
                   <Form method="post">
                     <Stack gap="md">
-                      <input
-                        type="hidden"
-                        name="intent"
-                        value="passwordSignUp"
-                      />
-                      <input
-                        type="hidden"
-                        name="redirectTo"
-                        value={redirectTo}
-                      />
-                      {actionData?.intent === 'passwordSignUp' &&
-                      actionData.formError ? (
+                      <input type="hidden" name="intent" value="passwordSignUp" />
+                      <input type="hidden" name="redirectTo" value={redirectTo} />
+                      {actionData?.intent === 'passwordSignUp' && actionData.formError ? (
                         <Alert color="red" icon={<IconLock size={16} />}>
                           {actionData.formError}
                         </Alert>
@@ -205,22 +162,14 @@ export function LoginPage({
                           label="First name"
                           autoComplete="given-name"
                           required
-                          error={getFirstFieldError(
-                            actionData,
-                            'passwordSignUp',
-                            'firstName',
-                          )}
+                          error={getFirstFieldError(actionData, 'passwordSignUp', 'firstName')}
                         />
                         <TextInput
                           name="lastName"
                           label="Last name"
                           autoComplete="family-name"
                           required
-                          error={getFirstFieldError(
-                            actionData,
-                            'passwordSignUp',
-                            'lastName',
-                          )}
+                          error={getFirstFieldError(actionData, 'passwordSignUp', 'lastName')}
                         />
                       </Group>
                       <TextInput
@@ -229,11 +178,7 @@ export function LoginPage({
                         type="email"
                         autoComplete="email"
                         required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignUp',
-                          'email',
-                        )}
+                        error={getFirstFieldError(actionData, 'passwordSignUp', 'email')}
                       />
                       <PasswordInput
                         name="password"
@@ -241,11 +186,7 @@ export function LoginPage({
                         autoComplete="new-password"
                         minLength={PASSWORD_MIN_LENGTH}
                         required
-                        error={getFirstFieldError(
-                          actionData,
-                          'passwordSignUp',
-                          'password',
-                        )}
+                        error={getFirstFieldError(actionData, 'passwordSignUp', 'password')}
                       />
                       <Button
                         type="submit"

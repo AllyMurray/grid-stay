@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../entities/app-event.server', () => ({
   AppEventEntity: {},
@@ -52,9 +52,7 @@ describe('app event service', () => {
       subjectId: 'driver@example.com',
       metadata: { emailDomain: 'example.com' },
     });
-    expect(memory.items[0]?.metadataJson).toBe(
-      JSON.stringify({ emailDomain: 'example.com' }),
-    );
+    expect(memory.items[0]?.metadataJson).toBe(JSON.stringify({ emailDomain: 'example.com' }));
   });
 
   it('lists recent events newest first', async () => {

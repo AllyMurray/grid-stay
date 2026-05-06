@@ -1,8 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import {
-  buildRaceSeriesSummaryByDayId,
-  getRaceSeriesDaysForDay,
-} from './series.server';
+import { describe, expect, it } from 'vite-plus/test';
+import { buildRaceSeriesSummaryByDayId, getRaceSeriesDaysForDay } from './series.server';
 import type { AvailableDay } from './types';
 
 const linkedSeriesDays: AvailableDay[] = [
@@ -58,9 +55,7 @@ const linkedSeriesDays: AvailableDay[] = [
 
 describe('manual race series helpers', () => {
   it('includes linked manual extra days in the series summary map', () => {
-    const summaries = buildRaceSeriesSummaryByDayId(linkedSeriesDays, [
-      'race:academy-1',
-    ]);
+    const summaries = buildRaceSeriesSummaryByDayId(linkedSeriesDays, ['race:academy-1']);
 
     expect(summaries['race:academy-1']).toEqual({
       key: 'caterham-academy',

@@ -33,9 +33,7 @@ export interface DashboardIndexPageProps {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function typeColor(type: AvailableDay['type']) {
@@ -96,10 +94,7 @@ function OverviewHeaderSummary({
   sharedStayCount,
 }: Pick<
   DashboardIndexPageProps,
-  | 'availableDaysCount'
-  | 'daysThisMonth'
-  | 'activeBookingsCount'
-  | 'sharedStayCount'
+  'availableDaysCount' | 'daysThisMonth' | 'activeBookingsCount' | 'sharedStayCount'
 >) {
   return (
     <Stack gap={6} className="overview-header-summary">
@@ -140,9 +135,7 @@ function nextTripTasks(booking: BookingRecord, type?: AvailableDay['type']) {
     tasks.push('Add the hotel booking reference.');
   }
 
-  return tasks.length > 0
-    ? tasks
-    : ['Everything for this trip is already in place.'];
+  return tasks.length > 0 ? tasks : ['Everything for this trip is already in place.'];
 }
 
 function AttentionRow({
@@ -222,9 +215,7 @@ function CompactBookingRow({
             {formatOverviewDate(booking.date)} • {booking.provider}
           </Text>
         </Stack>
-        <Badge color={bookingColor(booking.status)}>
-          {titleCase(booking.status)}
-        </Badge>
+        <Badge color={bookingColor(booking.status)}>{titleCase(booking.status)}</Badge>
       </Group>
 
       <Group gap="sm" wrap="wrap">
@@ -370,10 +361,7 @@ export function DashboardIndexPage({
         }
       />
 
-      <Paper
-        className="shell-card overview-focus-panel"
-        p={{ base: 'md', sm: 'xl' }}
-      >
+      <Paper className="shell-card overview-focus-panel" p={{ base: 'md', sm: 'xl' }}>
         {nextBooking || focusDay ? (
           <Stack gap="lg">
             <Group justify="space-between" align="flex-start" gap="lg">
@@ -381,32 +369,21 @@ export function DashboardIndexPage({
                 <Text size="sm" fw={700} c="brand.7">
                   Next trip
                 </Text>
-                <Title order={2}>
-                  {nextBooking?.circuit ?? focusDay?.circuit}
-                </Title>
+                <Title order={2}>{nextBooking?.circuit ?? focusDay?.circuit}</Title>
                 <Text size="sm" c="dimmed">
-                  {formatOverviewDate(
-                    nextBooking?.date ?? focusDay?.date ?? '',
-                  )}{' '}
-                  • {nextBooking?.provider ?? focusDay?.provider}
+                  {formatOverviewDate(nextBooking?.date ?? focusDay?.date ?? '')} •{' '}
+                  {nextBooking?.provider ?? focusDay?.provider}
                 </Text>
                 <Text size="sm">
-                  {nextBooking?.description ||
-                    focusDay?.description ||
-                    'No extra details'}
+                  {nextBooking?.description || focusDay?.description || 'No extra details'}
                 </Text>
               </Stack>
               <Group gap="xs" align="flex-start">
                 {nextTripType ? (
-                  <Badge color={typeColor(nextTripType)}>
-                    {titleCase(nextTripType)}
-                  </Badge>
+                  <Badge color={typeColor(nextTripType)}>{titleCase(nextTripType)}</Badge>
                 ) : null}
                 {nextBooking ? (
-                  <Badge
-                    color={bookingColor(nextBooking.status)}
-                    variant="light"
-                  >
+                  <Badge color={bookingColor(nextBooking.status)} variant="light">
                     {titleCase(nextBooking.status)}
                   </Badge>
                 ) : null}
@@ -415,10 +392,7 @@ export function DashboardIndexPage({
 
             <Divider />
 
-            <SimpleGrid
-              cols={{ base: 1, lg: 2 }}
-              spacing={{ base: 'md', sm: 'lg' }}
-            >
+            <SimpleGrid cols={{ base: 1, lg: 2 }} spacing={{ base: 'md', sm: 'lg' }}>
               <Stack gap="sm">
                 <Text fw={700}>Trip details</Text>
                 <Stack gap={8}>
@@ -461,9 +435,8 @@ export function DashboardIndexPage({
             </Text>
             <Title order={3}>Nothing is lined up yet</Title>
             <Text size="sm" c="dimmed">
-              The live feed is waiting for the next refresh. As soon as dates
-              arrive, this page will surface the next event and the gaps worth
-              closing first.
+              The live feed is waiting for the next refresh. As soon as dates arrive, this page will
+              surface the next event and the gaps worth closing first.
             </Text>
             <Button component={Link} to="/dashboard/days" w="fit-content">
               Open available days
@@ -482,11 +455,7 @@ export function DashboardIndexPage({
                   Clear these first so the next weekend does not drift.
                 </Text>
               </Stack>
-              <Button
-                component={Link}
-                to="/dashboard/bookings"
-                variant="subtle"
-              >
+              <Button component={Link} to="/dashboard/bookings" variant="subtle">
                 Review trips
               </Button>
             </Group>
@@ -525,15 +494,11 @@ export function DashboardIndexPage({
               <Stack gap={2}>
                 <Title order={3}>Upcoming trips</Title>
                 <Text size="sm" c="dimmed">
-                  Keep the next few dates, refs, and stay details visible
-                  without opening the editor first.
+                  Keep the next few dates, refs, and stay details visible without opening the editor
+                  first.
                 </Text>
               </Stack>
-              <Button
-                component={Link}
-                to="/dashboard/bookings"
-                variant="subtle"
-              >
+              <Button component={Link} to="/dashboard/bookings" variant="subtle">
                 Open all
               </Button>
             </Group>
@@ -550,16 +515,13 @@ export function DashboardIndexPage({
                           : 'Event booking ref'
                       }
                     />
-                    {index < Math.min(upcomingBookings.length, 3) - 1 ? (
-                      <Divider />
-                    ) : null}
+                    {index < Math.min(upcomingBookings.length, 3) - 1 ? <Divider /> : null}
                   </div>
                 ))}
               </Stack>
             ) : (
               <Text size="sm" c="dimmed">
-                Add the first trip from the live days feed and shared stay
-                progress will start here.
+                Add the first trip from the live days feed and shared stay progress will start here.
               </Text>
             )}
           </Stack>
@@ -584,9 +546,7 @@ export function DashboardIndexPage({
                 {nextDays.slice(0, 3).map((day, index) => (
                   <div key={day.dayId}>
                     <CompactDayRow day={day} />
-                    {index < Math.min(nextDays.length, 3) - 1 ? (
-                      <Divider />
-                    ) : null}
+                    {index < Math.min(nextDays.length, 3) - 1 ? <Divider /> : null}
                   </div>
                 ))}
               </Stack>

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { AuthUserRecord } from '~/lib/auth/members.server';
 import type { AvailableDay } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -323,10 +323,7 @@ describe('admin member management helpers', () => {
       ok: true,
       message: 'Series subscription removed.',
     });
-    expect(deleteSubscription).toHaveBeenCalledWith(
-      'user-1',
-      'caterham-academy',
-    );
+    expect(deleteSubscription).toHaveBeenCalledWith('user-1', 'caterham-academy');
     expect(saveBookings).not.toHaveBeenCalled();
   });
 });

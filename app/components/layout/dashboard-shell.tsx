@@ -169,8 +169,7 @@ export function DashboardShell({
   const revalidator = useRevalidator();
   const isAdmin = isAdminUser(user);
   const mobileMenuId = 'dashboard-mobile-menu';
-  const [visibleWhatsNewCount, setVisibleWhatsNewCount] =
-    useState(newWhatsNewCount);
+  const [visibleWhatsNewCount, setVisibleWhatsNewCount] = useState(newWhatsNewCount);
   const isWhatsNewPage = location.pathname.startsWith('/dashboard/whats-new');
   const whatsNewCount = isWhatsNewPage ? 0 : visibleWhatsNewCount;
 
@@ -238,10 +237,7 @@ export function DashboardShell({
       icon: IconBell,
       active: location.pathname.startsWith('/dashboard/notifications'),
       count: unreadNotificationCount,
-      countLabel:
-        unreadNotificationCount === 1
-          ? 'pending notification'
-          : 'pending notifications',
+      countLabel: unreadNotificationCount === 1 ? 'pending notification' : 'pending notifications',
     },
     {
       label: 'Feedback',
@@ -301,12 +297,7 @@ export function DashboardShell({
               <IconRoad size={20} />
             </ThemeIcon>
             <Stack gap={0}>
-              <Text
-                fw={800}
-                ff="Oswald, sans-serif"
-                size="xl"
-                className="dashboard-brand-title"
-              >
+              <Text fw={800} ff="Oswald, sans-serif" size="xl" className="dashboard-brand-title">
                 Grid Stay
               </Text>
               <Text size="xs" c="dimmed" visibleFrom="sm">
@@ -343,16 +334,10 @@ export function DashboardShell({
               size="lg"
               radius="sm"
               aria-label={
-                computedColorScheme === 'dark'
-                  ? 'Switch to light theme'
-                  : 'Switch to dark theme'
+                computedColorScheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
               }
             >
-              {computedColorScheme === 'dark' ? (
-                <IconSun size={18} />
-              ) : (
-                <IconMoon size={18} />
-              )}
+              {computedColorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
             </ActionIcon>
           </Group>
         </Group>

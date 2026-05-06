@@ -1,14 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const { requireUser } = vi.hoisted(() => ({
   requireUser: vi.fn(),
 }));
-const { listUserDayNotifications, markAllDayNotificationsRead } = vi.hoisted(
-  () => ({
-    listUserDayNotifications: vi.fn(),
-    markAllDayNotificationsRead: vi.fn(),
-  }),
-);
+const { listUserDayNotifications, markAllDayNotificationsRead } = vi.hoisted(() => ({
+  listUserDayNotifications: vi.fn(),
+  markAllDayNotificationsRead: vi.fn(),
+}));
 const { listPendingIncomingGarageShareRequests } = vi.hoisted(() => ({
   listPendingIncomingGarageShareRequests: vi.fn(),
 }));
@@ -69,9 +67,7 @@ describe('notifications route', () => {
       garageShareRequests: [],
     });
     expect(listUserDayNotifications).toHaveBeenCalledWith('user-1');
-    expect(listPendingIncomingGarageShareRequests).toHaveBeenCalledWith(
-      'user-1',
-    );
+    expect(listPendingIncomingGarageShareRequests).toHaveBeenCalledWith('user-1');
   });
 
   it('returns garage decision errors instead of redirecting them away', async () => {
@@ -84,13 +80,10 @@ describe('notifications route', () => {
     formData.set('intent', 'updateGarageShareRequest');
     formData.set('requestId', 'garage-request-1');
     formData.set('status', 'approved');
-    const request = new Request(
-      'https://gridstay.app/dashboard/notifications',
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const request = new Request('https://gridstay.app/dashboard/notifications', {
+      method: 'POST',
+      body: formData,
+    });
 
     const response = (await action({
       request,

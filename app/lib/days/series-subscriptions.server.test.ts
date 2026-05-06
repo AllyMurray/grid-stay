@@ -1,12 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { AvailableDay } from './types';
 
-const { syncDayAttendanceSummariesMock, upsertSeriesSubscriptionMock } =
-  vi.hoisted(() => ({
-    syncDayAttendanceSummariesMock: vi.fn(async () => {}),
-    upsertSeriesSubscriptionMock: vi.fn(async () => ({})),
-  }));
+const { syncDayAttendanceSummariesMock, upsertSeriesSubscriptionMock } = vi.hoisted(() => ({
+  syncDayAttendanceSummariesMock: vi.fn(async () => {}),
+  upsertSeriesSubscriptionMock: vi.fn(async () => ({})),
+}));
 
 vi.mock('~/lib/db/services/booking.server', () => ({
   bookingStore: {},

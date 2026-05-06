@@ -21,13 +21,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  IconAlertCircle,
-  IconLock,
-  IconRoad,
-  IconSearch,
-  IconUsers,
-} from '@tabler/icons-react';
+import { IconAlertCircle, IconLock, IconRoad, IconSearch, IconUsers } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
@@ -47,9 +41,7 @@ export interface MyBookingsPageProps {
 type BookingFilter = 'all' | BookingRecord['status'];
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function bookingColor(status: BookingRecord['status']) {
@@ -251,11 +243,7 @@ function BookingListItem({
         <Text className="booking-list-title" fw={700} lineClamp={1}>
           {booking.circuit}
         </Text>
-        <Badge
-          className="booking-list-badge"
-          color={bookingColor(booking.status)}
-          size="sm"
-        >
+        <Badge className="booking-list-badge" color={bookingColor(booking.status)} size="sm">
           {titleCase(booking.status)}
         </Badge>
         <Text className="booking-list-shared" size="sm" lineClamp={1}>
@@ -264,16 +252,8 @@ function BookingListItem({
           </Text>{' '}
           {bookingSharedSummary(booking)} • {bookingGarageSummary(booking)}
         </Text>
-        <Text
-          className="booking-list-private"
-          size="xs"
-          c="dimmed"
-          lineClamp={1}
-        >
-          <Text
-            span
-            className="booking-list-kicker booking-list-kicker-private"
-          >
+        <Text className="booking-list-private" size="xs" c="dimmed" lineClamp={1}>
+          <Text span className="booking-list-kicker booking-list-kicker-private">
             Private
           </Text>{' '}
           {bookingPrivateSummary(booking)}
@@ -294,8 +274,7 @@ function GarageShareRequestList({
 }) {
   const fetcher = useFetcher<GarageShareDecisionActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const submitStatus = (
     request: UserGarageShareRequest,
     status: 'approved' | 'declined' | 'cancelled',
@@ -330,14 +309,9 @@ function GarageShareRequestList({
                 <Stack gap={4}>
                   <Group gap="xs" wrap="wrap">
                     <Text size="sm" fw={700}>
-                      {request.isIncoming
-                        ? request.requesterName
-                        : request.garageOwnerName}
+                      {request.isIncoming ? request.requesterName : request.garageOwnerName}
                     </Text>
-                    <Badge
-                      color={garageRequestStatusColor(request.status)}
-                      variant="light"
-                    >
+                    <Badge color={garageRequestStatusColor(request.status)} variant="light">
                       {titleCase(request.status)}
                     </Badge>
                   </Group>
@@ -366,8 +340,7 @@ function GarageShareRequestList({
                       Approve
                     </Button>
                   </Group>
-                ) : request.status === 'pending' ||
-                  request.status === 'approved' ? (
+                ) : request.status === 'pending' || request.status === 'approved' ? (
                   <Button
                     type="button"
                     size="compact-sm"
@@ -406,26 +379,17 @@ function BookingEditorPanel({
   onSelectNext: () => void;
   garageShareRequests: UserGarageShareRequest[];
 }) {
-  const [
-    deleteModalOpened,
-    { close: closeDeleteModal, open: openDeleteModal },
-  ] = useDisclosure(false);
+  const [deleteModalOpened, { close: closeDeleteModal, open: openDeleteModal }] =
+    useDisclosure(false);
   const saveFetcher = useFetcher<BookingEditorActionResult>();
   const deleteFetcher = useFetcher<BookingEditorActionResult>();
   const isSaving = saveFetcher.state !== 'idle';
   const isDeleting = deleteFetcher.state !== 'idle';
   const fieldErrors =
-    saveFetcher.data && !saveFetcher.data.ok
-      ? saveFetcher.data.fieldErrors
-      : undefined;
-  const formError =
-    saveFetcher.data && !saveFetcher.data.ok
-      ? saveFetcher.data.formError
-      : null;
+    saveFetcher.data && !saveFetcher.data.ok ? saveFetcher.data.fieldErrors : undefined;
+  const formError = saveFetcher.data && !saveFetcher.data.ok ? saveFetcher.data.formError : null;
   const deleteFormError =
-    deleteFetcher.data && !deleteFetcher.data.ok
-      ? deleteFetcher.data.formError
-      : null;
+    deleteFetcher.data && !deleteFetcher.data.ok ? deleteFetcher.data.formError : null;
   const incomingGarageRequests = garageShareRequests.filter(
     (request) =>
       request.isIncoming &&
@@ -435,8 +399,7 @@ function BookingEditorPanel({
   const outgoingGarageRequests = garageShareRequests.filter(
     (request) =>
       request.isOutgoing &&
-      (request.requesterBookingId === booking.bookingId ||
-        request.dayId === booking.dayId),
+      (request.requesterBookingId === booking.bookingId || request.dayId === booking.dayId),
   );
 
   useEffect(() => {
@@ -447,19 +410,14 @@ function BookingEditorPanel({
 
   return (
     <>
-      <Modal
-        opened={deleteModalOpened}
-        onClose={closeDeleteModal}
-        title="Delete booking?"
-        centered
-      >
+      <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Delete booking?" centered>
         <deleteFetcher.Form method="post">
           <input type="hidden" name="bookingId" value={booking.bookingId} />
           <input type="hidden" name="intent" value="deleteBooking" />
           <Stack gap="md">
             <Text size="sm">
-              This removes {booking.circuit} from your trips and updates the
-              shared attendance for that day.
+              This removes {booking.circuit} from your trips and updates the shared attendance for
+              that day.
             </Text>
 
             {deleteFormError ? (
@@ -469,11 +427,7 @@ function BookingEditorPanel({
             ) : null}
 
             <Group justify="flex-end" wrap="wrap">
-              <Button
-                type="button"
-                variant="default"
-                onClick={closeDeleteModal}
-              >
+              <Button type="button" variant="default" onClick={closeDeleteModal}>
                 Cancel
               </Button>
               <Button type="submit" color="red" loading={isDeleting}>
@@ -484,10 +438,7 @@ function BookingEditorPanel({
         </deleteFetcher.Form>
       </Modal>
 
-      <Paper
-        className="shell-card booking-editor-panel"
-        p={{ base: 'md', sm: 'lg' }}
-      >
+      <Paper className="shell-card booking-editor-panel" p={{ base: 'md', sm: 'lg' }}>
         <saveFetcher.Form method="post">
           <input type="hidden" name="bookingId" value={booking.bookingId} />
           <Stack gap="lg">
@@ -500,9 +451,7 @@ function BookingEditorPanel({
                 <Text size="sm" c="dimmed">
                   {booking.date} • {booking.provider}
                 </Text>
-                <Text size="sm">
-                  {booking.description || 'No extra details'}
-                </Text>
+                <Text size="sm">{booking.description || 'No extra details'}</Text>
               </Stack>
               <Stack gap="sm" align="flex-end">
                 <Badge color={bookingColor(booking.status)} size="lg">
@@ -666,10 +615,7 @@ function BookingEditorPanel({
                 <TextInput
                   name="bookingReference"
                   label={
-                    <BookingFieldLabel
-                      label="Booking reference"
-                      visibility="Visible only to you"
-                    />
+                    <BookingFieldLabel label="Booking reference" visibility="Visible only to you" />
                   }
                   description="Store the confirmation code or internal reference here."
                   defaultValue={booking.bookingReference ?? ''}
@@ -693,12 +639,7 @@ function BookingEditorPanel({
 
               <Textarea
                 name="notes"
-                label={
-                  <BookingFieldLabel
-                    label="Private notes"
-                    visibility="Visible only to you"
-                  />
-                }
+                label={<BookingFieldLabel label="Private notes" visibility="Visible only to you" />}
                 description="Keep arrival notes, reminders, or anything else you do not want in the shared plan."
                 minRows={4}
                 defaultValue={booking.notes ?? ''}
@@ -714,20 +655,10 @@ function BookingEditorPanel({
             ) : null}
 
             <Group justify="space-between" wrap="wrap">
-              <Button
-                type="button"
-                color="red"
-                variant="subtle"
-                onClick={openDeleteModal}
-              >
+              <Button type="button" color="red" variant="subtle" onClick={openDeleteModal}>
                 Delete booking
               </Button>
-              <Button
-                type="submit"
-                name="intent"
-                value="updateBooking"
-                loading={isSaving}
-              >
+              <Button type="submit" name="intent" value="updateBooking" loading={isSaving}>
                 Save changes
               </Button>
             </Group>
@@ -738,30 +669,20 @@ function BookingEditorPanel({
   );
 }
 
-export function MyBookingsPage({
-  bookings,
-  garageShareRequests = [],
-}: MyBookingsPageProps) {
+export function MyBookingsPage({ bookings, garageShareRequests = [] }: MyBookingsPageProps) {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
     bookings[0]?.bookingId ?? null,
   );
   const [statusFilter, setStatusFilter] = useState<BookingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const bookedCount = bookings.filter(
-    (booking) => booking.status === 'booked',
-  ).length;
-  const maybeCount = bookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
+  const bookedCount = bookings.filter((booking) => booking.status === 'booked').length;
+  const maybeCount = bookings.filter((booking) => booking.status === 'maybe').length;
   const sharedStayCount = new Set(
     bookings
       .map((booking) => booking.accommodationName?.trim())
       .filter((name): name is string => Boolean(name)),
   ).size;
-  const sortedBookings = useMemo(
-    () => [...bookings].sort(sortBookings),
-    [bookings],
-  );
+  const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const filteredBookings = useMemo(
     () =>
       sortedBookings.filter((booking) => {
@@ -773,23 +694,16 @@ export function MyBookingsPage({
       }),
     [searchQuery, sortedBookings, statusFilter],
   );
-  const bookingSections = useMemo(
-    () => groupBookingsByMonth(filteredBookings),
-    [filteredBookings],
-  );
+  const bookingSections = useMemo(() => groupBookingsByMonth(filteredBookings), [filteredBookings]);
   const selectedBooking = useMemo(
     () =>
-      filteredBookings.find(
-        (booking) => booking.bookingId === selectedBookingId,
-      ) ??
+      filteredBookings.find((booking) => booking.bookingId === selectedBookingId) ??
       filteredBookings[0] ??
       null,
     [filteredBookings, selectedBookingId],
   );
   const selectedIndex = selectedBooking
-    ? filteredBookings.findIndex(
-        (booking) => booking.bookingId === selectedBooking.bookingId,
-      )
+    ? filteredBookings.findIndex((booking) => booking.bookingId === selectedBooking.bookingId)
     : -1;
 
   useEffect(() => {
@@ -800,9 +714,7 @@ export function MyBookingsPage({
 
     if (
       selectedBookingId &&
-      filteredBookings.some(
-        (booking) => booking.bookingId === selectedBookingId,
-      )
+      filteredBookings.some((booking) => booking.bookingId === selectedBookingId)
     ) {
       return;
     }
@@ -844,10 +756,7 @@ export function MyBookingsPage({
       ) : (
         <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
           <Grid.Col span={{ base: 12, lg: 4 }}>
-            <Paper
-              className="shell-card booking-list-panel"
-              p={{ base: 'sm', sm: 'md' }}
-            >
+            <Paper className="shell-card booking-list-panel" p={{ base: 'sm', sm: 'md' }}>
               <Stack gap="md">
                 <Group justify="space-between" align="flex-end">
                   <Stack gap={2}>
@@ -867,9 +776,7 @@ export function MyBookingsPage({
                       aria-label="Search trips"
                       placeholder="Search circuit, provider, stay, or reference"
                       value={searchQuery}
-                      onChange={(event) =>
-                        setSearchQuery(event.currentTarget.value)
-                      }
+                      onChange={(event) => setSearchQuery(event.currentTarget.value)}
                       leftSection={<IconSearch size={16} />}
                     />
                   </Grid.Col>
@@ -879,9 +786,7 @@ export function MyBookingsPage({
                       comboboxProps={{ withinPortal: false }}
                       value={statusFilter}
                       onChange={(value) =>
-                        setStatusFilter(
-                          (value as BookingFilter | null) ?? 'all',
-                        )
+                        setStatusFilter((value as BookingFilter | null) ?? 'all')
                       }
                       data={[
                         { value: 'all', label: 'All statuses' },
@@ -893,20 +798,12 @@ export function MyBookingsPage({
                   </Grid.Col>
                 </Grid>
 
-                <ScrollArea.Autosize
-                  offsetScrollbars
-                  className="booking-list-scroll"
-                >
+                <ScrollArea.Autosize offsetScrollbars className="booking-list-scroll">
                   {filteredBookings.length > 0 ? (
                     <Stack gap="lg">
                       {bookingSections.map((section) => (
                         <Stack key={section.label} gap="xs">
-                          <Text
-                            size="sm"
-                            fw={700}
-                            c="dimmed"
-                            className="booking-section-label"
-                          >
+                          <Text size="sm" fw={700} c="dimmed" className="booking-section-label">
                             {section.label}
                           </Text>
                           <Stack gap={0}>
@@ -914,17 +811,10 @@ export function MyBookingsPage({
                               <div key={booking.bookingId}>
                                 <BookingListItem
                                   booking={booking}
-                                  active={
-                                    booking.bookingId ===
-                                    selectedBooking?.bookingId
-                                  }
-                                  onSelect={() =>
-                                    setSelectedBookingId(booking.bookingId)
-                                  }
+                                  active={booking.bookingId === selectedBooking?.bookingId}
+                                  onSelect={() => setSelectedBookingId(booking.bookingId)}
                                 />
-                                {index < section.items.length - 1 ? (
-                                  <Divider />
-                                ) : null}
+                                {index < section.items.length - 1 ? <Divider /> : null}
                               </div>
                             ))}
                           </Stack>
@@ -935,8 +825,8 @@ export function MyBookingsPage({
                     <Stack gap="sm" py="sm">
                       <Text fw={700}>No trips match that view</Text>
                       <Text size="sm" c="dimmed">
-                        Clear the search or widen the status filter to bring
-                        more bookings back into the list.
+                        Clear the search or widen the status filter to bring more bookings back into
+                        the list.
                       </Text>
                       <Group>
                         <Button
@@ -966,21 +856,17 @@ export function MyBookingsPage({
                 selectedIndex={selectedIndex}
                 totalBookings={filteredBookings.length}
                 hasPrevious={selectedIndex > 0}
-                hasNext={
-                  selectedIndex >= 0 &&
-                  selectedIndex < filteredBookings.length - 1
-                }
+                hasNext={selectedIndex >= 0 && selectedIndex < filteredBookings.length - 1}
                 onSelectPrevious={() =>
                   setSelectedBookingId(
-                    filteredBookings[Math.max(0, selectedIndex - 1)]
-                      ?.bookingId ?? selectedBooking.bookingId,
+                    filteredBookings[Math.max(0, selectedIndex - 1)]?.bookingId ??
+                      selectedBooking.bookingId,
                   )
                 }
                 onSelectNext={() =>
                   setSelectedBookingId(
-                    filteredBookings[
-                      Math.min(filteredBookings.length - 1, selectedIndex + 1)
-                    ]?.bookingId ?? selectedBooking.bookingId,
+                    filteredBookings[Math.min(filteredBookings.length - 1, selectedIndex + 1)]
+                      ?.bookingId ?? selectedBooking.bookingId,
                   )
                 }
               />

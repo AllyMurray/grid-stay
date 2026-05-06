@@ -101,9 +101,7 @@ export async function requireOwner(request: Request): Promise<AuthResult> {
 /**
  * Require anonymous - redirect to dashboard if already authenticated
  */
-export async function requireAnonymous(
-  request: Request,
-): Promise<Headers | undefined> {
+export async function requireAnonymous(request: Request): Promise<Headers | undefined> {
   const { result, headers } = await readAuthSession(request);
 
   if (result) {

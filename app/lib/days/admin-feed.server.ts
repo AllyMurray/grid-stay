@@ -68,13 +68,11 @@ function summarizeSources(days: AvailableDay[]): AdminFeedSourceSummary[] {
     });
   }
 
-  return [...summaries.values()].sort((left, right) =>
-    left.label.localeCompare(right.label),
-  );
+  return [...summaries.values()].toSorted((left, right) => left.label.localeCompare(right.label));
 }
 
 function getDateRange(days: AvailableDay[]) {
-  const dates = days.map((day) => day.date).sort();
+  const dates = days.map((day) => day.date).toSorted();
   const firstDate = dates[0];
   const lastDate = dates.at(-1);
 
@@ -95,10 +93,7 @@ function getHealth(input: {
   }
 
   const refreshedTime = new Date(input.refreshedAt).getTime();
-  if (
-    Number.isFinite(refreshedTime) &&
-    input.now.getTime() - refreshedTime > STALE_REFRESH_MS
-  ) {
+  if (Number.isFinite(refreshedTime) && input.now.getTime() - refreshedTime > STALE_REFRESH_MS) {
     return {
       status: 'stale',
       message: `Last successful refresh is more than ${STALE_REFRESH_HOURS} hours old.`,

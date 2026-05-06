@@ -10,11 +10,7 @@ import { z } from 'zod';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
 import type { CreateBookingInput } from '~/lib/schemas/booking';
-import {
-  isAdminUser,
-  isBootstrapMemberEmail,
-  normalizeMemberAccessEmail,
-} from './authorization';
+import { isAdminUser, isBootstrapMemberEmail, normalizeMemberAccessEmail } from './authorization';
 import type { User } from './schemas';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -78,9 +74,7 @@ type MemberProfileSummary = Pick<MemberProfileRecord, 'userId' | 'displayName'>;
 
 type LoadMemberProfiles = () => Promise<MemberProfileSummary[]>;
 
-type LoadMemberProfile = (
-  userId: string,
-) => Promise<MemberProfileSummary | null>;
+type LoadMemberProfile = (userId: string) => Promise<MemberProfileSummary | null>;
 
 type MemberInviteAccessRecord = {
   inviteEmail: string;
@@ -140,10 +134,8 @@ async function scanAuthUsers(): Promise<AuthUserRecord[]> {
 
 function getActiveBookings(bookings: BookingRecord[], today: string) {
   return bookings
-    .filter(
-      (booking) => booking.status !== 'cancelled' && booking.date >= today,
-    )
-    .sort((left, right) => left.date.localeCompare(right.date));
+    .filter((booking) => booking.status !== 'cancelled' && booking.date >= today)
+    .toSorted((left, right) => left.date.localeCompare(right.date));
 }
 
 async function loadBookingsDefault(userId: string): Promise<BookingRecord[]> {
@@ -151,27 +143,18 @@ async function loadBookingsDefault(userId: string): Promise<BookingRecord[]> {
   return listMyBookings(userId);
 }
 
-async function saveBookingDefault(
-  input: CreateBookingInput,
-  user: User,
-): Promise<unknown> {
+async function saveBookingDefault(input: CreateBookingInput, user: User): Promise<unknown> {
   const { createBooking } = await import('~/lib/db/services/booking.server');
   return createBooking(input, user);
 }
 
 async function loadMemberProfilesDefault(): Promise<MemberProfileSummary[]> {
-  const { listMemberProfiles } = await import(
-    '~/lib/db/services/member-profile.server'
-  );
+  const { listMemberProfiles } = await import('~/lib/db/services/member-profile.server');
   return listMemberProfiles();
 }
 
-async function loadMemberProfileDefault(
-  userId: string,
-): Promise<MemberProfileSummary | null> {
-  const { getMemberProfile } = await import(
-    '~/lib/db/services/member-profile.server'
-  );
+async function loadMemberProfileDefault(userId: string): Promise<MemberProfileSummary | null> {
+  const { getMemberProfile } = await import('~/lib/db/services/member-profile.server');
   return getMemberProfile(userId);
 }
 
@@ -194,14 +177,10 @@ function toMemberBookedDay(booking: BookingRecord): MemberBookedDay | null {
     ...(booking.circuitId ? { circuitId: booking.circuitId } : {}),
     ...(booking.circuitName ? { circuitName: booking.circuitName } : {}),
     ...(booking.layout ? { layout: booking.layout } : {}),
-    ...(booking.circuitKnown !== undefined
-      ? { circuitKnown: booking.circuitKnown }
-      : {}),
+    ...(booking.circuitKnown !== undefined ? { circuitKnown: booking.circuitKnown } : {}),
     provider: booking.provider,
     description: booking.description,
-    ...(booking.accommodationName
-      ? { accommodationName: booking.accommodationName }
-      : {}),
+    ...(booking.accommodationName ? { accommodationName: booking.accommodationName } : {}),
   };
 }
 
@@ -218,9 +197,7 @@ function toCreateBookingInput(
     ...(day.circuitId ? { circuitId: day.circuitId } : {}),
     ...(day.circuitName ? { circuitName: day.circuitName } : {}),
     ...(day.layout ? { layout: day.layout } : {}),
-    ...(day.circuitKnown !== undefined
-      ? { circuitKnown: day.circuitKnown }
-      : {}),
+    ...(day.circuitKnown !== undefined ? { circuitKnown: day.circuitKnown } : {}),
     provider: day.provider,
     description: day.description,
   };
@@ -254,13 +231,9 @@ function applyMemberProfiles(
   users: AuthUserRecord[],
   profiles: MemberProfileSummary[],
 ): AuthUserRecord[] {
-  const profilesByUser = new Map(
-    profiles.map((profile) => [profile.userId, profile]),
-  );
+  const profilesByUser = new Map(profiles.map((profile) => [profile.userId, profile]));
 
-  return users.map((user) =>
-    withMemberProfile(user, profilesByUser.get(user.id)),
-  );
+  return users.map((user) => withMemberProfile(user, profilesByUser.get(user.id)));
 }
 
 function summarizeMember(
@@ -304,10 +277,7 @@ function summarizeAdminMember(
   };
 }
 
-function compareMembers(
-  left: MemberDirectoryEntry,
-  right: MemberDirectoryEntry,
-): number {
+function compareMembers(left: MemberDirectoryEntry, right: MemberDirectoryEntry): number {
   if (left.nextTrip && right.nextTrip) {
     if (left.nextTrip.date !== right.nextTrip.date) {
       return left.nextTrip.date.localeCompare(right.nextTrip.date);
@@ -327,10 +297,7 @@ function compareMembers(
   return left.name.localeCompare(right.name);
 }
 
-function filterInvitedUsers(
-  users: AuthUserRecord[],
-  invites: MemberInviteAccessRecord[],
-) {
+function filterInvitedUsers(users: AuthUserRecord[], invites: MemberInviteAccessRecord[]) {
   const acceptedInviteEmails = new Set(
     invites
       .filter((invite) => invite.status === 'accepted')
@@ -357,17 +324,14 @@ export async function listSiteMembers(
     loadProfiles(),
     loadInvites(),
   ]);
-  const usersWithProfiles = applyMemberProfiles(
-    filterInvitedUsers(users, invites),
-    profiles,
-  );
+  const usersWithProfiles = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
   const members = await Promise.all(
     usersWithProfiles.map(async (user) =>
       summarizeMember(user, await loadBookings(user.id), today),
     ),
   );
 
-  return members.sort(compareMembers);
+  return members.toSorted(compareMembers);
 }
 
 export async function listAdminSiteMembers(
@@ -382,17 +346,14 @@ export async function listAdminSiteMembers(
     loadProfiles(),
     loadInvites(),
   ]);
-  const usersWithProfiles = applyMemberProfiles(
-    filterInvitedUsers(users, invites),
-    profiles,
-  );
+  const usersWithProfiles = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
   const members = await Promise.all(
     usersWithProfiles.map(async (user) =>
       summarizeAdminMember(user, await loadBookings(user.id), today),
     ),
   );
 
-  return members.sort(compareMembers);
+  return members.toSorted(compareMembers);
 }
 
 export async function getSiteMemberById(
@@ -406,9 +367,7 @@ export async function getSiteMemberById(
     loadProfile(memberId),
     loadInvites(),
   ]);
-  const user = filterInvitedUsers(users, invites).find(
-    (candidate) => candidate.id === memberId,
-  );
+  const user = filterInvitedUsers(users, invites).find((candidate) => candidate.id === memberId);
   return user ? withMemberProfile(user, profile) : null;
 }
 
@@ -420,12 +379,7 @@ export async function getSiteMemberBookedDays(
   loadProfile: LoadMemberProfile = loadMemberProfileDefault,
   loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
 ): Promise<MemberBookedDaysData | null> {
-  const member = await getSiteMemberById(
-    memberId,
-    loadUsers,
-    loadProfile,
-    loadInvites,
-  );
+  const member = await getSiteMemberById(memberId, loadUsers, loadProfile, loadInvites);
 
   if (!member) {
     return null;
@@ -466,9 +420,7 @@ export async function submitMemberDayBooking(
   }
 
   const memberDays = await loadMemberDays(memberId);
-  const day = memberDays?.days.find(
-    (candidate) => candidate.dayId === parsed.data.dayId,
-  );
+  const day = memberDays?.days.find((candidate) => candidate.dayId === parsed.data.dayId);
 
   if (!memberDays || !day) {
     return {
@@ -484,10 +436,7 @@ export async function submitMemberDayBooking(
   return { ok: true };
 }
 
-export async function setAuthUserRole(
-  userId: string,
-  role: User['role'],
-): Promise<void> {
+export async function setAuthUserRole(userId: string, role: User['role']): Promise<void> {
   await docClient.send(
     new UpdateCommand({
       TableName: SSTResource.AuthTable.name,

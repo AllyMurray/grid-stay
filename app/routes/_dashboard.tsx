@@ -15,26 +15,18 @@ interface LoaderData {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const [unreadDayCount, pendingGarageShareCount, newWhatsNewCount] =
-    await Promise.all([
-      countUnreadDayNotifications(user.id),
-      countPendingIncomingGarageShareRequests(user.id),
-      countNewWhatsNewEntries(user.id),
-    ]);
+  const [unreadDayCount, pendingGarageShareCount, newWhatsNewCount] = await Promise.all([
+    countUnreadDayNotifications(user.id),
+    countPendingIncomingGarageShareRequests(user.id),
+    countNewWhatsNewEntries(user.id),
+  ]);
   const unreadNotificationCount = unreadDayCount + pendingGarageShareCount;
 
-  return Response.json(
-    { user, unreadNotificationCount, newWhatsNewCount },
-    { headers },
-  );
+  return Response.json({ user, unreadNotificationCount, newWhatsNewCount }, { headers });
 }
 
 export default function DashboardLayoutRoute() {
-  const {
-    user,
-    unreadNotificationCount,
-    newWhatsNewCount = 0,
-  } = useLoaderData<LoaderData>();
+  const { user, unreadNotificationCount, newWhatsNewCount = 0 } = useLoaderData<LoaderData>();
 
   return (
     <DashboardShell

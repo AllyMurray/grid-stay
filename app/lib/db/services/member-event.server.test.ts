@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { User } from '~/lib/auth/schemas';
 import type { CreateManualDayInput } from '~/lib/schemas/manual-day';
 
@@ -73,9 +73,8 @@ function createManualDayRecord(
 
 describe('member-added event service', () => {
   it('adds member-submitted events directly as manual days', async () => {
-    const saveManualDay = vi.fn(
-      async (input: CreateManualDayInput, owner: User) =>
-        createManualDayRecord(input, owner),
+    const saveManualDay = vi.fn(async (input: CreateManualDayInput, owner: User) =>
+      createManualDayRecord(input, owner),
     );
     const notifyAvailableDays = vi.fn(async () => []);
 
@@ -115,9 +114,8 @@ describe('member-added event service', () => {
   });
 
   it('returns field errors for invalid events', async () => {
-    const saveManualDay = vi.fn(
-      async (input: CreateManualDayInput, owner: User) =>
-        createManualDayRecord(input, owner),
+    const saveManualDay = vi.fn(async (input: CreateManualDayInput, owner: User) =>
+      createManualDayRecord(input, owner),
     );
     const notifyAvailableDays = vi.fn(async () => []);
     const result = await submitMemberEventAction(
@@ -147,9 +145,8 @@ describe('member-added event service', () => {
   });
 
   it('truncates member details to the manual day description limit', async () => {
-    const saveManualDay = vi.fn(
-      async (input: CreateManualDayInput, owner: User) =>
-        createManualDayRecord(input, owner),
+    const saveManualDay = vi.fn(async (input: CreateManualDayInput, owner: User) =>
+      createManualDayRecord(input, owner),
     );
     const longDescription = 'Details '.repeat(60);
 

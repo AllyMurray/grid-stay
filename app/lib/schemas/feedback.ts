@@ -1,16 +1,7 @@
 import { z } from 'zod';
 
-export const FeedbackTypeSchema = z.enum([
-  'feature_request',
-  'feedback',
-  'bug_report',
-]);
-export const FeedbackStatusSchema = z.enum([
-  'new',
-  'reviewed',
-  'planned',
-  'closed',
-]);
+export const FeedbackTypeSchema = z.enum(['feature_request', 'feedback', 'bug_report']);
+export const FeedbackStatusSchema = z.enum(['new', 'reviewed', 'planned', 'closed']);
 
 export const SubmitFeedbackSchema = z.object({
   type: FeedbackTypeSchema,

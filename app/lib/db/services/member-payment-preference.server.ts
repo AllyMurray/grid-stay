@@ -6,44 +6,41 @@ import {
 export const MEMBER_PAYMENT_PREFERENCE_SCOPE = 'payment-preference';
 
 export interface MemberPaymentPreferencePersistence {
-  put(
-    item: MemberPaymentPreferenceRecord,
-  ): Promise<MemberPaymentPreferenceRecord>;
+  put(item: MemberPaymentPreferenceRecord): Promise<MemberPaymentPreferenceRecord>;
   delete(userId: string): Promise<void>;
   get(userId: string): Promise<MemberPaymentPreferenceRecord | null>;
   listAll(): Promise<MemberPaymentPreferenceRecord[]>;
 }
 
-export const memberPaymentPreferenceStore: MemberPaymentPreferencePersistence =
-  {
-    async put(item) {
-      const record = {
-        ...item,
-        preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
-      };
-      await MemberPaymentPreferenceEntity.put(record).go();
-      return record;
-    },
-    async delete(userId) {
-      await MemberPaymentPreferenceEntity.delete({
-        userId,
-        preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
-      }).go({ response: 'none' });
-    },
-    async get(userId) {
-      const response = await MemberPaymentPreferenceEntity.get({
-        userId,
-        preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
-      }).go();
-      return response.data ?? null;
-    },
-    async listAll() {
-      const response = await MemberPaymentPreferenceEntity.scan.go();
-      return response.data.filter(
-        (record) => record.preferenceScope === MEMBER_PAYMENT_PREFERENCE_SCOPE,
-      );
-    },
-  };
+export const memberPaymentPreferenceStore: MemberPaymentPreferencePersistence = {
+  async put(item) {
+    const record = {
+      ...item,
+      preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
+    };
+    await MemberPaymentPreferenceEntity.put(record).go();
+    return record;
+  },
+  async delete(userId) {
+    await MemberPaymentPreferenceEntity.delete({
+      userId,
+      preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
+    }).go({ response: 'none' });
+  },
+  async get(userId) {
+    const response = await MemberPaymentPreferenceEntity.get({
+      userId,
+      preferenceScope: MEMBER_PAYMENT_PREFERENCE_SCOPE,
+    }).go();
+    return response.data ?? null;
+  },
+  async listAll() {
+    const response = await MemberPaymentPreferenceEntity.scan.go();
+    return response.data.filter(
+      (record) => record.preferenceScope === MEMBER_PAYMENT_PREFERENCE_SCOPE,
+    );
+  },
+};
 
 function sanitizeOptional(value?: string): string | undefined {
   const trimmed = value?.trim();
@@ -90,15 +87,11 @@ export async function listMemberPaymentPreferencesByUserIds(
   store: MemberPaymentPreferencePersistence = memberPaymentPreferenceStore,
 ): Promise<Map<string, MemberPaymentPreferenceRecord>> {
   const uniqueUserIds = [...new Set(userIds)];
-  const records = await Promise.all(
-    uniqueUserIds.map((userId) => store.get(userId)),
-  );
+  const records = await Promise.all(uniqueUserIds.map((userId) => store.get(userId)));
 
   return new Map(
     records
-      .filter((record): record is MemberPaymentPreferenceRecord =>
-        Boolean(record),
-      )
+      .filter((record): record is MemberPaymentPreferenceRecord => Boolean(record))
       .map((record) => [record.userId, record]),
   );
 }

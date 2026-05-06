@@ -1,8 +1,5 @@
 import { listMemberInvites } from '~/lib/auth/member-invites.server';
-import {
-  type AdminMemberDirectoryEntry,
-  listAdminSiteMembers,
-} from '~/lib/auth/members.server';
+import { type AdminMemberDirectoryEntry, listAdminSiteMembers } from '~/lib/auth/members.server';
 import { calendarFeedStore } from '~/lib/calendar/feed.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { CalendarFeedRecord } from '~/lib/db/entities/calendar-feed.server';
@@ -62,8 +59,7 @@ export interface AdminExportDependencies {
   now?: Date;
 }
 
-export interface AdminCalendarFeedExport
-  extends Omit<CalendarFeedRecord, 'token'> {
+export interface AdminCalendarFeedExport extends Omit<CalendarFeedRecord, 'token'> {
   hasLegacyPlaintextToken: boolean;
 }
 
@@ -112,9 +108,7 @@ export interface AdminDataExportSummary {
   whatsNewViewCount: number;
 }
 
-function redactCalendarFeedToken(
-  feed: CalendarFeedRecord,
-): AdminCalendarFeedExport {
+function redactCalendarFeedToken(feed: CalendarFeedRecord): AdminCalendarFeedExport {
   const { token, ...safeFeed } = feed;
   return {
     ...safeFeed,
@@ -131,32 +125,23 @@ export async function createAdminDataExport(
   const loadAvailableDaysSnapshot =
     dependencies.loadAvailableDaysSnapshot ?? getAvailableDaysSnapshot;
   const loadManualDays = dependencies.loadManualDays ?? listManagedManualDays;
-  const loadSharedDayPlans =
-    dependencies.loadSharedDayPlans ?? dayPlanStore.listAll;
+  const loadSharedDayPlans = dependencies.loadSharedDayPlans ?? dayPlanStore.listAll;
   const loadSeriesSubscriptions =
     dependencies.loadSeriesSubscriptions ?? seriesSubscriptionStore.listByUser;
-  const loadCalendarFeeds =
-    dependencies.loadCalendarFeeds ?? calendarFeedStore.listByUser;
-  const loadCircuitAliasRecords =
-    dependencies.loadCircuitAliases ?? listCircuitAliases;
+  const loadCalendarFeeds = dependencies.loadCalendarFeeds ?? calendarFeedStore.listByUser;
+  const loadCircuitAliasRecords = dependencies.loadCircuitAliases ?? listCircuitAliases;
   const loadDayMergeRecords = dependencies.loadDayMerges ?? listDayMerges;
   const loadExternalNotificationRecords =
     dependencies.loadExternalNotifications ?? externalNotificationStore.listAll;
-  const loadFeedbackRecords =
-    dependencies.loadFeedback ?? feedbackStore.listAll;
+  const loadFeedbackRecords = dependencies.loadFeedback ?? feedbackStore.listAll;
   const loadGarageShareRequestRecords =
     dependencies.loadGarageShareRequests ?? garageShareRequestStore.listAll;
-  const loadCostGroupRecords =
-    dependencies.loadCostGroups ?? costGroupStore.listAll;
-  const loadCostExpenseRecords =
-    dependencies.loadCostExpenses ?? costExpenseStore.listAll;
-  const loadCostSettlementRecords =
-    dependencies.loadCostSettlements ?? costSettlementStore.listAll;
+  const loadCostGroupRecords = dependencies.loadCostGroups ?? costGroupStore.listAll;
+  const loadCostExpenseRecords = dependencies.loadCostExpenses ?? costExpenseStore.listAll;
+  const loadCostSettlementRecords = dependencies.loadCostSettlements ?? costSettlementStore.listAll;
   const loadMemberPaymentPreferenceRecords =
-    dependencies.loadMemberPaymentPreferences ??
-    memberPaymentPreferenceStore.listAll;
-  const loadWhatsNewViewRecords =
-    dependencies.loadWhatsNewViews ?? whatsNewViewStore.listAll;
+    dependencies.loadMemberPaymentPreferences ?? memberPaymentPreferenceStore.listAll;
+  const loadWhatsNewViewRecords = dependencies.loadWhatsNewViews ?? whatsNewViewStore.listAll;
   const exportedAt = (dependencies.now ?? new Date()).toISOString();
   const [
     members,
@@ -191,12 +176,11 @@ export async function createAdminDataExport(
     loadMemberPaymentPreferenceRecords(),
     loadWhatsNewViewRecords(),
   ]);
-  const [bookingsByMember, subscriptionsByMember, feedsByMember] =
-    await Promise.all([
-      Promise.all(members.map((member) => loadBookings(member.id))),
-      Promise.all(members.map((member) => loadSeriesSubscriptions(member.id))),
-      Promise.all(members.map((member) => loadCalendarFeeds(member.id))),
-    ]);
+  const [bookingsByMember, subscriptionsByMember, feedsByMember] = await Promise.all([
+    Promise.all(members.map((member) => loadBookings(member.id))),
+    Promise.all(members.map((member) => loadSeriesSubscriptions(member.id))),
+    Promise.all(members.map((member) => loadCalendarFeeds(member.id))),
+  ]);
 
   return {
     exportVersion: 7,
@@ -222,9 +206,7 @@ export async function createAdminDataExport(
   };
 }
 
-export function summarizeAdminDataExport(
-  dataExport: AdminDataExport,
-): AdminDataExportSummary {
+export function summarizeAdminDataExport(dataExport: AdminDataExport): AdminDataExportSummary {
   return {
     exportedAt: dataExport.exportedAt,
     memberCount: dataExport.members.length,

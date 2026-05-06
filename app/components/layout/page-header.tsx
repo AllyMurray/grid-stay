@@ -9,21 +9,9 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export function PageHeader({
-  eyebrow,
-  title,
-  description,
-  meta,
-  actions,
-}: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, meta, actions }: PageHeaderProps) {
   return (
-    <Group
-      justify="space-between"
-      align="flex-start"
-      gap="md"
-      wrap="wrap"
-      className="page-header"
-    >
+    <Group justify="space-between" align="flex-start" gap="md" wrap="wrap" className="page-header">
       <Stack gap="md" style={{ flex: 1, minWidth: 0 }}>
         {eyebrow ? (
           <Text size="sm" fw={700} c="brand.7">

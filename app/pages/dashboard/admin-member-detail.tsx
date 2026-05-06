@@ -36,9 +36,7 @@ export interface AdminMemberDetailPageProps {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatFullDate(value: string) {
@@ -50,9 +48,7 @@ function formatFullDate(value: string) {
   });
 }
 
-function bookingColor(
-  status: AdminMemberProfile['bookings'][number]['status'],
-) {
+function bookingColor(status: AdminMemberProfile['bookings'][number]['status']) {
   switch (status) {
     case 'booked':
       return 'green';
@@ -89,11 +85,7 @@ function MemberBookings({ profile }: { profile: AdminMemberProfile }) {
                   <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                     <Group gap="xs" wrap="wrap">
                       <Text fw={700}>{booking.circuit}</Text>
-                      <Badge
-                        color={bookingColor(booking.status)}
-                        variant="light"
-                        size="sm"
-                      >
+                      <Badge color={bookingColor(booking.status)} variant="light" size="sm">
                         {titleCase(booking.status)}
                       </Badge>
                     </Group>
@@ -105,8 +97,7 @@ function MemberBookings({ profile }: { profile: AdminMemberProfile }) {
                     <Text size="sm">{booking.description}</Text>
 
                     <Text size="sm" c="dimmed">
-                      Stay •{' '}
-                      {booking.accommodationName ?? 'No shared stay added yet'}
+                      Stay • {booking.accommodationName ?? 'No shared stay added yet'}
                     </Text>
                   </Stack>
                 </Group>
@@ -130,22 +121,15 @@ function MemberBookings({ profile }: { profile: AdminMemberProfile }) {
 function MemberProfileCard({ profile }: { profile: AdminMemberProfile }) {
   const fetcher = useFetcher<AdminMemberActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
 
   return (
     <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
       <Stack gap="lg">
         <Group gap="sm" align="center" wrap="nowrap">
-          <Avatar
-            src={profile.picture}
-            alt={profile.name}
-            radius="sm"
-            size={48}
-          >
+          <Avatar src={profile.picture} alt={profile.name} radius="sm" size={48}>
             {profile.name.charAt(0).toUpperCase()}
           </Avatar>
           <Stack gap={2} style={{ minWidth: 0 }}>
@@ -163,10 +147,7 @@ function MemberProfileCard({ profile }: { profile: AdminMemberProfile }) {
 
         <Divider />
 
-        <fetcher.Form
-          method="post"
-          key={success?.message ?? profile.displayName ?? 'display-name'}
-        >
+        <fetcher.Form method="post" key={success?.message ?? profile.displayName ?? 'display-name'}>
           <Stack gap="sm">
             <input type="hidden" name="intent" value="updateDisplayName" />
             <TextInput
@@ -234,16 +215,11 @@ function MemberProfileCard({ profile }: { profile: AdminMemberProfile }) {
   );
 }
 
-function SeriesManagement({
-  profile,
-  seriesOptions,
-}: AdminMemberDetailPageProps) {
+function SeriesManagement({ profile, seriesOptions }: AdminMemberDetailPageProps) {
   const fetcher = useFetcher<AdminMemberActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
   const seriesSelectOptions = seriesOptions.map((series) => ({
     value: series.seriesKey,
@@ -256,8 +232,7 @@ function SeriesManagement({
         <Stack gap={2}>
           <Title order={3}>Series subscriptions</Title>
           <Text size="sm" c="dimmed">
-            Add future events for a member without changing existing booking
-            notes or references.
+            Add future events for a member without changing existing booking notes or references.
           </Text>
         </Stack>
 
@@ -267,8 +242,7 @@ function SeriesManagement({
             {success.addedCount !== undefined ? (
               <>
                 {' '}
-                {success.addedCount} added, {success.existingCount} already
-                present.
+                {success.addedCount} added, {success.existingCount} already present.
               </>
             ) : null}
           </Alert>
@@ -319,29 +293,17 @@ function SeriesManagement({
             {profile.subscriptions.map((subscription, index) => (
               <Stack key={subscription.seriesKey} gap="md">
                 <fetcher.Form method="post">
-                  <input
-                    type="hidden"
-                    name="seriesKey"
-                    value={subscription.seriesKey}
-                  />
+                  <input type="hidden" name="seriesKey" value={subscription.seriesKey} />
                   <Stack gap="sm">
-                    <Group
-                      justify="space-between"
-                      align="flex-start"
-                      gap="md"
-                      wrap="wrap"
-                    >
+                    <Group justify="space-between" align="flex-start" gap="md" wrap="wrap">
                       <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
                         <Text fw={700}>{subscription.seriesName}</Text>
                         <Text size="xs" c="dimmed">
-                          Last updated{' '}
-                          {formatFullDate(subscription.updatedAt.slice(0, 10))}
+                          Last updated {formatFullDate(subscription.updatedAt.slice(0, 10))}
                         </Text>
                       </Stack>
                       <Badge
-                        color={
-                          subscription.status === 'booked' ? 'green' : 'yellow'
-                        }
+                        color={subscription.status === 'booked' ? 'green' : 'yellow'}
                         variant="light"
                       >
                         {titleCase(subscription.status)}
@@ -401,13 +363,8 @@ function SeriesManagement({
   );
 }
 
-export function AdminMemberDetailPage({
-  profile,
-  seriesOptions,
-}: AdminMemberDetailPageProps) {
-  const activeBookings = profile.bookings.filter(
-    (booking) => booking.status !== 'cancelled',
-  );
+export function AdminMemberDetailPage({ profile, seriesOptions }: AdminMemberDetailPageProps) {
+  const activeBookings = profile.bookings.filter((booking) => booking.status !== 'cancelled');
   const sharedStays = new Set(
     activeBookings
       .map((booking) => booking.accommodationName?.trim())

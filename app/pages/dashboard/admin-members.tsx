@@ -44,11 +44,7 @@ function matchesMember(member: AdminMemberDirectoryEntry, query: string) {
   ].some((field) => field?.toLowerCase().includes(value));
 }
 
-function MemberManagementRow({
-  member,
-}: {
-  member: AdminMemberDirectoryEntry;
-}) {
+function MemberManagementRow({ member }: { member: AdminMemberDirectoryEntry }) {
   const nextTrip = member.nextTrip
     ? `${formatMemberDate(member.nextTrip.date)} • ${member.nextTrip.circuit}`
     : 'No upcoming trips';
@@ -112,13 +108,8 @@ export function AdminMembersPage({ members }: AdminMembersPageProps) {
     () => members.filter((member) => matchesMember(member, query.trim())),
     [members, query],
   );
-  const membersWithTrips = members.filter(
-    (member) => member.activeTripsCount > 0,
-  );
-  const totalSharedStays = members.reduce(
-    (count, member) => count + member.sharedStayCount,
-    0,
-  );
+  const membersWithTrips = members.filter((member) => member.activeTripsCount > 0);
+  const totalSharedStays = members.reduce((count, member) => count + member.sharedStayCount, 0);
 
   return (
     <Stack gap="xl">

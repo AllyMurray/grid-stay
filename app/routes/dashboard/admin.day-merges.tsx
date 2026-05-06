@@ -1,8 +1,5 @@
 import { useLoaderData } from 'react-router';
-import {
-  loadAdminDayMergesReport,
-  submitAdminDayMergeAction,
-} from '~/lib/admin/day-merges.server';
+import { loadAdminDayMergesReport, submitAdminDayMergeAction } from '~/lib/admin/day-merges.server';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import {

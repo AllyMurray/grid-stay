@@ -1,12 +1,6 @@
 import type { User } from '~/lib/auth/schemas';
-import {
-  type CircuitAliasRule,
-  createCircuitAliasKey,
-} from '~/lib/circuits/circuit-aliases';
-import {
-  CircuitAliasEntity,
-  type CircuitAliasRecord,
-} from '../entities/circuit-alias.server';
+import { type CircuitAliasRule, createCircuitAliasKey } from '~/lib/circuits/circuit-aliases';
+import { CircuitAliasEntity, type CircuitAliasRecord } from '../entities/circuit-alias.server';
 
 export const CIRCUIT_ALIAS_SCOPE = 'circuit-alias';
 
@@ -69,9 +63,7 @@ function compareAliases(left: CircuitAliasRecord, right: CircuitAliasRecord) {
   return left.rawCircuit.localeCompare(right.rawCircuit);
 }
 
-export function toCircuitAliasRule(
-  record: CircuitAliasRecord,
-): CircuitAliasRule {
+export function toCircuitAliasRule(record: CircuitAliasRecord): CircuitAliasRule {
   return {
     aliasKey: record.aliasKey,
     rawCircuit: record.rawCircuit,
@@ -85,7 +77,7 @@ export async function listCircuitAliases(
   store: CircuitAliasPersistence = circuitAliasStore,
 ): Promise<CircuitAliasRecord[]> {
   const aliases = await store.listAll();
-  return aliases.sort(compareAliases);
+  return aliases.toSorted(compareAliases);
 }
 
 export async function listCircuitAliasRules(

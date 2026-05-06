@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 
 vi.mock('../entities/available-days-cache.server', () => ({
   AvailableDaysCacheEntity: {
@@ -44,8 +44,7 @@ function createMemoryStore(initial: AvailableDaysCacheRecord[] = []): {
       async putMany(items) {
         for (const item of items) {
           const index = records.findIndex(
-            (record) =>
-              record.cacheKey === item.cacheKey && record.scope === item.scope,
+            (record) => record.cacheKey === item.cacheKey && record.scope === item.scope,
           );
           if (index >= 0) {
             records[index] = item;
@@ -106,7 +105,7 @@ describe('available days cache service', () => {
     );
 
     expect(snapshot.days).toHaveLength(2);
-    expect(memory.records.map((record) => record.scope).sort()).toEqual([
+    expect(memory.records.map((record) => record.scope).toSorted()).toEqual([
       'day#day-1',
       'day#day-2',
       'meta',

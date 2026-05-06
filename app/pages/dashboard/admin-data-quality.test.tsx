@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { AdminDataQualityPage } from './admin-data-quality';
 
@@ -48,9 +48,7 @@ describe('AdminDataQualityPage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Data quality' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Data quality' })).toBeInTheDocument();
     expect(screen.getByText('unknown circuit')).toBeInTheDocument();
     expect(screen.getByText('Example Circuit')).toBeInTheDocument();
     expect(

@@ -57,9 +57,7 @@ async function responseMessage(error: unknown, fallback: string) {
 function costGroupPayload(formData: FormData) {
   return {
     ...Object.fromEntries(formData),
-    participantUserIds: formData
-      .getAll('participantUserId')
-      .map((value) => value.toString()),
+    participantUserIds: formData.getAll('participantUserId').map((value) => value.toString()),
   };
 }
 
@@ -91,10 +89,7 @@ export async function submitCreateCostGroup(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not create this cost group yet.',
-      ),
+      formError: await responseMessage(error, 'Could not create this cost group yet.'),
       fieldErrors: {},
     };
   }
@@ -120,10 +115,7 @@ export async function submitUpdateCostGroup(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not update this cost group yet.',
-      ),
+      formError: await responseMessage(error, 'Could not update this cost group yet.'),
       fieldErrors: {},
     };
   }
@@ -149,10 +141,7 @@ export async function submitDeleteCostGroup(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not delete this cost group yet.',
-      ),
+      formError: await responseMessage(error, 'Could not delete this cost group yet.'),
       fieldErrors: {},
     };
   }
@@ -162,9 +151,7 @@ export async function submitCreateCostExpense(
   formData: FormData,
   user: User,
 ): Promise<CostSplittingActionResult> {
-  const parsed = CostExpenseUpsertSchema.safeParse(
-    costExpensePayload(formData),
-  );
+  const parsed = CostExpenseUpsertSchema.safeParse(costExpensePayload(formData));
 
   if (!parsed.success) {
     return {
@@ -180,10 +167,7 @@ export async function submitCreateCostExpense(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not add this expense yet.',
-      ),
+      formError: await responseMessage(error, 'Could not add this expense yet.'),
       fieldErrors: {},
     };
   }
@@ -193,9 +177,7 @@ export async function submitUpdateCostExpense(
   formData: FormData,
   user: User,
 ): Promise<CostSplittingActionResult> {
-  const parsed = CostExpenseUpdateSchema.safeParse(
-    costExpensePayload(formData),
-  );
+  const parsed = CostExpenseUpdateSchema.safeParse(costExpensePayload(formData));
 
   if (!parsed.success) {
     return {
@@ -211,10 +193,7 @@ export async function submitUpdateCostExpense(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not update this expense yet.',
-      ),
+      formError: await responseMessage(error, 'Could not update this expense yet.'),
       fieldErrors: {},
     };
   }
@@ -224,9 +203,7 @@ export async function submitDeleteCostExpense(
   formData: FormData,
   user: User,
 ): Promise<CostSplittingActionResult> {
-  const parsed = CostExpenseDeleteSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = CostExpenseDeleteSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -242,10 +219,7 @@ export async function submitDeleteCostExpense(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not delete this expense yet.',
-      ),
+      formError: await responseMessage(error, 'Could not delete this expense yet.'),
       fieldErrors: {},
     };
   }
@@ -255,9 +229,7 @@ export async function submitUpdateCostSettlement(
   formData: FormData,
   user: User,
 ): Promise<CostSplittingActionResult> {
-  const parsed = CostSettlementStatusSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = CostSettlementStatusSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {
@@ -273,10 +245,7 @@ export async function submitUpdateCostSettlement(
   } catch (error) {
     return {
       ok: false,
-      formError: await responseMessage(
-        error,
-        'Could not update this settlement yet.',
-      ),
+      formError: await responseMessage(error, 'Could not update this settlement yet.'),
       fieldErrors: {},
     };
   }
@@ -286,9 +255,7 @@ export async function submitMemberPaymentPreference(
   formData: FormData,
   user: User,
 ): Promise<MemberPaymentPreferenceActionResult> {
-  const parsed = MemberPaymentPreferenceSchema.safeParse(
-    Object.fromEntries(formData),
-  );
+  const parsed = MemberPaymentPreferenceSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return {

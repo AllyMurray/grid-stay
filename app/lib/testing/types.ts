@@ -5,10 +5,7 @@
 /**
  * HTTP fetch function signature for adapter dependency injection.
  */
-export type FetchFunction = (
-  url: string,
-  init?: RequestInit,
-) => Promise<string>;
+export type FetchFunction = (url: string, init?: RequestInit) => Promise<string>;
 
 /**
  * A testing day available at a circuit.
@@ -53,10 +50,7 @@ export interface TestingAdapter {
    * Fetch testing schedule for the given circuit IDs.
    * Accepts an array to allow batch fetching (e.g. MSV covers multiple circuits in one API call).
    */
-  fetchSchedule(
-    circuitIds: string[],
-    options?: TestingFetchOptions,
-  ): Promise<TestingDay[]>;
+  fetchSchedule(circuitIds: string[], options?: TestingFetchOptions): Promise<TestingDay[]>;
 }
 
 /**

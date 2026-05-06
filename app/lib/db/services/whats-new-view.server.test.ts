@@ -1,10 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import type { WhatsNewEntry } from '~/lib/whats-new';
 import type { WhatsNewViewRecord } from '../entities/whats-new-view.server';
-import {
-  countNewWhatsNewEntries,
-  markWhatsNewViewed,
-} from './whats-new-view.server';
+import { countNewWhatsNewEntries, markWhatsNewViewed } from './whats-new-view.server';
 
 vi.mock('../entities/whats-new-view.server', () => ({
   WhatsNewViewEntity: {},
@@ -49,9 +46,7 @@ describe('whats new view service', () => {
   it('counts every entry when the user has not visited whats new yet', async () => {
     const store = createMemoryStore();
 
-    await expect(
-      countNewWhatsNewEntries('user-1', { store, entries }),
-    ).resolves.toBe(3);
+    await expect(countNewWhatsNewEntries('user-1', { store, entries })).resolves.toBe(3);
   });
 
   it('counts only entries published after the last visit', async () => {
@@ -63,9 +58,7 @@ describe('whats new view service', () => {
       updatedAt: '2026-05-02T10:00:00.000Z',
     } as WhatsNewViewRecord);
 
-    await expect(
-      countNewWhatsNewEntries('user-1', { store, entries }),
-    ).resolves.toBe(1);
+    await expect(countNewWhatsNewEntries('user-1', { store, entries })).resolves.toBe(1);
   });
 
   it('stores the latest visit time without changing the original create time', async () => {

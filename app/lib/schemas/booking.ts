@@ -1,12 +1,7 @@
 import { z } from 'zod';
 import { BOOKING_STATUS_VALUES } from '~/lib/constants/enums';
 
-export const AvailableDayTypeSchema = z.enum([
-  'race_day',
-  'test_day',
-  'track_day',
-  'road_drive',
-]);
+export const AvailableDayTypeSchema = z.enum(['race_day', 'test_day', 'track_day', 'road_drive']);
 
 export const BookingStatusSchema = z.enum(BOOKING_STATUS_VALUES);
 
@@ -33,10 +28,9 @@ export const SharedStaySelectionSchema = CreateBookingSchema.extend({
   accommodationName: z.string().trim().min(1).max(120),
 });
 
-export const SharedStaySelectionRequestSchema =
-  CreateBookingRequestSchema.extend({
-    accommodationName: z.string().trim().min(1).max(120),
-  });
+export const SharedStaySelectionRequestSchema = CreateBookingRequestSchema.extend({
+  accommodationName: z.string().trim().min(1).max(120),
+});
 
 export const BulkRaceSeriesBookingSchema = z.object({
   dayId: z.string().min(1),
@@ -44,8 +38,7 @@ export const BulkRaceSeriesBookingSchema = z.object({
 });
 
 const GarageBookedSchema = z.preprocess(
-  (value) =>
-    value === true || value === 'true' || value === 'on' || value === '1',
+  (value) => value === true || value === 'true' || value === 'on' || value === '1',
   z.boolean(),
 );
 
@@ -78,17 +71,9 @@ export const DeleteBookingSchema = z.object({
 });
 
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
-export type CreateBookingRequestInput = z.infer<
-  typeof CreateBookingRequestSchema
->;
-export type SharedStaySelectionInput = z.infer<
-  typeof SharedStaySelectionSchema
->;
-export type SharedStaySelectionRequestInput = z.infer<
-  typeof SharedStaySelectionRequestSchema
->;
-export type BulkRaceSeriesBookingInput = z.infer<
-  typeof BulkRaceSeriesBookingSchema
->;
+export type CreateBookingRequestInput = z.infer<typeof CreateBookingRequestSchema>;
+export type SharedStaySelectionInput = z.infer<typeof SharedStaySelectionSchema>;
+export type SharedStaySelectionRequestInput = z.infer<typeof SharedStaySelectionRequestSchema>;
+export type BulkRaceSeriesBookingInput = z.infer<typeof BulkRaceSeriesBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
 export type DeleteBookingInput = z.infer<typeof DeleteBookingSchema>;

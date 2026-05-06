@@ -2,7 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRoutesStub } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { MembersPage } from './members';
 
@@ -47,9 +47,7 @@ describe('MembersPage', () => {
   it('renders the member directory from props', () => {
     renderWithProviders(<MembersPage members={members} pendingInvites={[]} />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Site members' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Site members' })).toBeInTheDocument();
     expect(screen.getByText('Ally Murray')).toBeInTheDocument();
     expect(screen.getByText(/Silverstone/)).toBeInTheDocument();
     expect(screen.getByText(/trackside hotel/i)).toBeInTheDocument();
@@ -58,9 +56,10 @@ describe('MembersPage', () => {
     expect(screen.queryByText('2 members')).not.toBeInTheDocument();
     expect(screen.queryByText('1 with trip')).not.toBeInTheDocument();
     expect(screen.queryByText('Shared stays')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole('link', { name: 'View days' })[0],
-    ).toHaveAttribute('href', '/dashboard/members/user-1');
+    expect(screen.getAllByRole('link', { name: 'View days' })[0]).toHaveAttribute(
+      'href',
+      '/dashboard/members/user-1',
+    );
     expect(screen.queryByText('owner')).not.toBeInTheDocument();
     expect(screen.queryByText('member')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Email address')).toBeInTheDocument();

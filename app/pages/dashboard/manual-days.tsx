@@ -30,9 +30,7 @@ export interface ManualDaysPageProps {
 }
 
 function titleCase(value: string) {
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatFullDate(value: string) {
@@ -87,17 +85,12 @@ function ManualDayForm({
   circuitOptions,
   providerOptions,
   seriesOptions,
-}: Pick<
-  ManualDaysPageProps,
-  'circuitOptions' | 'providerOptions' | 'seriesOptions'
->) {
+}: Pick<ManualDaysPageProps, 'circuitOptions' | 'providerOptions' | 'seriesOptions'>) {
   const fetcher = useFetcher<CreateManualDayActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
   const successResult = fetcher.data?.ok ? fetcher.data : null;
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
 
   return (
     <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
@@ -105,15 +98,12 @@ function ManualDayForm({
         <Stack gap={2}>
           <Title order={3}>Add a manual day</Title>
           <Text size="sm" c="dimmed">
-            Add Caterham dates that should appear in the shared calendar even
-            when they are not part of the official scrape.
+            Add Caterham dates that should appear in the shared calendar even when they are not part
+            of the official scrape.
           </Text>
         </Stack>
 
-        <fetcher.Form
-          method="post"
-          key={successResult?.dayId ?? 'manual-day-form'}
-        >
+        <fetcher.Form method="post" key={successResult?.dayId ?? 'manual-day-form'}>
           <Stack gap="md">
             <SimpleGrid cols={{ base: 1, sm: 2, xl: 4 }} spacing="md">
               <TextInput
@@ -193,8 +183,7 @@ function ManualDayForm({
                   </Text>
                 ) : (
                   <Text size="sm" c="dimmed">
-                    Once saved, the day appears here and in Available Days for
-                    everyone.
+                    Once saved, the day appears here and in Available Days for everyone.
                   </Text>
                 )}
               </Stack>
@@ -313,8 +302,8 @@ export function ManualDaysPage({
           <Stack gap={2}>
             <Title order={3}>Manually added days</Title>
             <Text size="sm" c="dimmed">
-              These entries stay managed here, but they still appear in the main
-              Available Days feed once saved.
+              These entries stay managed here, but they still appear in the main Available Days feed
+              once saved.
             </Text>
           </Stack>
 

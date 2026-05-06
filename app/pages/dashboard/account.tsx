@@ -9,12 +9,7 @@ import {
   TextInput,
   ThemeIcon,
 } from '@mantine/core';
-import {
-  IconBrandGoogle,
-  IconCreditCard,
-  IconLock,
-  IconUserCircle,
-} from '@tabler/icons-react';
+import { IconBrandGoogle, IconCreditCard, IconLock, IconUserCircle } from '@tabler/icons-react';
 import { useFetcher } from 'react-router';
 import { PageHeader } from '~/components/layout/page-header';
 import type { User } from '~/lib/auth/schemas';
@@ -29,18 +24,12 @@ interface AccountPageProps {
   user: User;
 }
 
-export function AccountPage({
-  hasPassword,
-  paymentPreference,
-  user,
-}: AccountPageProps) {
+export function AccountPage({ hasPassword, paymentPreference, user }: AccountPageProps) {
   const passwordEnabled = hasPassword;
   const fetcher = useFetcher<MemberPaymentPreferenceActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok;
 
   return (

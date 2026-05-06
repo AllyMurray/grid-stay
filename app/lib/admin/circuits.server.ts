@@ -62,10 +62,7 @@ export interface AdminCircuitActionDependencies {
   removeAlias?: typeof deleteCircuitAlias;
 }
 
-function compareCircuitOptions(
-  left: AdminCircuitOption,
-  right: AdminCircuitOption,
-) {
+function compareCircuitOptions(left: AdminCircuitOption, right: AdminCircuitOption) {
   if (left.circuit !== right.circuit) {
     return left.circuit.localeCompare(right.circuit);
   }
@@ -102,7 +99,7 @@ function summarizeCircuits(days: AvailableDay[]): AdminCircuitOption[] {
     });
   }
 
-  return [...optionsByKey.values()].sort(compareCircuitOptions);
+  return [...optionsByKey.values()].toSorted(compareCircuitOptions);
 }
 
 function formError(
@@ -126,16 +123,12 @@ export async function loadAdminCircuitsReport(
     loadManualDays(),
     loadAliases(),
   ]);
-  const circuits = summarizeCircuits([
-    ...(snapshot?.days ?? []),
-    ...manualDays,
-  ]);
+  const circuits = summarizeCircuits([...(snapshot?.days ?? []), ...manualDays]);
 
   return {
     circuits,
     aliases,
-    unknownCircuitCount: circuits.filter((circuit) => !circuit.circuitKnown)
-      .length,
+    unknownCircuitCount: circuits.filter((circuit) => !circuit.circuitKnown).length,
   };
 }
 
@@ -147,20 +140,13 @@ export async function submitAdminCircuitAction(
   const intent = formData.get('intent');
 
   if (intent === 'deleteAlias') {
-    const parsed = DeleteCircuitAliasSchema.safeParse(
-      Object.fromEntries(formData),
-    );
+    const parsed = DeleteCircuitAliasSchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
-      return formError(
-        'Could not remove this circuit alias.',
-        parsed.error.flatten().fieldErrors,
-      );
+      return formError('Could not remove this circuit alias.', parsed.error.flatten().fieldErrors);
     }
 
-    await (dependencies.removeAlias ?? deleteCircuitAlias)(
-      parsed.data.aliasKey,
-    );
+    await (dependencies.removeAlias ?? deleteCircuitAlias)(parsed.data.aliasKey);
 
     return {
       ok: true,
@@ -175,16 +161,10 @@ export async function submitAdminCircuitAction(
   const parsed = CircuitAliasSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return formError(
-      'Could not save this circuit alias.',
-      parsed.error.flatten().fieldErrors,
-    );
+    return formError('Could not save this circuit alias.', parsed.error.flatten().fieldErrors);
   }
 
-  const alias = await (dependencies.saveAlias ?? upsertCircuitAlias)(
-    parsed.data,
-    user,
-  );
+  const alias = await (dependencies.saveAlias ?? upsertCircuitAlias)(parsed.data, user);
 
   return {
     ok: true,

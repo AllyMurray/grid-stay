@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { buildCalendarIcs } from './ics.server';
 
@@ -52,9 +52,7 @@ describe('buildCalendarIcs', () => {
       },
     ]);
 
-    expect(calendar).toContain(
-      'SUMMARY:Donington Park - Track day (Maybe)\r\n',
-    );
+    expect(calendar).toContain('SUMMARY:Donington Park - Track day (Maybe)\r\n');
     expect(calendar).toContain('STATUS:TENTATIVE\r\n');
   });
 

@@ -1,12 +1,6 @@
 import { normalizeCircuitName } from '~/lib/circuit-sources/shared.server';
-import {
-  getSavedDaysFilters,
-  type SavedDaysFilters,
-} from '~/lib/days/preferences.server';
-import {
-  getLinkedSeriesKey,
-  getLinkedSeriesName,
-} from '~/lib/days/series.server';
+import { getSavedDaysFilters, type SavedDaysFilters } from '~/lib/days/preferences.server';
+import { getLinkedSeriesKey, getLinkedSeriesName } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
 import {
   DayNotificationEntity,
@@ -35,9 +29,7 @@ export interface DayNotificationReadPersistence {
 
 export const dayNotificationStore: DayNotificationPersistence = {
   async putMany(items) {
-    await Promise.all(
-      items.map((item) => DayNotificationEntity.put(item).go()),
-    );
+    await Promise.all(items.map((item) => DayNotificationEntity.put(item).go()));
   },
   async listAll() {
     const response = await DayNotificationEntity.query
@@ -51,14 +43,10 @@ export const dayNotificationStore: DayNotificationPersistence = {
 
 export const dayNotificationReadStore: DayNotificationReadPersistence = {
   async putMany(items) {
-    await Promise.all(
-      items.map((item) => DayNotificationReadEntity.put(item).go()),
-    );
+    await Promise.all(items.map((item) => DayNotificationReadEntity.put(item).go()));
   },
   async listByUser(userId) {
-    const response = await DayNotificationReadEntity.query
-      .readState({ userId })
-      .go();
+    const response = await DayNotificationReadEntity.query.readState({ userId }).go();
     return response.data;
   },
 };
@@ -67,16 +55,11 @@ function createNotificationId(dayId: string): string {
   return `new-day#${dayId}`;
 }
 
-function createChangedNotificationId(
-  change: Pick<FeedChangeRecord, 'changeId'>,
-): string {
+function createChangedNotificationId(change: Pick<FeedChangeRecord, 'changeId'>): string {
   return `changed-day#${change.changeId}`;
 }
 
-function compareNotificationNewestFirst(
-  left: DayNotificationRecord,
-  right: DayNotificationRecord,
-) {
+function compareNotificationNewestFirst(left: DayNotificationRecord, right: DayNotificationRecord) {
   if (left.createdAt !== right.createdAt) {
     return right.createdAt.localeCompare(left.createdAt);
   }
@@ -84,10 +67,7 @@ function compareNotificationNewestFirst(
   return right.notificationId.localeCompare(left.notificationId);
 }
 
-function toNotificationRecord(
-  day: AvailableDay,
-  createdAt: string,
-): DayNotificationRecord {
+function toNotificationRecord(day: AvailableDay, createdAt: string): DayNotificationRecord {
   return {
     scope: DAY_NOTIFICATION_SCOPE,
     notificationId: createNotificationId(day.dayId),
@@ -105,9 +85,7 @@ function toNotificationRecord(
   } as DayNotificationRecord;
 }
 
-function toChangedNotificationRecord(
-  change: FeedChangeRecord,
-): DayNotificationRecord {
+function toChangedNotificationRecord(change: FeedChangeRecord): DayNotificationRecord {
   return {
     scope: DAY_NOTIFICATION_SCOPE,
     notificationId: createChangedNotificationId(change),
@@ -136,9 +114,7 @@ function notificationMatchesSavedFilters(
   }
   if (
     filters.circuits.length > 0 &&
-    !filters.circuits
-      .map(normalizeCircuitName)
-      .includes(normalizeCircuitName(notification.circuit))
+    !filters.circuits.map(normalizeCircuitName).includes(normalizeCircuitName(notification.circuit))
   ) {
     return false;
   }
@@ -197,9 +173,7 @@ export async function createAvailableDayNotificationsSafely(
       dayIds: days.map((day) => day.dayId),
       error,
     });
-    const { recordAppEventSafely } = await import(
-      '~/lib/db/services/app-event.server'
-    );
+    const { recordAppEventSafely } = await import('~/lib/db/services/app-event.server');
     await recordAppEventSafely({
       category: 'error',
       action: 'availableDays.notifications.failed',
@@ -224,9 +198,7 @@ export async function createChangedDayNotificationsSafely(
   const actionableChanges = changes.filter(
     (change) =>
       change.changeType === 'changed' &&
-      (change.changedFields ?? []).some(
-        (field) => field === 'date' || field === 'circuit',
-      ),
+      (change.changedFields ?? []).some((field) => field === 'date' || field === 'circuit'),
   );
 
   if (actionableChanges.length === 0) {
@@ -242,9 +214,7 @@ export async function createChangedDayNotificationsSafely(
       changeIds: actionableChanges.map((change) => change.changeId),
       error,
     });
-    const { recordAppEventSafely } = await import(
-      '~/lib/db/services/app-event.server'
-    );
+    const { recordAppEventSafely } = await import('~/lib/db/services/app-event.server');
     await recordAppEventSafely({
       category: 'error',
       action: 'availableDays.changeNotifications.failed',
@@ -271,8 +241,7 @@ export async function listUserDayNotifications(
     limit?: number;
   } = {},
 ): Promise<UserDayNotification[]> {
-  const notificationStore =
-    dependencies.notificationStore ?? dayNotificationStore;
+  const notificationStore = dependencies.notificationStore ?? dayNotificationStore;
   const readStore = dependencies.readStore ?? dayNotificationReadStore;
   const loadSavedFilters = dependencies.loadSavedFilters ?? getSavedDaysFilters;
   const [notifications, readRecords, filters] = await Promise.all([
@@ -284,15 +253,11 @@ export async function listUserDayNotifications(
     readRecords.map((record) => [record.notificationId, record.readAt]),
   );
   const visibleNotifications = filters
-    ? notifications.filter((notification) =>
-        notificationMatchesSavedFilters(notification, filters),
-      )
+    ? notifications.filter((notification) => notificationMatchesSavedFilters(notification, filters))
     : notifications;
-  const sorted = [...visibleNotifications].sort(compareNotificationNewestFirst);
+  const sorted = [...visibleNotifications].toSorted(compareNotificationNewestFirst);
   const limited =
-    dependencies.limit && dependencies.limit > 0
-      ? sorted.slice(0, dependencies.limit)
-      : sorted;
+    dependencies.limit && dependencies.limit > 0 ? sorted.slice(0, dependencies.limit) : sorted;
 
   return limited.map((notification) => {
     const readAt = readByNotificationId.get(notification.notificationId);
@@ -348,8 +313,7 @@ export async function markAllDayNotificationsRead(
     loadSavedFilters?: (userId: string) => Promise<SavedDaysFilters | null>;
   } = {},
 ): Promise<void> {
-  const notificationStore =
-    dependencies.notificationStore ?? dayNotificationStore;
+  const notificationStore = dependencies.notificationStore ?? dayNotificationStore;
   const readStore = dependencies.readStore ?? dayNotificationReadStore;
   const notifications = await listUserDayNotifications(userId, {
     notificationStore,

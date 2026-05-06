@@ -1,15 +1,9 @@
 import { useLoaderData } from 'react-router';
 import { requireAdmin } from '~/lib/auth/helpers.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
-import {
-  listRecentFeedback,
-  submitAdminFeedbackAction,
-} from '~/lib/db/services/feedback.server';
+import { listRecentFeedback, submitAdminFeedbackAction } from '~/lib/db/services/feedback.server';
 import { sendFeedbackUpdateEmail } from '~/lib/email/feedback-update.server';
-import {
-  AdminFeedbackPage,
-  type AdminFeedbackPageProps,
-} from '~/pages/dashboard/admin-feedback';
+import { AdminFeedbackPage, type AdminFeedbackPageProps } from '~/pages/dashboard/admin-feedback';
 import type { Route } from './+types/admin.feedback';
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -43,8 +37,7 @@ export async function action({ request }: Route.ActionArgs) {
     } catch (error) {
       result = {
         ...result,
-        warning:
-          'The update was saved, but the member email could not be sent.',
+        warning: 'The update was saved, but the member email could not be sent.',
       };
 
       await recordAppEventSafely({
@@ -65,9 +58,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (result.ok) {
     const subjectId =
-      result.intent === 'deleteFeedback'
-        ? result.feedbackId
-        : result.feedback.feedbackId;
+      result.intent === 'deleteFeedback' ? result.feedbackId : result.feedback.feedbackId;
 
     await recordAppEventSafely({
       category: 'audit',

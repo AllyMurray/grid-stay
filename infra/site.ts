@@ -21,12 +21,9 @@ export const site = new sst.aws.React('Site', {
   ],
   domain: appDomainConfig,
   environment: {
-    BETTER_AUTH_URL: appDomainConfig
-      ? `https://${appDomainConfig.name}`
-      : 'http://localhost:5173',
+    BETTER_AUTH_URL: appDomainConfig ? `https://${appDomainConfig.name}` : 'http://localhost:5173',
     GRID_STAY_EMAIL_FROM: 'Grid Stay <noreply@gridstay.app>',
-    GRID_STAY_BOOTSTRAP_MEMBER_EMAILS:
-      process.env.GRID_STAY_BOOTSTRAP_MEMBER_EMAILS ?? '',
+    GRID_STAY_BOOTSTRAP_MEMBER_EMAILS: process.env.GRID_STAY_BOOTSTRAP_MEMBER_EMAILS ?? '',
   },
   transform: {
     server(args) {

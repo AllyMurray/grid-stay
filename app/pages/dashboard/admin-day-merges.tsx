@@ -1,14 +1,4 @@
-import {
-  Alert,
-  Button,
-  Group,
-  Paper,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { Alert, Button, Group, Paper, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { IconDeviceFloppy, IconTrash } from '@tabler/icons-react';
 import { useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
@@ -19,10 +9,7 @@ import type {
 } from '~/lib/admin/day-merges.server';
 
 export type AdminDayMergesPageProps = AdminDayMergesReport;
-type DayMergeFieldErrors = Extract<
-  AdminDayMergeActionResult,
-  { ok: false }
->['fieldErrors'];
+type DayMergeFieldErrors = Extract<AdminDayMergeActionResult, { ok: false }>['fieldErrors'];
 
 function getFieldError(
   fieldErrors: DayMergeFieldErrors | undefined,
@@ -34,10 +21,8 @@ function getFieldError(
 export function AdminDayMergesPage({ days, merges }: AdminDayMergesPageProps) {
   const fetcher = useFetcher<AdminDayMergeActionResult>();
   const isSubmitting = fetcher.state !== 'idle';
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const success = fetcher.data?.ok ? fetcher.data : null;
   const dayOptions = days.map((day) => ({
     value: day.dayId,
@@ -65,8 +50,8 @@ export function AdminDayMergesPage({ days, merges }: AdminDayMergesPageProps) {
           <Stack gap={2}>
             <Title order={3}>Create merge</Title>
             <Text size="sm" c="dimmed">
-              Choose the duplicate source day, then the canonical day that keeps
-              bookings and shared plans.
+              Choose the duplicate source day, then the canonical day that keeps bookings and shared
+              plans.
             </Text>
           </Stack>
 
@@ -76,8 +61,7 @@ export function AdminDayMergesPage({ days, merges }: AdminDayMergesPageProps) {
               {success.movedBookingCount !== undefined ? (
                 <>
                   {' '}
-                  {success.movedBookingCount} moved,{' '}
-                  {success.mergedBookingCount} merged.
+                  {success.movedBookingCount} moved, {success.mergedBookingCount} merged.
                 </>
               ) : null}
             </Alert>
@@ -144,9 +128,7 @@ export function AdminDayMergesPage({ days, merges }: AdminDayMergesPageProps) {
                 <fetcher.Form method="post" key={merge.sourceDayId}>
                   <Group justify="space-between" gap="md" wrap="wrap">
                     <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
-                      <Text fw={700}>
-                        {merge.sourceLabel ?? merge.sourceDayId}
-                      </Text>
+                      <Text fw={700}>{merge.sourceLabel ?? merge.sourceDayId}</Text>
                       <Text size="sm" c="dimmed">
                         Keeps {merge.targetLabel ?? merge.targetDayId}
                       </Text>
@@ -156,11 +138,7 @@ export function AdminDayMergesPage({ days, merges }: AdminDayMergesPageProps) {
                         </Text>
                       ) : null}
                     </Stack>
-                    <input
-                      type="hidden"
-                      name="sourceDayId"
-                      value={merge.sourceDayId}
-                    />
+                    <input type="hidden" name="sourceDayId" value={merge.sourceDayId} />
                     <Button
                       type="submit"
                       name="intent"

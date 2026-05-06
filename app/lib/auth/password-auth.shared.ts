@@ -6,10 +6,7 @@ export interface PasswordAuthActionData {
   intent: PasswordAuthIntent;
   formError?: string;
   fieldErrors: Partial<
-    Record<
-      'email' | 'password' | 'firstName' | 'lastName',
-      string[] | undefined
-    >
+    Record<'email' | 'password' | 'firstName' | 'lastName', string[] | undefined>
   >;
 }
 

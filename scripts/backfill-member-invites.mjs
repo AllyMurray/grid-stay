@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  ScanCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { Entity } from 'electrodb';
 import { Resource } from 'sst';
 
@@ -12,9 +9,7 @@ const DEFAULT_CUTOFF = '2026-04-27T19:10:00.000Z';
 
 function readArg(name) {
   const prefix = `--${name}=`;
-  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(
-    prefix.length,
-  );
+  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
 }
 
 function hasFlag(name) {
@@ -105,9 +100,7 @@ function createMemberInviteEntity(docClient, tableName) {
 function requireResourceName(resourceName) {
   const name = Resource[resourceName]?.name;
   if (!name) {
-    throw new Error(
-      `Missing SST Resource.${resourceName}. Run this script with "sst shell".`,
-    );
+    throw new Error(`Missing SST Resource.${resourceName}. Run this script with "sst shell".`);
   }
 
   return name;
@@ -122,9 +115,7 @@ const invitedByUserId =
   process.env.GRID_STAY_BACKFILL_INVITED_BY_USER_ID ??
   'system:invite-backfill';
 const invitedByName =
-  readArg('invited-by-name') ??
-  process.env.GRID_STAY_BACKFILL_INVITED_BY_NAME ??
-  'Invite backfill';
+  readArg('invited-by-name') ?? process.env.GRID_STAY_BACKFILL_INVITED_BY_NAME ?? 'Invite backfill';
 
 if (cutoffTimestamp === null) {
   throw new Error(`Invalid cutoff: ${cutoff}`);
@@ -233,7 +224,5 @@ for (const user of users) {
 console.log(JSON.stringify({ summary, changes }, null, 2));
 
 if (!write) {
-  console.log(
-    'Dry run only. Re-run with --write to create or update accepted invites.',
-  );
+  console.log('Dry run only. Re-run with --write to create or update accepted invites.');
 }

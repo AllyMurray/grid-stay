@@ -67,9 +67,7 @@ export function getCalendarFeedOptions(
   };
 }
 
-export function parseCalendarFeedOptionsFromFormData(
-  formData: FormData,
-): CalendarFeedOptions {
+export function parseCalendarFeedOptionsFromFormData(formData: FormData): CalendarFeedOptions {
   const parseBoolean = (name: string, fallback: boolean) => {
     const values = formData.getAll(name).map((value) => String(value));
 
@@ -90,9 +88,7 @@ function getActiveFeed(feeds: CalendarFeedRecord[]) {
   return (
     feeds
       .filter((feed) => !feed.revokedAt)
-      .sort((left, right) =>
-        right.createdAt.localeCompare(left.createdAt),
-      )[0] ?? null
+      .toSorted((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? null
   );
 }
 

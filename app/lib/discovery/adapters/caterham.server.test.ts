@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { getSeriesRounds, parseCalendarFromHtml } from './caterham.server';
 
 describe('Caterham calendar adapter', () => {
@@ -22,10 +22,7 @@ describe('Caterham calendar adapter', () => {
 
     const rounds = getSeriesRounds(events, 'ACADEMY');
 
-    expect(rounds.map((round) => round.circuit)).toEqual([
-      'Snetterton',
-      'Snetterton',
-    ]);
+    expect(rounds.map((round) => round.circuit)).toEqual(['Snetterton', 'Snetterton']);
     expect(rounds.map((round) => round.name)).toEqual([
       'Round 1 - Snetterton 300',
       'Round 2 - Snetterton 300',

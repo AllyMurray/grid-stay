@@ -12,10 +12,7 @@ import {
   type SubmitFeedbackInput,
   SubmitFeedbackSchema,
 } from '~/lib/schemas/feedback';
-import {
-  FeedbackEntity,
-  type FeedbackRecord,
-} from '../entities/feedback.server';
+import { FeedbackEntity, type FeedbackRecord } from '../entities/feedback.server';
 
 export const FEEDBACK_SCOPE = 'feedback';
 
@@ -26,10 +23,7 @@ export type FeedbackThread = Omit<FeedbackRecord, 'adminUpdatesJson'> & {
 
 export interface FeedbackPersistence {
   create(item: FeedbackRecord): Promise<FeedbackRecord>;
-  update(
-    feedbackId: string,
-    changes: Partial<FeedbackRecord>,
-  ): Promise<FeedbackRecord>;
+  update(feedbackId: string, changes: Partial<FeedbackRecord>): Promise<FeedbackRecord>;
   delete(feedbackId: string): Promise<void>;
   getById(feedbackId: string): Promise<FeedbackRecord | null>;
   listAll(): Promise<FeedbackRecord[]>;
@@ -110,9 +104,7 @@ export const feedbackStore: FeedbackPersistence = {
     return response.data ?? null;
   },
   async listAll() {
-    const response = await FeedbackEntity.query
-      .byScope({ feedbackScope: FEEDBACK_SCOPE })
-      .go();
+    const response = await FeedbackEntity.query.byScope({ feedbackScope: FEEDBACK_SCOPE }).go();
     return response.data;
   },
   async listByUser(userId) {
@@ -156,9 +148,7 @@ function parseAdminUpdates(adminUpdatesJson?: string): FeedbackAdminUpdate[] {
   }
 }
 
-function serializeAdminUpdates(
-  updates: FeedbackAdminUpdate[],
-): string | undefined {
+function serializeAdminUpdates(updates: FeedbackAdminUpdate[]): string | undefined {
   if (updates.length === 0) {
     return undefined;
   }
@@ -238,9 +228,7 @@ export async function createFeedbackSubmission(
   user: User,
   store: FeedbackPersistence = feedbackStore,
 ): Promise<FeedbackThread> {
-  const created = await store.create(
-    toFeedbackRecord(createRecord(input, user)),
-  );
+  const created = await store.create(toFeedbackRecord(createRecord(input, user)));
   return toFeedbackThread(created);
 }
 
@@ -331,9 +319,7 @@ export async function submitAdminFeedbackAction(
 
   try {
     if (intent === 'saveStatus') {
-      const parsed = SaveFeedbackStatusSchema.safeParse(
-        Object.fromEntries(formData),
-      );
+      const parsed = SaveFeedbackStatusSchema.safeParse(Object.fromEntries(formData));
 
       if (!parsed.success) {
         return {
@@ -352,9 +338,7 @@ export async function submitAdminFeedbackAction(
     }
 
     if (intent === 'sendUpdate') {
-      const parsed = SendFeedbackUpdateSchema.safeParse(
-        Object.fromEntries(formData),
-      );
+      const parsed = SendFeedbackUpdateSchema.safeParse(Object.fromEntries(formData));
 
       if (!parsed.success) {
         return {
@@ -375,9 +359,7 @@ export async function submitAdminFeedbackAction(
     }
 
     if (intent === 'deleteFeedback') {
-      const parsed = DeleteFeedbackSchema.safeParse(
-        Object.fromEntries(formData),
-      );
+      const parsed = DeleteFeedbackSchema.safeParse(Object.fromEntries(formData));
 
       if (!parsed.success) {
         return {
@@ -421,7 +403,7 @@ export async function listRecentFeedback(
   store: FeedbackPersistence = feedbackStore,
 ): Promise<FeedbackThread[]> {
   const records = await store.listAll();
-  return records.sort(sortNewestFirst).slice(0, limit).map(toFeedbackThread);
+  return records.toSorted(sortNewestFirst).slice(0, limit).map(toFeedbackThread);
 }
 
 export async function listMyFeedback(
@@ -430,5 +412,5 @@ export async function listMyFeedback(
   store: FeedbackPersistence = feedbackStore,
 ): Promise<FeedbackThread[]> {
   const records = await store.listByUser(userId);
-  return records.sort(sortNewestFirst).slice(0, limit).map(toFeedbackThread);
+  return records.toSorted(sortNewestFirst).slice(0, limit).map(toFeedbackThread);
 }

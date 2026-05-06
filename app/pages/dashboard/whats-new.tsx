@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Button,
-  Divider,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  ThemeIcon,
-  Title,
-} from '@mantine/core';
+import { Badge, Button, Divider, Group, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { Link } from 'react-router';
 import { PageHeader } from '~/components/layout/page-header';
 import type { WhatsNewEntry } from '~/lib/whats-new';
@@ -17,13 +7,7 @@ export interface WhatsNewPageProps {
   entries: WhatsNewEntry[];
 }
 
-function WhatsNewEntryCard({
-  entry,
-  isLatest,
-}: {
-  entry: WhatsNewEntry;
-  isLatest: boolean;
-}) {
+function WhatsNewEntryCard({ entry, isLatest }: { entry: WhatsNewEntry; isLatest: boolean }) {
   const Icon = entry.icon;
 
   return (
@@ -93,11 +77,7 @@ export function WhatsNewPage({ entries }: WhatsNewPageProps) {
 
       <Stack gap="md">
         {entries.map((entry, index) => (
-          <WhatsNewEntryCard
-            key={entry.id}
-            entry={entry}
-            isLatest={index === 0}
-          />
+          <WhatsNewEntryCard key={entry.id} entry={entry} isLatest={index === 0} />
         ))}
       </Stack>
     </Stack>

@@ -4,10 +4,7 @@ export const SHARED_DAY_PLAN_SCOPE = 'shared';
 
 export interface DayPlanPersistence {
   create(item: DayPlanRecord): Promise<DayPlanRecord>;
-  update(
-    dayId: string,
-    changes: Partial<DayPlanRecord>,
-  ): Promise<DayPlanRecord>;
+  update(dayId: string, changes: Partial<DayPlanRecord>): Promise<DayPlanRecord>;
   delete(dayId: string): Promise<void>;
   get(dayId: string): Promise<DayPlanRecord | null>;
   listAll(): Promise<DayPlanRecord[]>;
@@ -47,8 +44,6 @@ export const dayPlanStore: DayPlanPersistence = {
   },
   async listAll() {
     const response = await DayPlanEntity.scan.go();
-    return response.data.filter(
-      (record) => record.planScope === SHARED_DAY_PLAN_SCOPE,
-    );
+    return response.data.filter((record) => record.planScope === SHARED_DAY_PLAN_SCOPE);
   },
 };

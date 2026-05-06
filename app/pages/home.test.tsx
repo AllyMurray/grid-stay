@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vite-plus/test';
 import { theme } from '~/theme';
 import { HomePage } from './home';
 
@@ -28,12 +28,7 @@ describe('HomePage', () => {
     expect(
       screen.getByText(/current coverage: caterham-run race series only/i),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /sign in with google/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^sign in$/i })).toHaveAttribute(
-      'href',
-      '/auth/login',
-    );
+    expect(screen.queryByRole('link', { name: /sign in with google/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^sign in$/i })).toHaveAttribute('href', '/auth/login');
   });
 });
