@@ -137,7 +137,7 @@ describe('DashboardIndexPage', () => {
     );
     expect(screen.getByRole('link', { name: /edit booking/i })).toHaveAttribute(
       'href',
-      '/dashboard/bookings?view=manage',
+      '/dashboard/bookings?booking=booking-1',
     );
   });
 

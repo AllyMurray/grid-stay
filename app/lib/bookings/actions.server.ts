@@ -1,5 +1,9 @@
 import type { User } from '~/lib/auth/schemas';
-import { hasBookedAccommodation, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
+import {
+  hasBookedAccommodation,
+  isAccommodationStatus,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import { normalizeAvailableDayCircuit } from '~/lib/days/aggregation.server';
 import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
@@ -49,6 +53,13 @@ import {
 import { HotelReviewSchema } from '~/lib/schemas/hotel';
 
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
+
+function keepsVisibleAccommodationName(accommodationStatus?: string) {
+  return (
+    isAccommodationStatus(accommodationStatus) &&
+    ['booked', 'staying_at_track'].includes(accommodationStatus)
+  );
+}
 
 export type CreateBookingActionResult =
   | {
@@ -325,7 +336,11 @@ export async function submitBookingUpdate(
   await saveBooking(userId, {
     ...bookingUpdate,
     hotelId: hotel?.hotelId,
-    accommodationName: accommodationBooked ? (hotel?.name ?? bookingUpdate.accommodationName) : '',
+    accommodationName: keepsVisibleAccommodationName(
+      bookingUpdate.accommodationStatus,
+    )
+      ? (hotel?.name ?? bookingUpdate.accommodationName)
+      : '',
   });
   return { ok: true };
 }
@@ -374,7 +389,11 @@ export async function submitBookingStayUpdate(
   await saveBooking(userId, {
     ...bookingUpdate,
     hotelId: hotel?.hotelId,
-    accommodationName: accommodationBooked ? (hotel?.name ?? bookingUpdate.accommodationName) : '',
+    accommodationName: keepsVisibleAccommodationName(
+      bookingUpdate.accommodationStatus,
+    )
+      ? (hotel?.name ?? bookingUpdate.accommodationName)
+      : '',
   });
   return { ok: true };
 }

@@ -159,14 +159,13 @@ describe('BookingSchedulePage', () => {
     expect(screen.getByText('All upcoming trips loaded.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Silverstone' })).toBeInTheDocument();
     expect(screen.getAllByText('Trackside Hotel').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /manage in my bookings/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /edit booking/i })).toHaveAttribute(
       'href',
-      '/dashboard/bookings?view=manage',
+      '/dashboard/bookings?booking=booking-1',
     );
-    expect(screen.getByRole('link', { name: /view all bookings/i })).toHaveAttribute(
-      'href',
-      '/dashboard/bookings?view=manage',
-    );
+    expect(
+      screen.getByRole('link', { name: /view all bookings/i }),
+    ).toHaveAttribute('href', '/dashboard/bookings');
   });
 
   it('renders the calendar without the day view when selected', async () => {
@@ -455,7 +454,7 @@ describe('BookingSchedulePage', () => {
     expect(
       screen
         .getAllByRole('link', { name: /view all bookings/i })
-        .every((link) => link.getAttribute('href') === '/dashboard/bookings?view=manage'),
+        .every((link) => link.getAttribute('href') === '/dashboard/bookings'),
     ).toBe(true);
   });
 });

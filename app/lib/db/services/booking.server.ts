@@ -1,5 +1,9 @@
 import type { User } from '~/lib/auth/schemas';
-import { hasBookedAccommodation, resolveAccommodationStatus } from '~/lib/bookings/accommodation';
+import {
+  hasBookedAccommodation,
+  isAccommodationStatus,
+  resolveAccommodationStatus,
+} from '~/lib/bookings/accommodation';
 import type { BookingStatus } from '~/lib/constants/enums';
 import { normalizeArrivalDateTime, resolveArrivalDateTime } from '~/lib/dates/arrival';
 import type {
@@ -144,6 +148,13 @@ function isConditionalCheckFailed(error: unknown) {
 function sanitizeOptional(value?: string): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function keepsVisibleAccommodationName(accommodationStatus?: string) {
+  return (
+    isAccommodationStatus(accommodationStatus) &&
+    ['booked', 'staying_at_track'].includes(accommodationStatus)
+  );
 }
 
 function getBookingRefreshChanges(
@@ -394,7 +405,9 @@ export async function updateBooking(
     arrivalTime: undefined,
     accommodationStatus,
     hotelId: accommodationBooked ? sanitizeOptional(input.hotelId) : undefined,
-    accommodationName: accommodationBooked ? sanitizeOptional(input.accommodationName) : undefined,
+    accommodationName: keepsVisibleAccommodationName(accommodationStatus)
+      ? sanitizeOptional(input.accommodationName)
+      : undefined,
     accommodationReference: accommodationBooked
       ? sanitizeOptional(input.accommodationReference)
       : undefined,
@@ -456,7 +469,9 @@ export async function updateBookingStay(
     arrivalTime: undefined,
     accommodationStatus,
     hotelId: accommodationBooked ? sanitizeOptional(input.hotelId) : undefined,
-    accommodationName: accommodationBooked ? sanitizeOptional(input.accommodationName) : undefined,
+    accommodationName: keepsVisibleAccommodationName(accommodationStatus)
+      ? sanitizeOptional(input.accommodationName)
+      : undefined,
     updatedAt: new Date().toISOString(),
   });
   await syncDayAttendanceSummariesSafely([updated.dayId], store, summaryStore);

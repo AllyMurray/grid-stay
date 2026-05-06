@@ -161,7 +161,7 @@ function AttentionRow({
   description,
   value,
   color,
-  href = '/dashboard/bookings?view=manage',
+  href = '/dashboard/bookings',
   actionLabel = 'Open',
 }: {
   icon: ReactNode;
@@ -575,7 +575,13 @@ export function DashboardIndexPage({
                 <Group gap="sm" mt="xs">
                   <Button
                     component={Link}
-                    to={nextBooking ? '/dashboard/bookings?view=manage' : '/dashboard/days'}
+                    to={
+                      nextBooking
+                        ? `/dashboard/bookings?booking=${encodeURIComponent(
+                            nextBooking.bookingId,
+                          )}`
+                        : '/dashboard/days'
+                    }
                     w="fit-content"
                   >
                     {nextBooking ? 'Edit booking' : 'Browse live days'}
@@ -615,7 +621,11 @@ export function DashboardIndexPage({
                   responses.
                 </Text>
               </Stack>
-              <Button component={Link} to="/dashboard/bookings?view=manage" variant="subtle">
+              <Button
+                component={Link}
+                to="/dashboard/bookings"
+                variant="subtle"
+              >
                 Review trips
               </Button>
             </Group>
@@ -662,7 +672,7 @@ export function DashboardIndexPage({
                   description="Incoming requests waiting for your response."
                   value={pendingGarageRequestsCount}
                   color="green"
-                  href="/dashboard/bookings?view=manage"
+                  href="/dashboard/bookings"
                   actionLabel="Review"
                 />
               </Stack>

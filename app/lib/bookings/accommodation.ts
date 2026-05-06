@@ -59,6 +59,10 @@ export function getAccommodationPlanSummary(input: AccommodationStatusInput | nu
     return input.accommodationName?.trim() || 'Hotel booked';
   }
 
+  if (status === 'staying_at_track' && input) {
+    return input.accommodationName?.trim() || 'Staying at the track';
+  }
+
   return ACCOMMODATION_STATUS_LABELS[status];
 }
 

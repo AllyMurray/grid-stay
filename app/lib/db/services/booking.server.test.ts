@@ -501,7 +501,7 @@ describe('booking service', () => {
         bookingReference: '',
         arrivalDateTime: undefined,
         accommodationStatus: 'staying_at_track',
-        accommodationName: 'Old Hotel',
+        accommodationName: 'TentBox',
         accommodationReference: 'HOTEL-9',
         garageBooked: false,
         garageCapacity: 2,
@@ -513,7 +513,7 @@ describe('booking service', () => {
     );
 
     expect(updated.accommodationStatus).toBe('staying_at_track');
-    expect(updated.accommodationName).toBeUndefined();
+    expect(updated.accommodationName).toBe('TentBox');
     expect(updated.accommodationReference).toBeUndefined();
 
     const shared = summarizeDayAttendances(memory.items as never);

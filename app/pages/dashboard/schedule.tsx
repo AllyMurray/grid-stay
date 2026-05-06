@@ -75,6 +75,7 @@ export interface BookingSchedulePanelProps extends BookingSchedulePageProps {
   onDisplayModeChange?: (mode: ScheduleDisplayMode) => void;
   showDisplayModeControl?: boolean;
   manageBookingsHref?: string;
+  showPastBookings?: boolean;
 }
 
 interface ScheduleBookingEventPayload {
@@ -205,6 +206,14 @@ function getReferenceLabel(booking: BookingRecord) {
   }
 
   return 'No booking reference saved';
+}
+
+function createManageBookingHref(baseHref: string, bookingId: string) {
+  const [path, query = ''] = baseHref.split('?');
+  const params = new URLSearchParams(query);
+  params.delete('view');
+  params.set('booking', bookingId);
+  return `${path}?${params.toString()}`;
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -440,10 +449,12 @@ function ScheduleListView({
   bookings,
   selectedBookingId,
   onSelectBooking,
+  showPastBookings,
 }: {
   bookings: BookingRecord[];
   selectedBookingId: string | null;
   onSelectBooking: (bookingId: string) => void;
+  showPastBookings: boolean;
 }) {
   const [visibleCount, setVisibleCount] = useState(SCHEDULE_LIST_BATCH_SIZE);
   const visibleBookings = bookings.slice(0, visibleCount);
@@ -470,9 +481,12 @@ function ScheduleListView({
       <Stack gap="lg">
         <Group justify="space-between" align="flex-end" gap="md">
           <Stack gap={2}>
-            <Title order={3}>Upcoming trips</Title>
+            <Title order={3}>
+              {showPastBookings ? 'Trips' : 'Upcoming trips'}
+            </Title>
             <Text size="sm" c="dimmed">
-              Showing {visibleBookings.length} of {bookings.length} upcoming trips. Scroll to load
+              Showing {visibleBookings.length} of {bookings.length}{' '}
+              {showPastBookings ? 'trips' : 'upcoming trips'}. Scroll to load
               the next 7.
             </Text>
           </Stack>
@@ -555,8 +569,15 @@ function SelectedBookingSummary({
             >
               {titleCase(booking.status)}
             </Badge>
-            <Button component={Link} to={manageBookingsHref} variant="default">
-              Manage in My Bookings
+            <Button
+              component={Link}
+              to={createManageBookingHref(
+                manageBookingsHref,
+                booking.bookingId,
+              )}
+              variant="default"
+            >
+              Edit booking
             </Button>
           </Group>
         </Group>
@@ -648,12 +669,13 @@ export function BookingSchedulePanel({
   displayMode: controlledDisplayMode,
   onDisplayModeChange,
   showDisplayModeControl = true,
-  manageBookingsHref = '/dashboard/bookings?view=manage',
+  manageBookingsHref = '/dashboard/bookings',
   calendarFeedExists = false,
   calendarFeedUrl = null,
   calendarFeedTokenHint = null,
   calendarFeedOptions = defaultCalendarFeedOptions,
   today = new Date().toISOString().slice(0, 10),
+  showPastBookings = false,
 }: BookingSchedulePanelProps) {
   const isCompactCalendar = useMediaQuery('(max-width: 62em)', false, {
     getInitialValueInEffect: false,
@@ -664,8 +686,11 @@ export function BookingSchedulePanel({
   const visibleDisplayMode = isCompactCalendar ? 'list' : displayMode;
   const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const scheduleBookings = useMemo(
-    () => filterUpcomingScheduleBookings(sortedBookings, today),
-    [sortedBookings, today],
+    () =>
+      showPastBookings
+        ? sortedBookings.filter((booking) => booking.status !== 'cancelled')
+        : filterUpcomingScheduleBookings(sortedBookings, today),
+    [showPastBookings, sortedBookings, today],
   );
   const scheduleEvents = useMemo(() => buildScheduleEvents(scheduleBookings), [scheduleBookings]);
   const [view, setView] = useState<ScheduleViewLevel>('month');
@@ -723,9 +748,13 @@ export function BookingSchedulePanel({
       />
       {scheduleBookings.length === 0 ? (
         <EmptyStateCard
-          title={bookings.length > 0 ? 'No upcoming trips' : 'No trips to schedule yet'}
+          title={
+            bookings.length > 0 && !showPastBookings
+              ? 'No upcoming trips'
+              : 'No trips to schedule yet'
+          }
           description={
-            bookings.length > 0
+            bookings.length > 0 && !showPastBookings
               ? 'Your past and cancelled trips are still available in My Bookings.'
               : 'Add the next race, test, or track day first, then come back here for a cleaner season view.'
           }
@@ -766,6 +795,7 @@ export function BookingSchedulePanel({
               bookings={scheduleBookings}
               selectedBookingId={selectedBookingId}
               onSelectBooking={setSelectedBookingId}
+              showPastBookings={showPastBookings}
             />
           ) : (
             <CalendarView
@@ -823,7 +853,7 @@ export function BookingSchedulePage({
           />
         }
         actions={
-          <Button component={Link} to="/dashboard/bookings?view=manage" variant="default">
+          <Button component={Link} to="/dashboard/bookings" variant="default">
             View all bookings
           </Button>
         }

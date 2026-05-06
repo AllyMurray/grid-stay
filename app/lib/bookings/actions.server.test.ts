@@ -336,7 +336,7 @@ describe('booking action helpers', () => {
     formData.set('status', 'booked');
     formData.set('accommodationStatus', 'staying_at_track');
     formData.set('hotelName', 'Old Hotel');
-    formData.set('accommodationName', 'Old Hotel');
+    formData.set('accommodationName', 'TentBox');
     formData.set('garageBooked', 'false');
 
     const saveBooking = vi.fn(async () => ({
@@ -359,7 +359,7 @@ describe('booking action helpers', () => {
         bookingId: 'booking-1',
         accommodationStatus: 'staying_at_track',
         hotelId: undefined,
-        accommodationName: '',
+        accommodationName: 'TentBox',
       }),
     );
   });

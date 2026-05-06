@@ -65,6 +65,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         : null,
       calendarFeedTokenHint: calendarFeed?.tokenHint ?? null,
       calendarFeedOptions: getCalendarFeedOptions(calendarFeed),
+      today: new Date().toISOString().slice(0, 10),
     },
     { headers },
   );
@@ -209,6 +210,7 @@ export default function MyBookingsRoute() {
     calendarFeedUrl: string | null;
     calendarFeedTokenHint: string | null;
     calendarFeedOptions: ReturnType<typeof getCalendarFeedOptions>;
+    today: string;
   };
   return (
     <MyBookingsPage
@@ -219,6 +221,7 @@ export default function MyBookingsRoute() {
       calendarFeedUrl={data.calendarFeedUrl}
       calendarFeedTokenHint={data.calendarFeedTokenHint}
       calendarFeedOptions={data.calendarFeedOptions}
+      today={data.today}
     />
   );
 }

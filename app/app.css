@@ -256,7 +256,14 @@ html[data-mantine-color-scheme='dark'] .day-card {
 .booking-list-shared,
 .booking-list-private {
   min-width: 0;
+}
+
+.booking-list-shared {
   grid-column: 2 / 4;
+}
+
+.booking-list-private {
+  grid-column: 2 / 3;
 }
 
 .booking-list-kicker {
@@ -266,6 +273,23 @@ html[data-mantine-color-scheme='dark'] .day-card {
 
 .booking-list-kicker-private {
   color: inherit;
+}
+
+.booking-list-open {
+  grid-column: 3;
+  justify-self: end;
+  color: #e42a57;
+  text-transform: uppercase;
+}
+
+.booking-editor-section-block {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(16, 20, 24, 0.08);
+}
+
+.booking-editor-section-block:first-child {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .day-list-item {
@@ -636,6 +660,14 @@ html[data-mantine-color-scheme='dark'] .hotel-search-result:hover {
 
 html[data-mantine-color-scheme='dark'] .booking-list-kicker {
   color: #ff6f8f;
+}
+
+html[data-mantine-color-scheme='dark'] .booking-list-open {
+  color: #ff6f8f;
+}
+
+html[data-mantine-color-scheme='dark'] .booking-editor-section-block {
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 html[data-mantine-color-scheme='dark'] .day-list-item:hover {
