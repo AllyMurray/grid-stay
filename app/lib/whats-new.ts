@@ -26,6 +26,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'bookings-management-refresh',
+    title: 'My Bookings is easier to manage',
+    publishedAt: '2026-05-06T09:00:00.000Z',
+    dateLabel: '6 May 2026',
+    category: 'Bookings',
+    description:
+      'My Bookings now has a focused management workspace with separate trip, stay, garage, and private sections.',
+    highlights: [
+      'Manage each booking in smaller sections with clear save actions.',
+      'Stay details now link to a dedicated hotel feedback page for parking, arrival, and rating notes.',
+      'The mobile manage view opens one booking at a time with a back control for returning to the trip list.',
+    ],
+    href: '/dashboard/bookings?view=manage',
+    actionLabel: 'Open My Bookings',
+    icon: IconBuildingSkyscraper,
+  },
+  {
     id: 'group-calendar-initials',
     title: 'Group Calendar shows attendee initials',
     publishedAt: '2026-05-05T22:45:00.000Z',

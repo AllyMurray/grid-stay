@@ -42,7 +42,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
   const formData = await request.formData();
-  const result = await submitHotelReview(formData, user);
+  const hotelId = params.hotelId ?? '';
+  const reviewFormData = new FormData();
+  formData.forEach((value, key) => {
+    reviewFormData.append(key, value);
+  });
+  reviewFormData.set('hotelId', hotelId);
+
+  const result = await submitHotelReview(reviewFormData, user);
 
   if (result.ok) {
     await recordAppEventSafely({
@@ -52,7 +59,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       actor: { userId: user.id, name: user.name },
       subject: {
         type: 'hotel',
-        id: formData.get('hotelId')?.toString() ?? params.hotelId,
+        id: hotelId,
       },
     });
   }

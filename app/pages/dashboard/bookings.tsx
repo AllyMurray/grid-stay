@@ -762,6 +762,7 @@ function HotelSelector({
               }
               maxLength={120}
               rightSectionWidth={112}
+              rightSectionPointerEvents="all"
               rightSection={
                 <Button type="button" size="compact-xs" onClick={openSearch}>
                   Find hotel

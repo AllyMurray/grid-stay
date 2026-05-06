@@ -25,6 +25,17 @@ describe('WhatsNewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
+        name: 'My Bookings is easier to manage',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/stay details now link to a dedicated hotel feedback/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /open my bookings/i })[0],
+    ).toHaveAttribute('href', '/dashboard/bookings?view=manage');
+    expect(
+      screen.getByRole('heading', {
         name: 'Group Calendar shows attendee initials',
       }),
     ).toBeInTheDocument();
@@ -43,7 +54,7 @@ describe('WhatsNewPage', () => {
       screen.getByText(/calendar view stays available/i),
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', { name: /open my bookings/i })[0],
+      screen.getAllByRole('link', { name: /open my bookings/i })[1],
     ).toHaveAttribute('href', '/dashboard/bookings');
     expect(
       screen.getByRole('heading', {

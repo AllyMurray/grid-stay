@@ -81,7 +81,7 @@ describe('hotel feedback route', () => {
 
   it('records an audit event after saving hotel feedback', async () => {
     const formData = new FormData();
-    formData.set('hotelId', 'hotel-1');
+    formData.set('hotelId', 'tampered-hotel');
     formData.set('trailerParking', 'good');
     formData.set('secureParking', 'yes');
     formData.set('lateCheckIn', 'limited');

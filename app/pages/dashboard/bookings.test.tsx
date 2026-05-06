@@ -213,6 +213,21 @@ describe('MyBookingsPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('opens hotel lookup from the stay section', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<MyBookingsPage bookings={[booking]} />);
+
+    await user.click(screen.getByRole('tab', { name: 'Stay' }));
+    await user.click(screen.getByRole('button', { name: /find hotel/i }));
+
+    expect(
+      await screen.findByRole('dialog', { name: /find hotel/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /hotel search/i })).toHaveValue(
+      'Trackside Hotel',
+    );
+  });
+
   it('submits the shared arrival time when saving a booking', async () => {
     const user = userEvent.setup();
     let submitted: Record<string, FormDataEntryValue> | null = null;
