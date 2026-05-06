@@ -464,6 +464,7 @@ export async function updateBookingStay(
     accommodationStatus,
   });
   const updated = await store.update(userId, input.bookingId, {
+    status: existing.status,
     userName: existing.userName,
     arrivalDateTime: normalizeArrivalDateTime(input.arrivalDateTime),
     arrivalTime: undefined,
@@ -490,6 +491,7 @@ export async function updateBookingGarage(
   }
 
   const updated = await store.update(userId, input.bookingId, {
+    status: existing.status,
     userName: existing.userName,
     garageBooked: input.garageBooked,
     garageCapacity: input.garageBooked ? input.garageCapacity : undefined,
@@ -517,6 +519,7 @@ export async function updateBookingPrivate(
   }
 
   return store.update(userId, input.bookingId, {
+    status: existing.status,
     userName: existing.userName,
     bookingReference: sanitizeOptional(input.bookingReference),
     accommodationReference: sanitizeOptional(input.accommodationReference),

@@ -57,6 +57,7 @@ import {
   listMyBookings,
   summarizeDayAttendances,
   updateBooking,
+  updateBookingGarage,
   updateBookingPrivate,
   updateBookingStay,
 } from './booking.server';
@@ -363,6 +364,69 @@ describe('booking service', () => {
       attendeeCount: 1,
       accommodationNames: ['The Paddock Inn'],
     });
+  });
+
+  it('keeps the status composite when saving partial booking sections', async () => {
+    const memory = createMemoryStore();
+    const changesSeen: Array<Record<string, unknown>> = [];
+    const store = {
+      ...memory.store,
+      async update(userId: string, bookingId: string, changes: Record<string, unknown>) {
+        changesSeen.push(changes);
+        if ('userName' in changes && !('status' in changes)) {
+          throw new Error('Missing byDay status composite');
+        }
+
+        return memory.store.update(userId, bookingId, changes);
+      },
+    };
+    memory.items.push({
+      bookingId: 'booking-1',
+      userId: user.id,
+      userName: user.name,
+      dayId: 'manual:01KQZ85QJ5E44HY181V903B5KK',
+      date: '2026-04-20',
+      status: 'booked',
+      circuit: 'Donington Park',
+      provider: 'Grid Stay',
+      description: 'Manual track day',
+      createdAt: '2026-04-01T09:00:00.000Z',
+      updatedAt: '2026-04-01T09:00:00.000Z',
+    });
+
+    await updateBookingStay(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        accommodationName: 'The Paddock Inn',
+      },
+      store as never,
+      memory.summaryStore as never,
+    );
+    await updateBookingGarage(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        garageBooked: true,
+        garageCapacity: 2,
+        garageLabel: 'Garage 4',
+      },
+      store as never,
+      memory.summaryStore as never,
+    );
+    await updateBookingPrivate(
+      user.id,
+      {
+        bookingId: 'booking-1',
+        bookingReference: 'REF-123',
+        accommodationReference: 'HOTEL-9',
+        notes: 'Quiet room',
+      },
+      store as never,
+    );
+
+    expect(changesSeen).toHaveLength(3);
+    expect(changesSeen.every((changes) => changes.status === 'booked')).toBe(true);
   });
 
   it('updates private details without refreshing shared summaries', async () => {
