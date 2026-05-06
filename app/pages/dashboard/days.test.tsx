@@ -1422,7 +1422,24 @@ describe('AvailableDaysPage', () => {
   });
 
   it('offers saved accommodation as direct actions in the selected-day view', async () => {
-    renderWithProviders(<AvailableDaysPage data={defaultData} />, '/dashboard/days?day=day-1');
+    const selectedDay = defaultData.days[0]!;
+
+    renderWithProviders(
+      <AvailableDaysPage
+        data={{
+          ...defaultData,
+          selectedDay,
+          selectedDayPosition: 1,
+          selectedDayPrevious: null,
+          selectedDayNext: defaultData.days[1] ?? null,
+          selectedDaySummary:
+            defaultData.attendanceSummaries[selectedDay.dayId] ?? null,
+          selectedDayAttendance:
+            defaultAttendanceByDay[selectedDay.dayId] ?? null,
+        }}
+      />,
+      `/dashboard/days?day=${selectedDay.dayId}`,
+    );
 
     expect(await screen.findByRole('button', { name: /join stay/i })).toBeInTheDocument();
     expect(screen.getAllByText('Your state').length).toBeGreaterThan(0);
