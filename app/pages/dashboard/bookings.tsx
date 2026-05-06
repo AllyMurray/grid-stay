@@ -539,6 +539,9 @@ function HotelSelector({
   const searchResults = searchFetcher.data?.suggestions ?? [];
   const isSearching = searchFetcher.state !== 'idle';
   const providerError = searchFetcher.data?.providerError;
+  const hasProviderResults = searchResults.some(
+    (hotel) => !hotel.hotelId && hotel.source === 'geoapify',
+  );
   const hotelSource = selectedHotel?.source ?? 'manual';
   const showHotelFields = accommodationStatus === 'booked';
   const showTrackStayFields = accommodationStatus === 'staying_at_track';
@@ -638,9 +641,13 @@ function HotelSelector({
           )}
 
           <Group justify="space-between" wrap="wrap">
-            <Text size="xs" c="dimmed">
-              Hotel data powered by Geoapify. © OpenStreetMap contributors.
-            </Text>
+            {hasProviderResults ? (
+              <Text size="xs" c="dimmed">
+                Hotel data powered by Geoapify. © OpenStreetMap contributors.
+              </Text>
+            ) : (
+              <span />
+            )}
             <Button
               type="button"
               variant="default"

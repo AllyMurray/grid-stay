@@ -45,6 +45,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const localSuggestions = await searchHotelCatalogue(parsed.data.q, 8);
+  if (localSuggestions.length > 0) {
+    return Response.json(
+      {
+        suggestions: localSuggestions.slice(0, 10),
+        providerAvailable: true,
+        providerError: null,
+      },
+      { headers },
+    );
+  }
+
   let providerSuggestions: HotelSuggestion[] = [];
   let providerError: string | null = null;
 
