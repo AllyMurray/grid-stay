@@ -20,6 +20,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconBell,
+  IconBuildingSkyscraper,
   IconHome2,
   IconHotelService,
   IconLock,
@@ -207,12 +208,6 @@ export function DashboardShell({
       active: location.pathname === '/dashboard',
     },
     {
-      label: 'Available Days',
-      to: '/dashboard/days',
-      icon: IconRoad,
-      active: location.pathname.startsWith('/dashboard/days'),
-    },
-    {
       label: 'My Bookings',
       to: '/dashboard/bookings',
       icon: IconHotelService,
@@ -223,6 +218,18 @@ export function DashboardShell({
       to: '/dashboard/group-calendar',
       icon: IconUsersGroup,
       active: location.pathname.startsWith('/dashboard/group-calendar'),
+    },
+    {
+      label: 'Available Days',
+      to: '/dashboard/days',
+      icon: IconRoad,
+      active: location.pathname.startsWith('/dashboard/days'),
+    },
+    {
+      label: 'Hotels',
+      to: '/dashboard/hotels',
+      icon: IconBuildingSkyscraper,
+      active: location.pathname.startsWith('/dashboard/hotels'),
     },
     {
       label: 'Members',

@@ -75,8 +75,26 @@ describe('hotel feedback route', () => {
       insight,
       currentUserId: 'user-1',
       returnTo: '/dashboard/bookings?booking=booking-1',
+      returnLabel: 'Back to booking',
     });
     expect(listHotelInsights).toHaveBeenCalledWith(['hotel-1']);
+  });
+
+  it('returns users to the hotel record when no booking is provided', async () => {
+    const response = (await loader({
+      request: new Request(
+        'https://gridstay.app/dashboard/hotels/hotel-1/feedback',
+      ),
+      params: { hotelId: 'hotel-1' },
+      context: {},
+    } as never)) as Response;
+
+    expect(await response.json()).toEqual({
+      insight,
+      currentUserId: 'user-1',
+      returnTo: '/dashboard/hotels/hotel-1',
+      returnLabel: 'Back to hotel',
+    });
   });
 
   it('records an audit event after saving hotel feedback', async () => {

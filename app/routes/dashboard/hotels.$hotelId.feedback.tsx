@@ -6,14 +6,22 @@ import { type HotelInsight, listHotelInsights } from '~/lib/db/services/hotel.se
 import { HotelFeedbackPage } from '~/pages/dashboard/hotel-feedback';
 import type { Route } from './+types/hotels.$hotelId.feedback';
 
-function createReturnTo(request: Request) {
+function createReturnTarget(request: Request, hotelId: string) {
   const url = new URL(request.url);
   const bookingId = url.searchParams.get('booking');
   if (bookingId) {
-    return `/dashboard/bookings?booking=${encodeURIComponent(bookingId)}`;
+    return {
+      returnTo: `/dashboard/bookings?booking=${encodeURIComponent(bookingId)}`,
+      returnLabel: 'Back to booking',
+    };
   }
 
-  return '/dashboard/bookings';
+  return {
+    returnTo: hotelId
+      ? `/dashboard/hotels/${encodeURIComponent(hotelId)}`
+      : '/dashboard/hotels',
+    returnLabel: hotelId ? 'Back to hotel' : 'Back to hotels',
+  };
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -30,7 +38,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     {
       insight,
       currentUserId: user.id,
-      returnTo: createReturnTo(request),
+      ...createReturnTarget(request, hotelId),
     },
     { headers },
   );
@@ -72,6 +80,7 @@ export default function HotelFeedbackRoute() {
     insight: HotelInsight;
     currentUserId: string;
     returnTo: string;
+    returnLabel: string;
   };
 
   return (
@@ -79,6 +88,7 @@ export default function HotelFeedbackRoute() {
       insight={data.insight}
       currentUserId={data.currentUserId}
       returnTo={data.returnTo}
+      returnLabel={data.returnLabel}
     />
   );
 }

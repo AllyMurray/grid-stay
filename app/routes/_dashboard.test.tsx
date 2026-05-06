@@ -105,6 +105,9 @@ describe('DashboardLayoutRoute', () => {
       '/dashboard/feedback',
     );
     expect(
+      within(drawer).getByRole('link', { name: 'Hotels' }),
+    ).toHaveAttribute('href', '/dashboard/hotels');
+    expect(
       within(drawer)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
@@ -112,9 +115,10 @@ describe('DashboardLayoutRoute', () => {
     ).toEqual([
       'Log out',
       'Overview',
-      'Available Days',
       'My Bookings',
       'Group Calendar',
+      'Available Days',
+      'Hotels',
       'Members',
       'Notifications',
       'Feedback',

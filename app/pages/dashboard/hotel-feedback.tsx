@@ -28,13 +28,19 @@ export interface HotelFeedbackPageProps {
   insight: HotelInsight;
   currentUserId: string;
   returnTo: string;
+  returnLabel?: string;
 }
 
 function getRatingLabel(value?: number) {
   return value ? `${value}/5` : 'No rating yet';
 }
 
-export function HotelFeedbackPage({ insight, currentUserId, returnTo }: HotelFeedbackPageProps) {
+export function HotelFeedbackPage({
+  insight,
+  currentUserId,
+  returnTo,
+  returnLabel = 'Back to booking',
+}: HotelFeedbackPageProps) {
   const fetcher = useFetcher<HotelReviewActionResult>();
   const isSaving = fetcher.state !== 'idle';
   const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
@@ -50,7 +56,7 @@ export function HotelFeedbackPage({ insight, currentUserId, returnTo }: HotelFee
         description="Capture the parking, check-in, and arrival details that help the group choose where to stay."
         actions={
           <Button component={Link} to={returnTo} variant="default">
-            Back to booking
+            {returnLabel}
           </Button>
         }
       />

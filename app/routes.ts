@@ -35,6 +35,8 @@ export default [
     route('dashboard/group-calendar', 'routes/dashboard/group-calendar.tsx'),
     route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
+    route('dashboard/hotels', 'routes/dashboard/hotels.tsx'),
+    route('dashboard/hotels/:hotelId', 'routes/dashboard/hotels.$hotelId.tsx'),
     route('dashboard/hotels/:hotelId/feedback', 'routes/dashboard/hotels.$hotelId.feedback.tsx'),
     route('dashboard/members', 'routes/dashboard/members.tsx'),
     route('dashboard/members/:memberId', 'routes/dashboard/members.$memberId.tsx'),
