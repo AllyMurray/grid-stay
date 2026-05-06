@@ -18,17 +18,17 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { EmptyStateCard } from '~/components/layout/empty-state-card';
 import { PageHeader } from '~/components/layout/page-header';
-import type { HotelInsight } from '~/lib/db/services/hotel.server';
+import type { HotelSummaryInsight } from '~/lib/db/services/hotel.server';
 
 export interface HotelsPageProps {
-  hotels: HotelInsight[];
+  hotels: HotelSummaryInsight[];
 }
 
 function getRatingLabel(value?: number) {
   return value ? `${value}/5` : 'No rating yet';
 }
 
-function matchesHotel(insight: HotelInsight, query: string) {
+function matchesHotel(insight: HotelSummaryInsight, query: string) {
   const value = query.trim().toLowerCase();
   if (!value) {
     return true;
@@ -42,7 +42,7 @@ function matchesHotel(insight: HotelInsight, query: string) {
   ].some((field) => field?.toLowerCase().includes(value));
 }
 
-function HotelCard({ insight }: { insight: HotelInsight }) {
+function HotelCard({ insight }: { insight: HotelSummaryInsight }) {
   return (
     <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
       <Stack gap="md">

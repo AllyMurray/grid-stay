@@ -41,6 +41,8 @@ export interface HotelInsight {
   reviews: HotelReviewRecord[];
 }
 
+export type HotelSummaryInsight = Omit<HotelInsight, 'reviews'>;
+
 export function normalizeHotelName(value: string) {
   return value
     .trim()
@@ -469,4 +471,17 @@ export async function listHotelInsights(hotelIds: string[]): Promise<Map<string,
   );
 
   return new Map(entries);
+}
+
+export async function listHotelSummaryInsights(
+  hotelIds: string[],
+): Promise<Map<string, HotelSummaryInsight>> {
+  const insights = await listHotelInsights(hotelIds);
+
+  return new Map(
+    [...insights.entries()].map(([hotelId, insight]) => {
+      const { reviews: _reviews, ...summary } = insight;
+      return [hotelId, summary];
+    }),
+  );
 }

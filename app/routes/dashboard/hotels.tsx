@@ -1,8 +1,8 @@
 import { useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
 import {
-  type HotelInsight,
-  listHotelInsights,
+  type HotelSummaryInsight,
+  listHotelSummaryInsights,
   listHotels,
 } from '~/lib/db/services/hotel.server';
 import { HotelsPage } from '~/pages/dashboard/hotels';
@@ -11,7 +11,7 @@ import type { Route } from './+types/hotels';
 export async function loader({ request }: Route.LoaderArgs) {
   const { headers } = await requireUser(request);
   const hotels = await listHotels();
-  const insights = await listHotelInsights(
+  const insights = await listHotelSummaryInsights(
     hotels.map((hotel) => hotel.hotelId),
   );
   const sortedInsights = [...insights.values()].toSorted((left, right) =>
@@ -28,7 +28,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function HotelsRoute() {
   const data = useLoaderData<typeof loader>() as {
-    hotels: HotelInsight[];
+    hotels: HotelSummaryInsight[];
   };
 
   return <HotelsPage hotels={data.hotels} />;

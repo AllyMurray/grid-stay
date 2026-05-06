@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 const { requireUser } = vi.hoisted(() => ({
   requireUser: vi.fn(),
 }));
-const { listHotels, listHotelInsights } = vi.hoisted(() => ({
+const { listHotels, listHotelSummaryInsights } = vi.hoisted(() => ({
   listHotels: vi.fn(),
-  listHotelInsights: vi.fn(),
+  listHotelSummaryInsights: vi.fn(),
 }));
 
 vi.mock('~/lib/auth/helpers.server', () => ({
@@ -14,7 +14,7 @@ vi.mock('~/lib/auth/helpers.server', () => ({
 
 vi.mock('~/lib/db/services/hotel.server', () => ({
   listHotels,
-  listHotelInsights,
+  listHotelSummaryInsights,
 }));
 
 import { loader } from './hotels';
@@ -34,7 +34,6 @@ const tracksideInsight = {
   reviewCount: 1,
   summary: 'Good trailer parking.',
   summarySource: 'structured',
-  reviews: [],
 };
 
 const airportInsight = {
@@ -42,7 +41,6 @@ const airportInsight = {
   reviewCount: 0,
   summary: 'No feedback yet.',
   summarySource: 'structured',
-  reviews: [],
 };
 
 describe('hotels route', () => {
@@ -59,8 +57,8 @@ describe('hotels route', () => {
     });
     listHotels.mockReset();
     listHotels.mockResolvedValue([tracksideHotel, airportHotel]);
-    listHotelInsights.mockReset();
-    listHotelInsights.mockResolvedValue(
+    listHotelSummaryInsights.mockReset();
+    listHotelSummaryInsights.mockResolvedValue(
       new Map([
         ['hotel-1', tracksideInsight],
         ['hotel-2', airportInsight],
@@ -68,7 +66,7 @@ describe('hotels route', () => {
     );
   });
 
-  it('loads all saved hotel insights sorted by hotel name', async () => {
+  it('loads saved hotel summaries sorted by hotel name', async () => {
     const response = (await loader({
       request: new Request('https://gridstay.app/dashboard/hotels'),
       params: {},
@@ -78,6 +76,6 @@ describe('hotels route', () => {
     expect(await response.json()).toEqual({
       hotels: [airportInsight, tracksideInsight],
     });
-    expect(listHotelInsights).toHaveBeenCalledWith(['hotel-1', 'hotel-2']);
+    expect(listHotelSummaryInsights).toHaveBeenCalledWith(['hotel-1', 'hotel-2']);
   });
 });
