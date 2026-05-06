@@ -146,6 +146,19 @@ describe('GroupCalendarPage', () => {
     );
   });
 
+  it('shows the full member name when hovering over calendar initials', async () => {
+    const user = userEvent.setup();
+    renderGroupCalendar();
+
+    const dayButton = screen.getByRole('button', {
+      name: /Thu, 7 May 2026: 2 events, 1 booked, 2 maybe/i,
+    });
+
+    await user.hover(within(dayButton).getByText('AM'));
+
+    expect(await screen.findByText('Ally Murray')).toBeInTheDocument();
+  });
+
   it('filters the calendar by status', async () => {
     const user = userEvent.setup();
     renderGroupCalendar();

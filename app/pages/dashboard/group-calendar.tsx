@@ -13,6 +13,7 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -237,17 +238,23 @@ function CalendarInitialsGroup({
         .join(', ')}`}
     >
       {visibleAttendees.map((attendee) => (
-        <Avatar
+        <Tooltip
           key={attendee.userId}
-          aria-hidden="true"
-          className="group-calendar-initial-avatar"
-          color={statusColor(status)}
-          radius="xl"
-          size={22}
-          variant="filled"
+          label={attendee.userName}
+          openDelay={250}
+          withArrow
         >
-          {getInitials(attendee.userName)}
-        </Avatar>
+          <Avatar
+            aria-hidden="true"
+            className="group-calendar-initial-avatar"
+            color={statusColor(status)}
+            radius="xl"
+            size={22}
+            variant="filled"
+          >
+            {getInitials(attendee.userName)}
+          </Avatar>
+        </Tooltip>
       ))}
       {remainingCount > 0 ? (
         <Avatar
