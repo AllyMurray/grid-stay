@@ -53,6 +53,7 @@ export async function generateHotelSummaryWithBedrock(
           'Use only the supplied member reviews.',
           'Write 1-3 concise sentences.',
           'Mention trailer parking, secure parking, and late check-in when the reviews provide useful signal.',
+          'Preserve actionable parking logistics such as payment, parking validation at reception, barriers, entrance or access constraints, and where trailers fit when the reviews mention them.',
           'Do not invent facts, prices, ratings, policies, or external review details.',
           'Do not use markdown.',
         ].join(' '),

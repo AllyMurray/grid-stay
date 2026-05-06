@@ -59,6 +59,13 @@ describe('Bedrock hotel summaries', () => {
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         modelId: 'eu.amazon.nova-micro-v1:0',
+        system: [
+          expect.objectContaining({
+            text: expect.stringContaining(
+              'Preserve actionable parking logistics',
+            ),
+          }),
+        ],
         messages: [
           expect.objectContaining({
             role: 'user',
