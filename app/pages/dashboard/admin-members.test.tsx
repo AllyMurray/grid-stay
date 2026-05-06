@@ -48,6 +48,16 @@ const joinLinks = [
   },
 ];
 
+const pendingInvites = [
+  {
+    inviteEmail: 'new.driver@example.com',
+    invitedByName: 'Ally Murray',
+    status: 'pending' as const,
+    expiresAt: '2026-05-28T10:00:00.000Z',
+    createdAt: '2026-04-28T10:00:00.000Z',
+  },
+];
+
 function renderWithProviders(ui: React.ReactElement) {
   const Stub = createRoutesStub([
     {
@@ -63,7 +73,13 @@ function renderWithProviders(ui: React.ReactElement) {
 describe('AdminMembersPage', () => {
   it('renders searchable member-management rows', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AdminMembersPage members={members} joinLinks={joinLinks} />);
+    renderWithProviders(
+      <AdminMembersPage
+        members={members}
+        joinLinks={joinLinks}
+        pendingInvites={pendingInvites}
+      />,
+    );
 
     expect(screen.getByRole('heading', { name: 'Member management' })).toBeInTheDocument();
     expect(screen.getByText('Ally Murray')).toBeInTheDocument();
@@ -81,15 +97,38 @@ describe('AdminMembersPage', () => {
 
   it('renders join-link controls and usage-limit mode', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<AdminMembersPage members={members} joinLinks={joinLinks} />);
+    renderWithProviders(
+      <AdminMembersPage
+        members={members}
+        joinLinks={joinLinks}
+        pendingInvites={pendingInvites}
+      />,
+    );
 
     expect(screen.getByText('Join links')).toBeInTheDocument();
     expect(screen.getByText(/2 of 5 joined/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Revoke' }).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('combobox', { name: /link mode/i }));
     fireEvent.click(screen.getByRole('option', { name: 'Usage limit', hidden: true }));
 
     expect(screen.getByLabelText('Usage limit')).toBeInTheDocument();
+  });
+
+  it('renders global email invite controls for admins', () => {
+    renderWithProviders(
+      <AdminMembersPage
+        members={members}
+        joinLinks={joinLinks}
+        pendingInvites={pendingInvites}
+      />,
+    );
+
+    expect(screen.getByText('Email invites')).toBeInTheDocument();
+    expect(screen.getByText('new.driver@example.com')).toBeInTheDocument();
+    expect(screen.getByText(/Invited by Ally Murray/)).toBeInTheDocument();
+    expect(screen.getByText(/Expires 28 May/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Renew' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Revoke' }).length).toBeGreaterThan(0);
   });
 });

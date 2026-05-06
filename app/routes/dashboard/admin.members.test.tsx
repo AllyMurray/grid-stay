@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 const { requireAdmin } = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
 }));
+const { listPendingMemberInvites, submitMemberInviteAction } = vi.hoisted(() => ({
+  listPendingMemberInvites: vi.fn(),
+  submitMemberInviteAction: vi.fn(),
+}));
 const { listMemberJoinLinks, submitMemberJoinLinkAction } = vi.hoisted(() => ({
   listMemberJoinLinks: vi.fn(),
   submitMemberJoinLinkAction: vi.fn(),
@@ -16,6 +20,11 @@ const { recordAppEventSafely } = vi.hoisted(() => ({
 
 vi.mock('~/lib/auth/helpers.server', () => ({
   requireAdmin,
+}));
+
+vi.mock('~/lib/auth/member-invites.server', () => ({
+  listPendingMemberInvites,
+  submitMemberInviteAction,
 }));
 
 vi.mock('~/lib/auth/member-join-links.server', () => ({
@@ -49,6 +58,13 @@ const joinLink = {
   expiresAt: '2026-05-05T10:00:00.000Z',
   createdAt: '2026-05-04T10:00:00.000Z',
 };
+const pendingInvite = {
+  inviteEmail: 'new.driver@example.com',
+  invitedByName: 'Admin One',
+  status: 'pending' as const,
+  expiresAt: '2026-05-28T10:00:00.000Z',
+  createdAt: '2026-04-28T10:00:00.000Z',
+};
 
 describe('admin members route', () => {
   beforeEach(() => {
@@ -58,6 +74,8 @@ describe('admin members route', () => {
     listAdminSiteMembers.mockResolvedValue([]);
     listMemberJoinLinks.mockReset();
     listMemberJoinLinks.mockResolvedValue([joinLink]);
+    listPendingMemberInvites.mockReset();
+    listPendingMemberInvites.mockResolvedValue([pendingInvite]);
     submitMemberJoinLinkAction.mockReset();
     submitMemberJoinLinkAction.mockResolvedValue({
       ok: true,
@@ -65,6 +83,15 @@ describe('admin members route', () => {
       message: 'Join link created.',
       link: joinLink,
       joinUrl: 'https://gridstay.app/join/token',
+    });
+    submitMemberInviteAction.mockReset();
+    submitMemberInviteAction.mockResolvedValue({
+      ok: true,
+      message: 'new.driver@example.com has been revoked.',
+      invite: {
+        ...pendingInvite,
+        status: 'revoked',
+      },
     });
     recordAppEventSafely.mockReset();
     recordAppEventSafely.mockResolvedValue(undefined);
@@ -80,6 +107,7 @@ describe('admin members route', () => {
     await expect(response.json()).resolves.toEqual({
       members: [],
       joinLinks: [joinLink],
+      pendingInvites: [pendingInvite],
     });
   });
 
@@ -108,6 +136,36 @@ describe('admin members route', () => {
       expect.objectContaining({
         action: 'memberJoinLink.createJoinLink',
         subject: { type: 'memberJoinLink', id: 'hash-1' },
+      }),
+    );
+  });
+
+  it('handles admin email invite actions and records audit events', async () => {
+    const formData = new FormData();
+    formData.set('intent', 'revokeInvite');
+    formData.set('email', 'new.driver@example.com');
+    const request = new Request('https://gridstay.app/dashboard/admin/members', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const response = (await action({
+      request,
+      params: {},
+      context: {},
+    } as never)) as Response;
+
+    expect(response.status).toBe(200);
+    expect(submitMemberInviteAction).toHaveBeenCalledOnce();
+    const [submittedFormData, submittedUser] = submitMemberInviteAction.mock.calls[0]!;
+    expect(submittedUser).toBe(admin);
+    expect(submittedFormData.get('intent')).toBe('revokeInvite');
+    expect(submittedFormData.get('email')).toBe('new.driver@example.com');
+    expect(submitMemberJoinLinkAction).not.toHaveBeenCalled();
+    expect(recordAppEventSafely).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'member.invite.revokeInvite',
+        subject: { type: 'memberInvite', id: 'new.driver@example.com' },
       }),
     );
   });

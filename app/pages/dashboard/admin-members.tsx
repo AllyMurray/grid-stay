@@ -14,11 +14,22 @@ import {
   ThemeIcon,
   UnstyledButton,
 } from '@mantine/core';
-import { IconCheck, IconChevronRight, IconCopy, IconLink, IconSearch } from '@tabler/icons-react';
+import {
+  IconCheck,
+  IconChevronRight,
+  IconCopy,
+  IconLink,
+  IconMail,
+  IconSearch,
+} from '@tabler/icons-react';
 import { useMemo, useState } from 'react';
 import { Link, useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import type {
+  MemberInviteActionResult,
+  MemberInviteSummary,
+} from '~/lib/auth/member-invites.server';
 import type {
   MemberJoinLinkActionResult,
   MemberJoinLinkMode,
@@ -32,6 +43,7 @@ import { formatDateOnly } from '~/lib/dates/date-only';
 export interface AdminMembersPageProps {
   members: AdminMemberDirectoryEntry[];
   joinLinks: MemberJoinLinkSummary[];
+  pendingInvites: MemberInviteSummary[];
 }
 
 function formatMemberDate(value: string) {
@@ -62,6 +74,15 @@ function formatJoinLinkDate(value: string) {
     day: 'numeric',
     month: 'short',
   });
+}
+
+function formatInviteDate(value: string | undefined) {
+  return value
+    ? formatDateOnly(value.slice(0, 10), {
+        day: 'numeric',
+        month: 'short',
+      })
+    : 'No expiry';
 }
 
 function joinLinkModeLabel(mode: MemberJoinLinkMode) {
@@ -267,6 +288,121 @@ function JoinLinkManagementPanel({ joinLinks }: { joinLinks: MemberJoinLinkSumma
   );
 }
 
+function EmailInviteManagementPanel({
+  pendingInvites,
+}: {
+  pendingInvites: MemberInviteSummary[];
+}) {
+  const fetcher = useFetcher<MemberInviteActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const success = fetcher.data?.ok ? fetcher.data : null;
+
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start" gap="md">
+          <Stack gap={2}>
+            <Text fw={700}>Email invites</Text>
+            <Text size="sm" c="dimmed">
+              Review every pending email invite. Members only see invites they sent.
+            </Text>
+          </Stack>
+          <ThemeIcon variant="light" color="brand" radius="sm" size={36}>
+            <IconMail size={18} />
+          </ThemeIcon>
+        </Group>
+
+        <fetcher.Form method="post">
+          <Group align="flex-start" gap="sm">
+            <input type="hidden" name="intent" value="createInvite" />
+            <TextInput
+              name="email"
+              type="email"
+              label="Email address"
+              placeholder="driver@example.com"
+              leftSection={<IconMail size={16} />}
+              error={fieldErrors?.email?.[0]}
+              style={{ flex: 1, minWidth: 220 }}
+            />
+            <Button type="submit" loading={isSubmitting} mt={24}>
+              Invite
+            </Button>
+          </Group>
+        </fetcher.Form>
+
+        {success ? (
+          <Alert color="green" variant="light">
+            {success.message}
+          </Alert>
+        ) : formError ? (
+          <Alert color="red" variant="light">
+            {formError}
+          </Alert>
+        ) : null}
+
+        {pendingInvites.length > 0 ? (
+          <Stack gap="xs">
+            <Text size="sm" fw={700} c="dimmed">
+              Pending email invites
+            </Text>
+            <Stack gap={0}>
+              {pendingInvites.map((invite, index) => (
+                <Stack key={invite.inviteEmail} gap="xs">
+                  <Group justify="space-between" gap="md" wrap="wrap">
+                    <Stack gap={2}>
+                      <Text size="sm" fw={700}>
+                        {invite.inviteEmail}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Invited by {invite.invitedByName} • Expires{' '}
+                        {formatInviteDate(invite.expiresAt)}
+                      </Text>
+                    </Stack>
+                    <Group gap="xs">
+                      <fetcher.Form method="post">
+                        <input type="hidden" name="intent" value="createInvite" />
+                        <input type="hidden" name="email" value={invite.inviteEmail} />
+                        <Button
+                          type="submit"
+                          variant="default"
+                          size="xs"
+                          loading={isSubmitting}
+                        >
+                          Renew
+                        </Button>
+                      </fetcher.Form>
+                      <fetcher.Form method="post">
+                        <input type="hidden" name="intent" value="revokeInvite" />
+                        <input type="hidden" name="email" value={invite.inviteEmail} />
+                        <Button
+                          type="submit"
+                          variant="subtle"
+                          color="red"
+                          size="xs"
+                          loading={isSubmitting}
+                        >
+                          Revoke
+                        </Button>
+                      </fetcher.Form>
+                    </Group>
+                  </Group>
+                  {index < pendingInvites.length - 1 ? <Divider /> : null}
+                </Stack>
+              ))}
+            </Stack>
+          </Stack>
+        ) : (
+          <Text size="sm" c="dimmed">
+            No pending email invites.
+          </Text>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
 function MemberManagementRow({ member }: { member: AdminMemberDirectoryEntry }) {
   const nextTrip = member.nextTrip
     ? `${formatMemberDate(member.nextTrip.date)} • ${member.nextTrip.circuit}`
@@ -325,7 +461,11 @@ function MemberManagementRow({ member }: { member: AdminMemberDirectoryEntry }) 
   );
 }
 
-export function AdminMembersPage({ members, joinLinks }: AdminMembersPageProps) {
+export function AdminMembersPage({
+  members,
+  joinLinks,
+  pendingInvites,
+}: AdminMembersPageProps) {
   const [query, setQuery] = useState('');
   const filteredMembers = useMemo(
     () => members.filter((member) => matchesMember(member, query.trim())),
@@ -352,6 +492,7 @@ export function AdminMembersPage({ members, joinLinks }: AdminMembersPageProps) 
       />
 
       <JoinLinkManagementPanel joinLinks={joinLinks} />
+      <EmailInviteManagementPanel pendingInvites={pendingInvites} />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
         <Stack gap="md">

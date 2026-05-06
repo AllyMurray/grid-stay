@@ -188,7 +188,7 @@ async function findMemberInviteForAccessEmail(
 
 export async function createMemberInvite(
   email: string,
-  invitedBy: Pick<User, 'id' | 'name'>,
+  invitedBy: Pick<User, 'id' | 'email' | 'name' | 'role'>,
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<{
   invite: MemberInviteRecord;
@@ -208,6 +208,13 @@ export async function createMemberInvite(
   }
 
   if (existing) {
+    if (existing.invitedByUserId !== invitedBy.id && !isAdminUser(invitedBy)) {
+      return {
+        invite: existing,
+        created: false,
+      };
+    }
+
     return {
       invite: await store.update(existing.inviteEmail, {
         invitedByUserId: invitedBy.id,
@@ -388,6 +395,20 @@ export async function listPendingMemberInvites(
   return invites.filter((invite) => invite.status === 'pending').map(toMemberInviteSummary);
 }
 
+export async function listPendingMemberInvitesForUser(
+  userId: string,
+  store: MemberInvitePersistence = memberInviteStore,
+): Promise<MemberInviteSummary[]> {
+  const invites = await listMemberInvites(store);
+  return invites
+    .filter((invite) => invite.status === 'pending' && invite.invitedByUserId === userId)
+    .map(toMemberInviteSummary);
+}
+
+function canManageMemberInvite(invite: MemberInviteRecord, user: User): boolean {
+  return invite.invitedByUserId === user.id || isAdminUser(user);
+}
+
 export async function revokeMemberInvite(
   inviteEmail: string,
   store: MemberInvitePersistence = memberInviteStore,
@@ -397,7 +418,7 @@ export async function revokeMemberInvite(
     return existing;
   }
 
-  return store.update(inviteEmail, {
+  return store.update(existing.inviteEmail, {
     status: 'revoked',
     updatedAt: new Date().toISOString(),
   });
@@ -405,6 +426,7 @@ export async function revokeMemberInvite(
 
 export async function submitRevokeMemberInvite(
   formData: FormData,
+  requestedBy: User,
   store: MemberInvitePersistence = memberInviteStore,
 ): Promise<MemberInviteActionResult> {
   const parsed = MemberInviteInputSchema.safeParse(Object.fromEntries(formData));
@@ -414,6 +436,15 @@ export async function submitRevokeMemberInvite(
       ok: false,
       formError: 'Could not revoke this invite.',
       fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const existing = await findMemberInviteForAccessEmail(parsed.data.email, store);
+  if (existing && !canManageMemberInvite(existing, requestedBy)) {
+    return {
+      ok: false,
+      formError: 'You can only manage invites you sent.',
+      fieldErrors: {},
     };
   }
 
@@ -484,7 +515,7 @@ export async function submitMemberInviteAction(
   const intent = formData.get('intent')?.toString() ?? 'createInvite';
 
   if (intent === 'revokeInvite') {
-    return submitRevokeMemberInvite(formData, store);
+    return submitRevokeMemberInvite(formData, invitedBy, store);
   }
 
   return submitMemberInvite(formData, invitedBy, store);

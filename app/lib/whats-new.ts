@@ -26,6 +26,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'private-member-invites',
+    title: 'Pending invites are now private to the sender',
+    publishedAt: '2026-05-06T14:00:00.000Z',
+    dateLabel: '6 May 2026',
+    category: 'Members',
+    description:
+      'Members now only see email invites they sent, while admins can review all pending email invites from member management.',
+    highlights: [
+      'The Members page shows your pending invites only.',
+      'Admins can renew or revoke every pending email invite from Admin Member Management.',
+      'Invite actions now check ownership on the server before revoking an invite.',
+    ],
+    href: '/dashboard/members',
+    actionLabel: 'Open members',
+    icon: IconLock,
+  },
+  {
     id: 'bookings-show-past-dates',
     title: 'My Bookings now focuses on future trips',
     publishedAt: '2026-05-06T12:15:00.000Z',

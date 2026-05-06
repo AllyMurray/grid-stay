@@ -157,7 +157,7 @@ function MemberInvitePanel({ pendingInvites }: { pendingInvites: MemberInviteSum
         {pendingInvites.length > 0 ? (
           <Stack gap="xs">
             <Text size="sm" fw={700} c="dimmed">
-              Pending invites
+              Your pending invites
             </Text>
             <Stack gap={0}>
               {pendingInvites.map((invite, index) => (
@@ -168,8 +168,7 @@ function MemberInvitePanel({ pendingInvites }: { pendingInvites: MemberInviteSum
                         {invite.inviteEmail}
                       </Text>
                       <Text size="xs" c="dimmed">
-                        Invited by {invite.invitedByName} • Expires{' '}
-                        {formatInviteDate(invite.expiresAt)}
+                        Expires {formatInviteDate(invite.expiresAt)}
                       </Text>
                     </Stack>
                     <Group gap="xs">

@@ -94,7 +94,9 @@ describe('MembersPage', () => {
     );
 
     expect(screen.getByText('new.driver@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Your pending invites')).toBeInTheDocument();
     expect(screen.getByText(/Expires 28 May/)).toBeInTheDocument();
+    expect(screen.queryByText(/Invited by Ally Murray/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Renew' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
   });

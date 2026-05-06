@@ -31,6 +31,7 @@ import {
   createMemberInvite,
   ensureUserMemberAccess,
   grantMemberAccessFromJoinLink,
+  listPendingMemberInvitesForUser,
   type MemberInvitePersistence,
   revokeMemberInvite,
   submitMemberInvite,
@@ -121,6 +122,33 @@ describe('member invite helpers', () => {
         inviteEmail: 'driver@team.co.uk',
         status: 'pending',
       },
+    });
+  });
+
+  it('does not transfer another member pending invite when re-invited', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'new.driver@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-2',
+        invitedByName: 'Driver Two',
+        status: 'pending',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+
+    const result = await createMemberInvite('new.driver@example.com', inviter, memory.store);
+
+    expect(result.created).toBe(false);
+    expect(result.invite).toMatchObject({
+      inviteEmail: 'new.driver@example.com',
+      invitedByUserId: 'user-2',
+      invitedByName: 'Driver Two',
+    });
+    expect(memory.records[0]).toMatchObject({
+      invitedByUserId: 'user-2',
+      invitedByName: 'Driver Two',
     });
   });
 
@@ -397,6 +425,42 @@ describe('member invite helpers', () => {
     );
   });
 
+  it('lists only pending invites sent by a user', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'mine@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-1',
+        invitedByName: 'Driver One',
+        status: 'pending',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+      {
+        inviteEmail: 'other@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-2',
+        invitedByName: 'Driver Two',
+        status: 'pending',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+      {
+        inviteEmail: 'accepted@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-1',
+        invitedByName: 'Driver One',
+        status: 'accepted',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+
+    await expect(listPendingMemberInvitesForUser('user-1', memory.store)).resolves.toEqual([
+      expect.objectContaining({ inviteEmail: 'mine@example.com' }),
+    ]);
+  });
+
   it('allows bootstrap members without an invite', async () => {
     vi.stubEnv('GRID_STAY_BOOTSTRAP_MEMBER_EMAILS', 'driver@example.com');
 
@@ -440,5 +504,30 @@ describe('member invite helpers', () => {
       ok: true,
       message: 'new.driver@example.com has been revoked.',
     });
+  });
+
+  it('rejects revoke actions for invites sent by another member', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'new.driver@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-2',
+        invitedByName: 'Driver Two',
+        status: 'pending',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+    const formData = new FormData();
+    formData.set('intent', 'revokeInvite');
+    formData.set('email', 'new.driver@example.com');
+
+    const result = await submitMemberInviteAction(formData, inviter, memory.store);
+
+    expect(result).toMatchObject({
+      ok: false,
+      formError: 'You can only manage invites you sent.',
+    });
+    expect(memory.records[0]?.status).toBe('pending');
   });
 });
