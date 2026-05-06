@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test';
+import type { AvailableDay, DayAttendanceSummary } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import {
   getSiteMemberBookedDays,
@@ -119,6 +120,105 @@ const acceptedInvites = [
   },
 ];
 
+const activeDays = [
+  {
+    dayId: 'day-1',
+    date: '2026-05-03',
+    type: 'race_day',
+    circuit: 'Silverstone',
+    circuitId: 'silverstone',
+    circuitName: 'Silverstone',
+    layout: 'GP',
+    provider: 'MSV',
+    description: 'GT weekend',
+    source: {
+      sourceType: 'manual',
+      sourceName: 'Manual',
+    },
+  },
+  {
+    dayId: 'day-2',
+    date: '2026-05-05',
+    type: 'track_day',
+    circuit: 'Donington Park',
+    provider: 'MSV Car Trackdays',
+    description: 'Track evening',
+    source: {
+      sourceType: 'manual',
+      sourceName: 'Manual',
+    },
+  },
+  {
+    dayId: 'day-3',
+    date: '2026-06-01',
+    type: 'test_day',
+    circuit: 'Snetterton',
+    provider: 'MSV',
+    description: 'Testing',
+    source: {
+      sourceType: 'manual',
+      sourceName: 'Manual',
+    },
+  },
+] satisfies AvailableDay[];
+
+const attendanceSummaries = new Map<string, DayAttendanceSummary>([
+  [
+    'day-1',
+    {
+      attendeeCount: 2,
+      attendees: [
+        {
+          bookingId: 'booking-1',
+          userId: 'user-1',
+          userName: 'Ally Murray',
+          userImage: 'https://example.com/ally.png',
+          status: 'booked',
+          arrivalDateTime: '2026-05-02 20:00:00',
+          accommodationStatus: 'booked',
+          accommodationName: 'Trackside Hotel',
+        },
+        {
+          bookingId: 'booking-5',
+          userId: 'user-2',
+          userName: 'Driver Two',
+          status: 'maybe',
+          accommodationStatus: 'looking',
+        },
+      ],
+      accommodationNames: ['Trackside Hotel'],
+    },
+  ],
+  [
+    'day-2',
+    {
+      attendeeCount: 1,
+      attendees: [
+        {
+          bookingId: 'booking-2',
+          userId: 'user-2',
+          userName: 'Driver Two',
+          status: 'maybe',
+          accommodationStatus: 'not_required',
+        },
+      ],
+      accommodationNames: [],
+    },
+  ],
+]);
+
+function createAttendanceOverviews(dayIds: string[]) {
+  return new Map(
+    dayIds.map((dayId) => [
+      dayId,
+      {
+        attendeeCount: attendanceSummaries.get(dayId)?.attendeeCount ?? 0,
+        accommodationNames: attendanceSummaries.get(dayId)?.accommodationNames ?? [],
+      },
+    ]),
+  );
+}
+
 describe('listSiteMembers', () => {
   it('returns members sorted by next trip and summarizes active plans', async () => {
     const members = await listSiteMembers(
@@ -158,6 +258,54 @@ describe('listSiteMembers', () => {
       activeTripsCount: 0,
       sharedStayCount: 0,
       nextTrip: undefined,
+    });
+  });
+
+  it('can summarize members from day attendance data without per-member booking loaders', async () => {
+    const members = await listSiteMembers(
+      async () => userRecords,
+      undefined,
+      '2026-04-16',
+      async () => [
+        {
+          userId: 'user-2',
+          displayName: 'Adam Mann',
+        },
+      ],
+      async () => acceptedInvites,
+      async () => activeDays,
+      async (dayIds) => createAttendanceOverviews(dayIds),
+      async (dayIds) =>
+        new Map(dayIds.map((dayId) => [dayId, attendanceSummaries.get(dayId)!])),
+    );
+
+    expect(members.map((member) => member.name)).toEqual([
+      'Adam Mann',
+      'Ally Murray',
+      'New Member',
+    ]);
+    expect(members[0]).toMatchObject({
+      id: 'user-2',
+      activeTripsCount: 2,
+      sharedStayCount: 0,
+      nextTrip: {
+        date: '2026-05-03',
+        circuit: 'Silverstone',
+        provider: 'MSV',
+        accommodationStatus: 'looking',
+      },
+    });
+    expect(members[1]).toMatchObject({
+      id: 'user-1',
+      activeTripsCount: 1,
+      sharedStayCount: 1,
+      nextTrip: {
+        date: '2026-05-03',
+        circuit: 'Silverstone',
+        provider: 'MSV',
+        accommodationStatus: 'booked',
+        accommodationName: 'Trackside Hotel',
+      },
     });
   });
 
@@ -356,6 +504,48 @@ describe('listSiteMembers', () => {
     expect(result.events[0]?.attendees[1]).not.toHaveProperty('bookingReference');
     expect(result.events[0]?.attendees[1]).not.toHaveProperty('accommodationReference');
     expect(result.events[0]?.attendees[1]).not.toHaveProperty('notes');
+  });
+
+  it('can load only the requested group calendar month from attendance summaries', async () => {
+    const result = await listGroupCalendarData({
+      month: '2026-05',
+      today: '2026-04-16',
+      loadUsers: async () => userRecords,
+      loadProfiles: async () => [
+        {
+          userId: 'user-2',
+          displayName: 'Adam Mann',
+        },
+      ],
+      loadInvites: async () => acceptedInvites,
+      loadDays: async () => activeDays,
+      loadOverviews: async (dayIds) => createAttendanceOverviews(dayIds),
+      loadSummaries: async (dayIds) =>
+        new Map(dayIds.map((dayId) => [dayId, attendanceSummaries.get(dayId)!])),
+    });
+
+    expect(result.month).toBe('2026-05');
+    expect(result.events.map((event) => event.dayId)).toEqual(['day-1', 'day-2']);
+    expect(result.events[0]).toMatchObject({
+      dayId: 'day-1',
+      date: '2026-05-03',
+      circuit: 'Silverstone',
+      bookedCount: 1,
+      maybeCount: 1,
+    });
+    expect(result.events[0]?.attendees).toEqual([
+      expect.objectContaining({
+        userId: 'user-1',
+        userName: 'Ally Murray',
+        userImage: 'https://example.com/ally.png',
+        status: 'booked',
+      }),
+      expect.objectContaining({
+        userId: 'user-2',
+        userName: 'Adam Mann',
+        status: 'maybe',
+      }),
+    ]);
   });
 
   it('creates my booking from another member day without private fields', async () => {

@@ -6,7 +6,10 @@ import type { Route } from './+types/group-calendar';
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { headers } = await requireUser(request);
-  const data = await listGroupCalendarData();
+  const url = new URL(request.url);
+  const data = await listGroupCalendarData({
+    month: url.searchParams.get('month') ?? undefined,
+  });
 
   return Response.json(data, { headers });
 }

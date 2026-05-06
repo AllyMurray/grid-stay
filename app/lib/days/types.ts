@@ -27,6 +27,7 @@ export interface SharedAttendee {
   bookingId: string;
   userId: string;
   userName: string;
+  userImage?: string;
   status: BookingStatus;
   arrivalDateTime?: string;
   arrivalTime?: string;

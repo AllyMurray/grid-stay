@@ -126,6 +126,11 @@ function createAvailableDayHref(dayId: string) {
   return `/dashboard/days?${params.toString()}`;
 }
 
+function createGroupCalendarMonthHref(month: dayjs.Dayjs) {
+  const params = new URLSearchParams({ month: month.format('YYYY-MM') });
+  return `/dashboard/group-calendar?${params.toString()}`;
+}
+
 function buildMonthCells(month: string): MonthCell[] {
   const start = dayjs(month).startOf('month');
   const end = dayjs(month).endOf('month');
@@ -457,8 +462,8 @@ function CalendarDayCell({
   );
 }
 
-export function GroupCalendarPage({ members, events, today }: GroupCalendarData) {
-  const [month, setMonth] = useState(dayjs(today).startOf('month'));
+export function GroupCalendarPage({ members, events, today, month }: GroupCalendarData) {
+  const activeMonth = dayjs(`${month || today.slice(0, 7)}-01`).startOf('month');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [visibleStatuses, setVisibleStatuses] = useState<VisibleStatus[]>(visibleStatusOptions);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -474,9 +479,11 @@ export function GroupCalendarPage({ members, events, today }: GroupCalendarData)
   }, [events, selectedMemberIds, visibleStatuses]);
 
   const eventsByDate = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents]);
-  const monthCells = useMemo(() => buildMonthCells(month.format('YYYY-MM-DD')), [month]);
+  const monthCells = useMemo(() => buildMonthCells(activeMonth.format('YYYY-MM-DD')), [activeMonth]);
   const selectedEvents = selectedDate ? (eventsByDate.get(selectedDate) ?? []) : [];
-  const monthEvents = filteredEvents.filter((event) => dayjs(event.date).isSame(month, 'month'));
+  const monthEvents = filteredEvents.filter((event) =>
+    dayjs(event.date).isSame(activeMonth, 'month'),
+  );
   const monthActiveDateCount = new Set(monthEvents.map((event) => event.date)).size;
   const monthBookedCount = monthEvents.reduce(
     (count, event) => count + event.filteredBookedCount,
@@ -571,19 +578,21 @@ export function GroupCalendarPage({ members, events, today }: GroupCalendarData)
           <Stack gap="md">
             <Group justify="space-between" gap="sm" wrap="nowrap">
               <ActionIcon
+                component={Link}
+                to={createGroupCalendarMonthHref(activeMonth.subtract(1, 'month'))}
                 variant="default"
                 aria-label="Previous month"
-                onClick={() => setMonth((current) => current.subtract(1, 'month'))}
               >
                 <IconChevronLeft size={18} />
               </ActionIcon>
               <Title order={2} ta="center" fz={{ base: 'h3', sm: 'h2' }}>
-                {formatMonthTitle(month.format('YYYY-MM-DD'))}
+                {formatMonthTitle(activeMonth.format('YYYY-MM-DD'))}
               </Title>
               <ActionIcon
+                component={Link}
+                to={createGroupCalendarMonthHref(activeMonth.add(1, 'month'))}
                 variant="default"
                 aria-label="Next month"
-                onClick={() => setMonth((current) => current.add(1, 'month'))}
               >
                 <IconChevronRight size={18} />
               </ActionIcon>

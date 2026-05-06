@@ -625,6 +625,7 @@ function toSharedAttendee(booking: BookingRecord): SharedAttendee {
     bookingId: booking.bookingId,
     userId: booking.userId,
     userName: booking.userName,
+    userImage: booking.userImage,
     status: booking.status as BookingStatus,
     arrivalDateTime: resolveArrivalDateTime(booking),
     accommodationStatus: resolveAccommodationStatus(booking),

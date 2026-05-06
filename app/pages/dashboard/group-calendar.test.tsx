@@ -9,6 +9,7 @@ import { GroupCalendarPage } from './group-calendar';
 
 const groupCalendarData: GroupCalendarData = {
   today: '2026-05-01',
+  month: '2026-05',
   members: [
     {
       id: 'user-1',
@@ -189,6 +190,7 @@ describe('GroupCalendarPage', () => {
   it('renders an empty state when no members have shared plans', () => {
     renderGroupCalendar({
       today: '2026-05-01',
+      month: '2026-05',
       members: groupCalendarData.members,
       events: [],
     });

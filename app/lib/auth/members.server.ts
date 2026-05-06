@@ -13,8 +13,10 @@ import {
   resolveAccommodationStatus,
 } from '~/lib/bookings/accommodation';
 import { resolveArrivalDateTime } from '~/lib/dates/arrival';
+import type { AvailableDay, DayAttendanceSummary } from '~/lib/days/types';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { MemberProfileRecord } from '~/lib/db/entities/member-profile.server';
+import type { DayAttendanceOverview } from '~/lib/db/services/day-attendance-summary.server';
 import type { CreateBookingInput } from '~/lib/schemas/booking';
 import { isAdminUser, isBootstrapMemberEmail, normalizeMemberAccessEmail } from './authorization';
 import type { User } from './schemas';
@@ -117,6 +119,7 @@ export interface GroupCalendarData {
   members: GroupCalendarMember[];
   events: GroupCalendarEvent[];
   today: string;
+  month: string;
 }
 
 type MemberProfileSummary = Pick<MemberProfileRecord, 'userId' | 'displayName'>;
@@ -135,6 +138,12 @@ type LoadMemberInvites = () => Promise<MemberInviteAccessRecord[]>;
 type LoadBookings = (userId: string) => Promise<BookingRecord[]>;
 
 type SaveBooking = (input: CreateBookingInput, user: User) => Promise<unknown>;
+
+type LoadGroupCalendarDays = () => Promise<AvailableDay[]>;
+
+type LoadDayAttendanceOverviews = (dayIds: string[]) => Promise<Map<string, DayAttendanceOverview>>;
+
+type LoadDayAttendanceSummaries = (dayIds: string[]) => Promise<Map<string, DayAttendanceSummary>>;
 
 type FieldErrors<T extends string> = Partial<Record<T, string[] | undefined>>;
 
@@ -190,6 +199,27 @@ function getActiveBookings(bookings: BookingRecord[], today: string) {
 async function loadBookingsDefault(userId: string): Promise<BookingRecord[]> {
   const { listMyBookings } = await import('~/lib/db/services/booking.server');
   return listMyBookings(userId);
+}
+
+async function loadUpcomingGroupCalendarDaysDefault(): Promise<AvailableDay[]> {
+  const { loadUpcomingAvailableDaysOverview } = await import('~/lib/days/dashboard-feed.server');
+  return (await loadUpcomingAvailableDaysOverview()).days;
+}
+
+async function loadDayAttendanceOverviewsDefault(
+  dayIds: string[],
+): Promise<Map<string, DayAttendanceOverview>> {
+  const { dayAttendanceSummaryStore } = await import(
+    '~/lib/db/services/day-attendance-summary.server'
+  );
+  return dayAttendanceSummaryStore.getByDayIds(dayIds);
+}
+
+async function loadDayAttendanceSummariesDefault(
+  dayIds: string[],
+): Promise<Map<string, DayAttendanceSummary>> {
+  const { listAttendanceSummariesForDays } = await import('~/lib/db/services/booking.server');
+  return listAttendanceSummariesForDays(dayIds);
 }
 
 async function saveBookingDefault(input: CreateBookingInput, user: User): Promise<unknown> {
@@ -375,6 +405,120 @@ function summarizeAdminMember(
   };
 }
 
+function createEmptyMemberSummary(user: AuthUserRecord): MemberDirectoryEntry {
+  return {
+    id: user.id,
+    name: user.name,
+    picture: user.image,
+    role: user.role ?? 'member',
+    activeTripsCount: 0,
+    sharedStayCount: 0,
+    nextTrip: undefined,
+  };
+}
+
+function toGroupCalendarAttendee(
+  attendee: DayAttendanceSummary['attendees'][number],
+  member: AuthUserRecord,
+): GroupCalendarAttendee {
+  return {
+    userId: member.id,
+    userName: member.name,
+    ...(member.image || attendee.userImage ? { userImage: member.image ?? attendee.userImage } : {}),
+    status: attendee.status === 'maybe' ? 'maybe' : 'booked',
+    ...(attendee.arrivalDateTime ? { arrivalDateTime: attendee.arrivalDateTime } : {}),
+    accommodationStatus: resolveAccommodationStatus(attendee),
+    ...(attendee.accommodationName ? { accommodationName: attendee.accommodationName } : {}),
+  };
+}
+
+function summarizeMemberFromDays(
+  user: AuthUserRecord,
+  days: AvailableDay[],
+  summariesByDayId: Map<string, DayAttendanceSummary>,
+): MemberDirectoryEntry {
+  const accommodationNames = new Set<string>();
+  let activeTripsCount = 0;
+  let nextTrip: MemberDirectoryEntry['nextTrip'];
+
+  for (const day of days) {
+    const attendee = summariesByDayId
+      .get(day.dayId)
+      ?.attendees.find(
+        (candidate) => candidate.userId === user.id && candidate.status !== 'cancelled',
+      );
+
+    if (!attendee) {
+      continue;
+    }
+
+    activeTripsCount += 1;
+    if (hasBookedAccommodation(attendee) && attendee.accommodationName?.trim()) {
+      accommodationNames.add(attendee.accommodationName.trim());
+    }
+
+    if (!nextTrip || day.date < nextTrip.date) {
+      nextTrip = {
+        date: day.date,
+        circuit: day.circuit,
+        provider: day.provider,
+        accommodationStatus: resolveAccommodationStatus(attendee),
+        accommodationName: attendee.accommodationName,
+      };
+    }
+  }
+
+  return {
+    ...createEmptyMemberSummary(user),
+    activeTripsCount,
+    sharedStayCount: accommodationNames.size,
+    nextTrip,
+  };
+}
+
+function toGroupCalendarEvent(
+  day: AvailableDay,
+  summary: DayAttendanceSummary,
+  membersById: Map<string, AuthUserRecord>,
+): GroupCalendarEvent | null {
+  const attendees = summary.attendees
+    .filter((attendee) => attendee.status === 'booked' || attendee.status === 'maybe')
+    .map((attendee) => {
+      const member = membersById.get(attendee.userId);
+      return member ? toGroupCalendarAttendee(attendee, member) : null;
+    })
+    .filter((attendee): attendee is GroupCalendarAttendee => Boolean(attendee))
+    .toSorted(compareGroupCalendarAttendees);
+
+  if (attendees.length === 0) {
+    return null;
+  }
+
+  return {
+    dayId: day.dayId,
+    date: day.date,
+    type: day.type,
+    circuit: day.circuit,
+    ...(day.circuitId ? { circuitId: day.circuitId } : {}),
+    ...(day.circuitName ? { circuitName: day.circuitName } : {}),
+    ...(day.layout ? { layout: day.layout } : {}),
+    ...(day.circuitKnown !== undefined ? { circuitKnown: day.circuitKnown } : {}),
+    provider: day.provider,
+    description: day.description,
+    bookedCount: attendees.filter((attendee) => attendee.status === 'booked').length,
+    maybeCount: attendees.filter((attendee) => attendee.status === 'maybe').length,
+    attendees,
+  };
+}
+
+function getMonthStart(value: string | undefined, today: string) {
+  return /^\d{4}-\d{2}$/.test(value ?? '') ? `${value}-01` : `${today.slice(0, 7)}-01`;
+}
+
+function isDayInMonth(day: AvailableDay, monthStart: string) {
+  return day.date.startsWith(monthStart.slice(0, 7));
+}
+
 function compareMembers(left: MemberDirectoryEntry, right: MemberDirectoryEntry): number {
   if (left.nextTrip && right.nextTrip) {
     if (left.nextTrip.date !== right.nextTrip.date) {
@@ -410,12 +554,39 @@ function filterInvitedUsers(users: AuthUserRecord[], invites: MemberInviteAccess
   );
 }
 
+async function listMemberSummariesFromUpcomingDays(
+  usersWithProfiles: AuthUserRecord[],
+  today: string,
+  loadDays: LoadGroupCalendarDays = loadUpcomingGroupCalendarDaysDefault,
+  loadOverviews: LoadDayAttendanceOverviews = loadDayAttendanceOverviewsDefault,
+  loadSummaries: LoadDayAttendanceSummaries = loadDayAttendanceSummariesDefault,
+): Promise<MemberDirectoryEntry[]> {
+  const days = (await loadDays())
+    .filter((day) => day.date >= today)
+    .toSorted((left, right) =>
+      left.date === right.date
+        ? left.circuit.localeCompare(right.circuit)
+        : left.date.localeCompare(right.date),
+    );
+  const dayIds = days.map((day) => day.dayId);
+  const overviews = await loadOverviews(dayIds);
+  const activeDays = days.filter((day) => (overviews.get(day.dayId)?.attendeeCount ?? 0) > 0);
+  const summaries = await loadSummaries(activeDays.map((day) => day.dayId));
+
+  return usersWithProfiles
+    .map((user) => summarizeMemberFromDays(user, activeDays, summaries))
+    .toSorted(compareMembers);
+}
+
 export async function listSiteMembers(
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
-  loadBookings: LoadBookings = loadBookingsDefault,
+  loadBookings?: LoadBookings,
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
   loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
+  loadDays?: LoadGroupCalendarDays,
+  loadOverviews?: LoadDayAttendanceOverviews,
+  loadSummaries?: LoadDayAttendanceSummaries,
 ): Promise<MemberDirectoryEntry[]> {
   const [users, profiles, invites] = await Promise.all([
     loadUsers(),
@@ -423,6 +594,16 @@ export async function listSiteMembers(
     loadInvites(),
   ]);
   const usersWithProfiles = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
+  if (!loadBookings) {
+    return listMemberSummariesFromUpcomingDays(
+      usersWithProfiles,
+      today,
+      loadDays,
+      loadOverviews,
+      loadSummaries,
+    );
+  }
+
   const members = await Promise.all(
     usersWithProfiles.map(async (user) =>
       summarizeMember(user, await loadBookings(user.id), today),
@@ -434,10 +615,13 @@ export async function listSiteMembers(
 
 export async function listAdminSiteMembers(
   loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
-  loadBookings: LoadBookings = loadBookingsDefault,
+  loadBookings?: LoadBookings,
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
   loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
+  loadDays?: LoadGroupCalendarDays,
+  loadOverviews?: LoadDayAttendanceOverviews,
+  loadSummaries?: LoadDayAttendanceSummaries,
 ): Promise<AdminMemberDirectoryEntry[]> {
   const [users, profiles, invites] = await Promise.all([
     loadUsers(),
@@ -445,6 +629,25 @@ export async function listAdminSiteMembers(
     loadInvites(),
   ]);
   const usersWithProfiles = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
+  if (!loadBookings) {
+    const usersById = new Map(usersWithProfiles.map((user) => [user.id, user]));
+    return (
+      await listMemberSummariesFromUpcomingDays(
+        usersWithProfiles,
+        today,
+        loadDays,
+        loadOverviews,
+        loadSummaries,
+      )
+    ).map((member) => {
+      const user = usersById.get(member.id);
+      return {
+        ...member,
+        email: user?.email ?? '',
+      };
+    });
+  }
+
   const members = await Promise.all(
     usersWithProfiles.map(async (user) =>
       summarizeAdminMember(user, await loadBookings(user.id), today),
@@ -499,12 +702,67 @@ export async function getSiteMemberBookedDays(
 }
 
 export async function listGroupCalendarData(
-  loadUsers: () => Promise<AuthUserRecord[]> = scanAuthUsers,
-  loadBookings: LoadBookings = loadBookingsDefault,
+  optionsOrLoadUsers:
+    | {
+        month?: string;
+        today?: string;
+        loadUsers?: () => Promise<AuthUserRecord[]>;
+        loadProfiles?: LoadMemberProfiles;
+        loadInvites?: LoadMemberInvites;
+        loadDays?: LoadGroupCalendarDays;
+        loadOverviews?: LoadDayAttendanceOverviews;
+        loadSummaries?: LoadDayAttendanceSummaries;
+      }
+    | (() => Promise<AuthUserRecord[]>) = {},
+  loadBookings?: LoadBookings,
   today = new Date().toISOString().slice(0, 10),
   loadProfiles: LoadMemberProfiles = loadMemberProfilesDefault,
   loadInvites: LoadMemberInvites = loadMemberInvitesDefault,
 ): Promise<GroupCalendarData> {
+  if (typeof optionsOrLoadUsers !== 'function') {
+    const options = optionsOrLoadUsers;
+    const reportToday = options.today ?? today;
+    const monthStart = getMonthStart(options.month, reportToday);
+    const [users, profiles, invites, days] = await Promise.all([
+      (options.loadUsers ?? scanAuthUsers)(),
+      (options.loadProfiles ?? loadMemberProfilesDefault)(),
+      (options.loadInvites ?? loadMemberInvitesDefault)(),
+      (options.loadDays ?? loadUpcomingGroupCalendarDaysDefault)(),
+    ]);
+    const members = applyMemberProfiles(filterInvitedUsers(users, invites), profiles);
+    const membersById = new Map(members.map((member) => [member.id, member]));
+    const monthDays = days.filter((day) => isDayInMonth(day, monthStart));
+    const overviews = await (options.loadOverviews ?? loadDayAttendanceOverviewsDefault)(
+      monthDays.map((day) => day.dayId),
+    );
+    const activeDays = monthDays.filter((day) => (overviews.get(day.dayId)?.attendeeCount ?? 0) > 0);
+    const summaries = await (options.loadSummaries ?? loadDayAttendanceSummariesDefault)(
+      activeDays.map((day) => day.dayId),
+    );
+    const events = activeDays
+      .map((day) => {
+        const summary = summaries.get(day.dayId);
+        return summary ? toGroupCalendarEvent(day, summary, membersById) : null;
+      })
+      .filter((event): event is GroupCalendarEvent => Boolean(event))
+      .toSorted((left, right) =>
+        left.date === right.date
+          ? left.circuit.localeCompare(right.circuit)
+          : left.date.localeCompare(right.date),
+      );
+
+    return {
+      members: members
+        .map(toGroupCalendarMember)
+        .toSorted((left, right) => left.name.localeCompare(right.name)),
+      events,
+      today: reportToday,
+      month: monthStart.slice(0, 7),
+    };
+  }
+
+  const loadUsers = optionsOrLoadUsers;
+  const loadBookingsForUser = loadBookings ?? loadBookingsDefault;
   const [users, profiles, invites] = await Promise.all([
     loadUsers(),
     loadProfiles(),
@@ -515,7 +773,7 @@ export async function listGroupCalendarData(
 
   await Promise.all(
     members.map(async (member) => {
-      const activeBookings = getActiveBookings(await loadBookings(member.id), today);
+      const activeBookings = getActiveBookings(await loadBookingsForUser(member.id), today);
 
       for (const booking of activeBookings) {
         if (booking.status !== 'booked' && booking.status !== 'maybe') {
@@ -563,6 +821,7 @@ export async function listGroupCalendarData(
       .toSorted((left, right) => left.name.localeCompare(right.name)),
     events: calendarEvents,
     today,
+    month: today.slice(0, 7),
   };
 }
 
