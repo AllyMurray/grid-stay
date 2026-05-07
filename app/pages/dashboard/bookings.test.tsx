@@ -1,7 +1,7 @@
 import { MantineProvider } from '@mantine/core';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
+import { type ActionFunctionArgs, createRoutesStub, type LoaderFunctionArgs } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { HotelInsight } from '~/lib/db/services/hotel.server';
@@ -23,15 +23,25 @@ function renderWithProviders(
   ui: React.ReactElement,
   action?: (args: ActionFunctionArgs) => Promise<unknown>,
   initialEntries: string[] | string = ['/'],
+  hotelSearchLoader?: (args: LoaderFunctionArgs) => Promise<unknown>,
 ) {
   const entries = Array.isArray(initialEntries) ? initialEntries : [initialEntries];
-  const Stub = createRoutesStub([
+  const routes: Parameters<typeof createRoutesStub>[0] = [
     {
       path: '/',
       action: action ?? (async () => null),
       Component: () => <MantineProvider theme={theme}>{ui}</MantineProvider>,
     },
-  ]);
+  ];
+
+  if (hotelSearchLoader) {
+    routes.push({
+      path: '/api/hotels/search',
+      loader: hotelSearchLoader,
+    });
+  }
+
+  const Stub = createRoutesStub(routes);
 
   return render(<Stub initialEntries={entries} />);
 }
@@ -244,6 +254,48 @@ describe('MyBookingsPage', () => {
 
     expect(await screen.findByRole('dialog', { name: /find hotel/i })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /hotel search/i })).toHaveValue('Trackside Hotel');
+  });
+
+  it('searches for hotels using the selected booking circuit location', async () => {
+    const user = userEvent.setup();
+    const hotelSearchLoader = vi.fn(async (_args: LoaderFunctionArgs) =>
+      Response.json({
+        suggestions: [],
+        providerAvailable: true,
+        providerError: null,
+      }),
+    );
+
+    renderWithProviders(
+      <MyBookingsPage
+        bookings={[
+          {
+            ...booking,
+            circuit: 'Brands Hatch',
+            circuitId: undefined,
+          },
+        ]}
+      />,
+      undefined,
+      ['/'],
+      hotelSearchLoader,
+    );
+
+    await user.click(screen.getByRole('button', { name: /find hotel/i }));
+    const searchInput = await screen.findByRole('textbox', { name: /hotel search/i });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'The Old House at Home');
+    await user.click(screen.getByRole('button', { name: /^search$/i }));
+
+    await waitFor(() => expect(hotelSearchLoader).toHaveBeenCalled());
+    const request = (hotelSearchLoader.mock.calls[0]?.[0] as LoaderFunctionArgs | undefined)
+      ?.request;
+    expect(request).toBeDefined();
+    const searchUrl = new URL(request!.url);
+    expect(searchUrl.searchParams.get('q')).toBe('The Old House at Home');
+    expect(searchUrl.searchParams.get('lat')).toBe('51.3569');
+    expect(searchUrl.searchParams.get('lon')).toBe('0.2631');
+    expect(searchUrl.searchParams.get('radiusMiles')).toBe('40');
   });
 
   it('submits the shared arrival time when saving a booking', async () => {

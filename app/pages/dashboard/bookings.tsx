@@ -59,6 +59,7 @@ import {
 } from '~/lib/bookings/accommodation';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
+import { getCircuitLocationForBooking } from '~/lib/circuits/locations';
 import { formatArrivalDateTime, resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
@@ -545,6 +546,7 @@ function HotelSelector({
   const hotelSource = selectedHotel?.source ?? 'manual';
   const showHotelFields = accommodationStatus === 'booked';
   const showTrackStayFields = accommodationStatus === 'staying_at_track';
+  const circuitLocation = getCircuitLocationForBooking(booking);
 
   const runSearch = () => {
     const trimmed = query.trim();
@@ -552,7 +554,14 @@ function HotelSelector({
       return;
     }
 
-    searchFetcher.load(`/api/hotels/search?q=${encodeURIComponent(trimmed)}`);
+    const params = new URLSearchParams({ q: trimmed });
+    if (circuitLocation) {
+      params.set('lat', String(circuitLocation.latitude));
+      params.set('lon', String(circuitLocation.longitude));
+      params.set('radiusMiles', '40');
+    }
+
+    searchFetcher.load(`/api/hotels/search?${params.toString()}`);
   };
 
   const selectHotel = (hotel: HotelSuggestion) => {
