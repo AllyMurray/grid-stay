@@ -26,6 +26,7 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
   IconAlertCircle,
   IconBuildingSkyscraper,
+  IconCalendarEvent,
   IconClock,
   IconLock,
   IconMapPin,
@@ -99,13 +100,7 @@ function parseBookingsView(value: string | null): MyBookingsView {
   return 'bookings';
 }
 
-function createBookingsViewHref({
-  view,
-  showPast,
-}: {
-  view: MyBookingsView;
-  showPast: boolean;
-}) {
+function createBookingsViewHref({ view, showPast }: { view: MyBookingsView; showPast: boolean }) {
   const params = new URLSearchParams();
   if (showPast) {
     params.set('showPast', 'true');
@@ -117,6 +112,10 @@ function createBookingsViewHref({
 
   const query = params.toString();
   return query ? `/dashboard/bookings?${query}` : '/dashboard/bookings';
+}
+
+function createBookingBriefingHref(bookingId: string) {
+  return `/dashboard/bookings/${encodeURIComponent(bookingId)}/briefing`;
 }
 
 interface HotelSearchResponse {
@@ -203,9 +202,7 @@ function bookingGarageSummary(booking: BookingRecord) {
 
 function bookingArrivalSummary(booking: BookingRecord) {
   const arrivalDateTime = resolveArrivalDateTime(booking);
-  return arrivalDateTime
-    ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}`
-    : null;
+  return arrivalDateTime ? `Arriving ${formatArrivalDateTime(arrivalDateTime)}` : null;
 }
 
 function garageRequestStatusColor(status: UserGarageShareRequest['status']) {
@@ -347,9 +344,7 @@ function BookingListItem({
   const garageSummary = bookingGarageSummary(booking);
   const arrivalSummary = bookingArrivalSummary(booking);
   const accommodationSummary =
-    booking.status === 'cancelled'
-      ? 'Cancelled trip'
-      : getAccommodationPlanSummary(booking);
+    booking.status === 'cancelled' ? 'Cancelled trip' : getAccommodationPlanSummary(booking);
 
   return (
     <UnstyledButton
@@ -1030,13 +1025,9 @@ function GarageSectionForm({
   const fetcher = useFetcher<BookingEditorActionResult>();
   const { dirty, markDirty, saved } = useSectionDirtyState(fetcher, onDirtyChange);
   const isSaving = fetcher.state !== 'idle';
-  const [garageBooked, setGarageBooked] = useState(
-    Boolean(booking.garageBooked),
-  );
-  const fieldErrors =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
-  const formError =
-    fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const [garageBooked, setGarageBooked] = useState(Boolean(booking.garageBooked));
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
   const incomingGarageRequests = garageShareRequests.filter(
     (request) =>
       request.isIncoming &&
@@ -1225,14 +1216,12 @@ function BookingEditorPanel({
     useDisclosure(false);
   const deleteFetcher = useFetcher<BookingEditorActionResult>();
   const isDeleting = deleteFetcher.state !== 'idle';
-  const [dirtyTabs, setDirtyTabs] = useState<Record<BookingEditorTab, boolean>>(
-    {
-      trip: false,
-      stay: false,
-      garage: false,
-      private: false,
-    },
-  );
+  const [dirtyTabs, setDirtyTabs] = useState<Record<BookingEditorTab, boolean>>({
+    trip: false,
+    stay: false,
+    garage: false,
+    private: false,
+  });
   const deleteFormError =
     deleteFetcher.data && !deleteFetcher.data.ok ? deleteFetcher.data.formError : null;
   const hasDirtyChanges = bookingEditorTabs.some((tab) => dirtyTabs[tab]);
@@ -1305,6 +1294,17 @@ function BookingEditorPanel({
               <Badge color={bookingColor(booking.status)} size="lg">
                 {titleCase(booking.status)}
               </Badge>
+              {booking.status !== 'cancelled' ? (
+                <Button
+                  component={Link}
+                  to={createBookingBriefingHref(booking.bookingId)}
+                  size="compact-sm"
+                  variant="light"
+                  leftSection={<IconCalendarEvent size={14} />}
+                >
+                  Open briefing
+                </Button>
+              ) : null}
               <Group gap="xs">
                 <Button
                   type="button"
@@ -1399,25 +1399,17 @@ export function MyBookingsPage({
   const [statusFilter, setStatusFilter] = useState<BookingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasEditorDirtyChanges, setHasEditorDirtyChanges] = useState(false);
-  const sortedBookings = useMemo(
-    () => [...bookings].toSorted(sortBookings),
-    [bookings],
-  );
+  const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const selectedBookingFromParam = useMemo(
     () =>
       selectedBookingParam
-        ? sortedBookings.find(
-            (booking) => booking.bookingId === selectedBookingParam,
-          )
+        ? sortedBookings.find((booking) => booking.bookingId === selectedBookingParam)
         : undefined,
     [selectedBookingParam, sortedBookings],
   );
   const showPastBookings =
     searchParams.get('showPast') === 'true' ||
-    Boolean(
-      selectedBookingFromParam?.date &&
-        selectedBookingFromParam.date < todayDate,
-    );
+    Boolean(selectedBookingFromParam?.date && selectedBookingFromParam.date < todayDate);
   const dateFilteredBookings = useMemo(
     () =>
       showPastBookings
@@ -1425,15 +1417,9 @@ export function MyBookingsPage({
         : sortedBookings.filter((booking) => booking.date >= todayDate),
     [showPastBookings, sortedBookings, todayDate],
   );
-  const bookedCount = dateFilteredBookings.filter(
-    (booking) => booking.status === 'booked',
-  ).length;
-  const maybeCount = dateFilteredBookings.filter(
-    (booking) => booking.status === 'maybe',
-  ).length;
-  const accommodationPlanCount = dateFilteredBookings.filter(
-    hasArrangedAccommodation,
-  ).length;
+  const bookedCount = dateFilteredBookings.filter((booking) => booking.status === 'booked').length;
+  const maybeCount = dateFilteredBookings.filter((booking) => booking.status === 'maybe').length;
+  const accommodationPlanCount = dateFilteredBookings.filter(hasArrangedAccommodation).length;
   const filteredBookings = useMemo(
     () =>
       dateFilteredBookings.filter((booking) => {
@@ -1456,8 +1442,7 @@ export function MyBookingsPage({
   const selectedIndex = selectedBooking
     ? filteredBookings.findIndex((booking) => booking.bookingId === selectedBooking.bookingId)
     : -1;
-  const editorOpen =
-    activeView === 'bookings' && (!isCompact || Boolean(selectedBookingParam));
+  const editorOpen = activeView === 'bookings' && (!isCompact || Boolean(selectedBookingParam));
   const selectedHotelId = selectedBooking?.hotelId ?? null;
   const selectedHotelInsight =
     selectedHotelId && hotelInsightsById[selectedHotelId]
@@ -1528,10 +1513,7 @@ export function MyBookingsPage({
       } else {
         nextParams.delete('showPast');
 
-        if (
-          selectedBookingFromParam?.date &&
-          selectedBookingFromParam.date < todayDate
-        ) {
+        if (selectedBookingFromParam?.date && selectedBookingFromParam.date < todayDate) {
           nextParams.delete('booking');
         }
       }
@@ -1539,13 +1521,7 @@ export function MyBookingsPage({
       setHasEditorDirtyChanges(false);
       setSearchParams(nextParams, { preventScrollReset: true });
     },
-    [
-      confirmDiscardEditor,
-      searchParams,
-      selectedBookingFromParam,
-      setSearchParams,
-      todayDate,
-    ],
+    [confirmDiscardEditor, searchParams, selectedBookingFromParam, setSearchParams, todayDate],
   );
 
   const selectBooking = useCallback(
@@ -1657,21 +1633,16 @@ export function MyBookingsPage({
       <Checkbox
         label="Show past dates"
         checked={showPastBookings}
-        onChange={(event) =>
-          updateShowPastBookings(event.currentTarget.checked)
-        }
+        onChange={(event) => updateShowPastBookings(event.currentTarget.checked)}
       />
       {showPastBookings ? (
         <Text size="sm" c="dimmed">
-          Showing all {bookings.length}{' '}
-          {bookings.length === 1 ? 'trip' : 'trips'}
+          Showing all {bookings.length} {bookings.length === 1 ? 'trip' : 'trips'}
         </Text>
       ) : (
         <Text size="sm" c="dimmed">
           Hiding {bookings.length - dateFilteredBookings.length} past{' '}
-          {bookings.length - dateFilteredBookings.length === 1
-            ? 'trip'
-            : 'trips'}
+          {bookings.length - dateFilteredBookings.length === 1 ? 'trip' : 'trips'}
         </Text>
       )}
     </Group>
@@ -1762,9 +1733,7 @@ export function MyBookingsPage({
   return (
     <Stack gap="xl">
       <PageHeader
-        eyebrow={
-          activeView === 'calendar' ? 'Trip calendar' : 'Booking management'
-        }
+        eyebrow={activeView === 'calendar' ? 'Trip calendar' : 'Booking management'}
         title="My Bookings"
         description={
           activeView === 'calendar'
@@ -1815,10 +1784,7 @@ export function MyBookingsPage({
             </Button>
           }
         />
-      ) : activeView === 'bookings' &&
-        isCompact &&
-        editorOpen &&
-        selectedBooking ? (
+      ) : activeView === 'bookings' && isCompact && editorOpen && selectedBooking ? (
         editorPanel
       ) : activeView === 'calendar' ? (
         <Stack gap="md">
@@ -1850,9 +1816,7 @@ export function MyBookingsPage({
         <Grid gap={{ base: 'md', sm: 'lg' }} align="start">
           <Grid.Col span={{ base: 12, lg: 4 }}>{bookingListPanel}</Grid.Col>
 
-          {!isCompact ? (
-            <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col>
-          ) : null}
+          {!isCompact ? <Grid.Col span={{ base: 12, lg: 8 }}>{editorPanel}</Grid.Col> : null}
         </Grid>
       )}
     </Stack>

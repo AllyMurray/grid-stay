@@ -270,6 +270,41 @@ export async function listUserDayNotifications(
   });
 }
 
+export async function listDayNotificationsForDay(
+  dayId: string,
+  userId: string,
+  dependencies: {
+    notificationStore?: DayNotificationPersistence;
+    readStore?: DayNotificationReadPersistence;
+    limit?: number;
+  } = {},
+): Promise<UserDayNotification[]> {
+  const notificationStore = dependencies.notificationStore ?? dayNotificationStore;
+  const readStore = dependencies.readStore ?? dayNotificationReadStore;
+  const [notifications, readRecords] = await Promise.all([
+    notificationStore.listAll(),
+    readStore.listByUser(userId),
+  ]);
+  const readByNotificationId = new Map(
+    readRecords.map((record) => [record.notificationId, record.readAt]),
+  );
+  const sorted = notifications
+    .filter((notification) => notification.dayId === dayId)
+    .toSorted(compareNotificationNewestFirst);
+  const limited =
+    dependencies.limit && dependencies.limit > 0 ? sorted.slice(0, dependencies.limit) : sorted;
+
+  return limited.map((notification) => {
+    const readAt = readByNotificationId.get(notification.notificationId);
+
+    return {
+      ...notification,
+      isRead: Boolean(readAt),
+      readAt,
+    };
+  });
+}
+
 export async function countUnreadDayNotifications(
   userId: string,
   dependencies: {
