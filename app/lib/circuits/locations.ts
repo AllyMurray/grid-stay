@@ -102,6 +102,35 @@ export const CIRCUIT_LOCATIONS_BY_ID = new Map(
   CIRCUIT_LOCATIONS.map((location) => [location.circuitId, location]),
 );
 
+function normalizeLocationName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+export const CIRCUIT_LOCATIONS_BY_NAME = new Map(
+  CIRCUIT_LOCATIONS.map((location) => [normalizeLocationName(location.name), location]),
+);
+
 export function getCircuitLocation(circuitId?: string) {
   return circuitId ? CIRCUIT_LOCATIONS_BY_ID.get(circuitId) : undefined;
+}
+
+export function getCircuitLocationByName(circuitName?: string) {
+  return circuitName ? CIRCUIT_LOCATIONS_BY_NAME.get(normalizeLocationName(circuitName)) : undefined;
+}
+
+export function getCircuitLocationForBooking(input: {
+  circuitId?: string;
+  circuit?: string;
+  circuitName?: string;
+}) {
+  return (
+    getCircuitLocation(input.circuitId) ??
+    getCircuitLocationByName(input.circuitName) ??
+    getCircuitLocationByName(input.circuit)
+  );
 }
