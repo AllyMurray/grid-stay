@@ -552,6 +552,10 @@ function createDayCostsHref(dayId: string) {
   return `/api/days/${encodeURIComponent(dayId)}/costs`;
 }
 
+function createBookingBriefingHref(bookingId: string) {
+  return `/dashboard/bookings/${encodeURIComponent(bookingId)}/briefing`;
+}
+
 function getAttendanceSummary(
   summaries: DaysFeedData['attendanceSummaries'],
   dayId: string,
@@ -2786,6 +2790,16 @@ function DayDetailContent({
                 </Badge>
               )}
               <DayProviderBookingLink day={day} />
+              {booking && booking.status !== 'cancelled' ? (
+                <Button
+                  component={Link}
+                  to={createBookingBriefingHref(booking.bookingId)}
+                  size="compact-sm"
+                  variant="light"
+                >
+                  Open briefing
+                </Button>
+              ) : null}
             </Group>
           </Stack>
 

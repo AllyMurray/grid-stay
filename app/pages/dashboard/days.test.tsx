@@ -1417,6 +1417,10 @@ describe('AvailableDaysPage', () => {
       'href',
       '/dashboard/bookings',
     );
+    expect(screen.getByRole('link', { name: /^open briefing$/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings/booking-1/briefing',
+    );
     expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
     expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
@@ -1432,10 +1436,8 @@ describe('AvailableDaysPage', () => {
           selectedDayPosition: 1,
           selectedDayPrevious: null,
           selectedDayNext: defaultData.days[1] ?? null,
-          selectedDaySummary:
-            defaultData.attendanceSummaries[selectedDay.dayId] ?? null,
-          selectedDayAttendance:
-            defaultAttendanceByDay[selectedDay.dayId] ?? null,
+          selectedDaySummary: defaultData.attendanceSummaries[selectedDay.dayId] ?? null,
+          selectedDayAttendance: defaultAttendanceByDay[selectedDay.dayId] ?? null,
         }}
       />,
       `/dashboard/days?day=${selectedDay.dayId}`,

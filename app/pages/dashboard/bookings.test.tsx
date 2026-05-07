@@ -144,16 +144,10 @@ describe('MyBookingsPage', () => {
 
   it('hides past bookings by default and shows them from the checkbox', async () => {
     const user = userEvent.setup();
-    renderWithProviders(
-      <MyBookingsPage bookings={[pastBooking, booking]} today="2026-05-01" />,
-    );
+    renderWithProviders(<MyBookingsPage bookings={[pastBooking, booking]} today="2026-05-01" />);
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Show past dates' }),
-    ).not.toBeChecked();
-    expect(
-      screen.queryByRole('button', { name: /oulton park/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Show past dates' })).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: /oulton park/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /silverstone/i })).toBeVisible();
     expect(screen.getByText('Hiding 1 past trip')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^calendar$/i })).toHaveAttribute(
@@ -163,9 +157,7 @@ describe('MyBookingsPage', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Show past dates' }));
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Show past dates' }),
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Show past dates' })).toBeChecked();
     expect(screen.getByRole('button', { name: /oulton park/i })).toBeVisible();
     expect(screen.getByText('Showing all 2 trips')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^calendar$/i })).toHaveAttribute(
@@ -181,12 +173,8 @@ describe('MyBookingsPage', () => {
       '/?booking=booking-past',
     );
 
-    expect(
-      screen.getByRole('checkbox', { name: 'Show past dates' }),
-    ).toBeChecked();
-    expect(
-      screen.getByRole('heading', { name: 'Oulton Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Show past dates' })).toBeChecked();
+    expect(screen.getByRole('heading', { name: 'Oulton Park' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('REF-PAST')).toBeInTheDocument();
   });
 
@@ -200,17 +188,17 @@ describe('MyBookingsPage', () => {
     expect(screen.getByRole('img', { name: '1 confirmed, 1 maybe' })).toBeInTheDocument();
     expect(screen.getByText('2 with accommodation')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /donington park/i }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: /donington park/i })).toBeVisible();
     expect(screen.getByText('Trip plan')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^open briefing$/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings/booking-1/briefing',
+    );
     expect(screen.getByText('Stay and arrival')).toBeInTheDocument();
     expect(screen.getByText('Garage sharing')).toBeInTheDocument();
     expect(screen.getByText('Private to you')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save trip/i })).toBeVisible();
-    expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText(/visible only to you/i).length).toBeGreaterThan(0);
     expect(screen.getByDisplayValue('REF-123')).toBeInTheDocument();
     expect(screen.getByText('Sat 2 May 2026, 20:00')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue('Trackside Hotel');
@@ -319,13 +307,8 @@ describe('MyBookingsPage', () => {
     await user.click(accommodationPlan);
     await user.keyboard('{ArrowUp}{ArrowUp}{Enter}');
 
-    await user.type(
-      screen.getByRole('textbox', { name: /track stay details/i }),
-      'TentBox',
-    );
-    expect(
-      screen.getByText(/camping, campervan, tentbox/i),
-    ).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: /track stay details/i }), 'TentBox');
+    expect(screen.getByText(/camping, campervan, tentbox/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /save stay/i }));
 
@@ -461,13 +444,9 @@ describe('MyBookingsPage', () => {
 
     await user.click(screen.getByRole('button', { name: /donington park/i }));
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue(
-      'Paddock Lodge',
-    );
+    expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue('Paddock Lodge');
     expect(screen.queryByDisplayValue('REF-123')).not.toBeInTheDocument();
   });
 
@@ -478,12 +457,8 @@ describe('MyBookingsPage', () => {
     await user.click(screen.getByRole('combobox', { name: /filter trips by status/i }));
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
 
-    expect(
-      screen.queryByRole('button', { name: /silverstone/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /silverstone/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
   });
 
@@ -494,9 +469,7 @@ describe('MyBookingsPage', () => {
       '/?booking=booking-2',
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Donington Park' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Donington Park' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('REF-999')).toBeInTheDocument();
   });
 
@@ -524,17 +497,12 @@ describe('MyBookingsPage', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderWithProviders(<MyBookingsPage bookings={[booking, secondBooking]} />);
 
-    await user.type(
-      screen.getByRole('textbox', { name: /private notes/i }),
-      ' updated',
-    );
+    await user.type(screen.getByRole('textbox', { name: /private notes/i }), ' updated');
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /donington park/i }));
 
-    expect(confirm).toHaveBeenCalledWith(
-      'Discard unsaved changes for this booking?',
-    );
+    expect(confirm).toHaveBeenCalledWith('Discard unsaved changes for this booking?');
     expect(screen.getByText('Private to you')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Silverstone' })).toBeVisible();
   });

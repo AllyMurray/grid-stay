@@ -24,6 +24,7 @@ import {
   countUnreadDayNotifications,
   createAvailableDayNotifications,
   findNewAvailableDays,
+  listDayNotificationsForDay,
   listUserDayNotifications,
   markAllDayNotificationsRead,
 } from './day-notification.server';
@@ -136,6 +137,59 @@ describe('day notification service', () => {
       isRead: true,
       readAt: '2026-02-02T09:00:00.000Z',
     });
+  });
+
+  it('lists updates for one day with user read state', async () => {
+    const notifications = await listDayNotificationsForDay('day-1', 'user-1', {
+      notificationStore: {
+        putMany: vi.fn(),
+        listAll: vi.fn(async () => [
+          {
+            scope: 'available-days',
+            notificationId: 'changed-day#day-2',
+            type: 'changed_available_day',
+            dayId: 'day-2',
+            date: '2026-05-02',
+            dayType: 'race_day',
+            circuit: 'Brands Hatch',
+            provider: 'MSV',
+            description: 'Updated fields: date',
+            createdAt: '2026-04-01T09:00:00.000Z',
+          },
+          {
+            scope: 'available-days',
+            notificationId: 'changed-day#day-1',
+            type: 'changed_available_day',
+            dayId: 'day-1',
+            date: '2026-05-01',
+            dayType: 'race_day',
+            circuit: 'Silverstone',
+            provider: 'MSV',
+            description: 'Updated fields: circuit',
+            createdAt: '2026-04-02T09:00:00.000Z',
+          },
+        ]),
+      } as never,
+      readStore: {
+        putMany: vi.fn(),
+        listByUser: vi.fn(async () => [
+          {
+            userId: 'user-1',
+            notificationId: 'changed-day#day-1',
+            readAt: '2026-04-03T09:00:00.000Z',
+          },
+        ]),
+      } as never,
+    });
+
+    expect(notifications).toEqual([
+      expect.objectContaining({
+        notificationId: 'changed-day#day-1',
+        dayId: 'day-1',
+        isRead: true,
+        readAt: '2026-04-03T09:00:00.000Z',
+      }),
+    ]);
   });
 
   it('filters user notifications by their saved notification view', async () => {

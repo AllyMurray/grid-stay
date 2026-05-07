@@ -36,6 +36,10 @@ export default [
     route('dashboard/whats-new', 'routes/dashboard/whats-new.tsx'),
     route('dashboard/group-calendar', 'routes/dashboard/group-calendar.tsx'),
     route('dashboard/schedule', 'routes/dashboard/schedule.tsx'),
+    route(
+      'dashboard/bookings/:bookingId/briefing',
+      'routes/dashboard/bookings.$bookingId.briefing.tsx',
+    ),
     route('dashboard/bookings', 'routes/dashboard/bookings.tsx'),
     route('dashboard/hotels', 'routes/dashboard/hotels.tsx'),
     route('dashboard/hotels/:hotelId', 'routes/dashboard/hotels.$hotelId.tsx'),
