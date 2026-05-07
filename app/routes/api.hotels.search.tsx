@@ -31,6 +31,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const parsed = HotelSearchQuerySchema.safeParse({
     q: url.searchParams.get('q') ?? '',
+    lat: url.searchParams.get('lat'),
+    lon: url.searchParams.get('lon'),
+    radiusMiles: url.searchParams.get('radiusMiles'),
   });
 
   if (!parsed.success) {
@@ -60,8 +63,18 @@ export async function loader({ request }: Route.LoaderArgs) {
   let providerError: string | null = null;
 
   try {
+    const location =
+      parsed.data.lat !== undefined && parsed.data.lon !== undefined
+        ? {
+            latitude: parsed.data.lat,
+            longitude: parsed.data.lon,
+            radiusMiles: parsed.data.radiusMiles,
+          }
+        : undefined;
+
     providerSuggestions = await searchGeoapifyHotels(parsed.data.q, {
       limit: 8,
+      ...(location ? { location } : {}),
     });
   } catch (error) {
     providerError =

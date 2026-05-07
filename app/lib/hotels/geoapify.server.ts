@@ -6,6 +6,21 @@ const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
 const GEOAPIFY_ATTRIBUTION = 'Hotel data powered by Geoapify. © OpenStreetMap contributors.';
 const ACCOMMODATION_CATEGORY_PREFIX = 'accommodation';
 const GENERIC_ACCOMMODATION_WORDS = /\b(hotel|hotels|accommodation|spa)\b|&/gi;
+const DEFAULT_LOCATION_RADIUS_MILES = 40;
+const METERS_PER_MILE = 1609.344;
+const EARTH_RADIUS_METERS = 6371000;
+
+export interface GeoapifyHotelSearchLocation {
+  latitude: number;
+  longitude: number;
+  radiusMiles?: number;
+}
+
+interface NormalizedSearchLocation {
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+}
 
 interface GeoapifyAutocompleteResult {
   place_id?: string;
@@ -53,6 +68,71 @@ function getGeoapifyApiKey() {
 
 function isAccommodation(result: GeoapifyAutocompleteResult) {
   return result.categories?.some((category) => category.startsWith(ACCOMMODATION_CATEGORY_PREFIX));
+}
+
+function normaliseSearchLocation(location?: GeoapifyHotelSearchLocation) {
+  if (
+    !location ||
+    !Number.isFinite(location.latitude) ||
+    !Number.isFinite(location.longitude)
+  ) {
+    return undefined;
+  }
+
+  const radiusMiles =
+    location.radiusMiles && Number.isFinite(location.radiusMiles)
+      ? Math.min(Math.max(location.radiusMiles, 1), 100)
+      : DEFAULT_LOCATION_RADIUS_MILES;
+
+  return {
+    latitude: location.latitude,
+    longitude: location.longitude,
+    radiusMeters: Math.round(radiusMiles * METERS_PER_MILE),
+  };
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function getDistanceMeters(
+  first: { latitude: number; longitude: number },
+  second: { latitude: number; longitude: number },
+) {
+  const latDelta = toRadians(second.latitude - first.latitude);
+  const lonDelta = toRadians(second.longitude - first.longitude);
+  const firstLat = toRadians(first.latitude);
+  const secondLat = toRadians(second.latitude);
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(firstLat) * Math.cos(secondLat) * Math.sin(lonDelta / 2) ** 2;
+
+  return 2 * EARTH_RADIUS_METERS * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+function isInsideSearchLocation(
+  result: GeoapifyAutocompleteResult,
+  location?: NormalizedSearchLocation,
+) {
+  if (!location) {
+    return true;
+  }
+
+  if (
+    typeof result.lat !== 'number' ||
+    typeof result.lon !== 'number' ||
+    !Number.isFinite(result.lat) ||
+    !Number.isFinite(result.lon)
+  ) {
+    return false;
+  }
+
+  return (
+    getDistanceMeters(location, {
+      latitude: result.lat,
+      longitude: result.lon,
+    }) <= location.radiusMeters
+  );
 }
 
 function getHotelName(result: GeoapifyAutocompleteResult) {
@@ -151,9 +231,34 @@ function toSuggestion(result: GeoapifyAutocompleteResult): HotelSuggestion {
   };
 }
 
+function setLocationSearchParams(url: URL, location?: NormalizedSearchLocation) {
+  if (!location) {
+    return;
+  }
+
+  url.searchParams.set(
+    'filter',
+    `circle:${location.longitude},${location.latitude},${location.radiusMeters}`,
+  );
+  url.searchParams.set('bias', `proximity:${location.longitude},${location.latitude}`);
+}
+
+function toAccommodationSuggestions(
+  results: GeoapifyAutocompleteResult[],
+  location?: NormalizedSearchLocation,
+) {
+  return results
+    .filter(
+      (result) =>
+        isAccommodation(result) && getHotelName(result) && isInsideSearchLocation(result, location),
+    )
+    .map(toSuggestion);
+}
+
 function buildAutocompleteUrl(input: {
   apiKey: string;
   limit: number;
+  location?: NormalizedSearchLocation;
   query: string;
   type?: string;
 }) {
@@ -164,6 +269,7 @@ function buildAutocompleteUrl(input: {
   }
   url.searchParams.set('format', 'json');
   url.searchParams.set('limit', String(input.limit));
+  setLocationSearchParams(url, input.location);
   url.searchParams.set('apiKey', input.apiKey);
   return url;
 }
@@ -172,6 +278,7 @@ async function fetchAutocompleteResults(input: {
   apiKey: string;
   fetcher: typeof fetch;
   limit: number;
+  location?: NormalizedSearchLocation;
   query: string;
   type?: string;
 }) {
@@ -184,10 +291,19 @@ async function fetchAutocompleteResults(input: {
   return data.results ?? [];
 }
 
-function buildPlacesUrl(input: { apiKey: string; limit: number; name: string; placeId: string }) {
+function buildPlacesUrl(input: {
+  apiKey: string;
+  limit: number;
+  location?: NormalizedSearchLocation;
+  name: string;
+  placeId?: string;
+}) {
   const url = new URL(GEOAPIFY_PLACES_URL);
   url.searchParams.set('categories', ACCOMMODATION_CATEGORY_PREFIX);
-  url.searchParams.set('filter', `place:${input.placeId}`);
+  if (input.placeId) {
+    url.searchParams.set('filter', `place:${input.placeId}`);
+  }
+  setLocationSearchParams(url, input.location);
   url.searchParams.set('name', input.name);
   url.searchParams.set('limit', String(input.limit));
   url.searchParams.set('apiKey', input.apiKey);
@@ -198,8 +314,27 @@ async function fetchAccommodationInsidePlace(input: {
   apiKey: string;
   fetcher: typeof fetch;
   limit: number;
+  location?: NormalizedSearchLocation;
   name: string;
   placeId: string;
+}) {
+  const response = await input.fetcher(buildPlacesUrl(input));
+  if (!response.ok) {
+    throw new Error(`Geoapify hotel search failed with ${response.status}`);
+  }
+
+  const data = (await response.json()) as GeoapifyPlacesResponse;
+  return (data.features ?? [])
+    .map((feature) => feature.properties)
+    .filter((result): result is GeoapifyAutocompleteResult => Boolean(result));
+}
+
+async function fetchAccommodationNearLocation(input: {
+  apiKey: string;
+  fetcher: typeof fetch;
+  limit: number;
+  location: NormalizedSearchLocation;
+  name: string;
 }) {
   const response = await input.fetcher(buildPlacesUrl(input));
   if (!response.ok) {
@@ -287,6 +422,7 @@ export async function searchGeoapifyHotels(
     limit?: number;
     fetcher?: typeof fetch;
     apiKey?: string;
+    location?: GeoapifyHotelSearchLocation;
   } = {},
 ): Promise<HotelSuggestion[]> {
   const trimmedQuery = query.trim();
@@ -298,33 +434,43 @@ export async function searchGeoapifyHotels(
 
   const fetcher = options.fetcher ?? fetch;
   const limit = options.limit ?? 8;
+  const location = normaliseSearchLocation(options.location);
   const results = await fetchAutocompleteResults({
     apiKey,
     fetcher,
     limit,
+    location,
     query: trimmedQuery,
     type: 'amenity',
   });
-  const suggestions = results
-    .filter((result) => isAccommodation(result) && getHotelName(result))
-    .map(toSuggestion);
+  const suggestions = toAccommodationSuggestions(results, location);
 
   if (suggestions.length > 0) {
-    return suggestions;
+    return dedupeSuggestions(suggestions).slice(0, limit);
   }
 
   const broadResults = await fetchAutocompleteResults({
     apiKey,
     fetcher,
     limit,
+    location,
     query: trimmedQuery,
   });
-  const broadSuggestions = broadResults
-    .filter((result) => isAccommodation(result) && getHotelName(result))
-    .map(toSuggestion);
+  const broadSuggestions = toAccommodationSuggestions(broadResults, location);
 
   if (broadSuggestions.length > 0) {
-    return dedupeSuggestions(broadSuggestions);
+    return dedupeSuggestions(broadSuggestions).slice(0, limit);
+  }
+
+  if (location) {
+    const nearbyResults = await fetchAccommodationNearLocation({
+      apiKey,
+      fetcher,
+      limit,
+      location,
+      name: trimmedQuery,
+    });
+    return dedupeSuggestions(toAccommodationSuggestions(nearbyResults, location)).slice(0, limit);
   }
 
   return searchAccommodationByPlaceFallback({

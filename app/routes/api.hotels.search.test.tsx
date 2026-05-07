@@ -117,4 +117,31 @@ describe('hotel search resource route', () => {
       limit: 8,
     });
   });
+
+  it('passes circuit location context through to Geoapify', async () => {
+    searchHotelCatalogue.mockResolvedValue([]);
+    searchGeoapifyHotels.mockResolvedValue([]);
+
+    const response = (await loader({
+      request: new Request(
+        'https://gridstay.app/api/hotels/search?q=The%20Old%20House%20at%20Home&lat=51.493&lon=-2.2156&radiusMiles=40',
+      ),
+      params: {},
+      context: {},
+    } as never)) as Response;
+
+    await expect(response.json()).resolves.toEqual({
+      suggestions: [],
+      providerAvailable: true,
+      providerError: null,
+    });
+    expect(searchGeoapifyHotels).toHaveBeenCalledWith('The Old House at Home', {
+      limit: 8,
+      location: {
+        latitude: 51.493,
+        longitude: -2.2156,
+        radiusMiles: 40,
+      },
+    });
+  });
 });

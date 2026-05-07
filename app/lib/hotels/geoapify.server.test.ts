@@ -3,7 +3,7 @@ import { searchGeoapifyHotels } from './geoapify.server';
 
 describe('Geoapify hotel lookup', () => {
   it('returns accommodation suggestions with attribution', async () => {
-    const fetcher = vi.fn(async () =>
+    const fetcher = vi.fn(async (_url: URL) =>
       Response.json({
         results: [
           {
@@ -190,5 +190,111 @@ describe('Geoapify hotel lookup', () => {
     expect(fetcher.mock.calls[2][0].searchParams.get('text')).toBe('Brands Hatch');
     expect(fetcher.mock.calls[3][0].searchParams.get('filter')).toBe('place:brands-hatch');
     expect(fetcher.mock.calls[3][0].searchParams.get('name')).toBe('Mercure');
+  });
+
+  it('biases and filters provider hotel results around the circuit location', async () => {
+    const fetcher = vi.fn(async (_url: URL) =>
+      Response.json({
+        results: [
+          {
+            place_id: 'amsterdam-hotel',
+            name: 'The Old House at Home',
+            formatted: 'Amsterdam, Netherlands',
+            postcode: '1054 MC',
+            country: 'Netherlands',
+            lat: 52.3676,
+            lon: 4.9041,
+            categories: ['accommodation.hotel'],
+          },
+          {
+            place_id: 'old-house-near-castle-combe',
+            name: 'The Old House at Home',
+            formatted: 'The Street, Burton, Chippenham, SN14 7LT, United Kingdom',
+            postcode: 'SN14 7LT',
+            country: 'United Kingdom',
+            lat: 51.5147,
+            lon: -2.2449,
+            categories: ['accommodation.hotel'],
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      searchGeoapifyHotels('The Old House at Home', {
+        apiKey: 'geoapify-key',
+        fetcher: fetcher as never,
+        location: {
+          latitude: 51.493,
+          longitude: -2.2156,
+          radiusMiles: 40,
+        },
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        name: 'The Old House at Home',
+        postcode: 'SN14 7LT',
+        country: 'United Kingdom',
+        sourcePlaceId: 'old-house-near-castle-combe',
+      }),
+    ]);
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const firstRequestUrl = fetcher.mock.calls[0]?.[0] as URL | undefined;
+    expect(firstRequestUrl?.searchParams.get('filter')).toBe('circle:-2.2156,51.493,64374');
+    expect(firstRequestUrl?.searchParams.get('bias')).toBe('proximity:-2.2156,51.493');
+  });
+
+  it('does not fall back to global provider searches when circuit location is known', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          results: [
+            {
+              place_id: 'amsterdam-hotel',
+              name: 'The Old House at Home',
+              formatted: 'Amsterdam, Netherlands',
+              postcode: '1054 MC',
+              country: 'Netherlands',
+              lat: 52.3676,
+              lon: 4.9041,
+              categories: ['accommodation.hotel'],
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          results: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          features: [],
+        }),
+      );
+
+    await expect(
+      searchGeoapifyHotels('The Old House at Home', {
+        apiKey: 'geoapify-key',
+        fetcher: fetcher as never,
+        location: {
+          latitude: 51.493,
+          longitude: -2.2156,
+          radiusMiles: 40,
+        },
+      }),
+    ).resolves.toEqual([]);
+
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(
+      fetcher.mock.calls.map((call) => call[0].searchParams.get('filter')),
+    ).toEqual([
+      'circle:-2.2156,51.493,64374',
+      'circle:-2.2156,51.493,64374',
+      'circle:-2.2156,51.493,64374',
+    ]);
+    expect(fetcher.mock.calls[2][0].searchParams.get('name')).toBe('The Old House at Home');
   });
 });

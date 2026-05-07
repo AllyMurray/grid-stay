@@ -13,6 +13,13 @@ const OptionalCoordinateSchema = z.preprocess(
   z.coerce.number().finite().optional(),
 );
 
+function optionalBoundedNumber(min: number, max: number) {
+  return z.preprocess(
+    (value) => (value === '' || value == null ? undefined : value),
+    z.coerce.number().finite().min(min).max(max).optional(),
+  );
+}
+
 export const HotelSelectionSchema = z.object({
   hotelId: OptionalStringSchema,
   hotelName: z.string().trim().max(120).optional(),
@@ -28,6 +35,9 @@ export const HotelSelectionSchema = z.object({
 
 export const HotelSearchQuerySchema = z.object({
   q: z.string().trim().min(2).max(80),
+  lat: optionalBoundedNumber(-90, 90),
+  lon: optionalBoundedNumber(-180, 180),
+  radiusMiles: optionalBoundedNumber(1, 100),
 });
 
 export const HotelReviewSchema = z.object({
