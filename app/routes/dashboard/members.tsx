@@ -22,7 +22,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const { user, headers } = await requireUser(request);
   const formData = await request.formData();
-  const result = await submitMemberInviteAction(formData, user);
+  const result = await submitMemberInviteAction(formData, user, undefined, { request });
 
   if (result.ok) {
     const intent = formData.get('intent')?.toString() ?? 'createInvite';

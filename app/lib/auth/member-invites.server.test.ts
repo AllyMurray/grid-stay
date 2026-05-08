@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { MemberInviteRecord } from '~/lib/db/entities/member-invite.server';
 import type { User } from './schemas';
 
-const { acceptMemberJoinLink, canUseMemberJoinLinkForAccountCreation } = vi.hoisted(() => ({
-  acceptMemberJoinLink: vi.fn(),
-  canUseMemberJoinLinkForAccountCreation: vi.fn(),
-}));
+const { acceptMemberJoinLink, canUseMemberJoinLinkForAccountCreation, sendMemberInviteEmail } =
+  vi.hoisted(() => ({
+    acceptMemberJoinLink: vi.fn(),
+    canUseMemberJoinLinkForAccountCreation: vi.fn(),
+    sendMemberInviteEmail: vi.fn(),
+  }));
 
 vi.mock('~/lib/db/entities/member-invite.server', () => ({
   MemberInviteEntity: {
@@ -23,6 +25,10 @@ vi.mock('~/lib/db/entities/member-invite.server', () => ({
 vi.mock('./member-join-links.server', () => ({
   acceptMemberJoinLink,
   canUseMemberJoinLinkForAccountCreation,
+}));
+
+vi.mock('~/lib/email/member-invite.server', () => ({
+  sendMemberInviteEmail,
 }));
 
 import {
@@ -87,11 +93,14 @@ describe('member invite helpers', () => {
     acceptMemberJoinLink.mockResolvedValue({ ok: false, reason: 'not_found' });
     canUseMemberJoinLinkForAccountCreation.mockReset();
     canUseMemberJoinLinkForAccountCreation.mockResolvedValue(false);
+    sendMemberInviteEmail.mockReset();
+    sendMemberInviteEmail.mockResolvedValue(undefined);
   });
 
   beforeEach(() => {
     acceptMemberJoinLink.mockResolvedValue({ ok: false, reason: 'not_found' });
     canUseMemberJoinLinkForAccountCreation.mockResolvedValue(false);
+    sendMemberInviteEmail.mockResolvedValue(undefined);
   });
 
   it('creates normalized pending invites', async () => {
@@ -117,12 +126,62 @@ describe('member invite helpers', () => {
 
     expect(result).toMatchObject({
       ok: true,
-      message: 'driver@team.co.uk can now sign in.',
+      emailSent: true,
+      message: 'driver@team.co.uk has been invited by email.',
       invite: {
         inviteEmail: 'driver@team.co.uk',
         status: 'pending',
       },
     });
+    expect(sendMemberInviteEmail).toHaveBeenCalledWith({
+      expiresAt: expect.any(String),
+      invitedByName: 'Driver One',
+      request: undefined,
+      to: 'driver@team.co.uk',
+    });
+  });
+
+  it('keeps the invite when the invite email cannot be sent', async () => {
+    sendMemberInviteEmail.mockRejectedValueOnce(new Error('SES down'));
+    const memory = createMemoryStore();
+    const formData = new FormData();
+    formData.set('email', 'driver@team.co.uk');
+
+    const result = await submitMemberInvite(formData, inviter, memory.store);
+
+    expect(result).toMatchObject({
+      ok: true,
+      emailSent: false,
+      message: 'driver@team.co.uk can now sign in, but the invite email could not be sent.',
+    });
+    expect(memory.records[0]).toMatchObject({
+      inviteEmail: 'driver@team.co.uk',
+      status: 'pending',
+    });
+  });
+
+  it('does not email when another member already owns the pending invite', async () => {
+    const memory = createMemoryStore([
+      {
+        inviteEmail: 'new.driver@example.com',
+        inviteScope: 'member',
+        invitedByUserId: 'user-2',
+        invitedByName: 'Driver Two',
+        status: 'pending',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-01T10:00:00.000Z',
+      } as MemberInviteRecord,
+    ]);
+    const formData = new FormData();
+    formData.set('email', 'new.driver@example.com');
+
+    const result = await submitMemberInvite(formData, inviter, memory.store);
+
+    expect(result).toMatchObject({
+      ok: true,
+      message: 'new.driver@example.com already has a pending invite.',
+    });
+    expect(sendMemberInviteEmail).not.toHaveBeenCalled();
   });
 
   it('does not transfer another member pending invite when re-invited', async () => {

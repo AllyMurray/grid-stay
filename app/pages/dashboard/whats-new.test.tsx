@@ -25,11 +25,21 @@ describe('WhatsNewPage', () => {
     expect(screen.queryByRole('link', { name: /open leaderboard/i })).toBeNull();
     expect(
       screen.getByRole('heading', {
+        name: 'Member invites now send an email',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/invites are still email-specific/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /open members/i })[0]).toHaveAttribute(
+      'href',
+      '/dashboard/members',
+    );
+    expect(
+      screen.getByRole('heading', {
         name: 'Pending invites are now private to the sender',
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/the Members page shows your pending invites only/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open members/i })[0]).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /open members/i })[1]).toHaveAttribute(
       'href',
       '/dashboard/members',
     );

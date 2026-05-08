@@ -32,7 +32,7 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get('intent')?.toString() ?? 'createInvite';
 
   if (intent === 'createInvite' || intent === 'revokeInvite') {
-    const result = await submitMemberInviteAction(formData, user);
+    const result = await submitMemberInviteAction(formData, user, undefined, { request });
 
     if (result.ok) {
       await recordAppEventSafely({

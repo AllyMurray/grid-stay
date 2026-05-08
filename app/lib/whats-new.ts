@@ -4,6 +4,7 @@ import {
   IconCarGarage,
   IconCreditCard,
   IconLock,
+  IconMail,
   IconMessageCircle,
   IconRoute,
   IconSparkles,
@@ -25,6 +26,23 @@ export interface WhatsNewEntry {
 }
 
 export const whatsNewEntries: WhatsNewEntry[] = [
+  {
+    id: 'member-invite-emails',
+    title: 'Member invites now send an email',
+    publishedAt: '2026-05-08T09:30:00.000Z',
+    dateLabel: '8 May 2026',
+    category: 'Members',
+    description:
+      'Invited members now receive a branded Grid Stay email with the sign-in link and guidance on which email address to use.',
+    highlights: [
+      'Invites are still email-specific, so access remains tied to the invited address.',
+      'The email explains that members can sign in with Google or create a password account.',
+      'If email delivery fails, the invite is still saved and the app reports the send problem.',
+    ],
+    href: '/dashboard/members',
+    actionLabel: 'Open members',
+    icon: IconMail,
+  },
   {
     id: 'private-member-invites',
     title: 'Pending invites are now private to the sender',

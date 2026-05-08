@@ -4,6 +4,10 @@ import {
   type MemberInviteRecord,
 } from '~/lib/db/entities/member-invite.server';
 import {
+  sendMemberInviteEmail,
+  type SendMemberInviteEmailInput,
+} from '~/lib/email/member-invite.server';
+import {
   hasGmailAliasSemantics,
   isAdminUser,
   isBootstrapMemberEmail,
@@ -36,9 +40,17 @@ export interface MemberInvitePersistence {
   listAll(): Promise<MemberInviteRecord[]>;
 }
 
+type SendMemberInviteEmail = (input: SendMemberInviteEmailInput) => Promise<void>;
+
+interface MemberInviteActionOptions {
+  request?: Request;
+  sendEmail?: SendMemberInviteEmail;
+}
+
 export type MemberInviteActionResult =
   | {
       ok: true;
+      emailSent?: boolean;
       message: string;
       invite: MemberInviteSummary;
     }
@@ -471,6 +483,7 @@ export async function submitMemberInvite(
   formData: FormData,
   invitedBy: User,
   store: MemberInvitePersistence = memberInviteStore,
+  options: MemberInviteActionOptions = {},
 ): Promise<MemberInviteActionResult> {
   const parsed = MemberInviteInputSchema.safeParse(Object.fromEntries(formData));
 
@@ -494,15 +507,44 @@ export async function submitMemberInvite(
 
   const result = await createMemberInvite(parsed.data.email, invitedBy, store);
   const invite = toMemberInviteSummary(result.invite);
+  let emailSent: boolean | undefined;
+
+  if (
+    invite.status === 'pending' &&
+    (result.created || result.invite.invitedByUserId === invitedBy.id || isAdminUser(invitedBy))
+  ) {
+    try {
+      await (options.sendEmail ?? sendMemberInviteEmail)({
+        expiresAt: invite.expiresAt,
+        invitedByName: invitedBy.name,
+        request: options.request,
+        to: invite.inviteEmail,
+      });
+      emailSent = true;
+    } catch (error) {
+      emailSent = false;
+      console.error('Failed to send member invite email', {
+        error,
+        inviteEmail: invite.inviteEmail,
+      });
+    }
+  }
 
   return {
     ok: true,
+    emailSent,
     message:
       invite.status === 'accepted'
         ? `${invite.inviteEmail} is already a member.`
-        : result.created
-          ? `${invite.inviteEmail} can now sign in.`
-          : `${invite.inviteEmail} already has a pending invite.`,
+        : emailSent === true
+          ? result.created
+            ? `${invite.inviteEmail} has been invited by email.`
+            : `${invite.inviteEmail} has been emailed again.`
+          : emailSent === false
+            ? `${invite.inviteEmail} can now sign in, but the invite email could not be sent.`
+            : result.created
+              ? `${invite.inviteEmail} can now sign in.`
+              : `${invite.inviteEmail} already has a pending invite.`,
     invite,
   };
 }
@@ -511,6 +553,7 @@ export async function submitMemberInviteAction(
   formData: FormData,
   invitedBy: User,
   store: MemberInvitePersistence = memberInviteStore,
+  options: MemberInviteActionOptions = {},
 ): Promise<MemberInviteActionResult> {
   const intent = formData.get('intent')?.toString() ?? 'createInvite';
 
@@ -518,5 +561,5 @@ export async function submitMemberInviteAction(
     return submitRevokeMemberInvite(formData, invitedBy, store);
   }
 
-  return submitMemberInvite(formData, invitedBy, store);
+  return submitMemberInvite(formData, invitedBy, store, options);
 }
