@@ -50,6 +50,7 @@ import type {
   DaysFeedData,
   DaysIndexData,
 } from '~/lib/days/dashboard-feed.server';
+import { EVENT_BRIEFING_FEATURE, type BetaFeatureSettings } from '~/lib/beta-features/config';
 import type { JourneyPlannerResult } from '~/lib/days/journey-planner';
 import type { DaysPreferenceActionResult, SavedDaysFilters } from '~/lib/days/preferences.server';
 import type { SharedDayPlan, SharedDayPlanActionResult } from '~/lib/days/shared-plan.server';
@@ -67,6 +68,7 @@ import type { MemberEventActionResult } from '~/lib/db/services/member-event.ser
 import type { GarageShareRequestActionResult } from '~/lib/garage-sharing/actions.server';
 
 export interface AvailableDaysPageProps {
+  betaFeatures?: BetaFeatureSettings;
   data: DaysIndexData;
 }
 
@@ -2736,6 +2738,7 @@ function DayDetailContent({
   day,
   summary,
   booking,
+  eventBriefingEnabled,
   series,
   sharedPlan,
   costSummary,
@@ -2747,6 +2750,7 @@ function DayDetailContent({
   day: DayRow;
   summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
+  eventBriefingEnabled: boolean;
   series?: DaysIndexData['raceSeriesByDayId'][string];
   sharedPlan?: SharedDayPlan | null;
   costSummary?: EventCostSummary | null;
@@ -2790,7 +2794,7 @@ function DayDetailContent({
                 </Badge>
               )}
               <DayProviderBookingLink day={day} />
-              {booking && booking.status !== 'cancelled' ? (
+              {eventBriefingEnabled && booking && booking.status !== 'cancelled' ? (
                 <Button
                   component={Link}
                   to={createBookingBriefingHref(booking.bookingId)}
@@ -3027,6 +3031,7 @@ function DayDetailPanel({
   day,
   summary,
   booking,
+  eventBriefingEnabled,
   series,
   sharedPlan,
   costSummary,
@@ -3038,6 +3043,7 @@ function DayDetailPanel({
   day: DayRow;
   summary: DayAttendanceSummaryPreview;
   booking?: DayBookingSnapshot;
+  eventBriefingEnabled: boolean;
   series?: DaysIndexData['raceSeriesByDayId'][string];
   sharedPlan?: SharedDayPlan | null;
   costSummary?: EventCostSummary | null;
@@ -3052,6 +3058,7 @@ function DayDetailPanel({
         day={day}
         summary={summary}
         booking={booking}
+        eventBriefingEnabled={eventBriefingEnabled}
         series={series}
         sharedPlan={sharedPlan}
         costSummary={costSummary}
@@ -3064,7 +3071,7 @@ function DayDetailPanel({
   );
 }
 
-export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
+export function AvailableDaysPage({ betaFeatures, data }: AvailableDaysPageProps) {
   const [searchParams] = useSearchParams();
   const feedFetcher = useFetcher<DaysFeedData>();
   const attendanceFetcher = useFetcher<DayAttendanceDetails>();
@@ -3091,6 +3098,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
   const pendingCostDayIdRef = useRef<string | null>(null);
   const processedOffsetsRef = useRef(new Set<number>([data.offset]));
   const activeFilterCount = countActiveFilters(data.filters);
+  const eventBriefingEnabled = betaFeatures?.[EVENT_BRIEFING_FEATURE] ?? false;
   const savedFilterCount = data.savedFilters ? countActiveFilters(data.savedFilters) : 0;
   const savedFilterHref = data.savedFilters ? createDaysIndexHref(data.savedFilters) : null;
   const viewState: DaysViewState = useMemo(
@@ -3783,6 +3791,7 @@ export function AvailableDaysPage({ data }: AvailableDaysPageProps) {
                 getAttendanceSummary(loadedDays.attendanceSummaries, selectedDayFromUrl.dayId)
               }
               booking={loadedDays.myBookingsByDay[selectedDayFromUrl.dayId]}
+              eventBriefingEnabled={eventBriefingEnabled}
               series={selectedDaySeries ?? undefined}
               sharedPlan={selectedDayMatchesRouteData ? data.selectedDayPlan : null}
               costSummary={selectedDayCostSummary}

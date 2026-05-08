@@ -60,6 +60,7 @@ import {
 } from '~/lib/bookings/accommodation';
 import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
+import { EVENT_BRIEFING_FEATURE, type BetaFeatureSettings } from '~/lib/beta-features/config';
 import { getCircuitLocationForBooking } from '~/lib/circuits/locations';
 import { formatArrivalDateTime, resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
@@ -74,6 +75,7 @@ const BookingSchedulePanel = lazy(() =>
 );
 
 export interface MyBookingsPageProps {
+  betaFeatures?: BetaFeatureSettings;
   bookings: BookingRecord[];
   garageShareRequests?: UserGarageShareRequest[];
   hotelInsights?: Record<string, HotelInsight>;
@@ -1187,6 +1189,7 @@ function PrivateSectionForm({
 
 function BookingEditorPanel({
   booking,
+  eventBriefingEnabled,
   hotelInsight,
   garageShareRequests,
   selectedIndex,
@@ -1200,6 +1203,7 @@ function BookingEditorPanel({
   showBackToTrips = false,
 }: {
   booking: BookingRecord;
+  eventBriefingEnabled: boolean;
   hotelInsight?: HotelInsight;
   selectedIndex: number;
   totalBookings: number;
@@ -1294,7 +1298,7 @@ function BookingEditorPanel({
               <Badge color={bookingColor(booking.status)} size="lg">
                 {titleCase(booking.status)}
               </Badge>
-              {booking.status !== 'cancelled' ? (
+              {eventBriefingEnabled && booking.status !== 'cancelled' ? (
                 <Button
                   component={Link}
                   to={createBookingBriefingHref(booking.bookingId)}
@@ -1371,6 +1375,7 @@ function BookingEditorPanel({
 }
 
 export function MyBookingsPage({
+  betaFeatures,
   bookings,
   garageShareRequests = [],
   hotelInsights = EMPTY_HOTEL_INSIGHTS,
@@ -1399,6 +1404,7 @@ export function MyBookingsPage({
   const [statusFilter, setStatusFilter] = useState<BookingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [hasEditorDirtyChanges, setHasEditorDirtyChanges] = useState(false);
+  const eventBriefingEnabled = betaFeatures?.[EVENT_BRIEFING_FEATURE] ?? false;
   const sortedBookings = useMemo(() => [...bookings].toSorted(sortBookings), [bookings]);
   const selectedBookingFromParam = useMemo(
     () =>
@@ -1705,6 +1711,7 @@ export function MyBookingsPage({
     <BookingEditorPanel
       key={selectedBooking.bookingId}
       booking={selectedBooking}
+      eventBriefingEnabled={eventBriefingEnabled}
       hotelInsight={selectedHotelInsight}
       garageShareRequests={garageShareRequests}
       selectedIndex={selectedIndex}

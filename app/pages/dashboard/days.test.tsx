@@ -2,6 +2,7 @@ import { MantineProvider } from '@mantine/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ActionFunctionArgs, createRoutesStub } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { EVENT_BRIEFING_FEATURE } from '~/lib/beta-features/config';
 import type { DaysFeedData, DaysIndexData } from '~/lib/days/dashboard-feed.server';
 import type { DayAttendanceSummary } from '~/lib/days/types';
 import type { EventCostSummary } from '~/lib/db/services/cost-splitting.server';
@@ -1417,12 +1418,37 @@ describe('AvailableDaysPage', () => {
       'href',
       '/dashboard/bookings',
     );
+    expect(screen.queryByRole('link', { name: /^open briefing$/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
+    expect(screen.getByText('1 saved stay')).toBeInTheDocument();
+  });
+
+  it('shows the event briefing link when the beta feature is enabled', async () => {
+    renderWithProviders(
+      <AvailableDaysPage
+        betaFeatures={{
+          [EVENT_BRIEFING_FEATURE]: true,
+        }}
+        data={{
+          ...defaultData,
+          myBookingsByDay: {
+            'day-1': {
+              bookingId: 'booking-1',
+              userId: 'user-1',
+              status: 'booked',
+              accommodationName: 'Trackside Hotel',
+            },
+          },
+        }}
+      />,
+      '/dashboard/days?day=day-1',
+    );
+
+    expect(await screen.findByText('My plan')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^open briefing$/i })).toHaveAttribute(
       'href',
       '/dashboard/bookings/booking-1/briefing',
     );
-    expect(screen.getByText('Trackside Hotel')).toBeInTheDocument();
-    expect(screen.getByText('1 saved stay')).toBeInTheDocument();
   });
 
   it('offers saved accommodation as direct actions in the selected-day view', async () => {

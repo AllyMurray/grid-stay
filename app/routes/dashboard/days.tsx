@@ -1,5 +1,7 @@
 import { type ShouldRevalidateFunctionArgs, useLoaderData } from 'react-router';
 import { requireUser } from '~/lib/auth/helpers.server';
+import type { BetaFeatureSettings } from '~/lib/beta-features/config';
+import { getMemberBetaFeatureSettings } from '~/lib/beta-features/preferences.server';
 import {
   submitBulkRaceSeriesBooking,
   submitCreateBooking,
@@ -49,9 +51,12 @@ function revalidationFilterKey(url: URL) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const data = await loadDaysIndex(user, new URL(request.url));
+  const [data, betaFeatures] = await Promise.all([
+    loadDaysIndex(user, new URL(request.url)),
+    getMemberBetaFeatureSettings(user.id),
+  ]);
 
-  return Response.json(data, { headers });
+  return Response.json({ data, betaFeatures }, { headers });
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -252,5 +257,10 @@ export function shouldRevalidate({
 }
 
 export default function AvailableDaysRoute() {
-  return <AvailableDaysPage data={useLoaderData<typeof loader>() as DaysIndexData} />;
+  const loaderData = useLoaderData<typeof loader>() as {
+    data: DaysIndexData;
+    betaFeatures: BetaFeatureSettings;
+  };
+
+  return <AvailableDaysPage data={loaderData.data} betaFeatures={loaderData.betaFeatures} />;
 }

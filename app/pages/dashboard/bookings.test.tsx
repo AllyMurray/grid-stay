@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ActionFunctionArgs, createRoutesStub, type LoaderFunctionArgs } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { EVENT_BRIEFING_FEATURE } from '~/lib/beta-features/config';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import type { HotelInsight } from '~/lib/db/services/hotel.server';
 import { theme } from '~/theme';
@@ -200,10 +201,7 @@ describe('MyBookingsPage', () => {
     expect(screen.getByRole('heading', { name: 'Trips' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /donington park/i })).toBeVisible();
     expect(screen.getByText('Trip plan')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^open briefing$/i })).toHaveAttribute(
-      'href',
-      '/dashboard/bookings/booking-1/briefing',
-    );
+    expect(screen.queryByRole('link', { name: /^open briefing$/i })).not.toBeInTheDocument();
     expect(screen.getByText('Stay and arrival')).toBeInTheDocument();
     expect(screen.getByText('Garage sharing')).toBeInTheDocument();
     expect(screen.getByText('Private to you')).toBeInTheDocument();
@@ -213,6 +211,22 @@ describe('MyBookingsPage', () => {
     expect(screen.getByText('Sat 2 May 2026, 20:00')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /hotel or stay/i })).toHaveValue('Trackside Hotel');
     expect(screen.getByRole('button', { name: /save stay/i })).toBeVisible();
+  });
+
+  it('shows event briefing links when the beta feature is enabled', () => {
+    renderWithProviders(
+      <MyBookingsPage
+        betaFeatures={{
+          [EVENT_BRIEFING_FEATURE]: true,
+        }}
+        bookings={[booking]}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /^open briefing$/i })).toHaveAttribute(
+      'href',
+      '/dashboard/bookings/booking-1/briefing',
+    );
   });
 
   it('renders saved hotel insight with a dedicated feedback link', async () => {

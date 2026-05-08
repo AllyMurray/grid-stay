@@ -18,6 +18,8 @@ import {
   regenerateCalendarFeedForUser,
   saveCalendarFeedOptionsForUser,
 } from '~/lib/calendar/feed.server';
+import type { BetaFeatureSettings } from '~/lib/beta-features/config';
+import { getMemberBetaFeatureSettings } from '~/lib/beta-features/preferences.server';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
@@ -41,14 +43,16 @@ function isCalendarFeedIntent(intent: FormDataEntryValue | null) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const [bookings, garageShareRequests, calendarFeed] = await Promise.all([
+  const [bookings, garageShareRequests, calendarFeed, betaFeatures] = await Promise.all([
     listMyBookings(user.id),
     listGarageShareRequestsForUser(user.id),
     getActiveCalendarFeedForUser(user.id),
+    getMemberBetaFeatureSettings(user.id),
   ]);
 
   return Response.json(
     {
+      betaFeatures,
       bookings,
       garageShareRequests,
       calendarFeedExists: Boolean(calendarFeed),
@@ -196,6 +200,7 @@ export async function action({ request }: Route.ActionArgs) {
 export default function MyBookingsRoute() {
   const data = useLoaderData<typeof loader>() as {
     bookings: BookingRecord[];
+    betaFeatures: BetaFeatureSettings;
     garageShareRequests: UserGarageShareRequest[];
     calendarFeedExists: boolean;
     calendarFeedUrl: string | null;
@@ -205,6 +210,7 @@ export default function MyBookingsRoute() {
   };
   return (
     <MyBookingsPage
+      betaFeatures={data.betaFeatures}
       bookings={data.bookings}
       garageShareRequests={data.garageShareRequests}
       calendarFeedExists={data.calendarFeedExists}

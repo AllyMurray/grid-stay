@@ -10,6 +10,7 @@ const {
   getSharedDayPlan,
   loadEventCostSummary,
   listDayNotificationsForDay,
+  isBetaFeatureEnabled,
 } = vi.hoisted(() => ({
   requireUser: vi.fn(),
   getByUser: vi.fn(),
@@ -19,10 +20,15 @@ const {
   getSharedDayPlan: vi.fn(),
   loadEventCostSummary: vi.fn(),
   listDayNotificationsForDay: vi.fn(),
+  isBetaFeatureEnabled: vi.fn(),
 }));
 
 vi.mock('~/lib/auth/helpers.server', () => ({
   requireUser,
+}));
+
+vi.mock('~/lib/beta-features/preferences.server', () => ({
+  isBetaFeatureEnabled,
 }));
 
 vi.mock('~/lib/db/services/available-days-cache.server', () => ({
@@ -141,6 +147,8 @@ describe('event briefing route', () => {
       },
       headers: new Headers(),
     });
+    isBetaFeatureEnabled.mockReset();
+    isBetaFeatureEnabled.mockResolvedValue(true);
     getByUser.mockReset();
     getByUser.mockResolvedValue(booking);
     getAvailableDaysSnapshot.mockReset();
@@ -205,6 +213,7 @@ describe('event briefing route', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
+    expect(isBetaFeatureEnabled).toHaveBeenCalledWith('user-1', 'eventBriefing');
     expect(getByUser).toHaveBeenCalledWith('user-1', 'booking-1');
     expect(listAttendanceByDay).toHaveBeenCalledWith('day-1', undefined, undefined, 'user-1');
     expect(loadEventCostSummary).toHaveBeenCalledWith('day-1', 'user-1', attendance);
@@ -228,6 +237,13 @@ describe('event briefing route', () => {
         },
       ],
     });
+  });
+
+  it('throws not found when the event briefing beta is disabled', async () => {
+    isBetaFeatureEnabled.mockResolvedValue(false);
+
+    await expect(loadBriefing()).rejects.toMatchObject({ status: 404 });
+    expect(getByUser).not.toHaveBeenCalled();
   });
 
   it('allows maybe bookings', async () => {
