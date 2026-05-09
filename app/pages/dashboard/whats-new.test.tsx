@@ -25,6 +25,15 @@ describe('WhatsNewPage', () => {
     expect(screen.queryByRole('link', { name: /open leaderboard/i })).toBeNull();
     expect(
       screen.getByRole('heading', {
+        name: 'Race series can be managed from My Bookings',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/my bookings now has a race series section/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /open my bookings/i })[1],
+    ).toHaveAttribute('href', '/dashboard/bookings');
+    expect(
+      screen.getByRole('heading', {
         name: 'Member invites now send an email',
       }),
     ).toBeInTheDocument();
@@ -84,7 +93,7 @@ describe('WhatsNewPage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/calendar view stays available/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /open my bookings/i })[1]).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /open my bookings/i })[2]).toHaveAttribute(
       'href',
       '/dashboard/bookings',
     );

@@ -27,6 +27,23 @@ export interface WhatsNewEntry {
 
 export const whatsNewEntries: WhatsNewEntry[] = [
   {
+    id: 'member-race-series-management',
+    title: 'Race series can be managed from My Bookings',
+    publishedAt: '2026-05-09T13:30:00.000Z',
+    dateLabel: '9 May 2026',
+    category: 'Bookings',
+    description:
+      'Race series are now easier to join and manage without needing an admin to assign them for you.',
+    highlights: [
+      'My Bookings now has a Race series section showing saved series, current status, linked dates, and missing dates.',
+      'Join a current-year series from a searchable selector and add the linked dates as booked or maybe.',
+      'Series detail pages now let you add or remove a series while keeping existing bookings intact.',
+    ],
+    href: '/dashboard/bookings',
+    actionLabel: 'Open My Bookings',
+    icon: IconRoute,
+  },
+  {
     id: 'member-invite-emails',
     title: 'Member invites now send an email',
     publishedAt: '2026-05-08T09:30:00.000Z',
