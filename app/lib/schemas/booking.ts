@@ -40,6 +40,15 @@ export const BulkRaceSeriesBookingSchema = z.object({
   status: z.enum(['booked', 'maybe']),
 });
 
+export const RaceSeriesSubscriptionBookingSchema = z.object({
+  seriesKey: z.string().trim().min(1),
+  status: z.enum(['booked', 'maybe']),
+});
+
+export const RaceSeriesSubscriptionKeySchema = z.object({
+  seriesKey: z.string().trim().min(1),
+});
+
 const GarageBookedSchema = z.preprocess(
   (value) => value === true || value === 'true' || value === 'on' || value === '1',
   z.boolean(),
@@ -155,6 +164,10 @@ export type CreateBookingRequestInput = z.infer<typeof CreateBookingRequestSchem
 export type SharedStaySelectionInput = z.infer<typeof SharedStaySelectionSchema>;
 export type SharedStaySelectionRequestInput = z.infer<typeof SharedStaySelectionRequestSchema>;
 export type BulkRaceSeriesBookingInput = z.infer<typeof BulkRaceSeriesBookingSchema>;
+export type RaceSeriesSubscriptionBookingInput = z.infer<
+  typeof RaceSeriesSubscriptionBookingSchema
+>;
+export type RaceSeriesSubscriptionKeyInput = z.infer<typeof RaceSeriesSubscriptionKeySchema>;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
 export type UpdateBookingTripInput = z.infer<typeof UpdateBookingTripSchema>;
 export type UpdateBookingStayInput = z.infer<typeof UpdateBookingStaySchema>;

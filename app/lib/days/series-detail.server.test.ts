@@ -12,6 +12,12 @@ vi.mock('~/lib/db/services/booking.server', () => ({
   listMyBookings: vi.fn(),
 }));
 
+vi.mock('~/lib/db/services/series-subscription.server', () => ({
+  seriesSubscriptionStore: {
+    getByUserAndSeries: vi.fn(),
+  },
+}));
+
 import { loadRaceSeriesDetail } from './series-detail.server';
 import type { AvailableDay } from './types';
 
@@ -93,6 +99,14 @@ describe('loadRaceSeriesDetail', () => {
           updatedAt: '2026-04-01T10:00:00.000Z',
         },
       ],
+      async () => ({
+        userId: 'user-1',
+        seriesKey: 'caterham-academy',
+        seriesName: 'Caterham Academy',
+        status: 'maybe',
+        createdAt: '2026-04-01T10:00:00.000Z',
+        updatedAt: '2026-04-02T10:00:00.000Z',
+      }),
     );
 
     expect(detail).toMatchObject({
@@ -101,7 +115,9 @@ describe('loadRaceSeriesDetail', () => {
       roundCount: 2,
       bookedCount: 1,
       maybeCount: 0,
+      missingCount: 1,
       manualRoundCount: 1,
+      subscriptionStatus: 'maybe',
     });
     expect(detail?.rounds.map((round) => round.dayId)).toEqual(['manual-test', 'race-2']);
     expect(detail?.rounds[0]).toMatchObject({
