@@ -858,7 +858,8 @@ function SeriesBookingAction({
         Bookings
       </Text>
       <Text size="xs" c="dimmed">
-        Existing event bookings keep their status and notes.
+        Existing event bookings keep their status and notes. This also saves the series to My
+        Bookings for future linked days.
       </Text>
       <Button
         component={Link}
@@ -884,7 +885,7 @@ function SeriesBookingAction({
               disabled={isSubmitting}
               className="day-booking-button"
             >
-              Add missing as maybe
+              Add missing dates as maybe
             </Button>
             <Button
               type="submit"
@@ -896,7 +897,7 @@ function SeriesBookingAction({
               loading={isSubmitting}
               className="day-booking-button"
             >
-              Add missing as booked
+              Add missing dates as booked
             </Button>
           </Group>
         </fetcher.Form>
@@ -2817,7 +2818,7 @@ function DayDetailContent({
             {series ? (
               <Stack gap={6} className="day-detail-action-group">
                 <Text size="xs" fw={700} c="dimmed">
-                  Entire series
+                  Add full series
                 </Text>
                 <SeriesBookingAction day={day} series={series} />
               </Stack>

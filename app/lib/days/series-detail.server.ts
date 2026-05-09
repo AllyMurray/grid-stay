@@ -2,6 +2,7 @@ import type { User } from '~/lib/auth/schemas';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
+import { seriesSubscriptionStore } from '~/lib/db/services/series-subscription.server';
 import { normalizeAvailableDayCircuit } from './aggregation.server';
 import { getLinkedSeriesKey, getLinkedSeriesName } from './series.server';
 import type { AvailableDay } from './types';
@@ -25,7 +26,11 @@ export interface RaceSeriesDetail {
   roundCount: number;
   bookedCount: number;
   maybeCount: number;
+  missingCount: number;
+  cancelledCount: number;
   manualRoundCount: number;
+  subscriptionStatus?: 'booked' | 'maybe';
+  subscriptionUpdatedAt?: string;
   rounds: RaceSeriesRound[];
 }
 
@@ -65,16 +70,19 @@ export async function loadRaceSeriesDetail(
   loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
   loadManualDays: typeof listManualDays = listManualDays,
   loadBookings: typeof listMyBookings = listMyBookings,
+  loadSubscription: typeof seriesSubscriptionStore.getByUserAndSeries =
+    seriesSubscriptionStore.getByUserAndSeries,
 ): Promise<RaceSeriesDetail | null> {
   const normalizedSeriesKey = seriesKey.trim();
   if (!normalizedSeriesKey) {
     return null;
   }
 
-  const [snapshot, manualDays, bookings] = await Promise.all([
+  const [snapshot, manualDays, bookings, subscription] = await Promise.all([
     loadSnapshot(),
     loadManualDays(),
     loadBookings(user.id),
+    loadSubscription(user.id, normalizedSeriesKey),
   ]);
   const bookingStatusByDayId = new Map(bookings.map((booking) => [booking.dayId, booking.status]));
   const seriesDays = [...(snapshot?.days ?? []), ...manualDays]
@@ -97,7 +105,11 @@ export async function loadRaceSeriesDetail(
     roundCount: rounds.length,
     bookedCount: rounds.filter((round) => round.myBookingStatus === 'booked').length,
     maybeCount: rounds.filter((round) => round.myBookingStatus === 'maybe').length,
+    missingCount: rounds.filter((round) => !round.myBookingStatus).length,
+    cancelledCount: rounds.filter((round) => round.myBookingStatus === 'cancelled').length,
     manualRoundCount: rounds.filter((round) => round.isManual).length,
+    subscriptionStatus: subscription?.status,
+    subscriptionUpdatedAt: subscription?.updatedAt,
     rounds,
   };
 }

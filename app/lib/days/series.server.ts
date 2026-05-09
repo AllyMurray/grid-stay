@@ -62,12 +62,34 @@ export function getRaceSeriesDaysForDay(
     return null;
   }
 
+  return getRaceSeriesDaysForSeriesKey(days, seriesKey);
+}
+
+export function getRaceSeriesDaysForSeriesKey(
+  days: AvailableDay[],
+  seriesKey: string,
+): { seriesKey: string; seriesName: string; days: AvailableDay[] } | null {
+  const normalizedSeriesKey = seriesKey.trim();
+  if (!normalizedSeriesKey) {
+    return null;
+  }
+
+  const seriesDays = days
+    .filter((day) => getLinkedSeriesKey(day) === normalizedSeriesKey)
+    .toSorted(compareAvailableDays);
+
+  if (seriesDays.length === 0) {
+    return null;
+  }
+
+  const seriesName =
+    seriesDays.map(getLinkedSeriesName).find((name): name is string => Boolean(name)) ??
+    normalizedSeriesKey;
+
   return {
-    seriesKey,
+    seriesKey: normalizedSeriesKey,
     seriesName,
-    days: days
-      .filter((day) => getLinkedSeriesKey(day) === seriesKey)
-      .toSorted(compareAvailableDays),
+    days: seriesDays,
   };
 }
 

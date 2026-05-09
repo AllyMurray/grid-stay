@@ -22,6 +22,9 @@ vi.mock('~/lib/db/services/manual-day.server', () => ({
 }));
 
 vi.mock('~/lib/db/services/series-subscription.server', () => ({
+  seriesSubscriptionStore: {
+    delete: vi.fn(),
+  },
   upsertSeriesSubscription: vi.fn(async () => ({
     userId: 'user-1',
     seriesKey: 'caterham-academy',
@@ -53,6 +56,8 @@ import {
   submitBulkRaceSeriesBooking,
   submitCreateBooking,
   submitHotelReview,
+  submitRaceSeriesSubscriptionBooking,
+  submitRemoveRaceSeriesSubscription,
   submitSharedStaySelection,
 } from './actions.server';
 
@@ -807,6 +812,110 @@ describe('booking action helpers', () => {
       seriesName: 'Caterham Academy',
       status: 'maybe',
     });
+  });
+
+  it('adds a member race series from a selected series key', async () => {
+    const formData = new FormData();
+    formData.set('seriesKey', 'caterham-academy');
+    formData.set('status', 'booked');
+
+    const saveBookings = vi.fn(async () => ({
+      addedCount: 2,
+      existingCount: 1,
+    }));
+    const saveSubscription = vi.fn(async () => ({
+      userId: user.id,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'booked',
+    }));
+
+    const result = await submitRaceSeriesSubscriptionBooking(
+      formData,
+      user,
+      async () => ({
+        days: [
+          {
+            dayId: 'day-1',
+            date: '2026-05-10',
+            type: 'race_day',
+            circuit: 'Snetterton',
+            provider: 'Caterham Motorsport',
+            description: 'Round 1',
+            source: {
+              sourceType: 'caterham',
+              sourceName: 'caterham',
+              metadata: {
+                series: 'Caterham Academy',
+              },
+            },
+          },
+          {
+            dayId: 'day-2',
+            date: '2026-06-10',
+            type: 'race_day',
+            circuit: 'Brands Hatch',
+            provider: 'Caterham Motorsport',
+            description: 'Round 2',
+            source: {
+              sourceType: 'caterham',
+              sourceName: 'caterham',
+              metadata: {
+                series: 'Caterham Academy',
+              },
+            },
+          },
+        ],
+        errors: [],
+        refreshedAt: '2026-04-17T09:00:00.000Z',
+      }),
+      saveBookings as never,
+      async () => [],
+      saveSubscription as never,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'booked',
+      totalCount: 2,
+      addedCount: 2,
+      existingCount: 1,
+    });
+    expect(saveBookings).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ dayId: 'day-1', status: 'booked' }),
+        expect.objectContaining({ dayId: 'day-2', status: 'booked' }),
+      ],
+      'booked',
+      user,
+    );
+    expect(saveSubscription).toHaveBeenCalledWith({
+      userId: user.id,
+      seriesKey: 'caterham-academy',
+      seriesName: 'Caterham Academy',
+      status: 'booked',
+    });
+  });
+
+  it('removes a race series subscription without touching bookings', async () => {
+    const formData = new FormData();
+    formData.set('seriesKey', 'caterham-academy');
+    const removeSubscription = vi.fn(async () => undefined);
+
+    const result = await submitRemoveRaceSeriesSubscription(
+      formData,
+      user.id,
+      removeSubscription as never,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      seriesKey: 'caterham-academy',
+      message: 'Series removed from My Bookings. Existing bookings were not deleted.',
+    });
+    expect(removeSubscription).toHaveBeenCalledWith(user.id, 'caterham-academy');
   });
 
   it('returns a form error when the selected day is not linked to a race series', async () => {

@@ -8,6 +8,8 @@ import {
   submitBookingTripUpdate,
   submitBookingUpdate,
   submitHotelReview,
+  submitRaceSeriesSubscriptionBooking,
+  submitRemoveRaceSeriesSubscription,
 } from '~/lib/bookings/actions.server';
 import {
   buildCalendarFeedUrl,
@@ -23,6 +25,10 @@ import { getMemberBetaFeatureSettings } from '~/lib/beta-features/preferences.se
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
 import { recordAppEventSafely } from '~/lib/db/services/app-event.server';
 import { listMyBookings } from '~/lib/db/services/booking.server';
+import {
+  loadMemberRaceSeriesOverview,
+  type MemberRaceSeriesOverview,
+} from '~/lib/days/member-series.server';
 import {
   listGarageShareRequestsForUser,
   type UserGarageShareRequest,
@@ -43,18 +49,27 @@ function isCalendarFeedIntent(intent: FormDataEntryValue | null) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user, headers } = await requireUser(request);
-  const [bookings, garageShareRequests, calendarFeed, betaFeatures] = await Promise.all([
-    listMyBookings(user.id),
-    listGarageShareRequestsForUser(user.id),
-    getActiveCalendarFeedForUser(user.id),
-    getMemberBetaFeatureSettings(user.id),
-  ]);
+  const bookingsPromise = listMyBookings(user.id);
+  const seriesOverviewPromise = bookingsPromise.then((bookings) =>
+    loadMemberRaceSeriesOverview(user.id, {
+      loadBookings: async () => bookings,
+    }),
+  );
+  const [bookings, garageShareRequests, calendarFeed, betaFeatures, seriesOverview] =
+    await Promise.all([
+      bookingsPromise,
+      listGarageShareRequestsForUser(user.id),
+      getActiveCalendarFeedForUser(user.id),
+      getMemberBetaFeatureSettings(user.id),
+      seriesOverviewPromise,
+    ]);
 
   return Response.json(
     {
       betaFeatures,
       bookings,
       garageShareRequests,
+      seriesOverview,
       calendarFeedExists: Boolean(calendarFeed),
       calendarFeedUrl: calendarFeed?.token
         ? buildCalendarFeedUrl(request, calendarFeed.token)
@@ -116,6 +131,44 @@ export async function action({ request }: Route.ActionArgs) {
       },
       { headers },
     );
+  }
+
+  if (intent === 'addRaceSeries' || intent === 'removeRaceSeries') {
+    const result =
+      intent === 'removeRaceSeries'
+        ? await submitRemoveRaceSeriesSubscription(formData, user.id)
+        : await submitRaceSeriesSubscriptionBooking(formData, user);
+
+    if (result.ok) {
+      await recordAppEventSafely({
+        category: 'audit',
+        action:
+          intent === 'removeRaceSeries'
+            ? 'seriesSubscription.removed'
+            : 'seriesSubscription.added',
+        message:
+          intent === 'removeRaceSeries'
+            ? 'Series removed from My Bookings.'
+            : `${
+                'seriesName' in result ? result.seriesName : 'Race series'
+              } added from My Bookings.`,
+        actor: { userId: user.id, name: user.name },
+        subject: {
+          type: 'seriesSubscription',
+          id: result.seriesKey,
+        },
+        metadata: {
+          status: 'status' in result ? result.status : undefined,
+          addedCount: 'addedCount' in result ? result.addedCount : undefined,
+          existingCount: 'existingCount' in result ? result.existingCount : undefined,
+        },
+      });
+    }
+
+    return Response.json(result, {
+      headers,
+      status: result.ok ? 200 : 400,
+    });
   }
 
   const result =
@@ -202,6 +255,7 @@ export default function MyBookingsRoute() {
     bookings: BookingRecord[];
     betaFeatures: BetaFeatureSettings;
     garageShareRequests: UserGarageShareRequest[];
+    seriesOverview: MemberRaceSeriesOverview;
     calendarFeedExists: boolean;
     calendarFeedUrl: string | null;
     calendarFeedTokenHint: string | null;
@@ -213,6 +267,7 @@ export default function MyBookingsRoute() {
       betaFeatures={data.betaFeatures}
       bookings={data.bookings}
       garageShareRequests={data.garageShareRequests}
+      seriesOverview={data.seriesOverview}
       calendarFeedExists={data.calendarFeedExists}
       calendarFeedUrl={data.calendarFeedUrl}
       calendarFeedTokenHint={data.calendarFeedTokenHint}

@@ -5,7 +5,10 @@ import {
   resolveAccommodationStatus,
 } from '~/lib/bookings/accommodation';
 import { normalizeAvailableDayCircuit } from '~/lib/days/aggregation.server';
-import { getRaceSeriesDaysForDay } from '~/lib/days/series.server';
+import {
+  getRaceSeriesDaysForDay,
+  getRaceSeriesDaysForSeriesKey,
+} from '~/lib/days/series.server';
 import type { AvailableDay } from '~/lib/days/types';
 import { getAvailableDaysSnapshot } from '~/lib/db/services/available-days-cache.server';
 import {
@@ -25,13 +28,18 @@ import {
   upsertHotelReview,
 } from '~/lib/db/services/hotel.server';
 import { listManualDays } from '~/lib/db/services/manual-day.server';
-import { upsertSeriesSubscription } from '~/lib/db/services/series-subscription.server';
+import {
+  seriesSubscriptionStore,
+  upsertSeriesSubscription,
+} from '~/lib/db/services/series-subscription.server';
 import { queueHotelSummaryRefreshSafely } from '~/lib/hotels/summary-queue.server';
 import type {
   BulkRaceSeriesBookingInput,
   CreateBookingInput,
   CreateBookingRequestInput,
   DeleteBookingInput,
+  RaceSeriesSubscriptionBookingInput,
+  RaceSeriesSubscriptionKeyInput,
   SharedStaySelectionRequestInput,
   UpdateBookingGarageInput,
   UpdateBookingInput,
@@ -43,6 +51,8 @@ import {
   BulkRaceSeriesBookingSchema,
   CreateBookingRequestSchema,
   DeleteBookingSchema,
+  RaceSeriesSubscriptionBookingSchema,
+  RaceSeriesSubscriptionKeySchema,
   SharedStaySelectionRequestSchema,
   UpdateBookingGarageSchema,
   UpdateBookingPrivateSchema,
@@ -138,6 +148,38 @@ export type BulkRaceSeriesBookingActionResult =
       fieldErrors: FieldErrors<keyof BulkRaceSeriesBookingInput>;
     };
 
+type RaceSeriesSubscriptionActionField =
+  | keyof RaceSeriesSubscriptionBookingInput
+  | keyof RaceSeriesSubscriptionKeyInput;
+
+export type RaceSeriesSubscriptionActionResult =
+  | {
+      ok: true;
+      seriesKey: string;
+      seriesName: string;
+      status: RaceSeriesSubscriptionBookingInput['status'];
+      totalCount: number;
+      addedCount: number;
+      existingCount: number;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<RaceSeriesSubscriptionActionField>;
+    };
+
+export type RemoveRaceSeriesSubscriptionActionResult =
+  | {
+      ok: true;
+      seriesKey: string;
+      message: string;
+    }
+  | {
+      ok: false;
+      formError: string;
+      fieldErrors: FieldErrors<RaceSeriesSubscriptionActionField>;
+    };
+
 async function resolveBookableDay(
   dayId: string,
   loadSnapshot: typeof getAvailableDaysSnapshot,
@@ -165,6 +207,43 @@ function toCreateBookingInput(
     provider: day.provider,
     description: day.description,
     status,
+  };
+}
+
+async function resolveRaceSeriesDays(
+  loadSnapshot: typeof getAvailableDaysSnapshot,
+  loadManualDays: typeof listManualDays,
+): Promise<AvailableDay[]> {
+  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
+  return [...(snapshot?.days ?? []), ...manualDays].map(normalizeAvailableDayCircuit);
+}
+
+async function saveRaceSeriesBookingsAndSubscription(
+  series: { seriesKey: string; seriesName: string; days: AvailableDay[] },
+  status: RaceSeriesSubscriptionBookingInput['status'],
+  user: User,
+  saveBookings: typeof ensureBookingsForDays,
+  saveSubscription: typeof upsertSeriesSubscription,
+) {
+  const result = await saveBookings(
+    series.days.map((day) => toCreateBookingInput(day, status)),
+    status,
+    user,
+  );
+
+  await saveSubscription({
+    userId: user.id,
+    seriesKey: series.seriesKey,
+    seriesName: series.seriesName,
+    status,
+  });
+
+  return {
+    seriesKey: series.seriesKey,
+    seriesName: series.seriesName,
+    totalCount: series.days.length,
+    addedCount: result.addedCount,
+    existingCount: result.existingCount,
   };
 }
 
@@ -258,8 +337,7 @@ export async function submitBulkRaceSeriesBooking(
     };
   }
 
-  const [snapshot, manualDays] = await Promise.all([loadSnapshot(), loadManualDays()]);
-  const days = [...(snapshot?.days ?? []), ...manualDays].map(normalizeAvailableDayCircuit);
+  const days = await resolveRaceSeriesDays(loadSnapshot, loadManualDays);
 
   if (days.length === 0) {
     return {
@@ -278,36 +356,102 @@ export async function submitBulkRaceSeriesBooking(
     };
   }
 
-  const result = await saveBookings(
-    series.days.map((day) => ({
-      dayId: day.dayId,
-      date: day.date,
-      type: day.type,
-      circuit: day.circuit,
-      ...(day.circuitId ? { circuitId: day.circuitId } : {}),
-      ...(day.circuitName ? { circuitName: day.circuitName } : {}),
-      ...(day.layout ? { layout: day.layout } : {}),
-      ...(day.circuitKnown !== undefined ? { circuitKnown: day.circuitKnown } : {}),
-      provider: day.provider,
-      description: day.description,
-      status: parsed.data.status,
-    })),
+  const result = await saveRaceSeriesBookingsAndSubscription(
+    series,
     parsed.data.status,
     user,
+    saveBookings,
+    saveSubscription,
   );
-  await saveSubscription({
-    userId: user.id,
-    seriesKey: series.seriesKey,
-    seriesName: series.seriesName,
-    status: parsed.data.status,
-  });
 
   return {
     ok: true,
     seriesName: series.seriesName,
-    totalCount: series.days.length,
+    totalCount: result.totalCount,
     addedCount: result.addedCount,
     existingCount: result.existingCount,
+  };
+}
+
+export async function submitRaceSeriesSubscriptionBooking(
+  formData: FormData,
+  user: User,
+  loadSnapshot: typeof getAvailableDaysSnapshot = getAvailableDaysSnapshot,
+  saveBookings: typeof ensureBookingsForDays = ensureBookingsForDays,
+  loadManualDays: typeof listManualDays = listManualDays,
+  saveSubscription: typeof upsertSeriesSubscription = upsertSeriesSubscription,
+): Promise<RaceSeriesSubscriptionActionResult> {
+  const parsed = RaceSeriesSubscriptionBookingSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not add this race series right now.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const days = await resolveRaceSeriesDays(loadSnapshot, loadManualDays);
+
+  if (days.length === 0) {
+    return {
+      ok: false,
+      formError: 'The race calendar is not ready yet. Try again after the next refresh.',
+      fieldErrors: {},
+    };
+  }
+
+  const series = getRaceSeriesDaysForSeriesKey(days, parsed.data.seriesKey);
+  if (!series || series.days.length === 0) {
+    return {
+      ok: false,
+      formError: 'This series is not available in the calendar yet.',
+      fieldErrors: {
+        seriesKey: ['This series is not available in the calendar yet.'],
+      },
+    };
+  }
+
+  const result = await saveRaceSeriesBookingsAndSubscription(
+    series,
+    parsed.data.status,
+    user,
+    saveBookings,
+    saveSubscription,
+  );
+
+  return {
+    ok: true,
+    seriesKey: result.seriesKey,
+    seriesName: result.seriesName,
+    status: parsed.data.status,
+    totalCount: result.totalCount,
+    addedCount: result.addedCount,
+    existingCount: result.existingCount,
+  };
+}
+
+export async function submitRemoveRaceSeriesSubscription(
+  formData: FormData,
+  userId: string,
+  removeSubscription: typeof seriesSubscriptionStore.delete = seriesSubscriptionStore.delete,
+): Promise<RemoveRaceSeriesSubscriptionActionResult> {
+  const parsed = RaceSeriesSubscriptionKeySchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      formError: 'Could not remove this race series right now.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  await removeSubscription(userId, parsed.data.seriesKey);
+
+  return {
+    ok: true,
+    seriesKey: parsed.data.seriesKey,
+    message: 'Series removed from My Bookings. Existing bookings were not deleted.',
   };
 }
 
