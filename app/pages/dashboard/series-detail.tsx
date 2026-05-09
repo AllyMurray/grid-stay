@@ -1,11 +1,18 @@
 import { Badge, Button, Group, Paper, ScrollArea, Stack, Table, Text, Title } from '@mantine/core';
-import { Link } from 'react-router';
+import { Link, useFetcher } from 'react-router';
 import { HeaderStatGrid } from '~/components/layout/header-stat-grid';
 import { PageHeader } from '~/components/layout/page-header';
+import type {
+  RaceSeriesSubscriptionActionResult,
+  RemoveRaceSeriesSubscriptionActionResult,
+} from '~/lib/bookings/actions.server';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { RaceSeriesDetail, RaceSeriesRound } from '~/lib/days/series-detail.server';
 
 export type RaceSeriesDetailPageProps = RaceSeriesDetail;
+type RaceSeriesActionResult =
+  | RaceSeriesSubscriptionActionResult
+  | RemoveRaceSeriesSubscriptionActionResult;
 
 function titleCase(value: string) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
@@ -50,13 +57,121 @@ function getRoundCircuit(round: RaceSeriesRound) {
   return round.layout ? `${round.circuit} ${round.layout}` : round.circuit;
 }
 
+function SeriesSubscriptionPanel({
+  seriesKey,
+  subscriptionStatus,
+  missingCount,
+  roundCount,
+}: Pick<
+  RaceSeriesDetailPageProps,
+  'seriesKey' | 'subscriptionStatus' | 'missingCount' | 'roundCount'
+>) {
+  const fetcher = useFetcher<RaceSeriesActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const success = fetcher.data?.ok ? fetcher.data : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const subscribed = Boolean(subscriptionStatus);
+  const addMaybeLabel =
+    !subscribed && missingCount === 0 ? 'Save series as maybe' : 'Add missing dates as maybe';
+  const addBookedLabel =
+    !subscribed && missingCount === 0 ? 'Save series as booked' : 'Add missing dates as booked';
+
+  return (
+    <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start" wrap="wrap">
+          <Stack gap={4}>
+            <Title order={3}>
+              {subscribed ? 'In My Bookings' : 'Add this series to My Bookings'}
+            </Title>
+            <Text size="sm" c="dimmed">
+              {subscribed
+                ? 'Use your saved series to add missing linked dates. Existing bookings keep their status and notes.'
+                : 'Add the linked dates now and save the series for future linked days.'}
+            </Text>
+          </Stack>
+          {subscriptionStatus ? (
+            <Badge color={subscriptionStatus === 'booked' ? 'green' : 'yellow'} variant="light">
+              {titleCase(subscriptionStatus)}
+            </Badge>
+          ) : null}
+        </Group>
+
+        <Text size="sm" c="dimmed">
+          {missingCount} of {roundCount} linked {roundCount === 1 ? 'date is' : 'dates are'} not in
+          My Bookings.
+        </Text>
+
+        {missingCount > 0 || !subscribed ? (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="addRaceSeries" />
+            <input type="hidden" name="seriesKey" value={seriesKey} />
+            <Group gap="xs" wrap="wrap">
+              <Button
+                type="submit"
+                name="status"
+                value="maybe"
+                variant="default"
+                loading={isSubmitting}
+              >
+                {addMaybeLabel}
+              </Button>
+              <Button
+                type="submit"
+                name="status"
+                value="booked"
+                loading={isSubmitting}
+              >
+                {addBookedLabel}
+              </Button>
+            </Group>
+          </fetcher.Form>
+        ) : (
+          <Text size="sm" c="dimmed">
+            All linked dates already have bookings.
+          </Text>
+        )}
+
+        {subscribed ? (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="removeRaceSeries" />
+            <input type="hidden" name="seriesKey" value={seriesKey} />
+            <Group justify="space-between" align="center" wrap="wrap">
+              <Text size="xs" c="dimmed">
+                Removing this series does not delete existing bookings.
+              </Text>
+              <Button type="submit" color="red" variant="subtle" loading={isSubmitting}>
+                Remove series
+              </Button>
+            </Group>
+          </fetcher.Form>
+        ) : null}
+
+        {success && 'addedCount' in success ? (
+          <Text size="sm" c="dimmed">
+            Added {success.addedCount} missing {success.addedCount === 1 ? 'date' : 'dates'}.
+          </Text>
+        ) : null}
+
+        {formError ? (
+          <Text size="sm" c="red">
+            {formError}
+          </Text>
+        ) : null}
+      </Stack>
+    </Paper>
+  );
+}
+
 export function RaceSeriesDetailPage({
   seriesKey,
   seriesName,
   roundCount,
   bookedCount,
   maybeCount,
+  missingCount,
   manualRoundCount,
+  subscriptionStatus,
   rounds,
 }: RaceSeriesDetailPageProps) {
   return (
@@ -85,6 +200,13 @@ export function RaceSeriesDetailPage({
             </Button>
           </Group>
         }
+      />
+
+      <SeriesSubscriptionPanel
+        seriesKey={seriesKey}
+        subscriptionStatus={subscriptionStatus}
+        missingCount={missingCount}
+        roundCount={roundCount}
       />
 
       <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
