@@ -153,6 +153,49 @@ describe('MyBookingsPage', () => {
     );
   });
 
+  it('renders race series subscriptions with missing-date actions', () => {
+    renderWithProviders(
+      <MyBookingsPage
+        bookings={[booking]}
+        today="2026-05-01"
+        seriesOverview={{
+          subscriptions: [
+            {
+              seriesKey: 'caterham-academy',
+              seriesName: 'Caterham Academy',
+              status: 'maybe',
+              updatedAt: '2026-04-02T10:00:00.000Z',
+              linkedDayCount: 3,
+              bookedCount: 1,
+              maybeCount: 1,
+              missingCount: 1,
+              cancelledCount: 0,
+            },
+          ],
+          joinOptions: [
+            {
+              seriesKey: 'caterham-roadsport',
+              seriesName: 'Caterham Roadsport',
+              dayCount: 4,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Race series' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Join a series' })).toBeVisible();
+    expect(screen.getByText('Caterham Academy')).toBeInTheDocument();
+    expect(screen.getByText('3 days linked')).toBeInTheDocument();
+    expect(screen.getByText('1 booked')).toBeInTheDocument();
+    expect(screen.getByText('1 maybe')).toBeInTheDocument();
+    expect(screen.getByText('1 missing')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add missing dates as maybe' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Add missing dates as booked' })).toBeVisible();
+    expect(screen.getByText('Removing this series does not delete existing bookings.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Remove series' })).toBeVisible();
+  });
+
   it('hides past bookings by default and shows them from the checkbox', async () => {
     const user = userEvent.setup();
     renderWithProviders(<MyBookingsPage bookings={[pastBooking, booking]} today="2026-05-01" />);

@@ -58,13 +58,22 @@ import {
   hasBookedAccommodation,
   resolveAccommodationStatus,
 } from '~/lib/bookings/accommodation';
-import type { BookingEditorActionResult } from '~/lib/bookings/actions.server';
+import type {
+  BookingEditorActionResult,
+  RaceSeriesSubscriptionActionResult,
+  RemoveRaceSeriesSubscriptionActionResult,
+} from '~/lib/bookings/actions.server';
 import type { CalendarFeedOptions } from '~/lib/calendar/feed.server';
 import { EVENT_BRIEFING_FEATURE, type BetaFeatureSettings } from '~/lib/beta-features/config';
 import { getCircuitLocationForBooking } from '~/lib/circuits/locations';
 import { formatArrivalDateTime, resolveArrivalDateTime } from '~/lib/dates/arrival';
 import { formatDateOnly } from '~/lib/dates/date-only';
 import type { BookingRecord } from '~/lib/db/entities/booking.server';
+import type {
+  MemberRaceSeriesOption,
+  MemberRaceSeriesOverview,
+  MemberRaceSeriesSubscription,
+} from '~/lib/days/member-series.server';
 import type { UserGarageShareRequest } from '~/lib/db/services/garage-sharing.server';
 import type { HotelInsight, HotelSuggestion } from '~/lib/db/services/hotel.server';
 import type { GarageShareDecisionActionResult } from '~/lib/garage-sharing/actions.server';
@@ -78,6 +87,7 @@ export interface MyBookingsPageProps {
   betaFeatures?: BetaFeatureSettings;
   bookings: BookingRecord[];
   garageShareRequests?: UserGarageShareRequest[];
+  seriesOverview?: MemberRaceSeriesOverview;
   hotelInsights?: Record<string, HotelInsight>;
   calendarFeedExists?: boolean;
   calendarFeedUrl?: string | null;
@@ -93,6 +103,14 @@ const bookingEditorTabs: BookingEditorTab[] = ['trip', 'stay', 'garage', 'privat
 
 type MyBookingsView = 'bookings' | 'calendar';
 const EMPTY_HOTEL_INSIGHTS: Record<string, HotelInsight> = {};
+const EMPTY_SERIES_OVERVIEW: MemberRaceSeriesOverview = {
+  subscriptions: [],
+  joinOptions: [],
+};
+
+type RaceSeriesActionResult =
+  | RaceSeriesSubscriptionActionResult
+  | RemoveRaceSeriesSubscriptionActionResult;
 
 function parseBookingsView(value: string | null): MyBookingsView {
   if (value === 'calendar') {
@@ -332,6 +350,264 @@ function groupBookingsByMonth(bookings: BookingRecord[]) {
   }
 
   return [...groups.entries()].map(([label, items]) => ({ label, items }));
+}
+
+function formatDayCount(count: number) {
+  return `${count} ${count === 1 ? 'day' : 'days'}`;
+}
+
+function RaceSeriesStatusBadge({ status }: { status: MemberRaceSeriesSubscription['status'] }) {
+  return (
+    <Badge color={status === 'booked' ? 'green' : 'yellow'} variant="light">
+      {titleCase(status)}
+    </Badge>
+  );
+}
+
+function JoinRaceSeriesForm({
+  options,
+  onClose,
+}: {
+  options: MemberRaceSeriesOption[];
+  onClose: () => void;
+}) {
+  const fetcher = useFetcher<RaceSeriesSubscriptionActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const fieldErrors = fetcher.data && !fetcher.data.ok ? fetcher.data.fieldErrors : undefined;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const selectOptions = options.map((option) => ({
+    value: option.seriesKey,
+    label: `${option.seriesName} (${formatDayCount(option.dayCount)})`,
+  }));
+
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data?.ok) {
+      onClose();
+    }
+  }, [fetcher.data, fetcher.state, onClose]);
+
+  return (
+    <fetcher.Form method="post">
+      <Stack gap="md">
+        <input type="hidden" name="intent" value="addRaceSeries" />
+        <Select
+          name="seriesKey"
+          label="Series"
+          placeholder="Choose a race series"
+          searchable
+          data={selectOptions}
+          disabled={options.length === 0}
+          nothingFoundMessage="No current-year series found"
+          error={fieldErrors?.seriesKey?.[0]}
+          required
+        />
+        <Select
+          name="status"
+          label="Default status"
+          defaultValue="maybe"
+          allowDeselect={false}
+          data={[
+            { value: 'maybe', label: 'Maybe' },
+            { value: 'booked', label: 'Booked' },
+          ]}
+          error={fieldErrors?.status?.[0]}
+        />
+        <Text size="sm" c="dimmed">
+          Missing linked dates will be added now, and this series will stay in My Bookings for
+          future linked days.
+        </Text>
+        {formError ? (
+          <Alert color="red" icon={<IconAlertCircle size={18} />}>
+            {formError}
+          </Alert>
+        ) : null}
+        <Group justify="flex-end" wrap="wrap">
+          <Button type="button" variant="default" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={isSubmitting} disabled={options.length === 0}>
+            Join series
+          </Button>
+        </Group>
+      </Stack>
+    </fetcher.Form>
+  );
+}
+
+function RaceSeriesSubscriptionCard({
+  subscription,
+}: {
+  subscription: MemberRaceSeriesSubscription;
+}) {
+  const fetcher = useFetcher<RaceSeriesActionResult>();
+  const isSubmitting = fetcher.state !== 'idle';
+  const success = fetcher.data?.ok ? fetcher.data : null;
+  const formError = fetcher.data && !fetcher.data.ok ? fetcher.data.formError : null;
+  const linkedDaysAvailable = subscription.linkedDayCount > 0;
+
+  return (
+    <Paper withBorder radius="sm" p="md">
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start" wrap="wrap">
+          <Stack gap={4}>
+            <Group gap="xs" wrap="wrap">
+              <Text fw={800}>{subscription.seriesName}</Text>
+              <RaceSeriesStatusBadge status={subscription.status} />
+            </Group>
+            <Text size="sm" c="dimmed">
+              Current subscription status is {titleCase(subscription.status)}.
+            </Text>
+          </Stack>
+          <Button
+            component={Link}
+            to={`/dashboard/series/${subscription.seriesKey}`}
+            size="compact-sm"
+            variant="default"
+          >
+            Series details
+          </Button>
+        </Group>
+
+        {linkedDaysAvailable ? (
+          <Group gap="xs" wrap="wrap">
+            <Badge variant="light" color="brand">
+              {formatDayCount(subscription.linkedDayCount)} linked
+            </Badge>
+            <Badge variant="light" color="green">
+              {subscription.bookedCount} booked
+            </Badge>
+            <Badge variant="light" color="yellow">
+              {subscription.maybeCount} maybe
+            </Badge>
+            <Badge variant="light" color={subscription.missingCount > 0 ? 'orange' : 'gray'}>
+              {subscription.missingCount} missing
+            </Badge>
+            {subscription.cancelledCount > 0 ? (
+              <Badge variant="light" color="gray">
+                {subscription.cancelledCount} cancelled
+              </Badge>
+            ) : null}
+          </Group>
+        ) : (
+          <Text size="sm" c="dimmed">
+            Linked days are not currently available in the calendar.
+          </Text>
+        )}
+
+        {subscription.missingCount > 0 ? (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="addRaceSeries" />
+            <input type="hidden" name="seriesKey" value={subscription.seriesKey} />
+            <Group gap="xs" wrap="wrap">
+              <Button
+                type="submit"
+                name="status"
+                value="maybe"
+                variant="default"
+                loading={isSubmitting}
+              >
+                Add missing dates as maybe
+              </Button>
+              <Button
+                type="submit"
+                name="status"
+                value="booked"
+                color="brand"
+                loading={isSubmitting}
+              >
+                Add missing dates as booked
+              </Button>
+            </Group>
+          </fetcher.Form>
+        ) : linkedDaysAvailable ? (
+          <Text size="sm" c="dimmed">
+            All currently linked dates already have bookings.
+          </Text>
+        ) : null}
+
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="removeRaceSeries" />
+          <input type="hidden" name="seriesKey" value={subscription.seriesKey} />
+          <Group justify="space-between" align="center" wrap="wrap">
+            <Text size="xs" c="dimmed">
+              Removing this series does not delete existing bookings.
+            </Text>
+            <Button type="submit" color="red" variant="subtle" loading={isSubmitting}>
+              Remove series
+            </Button>
+          </Group>
+        </fetcher.Form>
+
+        {success && 'addedCount' in success ? (
+          <Text size="sm" c="dimmed">
+            Added {success.addedCount} missing {success.addedCount === 1 ? 'date' : 'dates'}.
+          </Text>
+        ) : null}
+
+        {formError ? (
+          <Alert color="red" icon={<IconAlertCircle size={18} />}>
+            {formError}
+          </Alert>
+        ) : null}
+      </Stack>
+    </Paper>
+  );
+}
+
+function RaceSeriesSection({ overview }: { overview: MemberRaceSeriesOverview }) {
+  const [opened, { close, open }] = useDisclosure(false);
+  const fullScreen = useMediaQuery('(max-width: 48em)', false, {
+    getInitialValueInEffect: false,
+  });
+
+  return (
+    <>
+      <Paper className="shell-card" p={{ base: 'md', sm: 'lg' }}>
+        <Stack gap="md">
+          <Group justify="space-between" align="flex-start" wrap="wrap">
+            <Stack gap={2}>
+              <Title order={3}>Race series</Title>
+              <Text size="sm" c="dimmed">
+                Manage saved series and add missing linked dates without changing existing
+                bookings.
+              </Text>
+            </Stack>
+            <Button type="button" onClick={open}>
+              Join a series
+            </Button>
+          </Group>
+
+          {overview.subscriptions.length > 0 ? (
+            <Stack gap="md">
+              {overview.subscriptions.map((subscription) => (
+                <RaceSeriesSubscriptionCard
+                  key={subscription.seriesKey}
+                  subscription={subscription}
+                />
+              ))}
+            </Stack>
+          ) : (
+            <Text size="sm" c="dimmed">
+              No race series saved yet.
+            </Text>
+          )}
+        </Stack>
+      </Paper>
+
+      {opened ? (
+        <Modal
+          opened={opened}
+          onClose={close}
+          title="Join a series"
+          fullScreen={fullScreen}
+          size="lg"
+          centered={!fullScreen}
+        >
+          <JoinRaceSeriesForm options={overview.joinOptions} onClose={close} />
+        </Modal>
+      ) : null}
+    </>
+  );
 }
 
 function BookingListItem({
@@ -1378,6 +1654,7 @@ export function MyBookingsPage({
   betaFeatures,
   bookings,
   garageShareRequests = [],
+  seriesOverview = EMPTY_SERIES_OVERVIEW,
   hotelInsights = EMPTY_HOTEL_INSIGHTS,
   calendarFeedExists = false,
   calendarFeedUrl = null,
@@ -1780,6 +2057,8 @@ export function MyBookingsPage({
           </>
         }
       />
+
+      {activeView === 'bookings' ? <RaceSeriesSection overview={seriesOverview} /> : null}
 
       {bookings.length === 0 ? (
         <EmptyStateCard
