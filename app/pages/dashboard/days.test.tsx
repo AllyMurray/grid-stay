@@ -970,8 +970,8 @@ describe('AvailableDaysPage', () => {
       'href',
       '/dashboard/series/caterham-academy',
     );
-    expect(screen.getByRole('button', { name: /add missing as maybe/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /add missing as booked/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /add missing dates as maybe/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /add missing dates as booked/i })).toBeVisible();
   });
 
   it('renders and submits the shared planning note for a selected day', async () => {
@@ -1154,9 +1154,11 @@ describe('AvailableDaysPage', () => {
     expect(
       screen.getByText('All linked events from this series are already in My Bookings.'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /add missing as maybe/i })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /add missing as booked/i }),
+      screen.queryByRole('button', { name: /add missing dates as maybe/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /add missing dates as booked/i }),
     ).not.toBeInTheDocument();
   });
 
